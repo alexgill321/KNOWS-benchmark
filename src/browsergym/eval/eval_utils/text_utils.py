@@ -1,21 +1,67 @@
-from fuzzywuzzy import fuzz
+from fuzzywuzzy import fuzz, process
 from doctr.models import ocr_predictor
 from doctr.io import DocumentFile
 import sys
 sys.path.append("C:/Users/alexg/Documents/GitHub/Agent-Benchmark")
 from eval.eval_utils.utils import retrieve_validate_doc_path, bbox_ratio_to_location, location
+from eval.eval_utils.text_helpers import *
 
 def text_exact_match_contained(text1, text2):
     """
     Check if text1 is contained in text2.
+
+    Args:
+        text1 (str): The text to be checked.
+        text2 (str): The reference text.
     """
-    return text1 in text2
+    return preprocess_text(text1) in preprocess_text(text2)
 
 def text_fuzzy_match_contained(text1, text2):
     """
     Check if text1 is contained in text2 with fuzzy matching.
     """
-    return fuzz.partial_ratio(text1, text2) >= 85
+    query = preprocess_text(text1)
+    larger_text = preprocess_text(text2)
+    query_len = len(query)
+    best_match_tuple = (None, 0) # (matching_substring, score)
+
+    # --- Simple Sliding Window (Character-based) ---
+    # Define a window size slightly larger than the query to allow for variations
+    # You might need to tune this window_size_factor
+    window_size_factor = 1.1
+    window_size = max(query_len, int(query_len * window_size_factor))
+    step_size = 1 # Move window one character at a time for max granularity
+
+    chunks = []
+    for i in range(0, len(larger_text) - window_size + 1, step_size):
+        chunk = larger_text[i : i + window_size]
+        chunks.append(chunk)
+
+    # --- Using process.extractOne ---
+    # Find the best match from the generated chunks
+    # You can choose different scorers: fuzz.ratio, fuzz.WRatio (often good), etc.
+    if chunks: # Ensure there are chunks to process
+        # extractOne returns (choice, score, index) if choices is a dict,
+        # or (choice, score) if choices is a list/iterable
+        best_match_tuple = process.extractOne(
+            query,
+            chunks,
+            scorer=fuzz.WRatio, # WRatio often handles variations well
+            score_cutoff=85
+            # You could add score_cutoff=80 (or other value) to ignore poor matches
+        )
+    else:
+        print("No chunks generated to compare.")
+
+
+    print(f"Query: '{query}'")
+    if best_match_tuple and best_match_tuple[0] is not None:
+        print(f"Best match found in larger text: '{best_match_tuple[0]}'")
+        print(f"Score: {best_match_tuple[1]}%")
+        return best_match_tuple[0], True
+    else:
+        print("No suitable match found.")
+        return None, False
 
 def binary_judge_text(model, text1, text2):
     """
@@ -64,7 +110,7 @@ def extract_text_from_pdf(pdf_path):
     doc = DocumentFile.from_images(image_paths)
     model = ocr_predictor(pretrained=True)
     result = model(doc)
-
+    result.show()
     result_json = result.export()
     formatted_results = {}
     for page in result_json["pages"]:

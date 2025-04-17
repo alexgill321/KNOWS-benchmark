@@ -1,4 +1,6 @@
-from google_services_helpers import *
+import sys
+sys.path.append("C:/Users/alexg/Documents/GitHub/Agent-Benchmark")
+from eval.eval_utils.google_services_helpers import *
 import requests
 import mimetypes
 from googleapiclient.errors import HttpError
@@ -250,23 +252,23 @@ def extract_text_from_doc(doc_id):
         print(f"An unexpected error occurred during text extraction: {e}")
         return None
 
-def download_doc_as_pdf(doc_id, output_dir, service=None):
+def download_doc_as_pdf(doc_id, output_file, service=None):
     """
     Downloads a Google Doc as a PDF and saves it to the specified output directory.
 
     args:
         doc_id (str): The ID of the Google Doc to download.
-        output_dir (str): The path to save the downloaded PDF file.
+        output_file (str): The path to save the downloaded PDF file.
         service: The Google Drive service instance. If None, it will be created.
     """
     if service is None:
         service = build('drive', 'v3', credentials=authenticate(services=['DRIVE']))
     try:
         request = service.files().export_media(fileId=doc_id, mimeType='application/pdf')
-        fh = io.FileIO(output_dir, 'wb')
+        fh = io.FileIO(output_file, 'wb')
         downloader = MediaIoBaseDownload(fh, request)
         done = False
-        print(f"Downloading '{doc_id}' as PDF to '{output_dir}'...")
+        print(f"Downloading '{doc_id}' as PDF to '{output_file}'...")
         while done is False:
             status, done = downloader.next_chunk()
             if status:
@@ -276,13 +278,13 @@ def download_doc_as_pdf(doc_id, output_dir, service=None):
     except HttpError as error:
         print(f'An error occurred during PDF download: {error}')
         # Clean up partially downloaded file if error occurs
-        if os.path.exists(output_dir):
-            os.remove(output_dir)
+        if os.path.exists(output_file):
+            os.remove(output_file)
         return False
     except Exception as e:
         print(f"An unexpected error occurred during download: {e}")
-        if os.path.exists(output_dir):
-            os.remove(output_dir)
+        if os.path.exists(output_file):
+            os.remove(output_file)
         return False
     finally:
         if 'fh' in locals() and not fh.closed:

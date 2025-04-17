@@ -1,9 +1,10 @@
 import sys
+sys.path.append("C:/Users/alexg/Documents/GitHub/Agent-Benchmark")
 import os
 import fitz  # PyMuPDF
 from PIL import Image
-from image_helpers import *
-from utils import location
+from eval.eval_utils.image_helpers import *
+from eval.eval_utils.utils import location
 import torch
 
 def convert_pdf_to_pngs(pdf_path, output_dir, dpi=300):

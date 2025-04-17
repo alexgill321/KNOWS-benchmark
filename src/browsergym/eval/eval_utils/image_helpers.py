@@ -1,7 +1,9 @@
 import cv2
 import numpy as np
 import os
-from utils import retrieve_validate_doc_path
+import sys
+sys.path.append("C:/Users/alexg/Documents/GitHub/Agent-Benchmark")
+from eval.eval_utils.utils import retrieve_validate_doc_path
 
 def parse_response(response):
     """

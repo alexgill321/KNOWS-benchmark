@@ -79,6 +79,9 @@ class location(object):
             height=max_y - min_y
         )
 
+class checkpoint
+
+
 def bbox_ratio_to_location(bbox_ratio, page_number, image_width, image_height):
     """
     Converts bounding box coordinates from ratio format to absolute pixel values 
