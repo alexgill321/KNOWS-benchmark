@@ -6,11 +6,16 @@ sys.path.append("C:/Users/alexg/Documents/GitHub/Agent-Benchmark")
 from eval.eval_utils.utils import retrieve_validate_doc_path
 
 def parse_response(response):
-    """
-    Parses yes or no response from the model and returns a boolean value. Also accounts for variations in phrasing.
+    """Parses yes or no response from the model and returns a boolean value.
+    
+    Accounts for variations in phrasing by looking for "yes" or "no" in the response.
 
     Args:
         response (str): The response from the model.
+
+    Returns:
+        bool or None: True if the response contains "yes", False if it contains "no",
+            None if neither is found.
     """
     response = response.lower()
     if "yes" in response:
@@ -160,8 +165,7 @@ def crop_whitespace(image, threshold=245):
 
 
 def _load_process_images(source_image_path, template_image_path, crop_template_whitespace=True, whitespace_crop_threshold=245):
-    """
-    Load and process source and template images for template matching.
+    """Load and process source and template images for template matching.
     
     Args:
         source_image_path (str): Path to the source image.
@@ -170,8 +174,9 @@ def _load_process_images(source_image_path, template_image_path, crop_template_w
         whitespace_crop_threshold (int): Threshold for whitespace cropping.
         
     Returns:
-        tuple: (source_img_bgr, source_img_gray, template_gray, source_dims, template_dims) or
-               (None, None, None, None, None) on error
+        tuple: A tuple containing processed images and dimensions: 
+            (source_img_bgr, source_img_gray, template_gray, source_dims, template_dims) 
+            or (None, None, None, None, None) on error.
     """
     # Load source image
     print(f"Loading source image: {source_image_path}")
@@ -231,8 +236,7 @@ def _load_process_images(source_image_path, template_image_path, crop_template_w
 
 def _determine_scale_range(template_dims, source_dims, min_scale=None, max_scale=None, 
                           min_source_fraction=None, max_source_fraction=None):
-    """
-    Determine the scale range for template matching.
+    """Determine the scale range for template matching.
     
     Args:
         template_dims (tuple): (height, width) of template image.
@@ -243,7 +247,8 @@ def _determine_scale_range(template_dims, source_dims, min_scale=None, max_scale
         max_source_fraction (float, optional): Max template width as source width fraction.
         
     Returns:
-        tuple: (min_scale, max_scale, method_name) or (None, None, None) on error
+        tuple: A tuple containing scale range information: 
+            (min_scale, max_scale, method_name) or (None, None, None) on error.
     """
     orig_template_h, orig_template_w = template_dims
     source_h, source_w = source_dims
@@ -302,8 +307,7 @@ def _determine_scale_range(template_dims, source_dims, min_scale=None, max_scale
 def _visualize_match_step(source_img_bgr, current_best_loc, current_score, scale, 
                          resized_w, resized_h, best_match_info, resize_display,
                          max_display_width, max_display_height, progress_window_name):
-    """
-    Visualize a single matching step.
+    """Visualize a single matching step.
     
     Args:
         source_img_bgr (np.array): Source image in BGR format.
@@ -319,7 +323,7 @@ def _visualize_match_step(source_img_bgr, current_best_loc, current_score, scale
         progress_window_name (str): Name of visualization window.
         
     Returns:
-        int: Key pressed (or 0 if no key pressed/not applicable)
+        int: Key pressed (or 0 if no key pressed/not applicable).
     """
     display_img = source_img_bgr.copy()
     curr_tl = current_best_loc 
@@ -355,8 +359,7 @@ def _visualize_match_step(source_img_bgr, current_best_loc, current_score, scale
 def _visualize_final_result(source_img_bgr, best_loc, best_w, best_h, best_score, best_scale,
                            threshold, source_w, source_h, match_found, resize_display,
                            max_display_width, max_display_height):
-    """
-    Visualize the final match result.
+    """Visualize the final match result.
     
     Args:
         source_img_bgr (np.array): Source image in BGR format.

@@ -9,33 +9,183 @@ class location(object):
         self.y = y
         self.width = width
         self.height = height
+        self.upper_left_bb = location(0,0,1250,1100)
+        self.upper_right_bb = location(1250,0,1250,1100)
+        self.lower_left_bb = location(0,2200,1250,1100)
+        self.lower_right_bb = location(1250,2200,1250,1100)
+        self.upper = location(0,0,2550,1100)
+        self.lower = location(0,2200,2550,1100)
 
     def __repr__(self):
         return f"Location(page_number={self.page_number}, x={self.x}, y={self.y}, width={self.width}, height={self.height})"
     
-    def is_upper_left(self):
-        return self.x + self.width < 0 and self.y < 0
+    def is_upper_left(self, mostly=False):
+        """
+        Assumes a standard coordinate system where (0,0) is the top-left corner, and y increases downwards.
+
+        Upper left is defined assuming a screenshot of a google doc page saved with 300 dpi. The dimensions should be 2550x3300 pixels.
+
+        Args:
+            mostly (bool): If True, only checks if the location is mostly in the upper left corner.
+                           If False, checks if the location is entirely in the upper left corner.
+
+        
+        Returns:
+            bool: True if the location is in the upper left corner, False otherwise.
+        """
+        if mostly:
+            return self.is_mostly_inside(self.upper_left_bb)
+        else:
+            return self.is_inside(self.upper_left_bb)
     
-    def is_upper_right(self):
-        return self.x > 0 and self.y < 0
+    def is_upper_right(self, mostly=False):
+        """
+        Assumes a standard coordinate system where (0,0) is the top-left corner, and y increases downwards.
+
+        Upper right is defined assuming a screenshot of a google doc page saved with 300 dpi. The dimensions should be 2550x3300 pixels.
+
+        Args:
+            mostly (bool): If True, only checks if the location is mostly in the upper right corner.
+                          If False, checks if the location is entirely in the upper right corner.
+
+        Returns:
+            bool: True if the location is in the upper right corner, False otherwise.
+        """
+        if mostly:
+            return self.is_mostly_inside(self.upper_right_bb)
+        else:
+            return self.is_inside(self.upper_right_bb)
     
-    def is_lower_left(self):
-        return self.x + self.width < 0 and self.y + self.height> 0
+    def is_lower_left(self, mostly=False):
+        """
+        Assumes a standard coordinate system where (0,0) is the top-left corner, and y increases downwards.
+
+        Lower left is defined assuming a screenshot of a google doc page saved with 300 dpi. The dimensions should be 2550x3300 pixels.
+
+        Args:
+            mostly (bool): If True, only checks if the location is mostly in the lower left corner.
+                          If False, checks if the location is entirely in the lower left corner.
+
+        Returns:
+            bool: True if the location is in the lower left corner, False otherwise.
+        """
+        if mostly:
+            return self.is_mostly_inside(self.lower_left_bb)
+        else:
+            return self.is_inside(self.lower_left_bb)
     
-    def is_lower_right(self):
-        return self.x > 0 and self.y > 0
+    def is_lower_right(self, mostly=False):
+        """
+        Assumes a standard coordinate system where (0,0) is the top-left corner, and y increases downwards.
+
+        Lower right is defined assuming a screenshot of a google doc page saved with 300 dpi. The dimensions should be 2550x3300 pixels.
+
+        Args:
+            mostly (bool): If True, only checks if the location is mostly in the lower right corner.
+                          If False, checks if the location is entirely in the lower right corner.
+
+        Returns:
+            bool: True if the location is in the lower right corner, False otherwise.
+        """
+        if mostly:
+            return self.is_mostly_inside(self.lower_right_bb)
+        else:
+            return self.is_inside(self.lower_right_bb)
     
-    def is_upper(self):
-        return self.y < 0
+    def is_upper(self, mostly=False):
+        """
+        Assumes a standard coordinate system where (0,0) is the top-left corner, and y increases downwards.
+
+        Upper region is defined assuming a screenshot of a google doc page saved with 300 dpi. 
+        The dimensions should be 2550x3300 pixels.
+
+        Args:
+            mostly (bool): If True, only checks if the location is mostly in the upper region.
+                          If False, checks if the location is entirely in the upper region.
+
+        Returns:
+            bool: True if the location is in the upper region, False otherwise.
+        """
+        if mostly:
+            return self.is_mostly_inside(self.upper)
+        else:
+            return self.is_inside(self.upper)
     
-    def is_lower(self):
-        return self.y + self.height > 0
+    def is_lower(self, mostly=False):
+        """
+        Assumes a standard coordinate system where (0,0) is the top-left corner, and y increases downwards.
+
+        Lower region is defined assuming a screenshot of a google doc page saved with 300 dpi. 
+        The dimensions should be 2550x3300 pixels.
+
+        Args:
+            mostly (bool): If True, only checks if the location is mostly in the lower region.
+                          If False, checks if the location is entirely in the lower region.
+
+        Returns:
+            bool: True if the location is in the lower region, False otherwise.
+        """
+        if mostly:
+            return self.is_mostly_inside(self.lower)
+        else:
+            return self.is_inside(self.lower)
     
     def is_inside(self, other):
+        """
+        Checks if this location is completely inside another location.
+        
+        Args:
+            other (location): The other location to check against
+            
+        Returns:
+            bool: True if this location is completely inside the other location
+        """
         return (self.x >= other.x and
                 self.y >= other.y and
                 self.x + self.width <= other.x + other.width and
                 self.y + self.height <= other.y + other.height)
+    
+    def is_mostly_inside(self, other, cutoff=0.6):
+        """
+        Checks if this location is mostly inside another location based on area overlap.
+        
+        Args:
+            other (location): The other location to check against
+            cutoff (float): The percentage threshold of overlap required (0.0 to 1.0)
+                             Default is 0.6, meaning at least 60% of this location must
+                             be inside the other location
+        
+        Returns:
+            bool: True if the overlap percentage is greater than or equal to the specified percent
+        """
+        # First check that the locations are on the same page
+        if self.page_number != other.page_number:
+            return False
+        
+        # Calculate the intersection coordinates
+        x_intersect_start = max(self.x, other.x)
+        y_intersect_start = max(self.y, other.y)
+        x_intersect_end = min(self.x + self.width, other.x + other.width)
+        y_intersect_end = min(self.y + self.height, other.y + other.height)
+        
+        # Check if there's any overlap at all
+        if x_intersect_start >= x_intersect_end or y_intersect_start >= y_intersect_end:
+            return False  # No overlap
+        
+        # Calculate the area of overlap
+        overlap_area = (x_intersect_end - x_intersect_start) * (y_intersect_end - y_intersect_start)
+        
+        # Calculate the area of this location
+        self_area = self.width * self.height
+        
+        # Calculate the percentage of this location that overlaps with the other location
+        if self_area == 0:
+            return False  # Avoid division by zero
+        
+        overlap_ratio = (overlap_area / self_area)
+        
+        # Return True if the overlap percentage exceeds the threshold
+        return overlap_ratio >= cutoff
                 
     @staticmethod
     def merge_locations(locations):
@@ -78,9 +228,6 @@ class location(object):
             width=max_x - min_x,
             height=max_y - min_y
         )
-
-class checkpoint
-
 
 def bbox_ratio_to_location(bbox_ratio, page_number, image_width, image_height):
     """

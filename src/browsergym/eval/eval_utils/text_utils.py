@@ -6,19 +6,38 @@ sys.path.append("C:/Users/alexg/Documents/GitHub/Agent-Benchmark")
 from eval.eval_utils.utils import retrieve_validate_doc_path, bbox_ratio_to_location, location
 from eval.eval_utils.text_helpers import *
 
-def text_exact_match_contained(text1, text2):
+def text_exact_match_contained(src_text, ref_text):
     """
-    Check if text1 is contained in text2.
+    Check if any text in text_options is contained as an exact match in text2.
 
     Args:
-        text1 (str): The text to be checked.
-        text2 (str): The reference text.
+        src_text (Union[str, List[str]]): A string or a list of strings to be checked.
+        ref_text (str): The reference text.
+
+    Returns:
+        string: The matched text if found, otherwise None.
     """
-    return preprocess_text(text1) in preprocess_text(text2)
+    if isinstance(src_text, str):
+        if preprocess_text(src_text) in preprocess_text(ref_text):
+            return src_text
+    elif isinstance(src_text, list):
+        for text in src_text:
+            if preprocess_text(text) in preprocess_text(ref_text):
+                return text
+        return None
 
 def text_fuzzy_match_contained(text1, text2):
-    """
-    Check if text1 is contained in text2 with fuzzy matching.
+    """Check if text1 is contained in text2 with fuzzy matching.
+    
+    Uses a sliding window approach with fuzzy string matching to find text1 within text2,
+    even when there are slight variations in spelling or formatting.
+    
+    Args:
+        text1 (str): The text to search for.
+        text2 (str): The text to search within.
+        
+    Returns:
+        str: The best matching substring found in text2, or None if no match is found.
     """
     query = preprocess_text(text1)
     larger_text = preprocess_text(text2)
@@ -58,19 +77,18 @@ def text_fuzzy_match_contained(text1, text2):
     if best_match_tuple and best_match_tuple[0] is not None:
         print(f"Best match found in larger text: '{best_match_tuple[0]}'")
         print(f"Score: {best_match_tuple[1]}%")
-        return best_match_tuple[0], True
+        return best_match_tuple[0]
     else:
         print("No suitable match found.")
-        return None, False
+        return None
 
-def binary_judge_text(model, text1, text2):
-    """
-    Classifies a text based on its presence in another text using a pre-trained LLM.
+def binary_judge_text(model, src_text, gld_text):
+    """Classifies a text based on its presence in another text using a pre-trained LLM.
 
     Args:
         model (str): The model to use for classification. Model should be loaded beforehand.
-        text1 (str): The text to be classified.
-        text2 (str): The reference text.
+        src_text (str): The text to be classified.
+        gld_text (str): The reference text.
 
     Returns:
         bool: True if text1 is deemed to be present in text2, False otherwise.
@@ -91,7 +109,7 @@ def binary_judge_text(model, text1, text2):
             "content": 
             [{
                 "type": "text", 
-                "text": f"Text 1: {text1}\nReference Text: {text2}"
+                "text": f"Text 1: {src_text}\nReference Text: {gld_text}"
             }]
         }
     ]

@@ -3,13 +3,14 @@ sys.path.append("C:/Users/alexg/Documents/GitHub/Agent-Benchmark")
 import os
 import fitz  # PyMuPDF
 from PIL import Image
+import cv2
+import numpy as np
 from eval.eval_utils.image_helpers import *
 from eval.eval_utils.utils import location
 import torch
 
 def convert_pdf_to_pngs(pdf_path, output_dir, dpi=300):
-    """
-    Converts each page of a PDF file to a PNG image.
+    """Converts each page of a PDF file to a PNG image.
 
     Args:
         pdf_path (str): The path to the PDF file.
@@ -46,53 +47,89 @@ def convert_pdf_to_pngs(pdf_path, output_dir, dpi=300):
         return None
     
 def binary_judge_image(model, image_path, text):
-    """
-    Classifies an image based on the provided text using a pre-trained model.
+    """Classifies an image (or a folder of images) based on the provided text using a pre-trained model.
+    
+    If a folder is provided, it will check each image until one passes (returns True) or all fail.
 
     Args:
-        model: The ID of the pre-trained model to use. Model should be loaded beforehand.
-        image_path (str): The path to the image file.
-        text (str): The text to classify the image against.
+        model: The pre-trained model to use. Model should be loaded beforehand.
+        image_path (str): The path to the image file or a folder containing images.
+        text (str): The text to classify the image(s) against.
 
     Returns:
-        str: The classification result ("yes", "no", or "don't know").
+        string: The path of the image that passed the classification, or None if no image passed.
+
+    Raises:
+        FileNotFoundError: If the provided image path does not exist or contains no valid images.
     """
-    try:
-        image = Image.open(image_path)
-        image = image.convert("RGB")
-    except Exception as e:
-        print(f"Error loading image: {e}")
-        print("Please replace the image_url or provide a local image path.")
-        exit()
+    # Get a list of image paths to process
+    image_paths = []
     
-    messages = [
-        {
-            "role": "system",
-            "content": [{"type": "text", "text": "Given an image and a text which will ask a question about the image, answer the question with either \"Yes\" or \"No\". If the question is not answerable with \"Yes\" or \"No\", respond with \"I don't know\"."}]
-        },
-        {
-            "role": "user",
-            "content": [
-                {"type": "image", "image": image},
-                {"type": "text", "text": text}
+    # Process image_path
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"Path does not exist: {image_path}")
+    
+    if os.path.isdir(image_path):
+        # Get all image files in the directory
+        for filename in os.listdir(image_path):
+            if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
+                image_paths.append(os.path.join(image_path, filename))
+        print(f"Found {len(image_paths)} images in {image_path}")
+    else:
+        # Single image file
+        image_paths.append(image_path)
+    
+    # Check if we have images to process
+    if not image_paths:
+        raise FileNotFoundError(f"No valid images found in {image_path}")
+    
+    # Process each image until one passes or all fail
+    for img_path in image_paths:
+        try:
+            print(f"Processing image: {os.path.basename(img_path)}")
+            image = Image.open(img_path)
+            image = image.convert("RGB")
+            
+            messages = [
+                {
+                    "role": "system",
+                    "content": [{"type": "text", "text": "Given an image and a text which will ask a question about the image, answer the question with either \"Yes\" or \"No\". If the question is not answerable with \"Yes\" or \"No\", respond with \"I don't know\"."}]
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image", "image": image},
+                        {"type": "text", "text": text}
+                    ]
+                },
             ]
-        },
-    ]
-
-    response = model(messages)
-
-    return parse_response(response)
+            
+            response = model(messages)
+            result = parse_response(response)
+            
+            if result is True:
+                print(f"Image {os.path.basename(img_path)} passed the classification")
+                return img_path  # Return the path of the image that passed
+            else:
+                print(f"Image {os.path.basename(img_path)} did not pass the classification")
+                
+        except Exception as e:
+            print(f"Error processing image {img_path}: {e}")
+            continue
+    
+    # If we get here, no image passed
+    print("No images passed the classification")
+    return None
 
 def extract_text_from_pdf(doc_path):
-    """
-    Extracts text items from a screenshots of a PDF document using Omniparser.
+    """Extracts text items from screenshots of a PDF document using Omniparser.
 
     Args:
         doc_path (str): The path to the folder where images of the pdf are stored.
 
     Returns:
-        dict: A dictionary containing of dictionaries with the text items and their locations in the document. 
-              The dictionary has entries for each page of the document. Only items with type "text" are included.
+        dict: A dictionary containing dictionaries with the text items and their locations in the document. 
+            The dictionary has entries for each page of the document. Only items with type "text" are included.
     """
     image_paths = retrieve_validate_doc_path(doc_path)
     
@@ -250,22 +287,23 @@ def extract_text_from_pdf(doc_path):
     print(f"Text extraction complete. Extracted text from {len(result)} pages.")
     return result
 
-def extract_location(image_path, doc_path):
-    """
-    Extracts the location of an image in a document from jpg images of a PDF doc/slide/sheet.
+def extract_image_location(image_path, doc_path):
+    """Extracts the location of an image in a document from jpg images of a PDF doc/slide/sheet.
 
     Args:
         image_path (str): The path to the image file.
         doc_path (str): The path to the folder where images of the pdf are stored. This should be done before running this method.
 
     Returns:
-        location (Location): The location of the image in the document.
-        If the image is not found, returns None.
+        location: A location object of the bounding boc of the image in the document. 
+        Returns None if not found.
+
+    Raises:
+        FileNotFoundError: If the provided image path does not exist or the document path is invalid.
     """
     # Validate inputs
     if not os.path.exists(image_path):
-        print(f"Error: Image path does not exist: {image_path}")
-        return None
+        raise FileNotFoundError(f"Image path does not exist: {image_path}")
     
     doc_images = retrieve_validate_doc_path(doc_path)
     
@@ -314,4 +352,95 @@ def extract_location(image_path, doc_path):
     
     # Image not found in any page
     print("Image not found in any page of the document.")
+    return None
+    
+def image_exact_match(src_image_path, gld_image_path):
+    """Performs an exact pixel-by-pixel comparison between images.
+    
+    Both parameters can be single image paths or folder paths containing multiple images. 
+    
+    Args:
+        src_image_path (str): Path to the first image file or folder containing images.
+        gld_image_path (str): Path to the second image file or folder containing images.
+        
+    Returns:
+        string: The path of the image that matched, or None if no match was found.
+
+    Raises:
+        FileNotFoundError: If the provided image paths do not exist or contain no valid images.
+    """
+    # Get lists of image paths
+    src_paths = []
+    gld_paths = []
+    
+    # Process image1_path
+    if not os.path.exists(src_image_path):
+        raise FileNotFoundError(f"Path does not exist: {src_image_path}")
+    
+    if os.path.isdir(src_image_path):
+        # Get all image files in the directory
+        for filename in os.listdir(src_image_path):
+            if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
+                src_paths.append(os.path.join(src_image_path, filename))
+        print(f"Found {len(src_paths)} images in {src_image_path}")
+    else:
+        # Single image file
+        src_paths.append(src_image_path)
+    
+    # Process image2_path
+    if not os.path.exists(gld_image_path):
+        raise FileNotFoundError(f"Path does not exist: {gld_image_path}")
+    
+    if os.path.isdir(gld_image_path):
+        for filename in os.listdir(gld_image_path):
+            if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
+                gld_paths.append(os.path.join(gld_image_path, filename))
+    else:
+        # Single image file
+        gld_paths.append(gld_image_path)
+    
+    # Check if we have images to compare
+    if not src_paths:
+        raise FileNotFoundError(f"No valid images found in {src_image_path}")
+    
+    if not gld_paths:
+        raise FileNotFoundError(f"No valid images found in {gld_image_path}")
+    
+    # Compare each image from set 1 with each image from set 2
+    for src_path in src_paths:
+        try:
+            img1 = cv2.imread(src_path)
+            if img1 is None:
+                print(f"Warning: Could not read image: {src_path}")
+                continue
+                
+            for gld_path in gld_paths:
+                try:
+                    img2 = cv2.imread(gld_path)
+                    if img2 is None:
+                        print(f"Warning: Could not read image: {gld_path}")
+                        continue
+                    
+                    # Check dimensions match
+                    if img1.shape != img2.shape:
+                        continue  # Skip to next comparison if dimensions don't match
+                    
+                    # Calculate absolute difference between images
+                    difference = cv2.absdiff(img1, img2)
+                    
+                    # If all pixel differences are zero, we have a match
+                    if np.count_nonzero(difference) == 0:
+                        print(f"Match found between {src_path} and {gld_path}")
+                        return src_path
+                        
+                except Exception as e:
+                    print(f"Error comparing with {gld_path}: {e}")
+                    continue
+                    
+        except Exception as e:
+            print(f"Error loading {src_path}: {e}")
+            continue
+    
+    # No matches found
+    print("No exact matches found between the images")
     return None

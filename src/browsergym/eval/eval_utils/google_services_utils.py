@@ -8,22 +8,16 @@ from googleapiclient.http import MediaIoBaseDownload
 import io
 
 def search_doc(filename, folder_id=None):
-    """
-    Search for a Google Doc by its filename.
+    """Search for a Google Doc by its filename.
 
     Args:
         filename (str): The name of the Google Doc to search for.
         folder_id (str, optional): The ID of the Google Drive folder to search in. If None, searches in the entire Drive.
 
     Returns:
-        tuple: A tuple containing:
-
-            - An integer indicating the search result:
-                - 0: No document found
-                - 1: Document found in the entire Drive
-                - 2: Document found in the specified folder
-
-            - The ID of the found Google Doc, or None if not found.
+        A tuple (status, doc_id) containing:
+            - status (int): 0 if not found, 1 if found in any location, 2 if found in specified location.
+            - doc_id (str): The ID of the found Google Doc, or None if not found.
     """
     doc = None
     if folder_id:
@@ -37,8 +31,7 @@ def search_doc(filename, folder_id=None):
         return 2, doc
 
 def find_doc_specified_location(folder_id, filename):
-    """
-    Find a Google Doc in a specified folder by its filename.
+    """Find a Google Doc in a specified folder by its filename.
 
     Args:
         folder_id (str): The ID of the Google Drive folder to search in.
@@ -66,14 +59,13 @@ def find_doc_specified_location(folder_id, filename):
             return None
         
 def find_doc_any(filename):
-    """
-    Find a Google Doc by its filename.
+    """Find a Google Doc by its filename.
 
     Args:
         filename (str): The name of the Google Doc to find.
 
     Returns:
-        file_id (str): The ID of the found Google Doc.
+        The ID of the found Google Doc.
     """
     service = build('drive', 'v3', credentials=authenticate(services=['DRIVE']))
 
@@ -99,12 +91,14 @@ def find_doc_any(filename):
         return doc_id
                    
 def extract_images_from_doc(doc_id, output_dir=None):
-    """
-    Extracts images from a gooogle document
+    """Extracts images from a gooogle document
 
-    args:
+    Args:
         doc_id (str): The ID of the Google Doc to extract images from.
         output_dir (str): The directory to save the extracted images. If None, the extracted images will not be saved
+
+    Returns:
+        A list of images extracted from the document. Each image is represented as a byte string.
     """
     service = build('docs', 'v1', credentials=authenticate(services=['DOCS']))
     if output_dir is not None:
@@ -178,16 +172,15 @@ def extract_images_from_doc(doc_id, output_dir=None):
     return None
 
 def extract_text_from_doc(doc_id):
-    """
-    Extracts all text content from a Google Document.
+    """Extracts all text content from a Google Document.
 
     Args:
         doc_id (str): The ID of the Google Doc to extract text from.
 
     Returns:
-        dict: A dictionary containing the extracted text under the key 'text'.
-              Returns {'text': ''} if the document has no text content.
-              Returns None if an error occurs (e.g., document not found, API error).
+        A dictionary containing the extracted text under the key 'text'.
+        Returns {'text': ''} if the document has no text content.
+        Returns None if an error occurs (e.g., document not found, API error).
     """
     try:
         # Build the Docs API service
@@ -253,13 +246,15 @@ def extract_text_from_doc(doc_id):
         return None
 
 def download_doc_as_pdf(doc_id, output_file, service=None):
-    """
-    Downloads a Google Doc as a PDF and saves it to the specified output directory.
+    """Downloads a Google Doc as a PDF and saves it to the specified output directory.
 
-    args:
+    Args:
         doc_id (str): The ID of the Google Doc to download.
         output_file (str): The path to save the downloaded PDF file.
         service: The Google Drive service instance. If None, it will be created.
+
+    Returns:
+        True if the download was successful, False otherwise.
     """
     if service is None:
         service = build('drive', 'v3', credentials=authenticate(services=['DRIVE']))
