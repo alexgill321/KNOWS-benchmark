@@ -464,3 +464,32 @@ def display_location_overlay(doc_path, loc, color=(0, 255, 0), max_width=1200, m
         print(f"Saved overlay image to {save_path}")
         
     return overlay_image
+
+def image_id_from_path(image_path):
+    """
+    Extracts the image ID from the file name of an image path.
+    
+    The expected format is: image_{image_count}_{obj_id}{extension}
+    where obj_id is the actual image ID we want to extract.
+    
+    Args:
+        image_path (str): Path to the image file.
+        
+    Returns:
+        str: Image ID (obj_id) extracted from the file name.
+    """
+    # Extract the file name without the directory path
+    file_name = os.path.basename(image_path)
+    
+    # Remove the file extension
+    base_name = os.path.splitext(file_name)[0]
+    
+    # Check if the file follows the expected format
+    if base_name.startswith('image_'):
+        # Split by underscore and get the obj_id (the part after the second underscore)
+        parts = base_name.split('_', 2)
+        if len(parts) >= 3:
+            return parts[2]  # Return the obj_id part
+    
+    # If the format doesn't match, return the base name as fallback
+    return base_name
