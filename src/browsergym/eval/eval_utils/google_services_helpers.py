@@ -44,3 +44,28 @@ def get_scopes(services):
     # Generate the list of scopes
     scopes = [scope_mappings[service] for service in services if service in scope_mappings]
     return scopes
+    
+def get_doc_content(doc_id):
+    """Fetches the content of a Google Document.
+    
+    Args:
+        doc_id (str): The ID of the Google Doc to fetch.
+        
+    Returns:
+        tuple: A tuple containing (document, service) where document is the full document 
+            content and service is the authenticated Docs API service. Returns (None, None) 
+            if an error occurs.
+    """
+    try:
+        # Build the Docs API service
+        service = build('docs', 'v1', credentials=authenticate(services=['DOCS']))
+        
+        print(f"Fetching document content for ID: {doc_id}")
+        # Retrieve the document content
+        document = service.documents().get(documentId=doc_id).execute()
+        print("Document content fetched successfully.")
+        
+        return document, service
+    except Exception as e:
+        print(f"Error fetching document content: {e}")
+        return None, None

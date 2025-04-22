@@ -1,6 +1,6 @@
 import sys
 sys.path.append("C:/Users/alexg/Documents/GitHub/Agent-Benchmark")
-from eval.eval_utils.google_services_helpers import *
+from src.browsergym.eval.eval_utils.google_services_helpers import *
 import requests
 import mimetypes
 from googleapiclient.errors import HttpError
@@ -91,14 +91,15 @@ def find_doc_any(filename):
         return doc_id
                    
 def extract_images_from_doc(doc_id, output_dir=None):
-    """Extracts images from a gooogle document
+    """Extracts images from a Google document.
 
     Args:
         doc_id (str): The ID of the Google Doc to extract images from.
-        output_dir (str): The directory to save the extracted images. If None, the extracted images will not be saved
+        output_dir (str): The directory to save the extracted images. If None, the extracted images will not be saved.
 
     Returns:
-        A list of images extracted from the document. Each image is represented as a byte string.
+        list: A list of images extracted from the document. Each image is represented as a byte string.
+            Returns None if no images were found or an error occurred.
     """
     service = build('docs', 'v1', credentials=authenticate(services=['DOCS']))
     if output_dir is not None:
@@ -108,8 +109,6 @@ def extract_images_from_doc(doc_id, output_dir=None):
             print(f"Created output directory: {output_dir}")
 
     document = service.documents().get(documentId=doc_id).execute()
-
-    doc_content = document.get("body").get("content")
     inline_objects = document.get("inlineObjects") # Get the dictionary of inline objects
 
     if not inline_objects:
@@ -183,21 +182,8 @@ def extract_text_from_doc(doc_id):
         Returns None if an error occurs (e.g., document not found, API error).
     """
     try:
-        # Build the Docs API service
-        service = build('docs', 'v1', credentials=authenticate(services=['DOCS']))
-
-        print(f"Fetching document content for ID: {doc_id}")
-        # Retrieve the document content
-        document = service.documents().get(documentId=doc_id).execute()
-        print("Document content fetched successfully.")
-
-        doc_content = document.get('body', {}).get('content')
-
-        if not doc_content:
-            print("Document body or content is empty.")
-            # Return empty text if the document structure is there but no content
-            return {'text': ''} 
-
+        doc, service = get_doc_content(doc_id)
+        doc_content = doc.get('body', {}).get('content', [])
         extracted_text = []
         print("Extracting text from document elements...")
         # Iterate through the structural elements of the document body
@@ -283,5 +269,204 @@ def download_doc_as_pdf(doc_id, output_file, service=None):
         return False
     finally:
         if 'fh' in locals() and not fh.closed:
-            fh.close()                    
+            fh.close()
+
+def extract_structure_from_doc(doc_id):
+    """Extracts the structure of a Google Document as an ordered list of elements.
+    
+    Parses the document structure and returns an ordered list of elements (text and images)
+    with their content and metadata. Elements are ordered as they appear in the document.
+    
+    Args:
+        doc_id (str): The ID of the Google Doc to extract structure from.
+        
+    Returns:
+        list: An ordered list of dictionaries, each representing an element in the document.
+            Each element has:
+            - 'type': Either 'text' or 'image'
+            - 'content': For text, the text string; for images, the image ID
+            - 'metadata': Additional information about the element
+            Returns None if an error occurs.
+    """
+    # Use the helper method to get document content
+    document, service = get_doc_content(doc_id)
+    if not document:
+        return None
+    
+    try:
+        # Get the document body content and inline objects
+        doc_content = document.get('body', {}).get('content', [])
+        inline_objects = document.get('inlineObjects', {})
+        positioned_objects = document.get('positionedObjects', {})
+        
+        if not doc_content:
+            print("Document body is empty.")
+            return []
+        
+        # List to store document structure elements in order
+        structure = []
+        
+        # Function to process text elements
+        def process_text_element(text_content, element_type="paragraph"):
+            if not text_content.strip():
+                return None
+            
+            return {
+                'type': 'text',
+                'content': text_content,
+                'metadata': {
+                    'element_type': element_type
+                }
+            }
+        
+        # Function to process table rows
+        def process_table_rows(table):
+            table_elements = []
+            rows = table.get('tableRows', [])
+            
+            for row_idx, row in enumerate(rows):
+                cells = row.get('tableCells', [])
+                for cell_idx, cell in enumerate(cells):
+                    cell_content = cell.get('content', [])
+                    for cell_element in cell_content:
+                        # Process cell content (recursive)
+                        cell_structure = process_structural_element(cell_element)
+                        if cell_structure:
+                            # Add table position metadata
+                            if isinstance(cell_structure, list):
+                                for item in cell_structure:
+                                    if 'metadata' in item:
+                                        item['metadata']['table_position'] = {
+                                            'row': row_idx,
+                                            'cell': cell_idx
+                                        }
+                                table_elements.extend(cell_structure)
+                            else:
+                                if 'metadata' in cell_structure:
+                                    cell_structure['metadata']['table_position'] = {
+                                        'row': row_idx,
+                                        'cell': cell_idx
+                                    }
+                                table_elements.append(cell_structure)
+            
+            return table_elements
+        
+        # Function to process list elements
+        def process_list_element(list_item):
+            list_elements = []
+            content = list_item.get('content', [])
+            list_properties = list_item.get('listProperties', {})
+            
+            for element in content:
+                list_structure = process_structural_element(element)
+                if list_structure:
+                    # Add list metadata
+                    if isinstance(list_structure, list):
+                        for item in list_structure:
+                            if 'metadata' in item:
+                                item['metadata']['list_properties'] = list_properties
+                        list_elements.extend(list_structure)
+                    else:
+                        if 'metadata' in list_structure:
+                            list_structure['metadata']['list_properties'] = list_properties
+                        list_elements.append(list_structure)
+            
+            return list_elements
+        
+        # Process different structural elements
+        def process_structural_element(element):
+            # Process paragraph
+            if 'paragraph' in element:
+                paragraph = element['paragraph']
+                para_elements = paragraph.get('elements', [])
+                paragraph_text = ""
+                paragraph_items = []
+                
+                for para_element in para_elements:
+                    # Process text run
+                    if 'textRun' in para_element:
+                        text_run = para_element.get('textRun', {})
+                        content = text_run.get('content', '')
+                        paragraph_text += content
+                    
+                    # Process inline image
+                    elif 'inlineObjectElement' in para_element:
+                        # First add any accumulated text
+                        if paragraph_text:
+                            text_element = process_text_element(paragraph_text)
+                            if text_element:
+                                paragraph_items.append(text_element)
+                                paragraph_text = ""
                         
+                        # Add the inline image
+                        inline_obj_id = para_element['inlineObjectElement'].get('inlineObjectId')
+                        if inline_obj_id and inline_obj_id in inline_objects:
+                            obj_data = inline_objects[inline_obj_id]
+                            embedded_obj = obj_data.get('inlineObjectProperties', {}).get('embeddedObject', {})
+                            
+                            image_element = {
+                                'type': 'image',
+                                'content': inline_obj_id,
+                                'metadata': {
+                                    'size': embedded_obj.get('size', {}),
+                                    'source': 'inline',
+                                    'title': embedded_obj.get('title', '')
+                                }
+                            }
+                            paragraph_items.append(image_element)
+                
+                # Add any remaining text
+                if paragraph_text:
+                    text_element = process_text_element(paragraph_text)
+                    if text_element:
+                        paragraph_items.append(text_element)
+                
+                return paragraph_items
+            
+            # Process table
+            elif 'table' in element:
+                return process_table_rows(element['table'])
+            
+            # Process list (bullet points, numbered lists)
+            elif 'listItem' in element:
+                return process_list_element(element['listItem'])
+            
+            # Other element types can be processed as needed
+            return None
+        
+        # Process the positioned images (not inline with text)
+        for obj_id, obj_data in positioned_objects.items():
+            pos_obj = obj_data.get('positionedObjectProperties', {})
+            embedded_obj = pos_obj.get('embeddedObject', {})
+            
+            if embedded_obj and 'imageProperties' in embedded_obj:
+                image_element = {
+                    'type': 'image',
+                    'content': obj_id,
+                    'metadata': {
+                        'size': embedded_obj.get('size', {}),
+                        'position': pos_obj.get('positioning', {}),
+                        'source': 'positioned', 
+                        'title': embedded_obj.get('title', '')
+                    }
+                }
+                structure.append(image_element)
+        
+        # Process the main document content
+        for element in doc_content:
+            element_structure = process_structural_element(element)
+            if element_structure:
+                if isinstance(element_structure, list):
+                    structure.extend(element_structure)
+                else:
+                    structure.append(element_structure)
+        
+        print(f"Extracted document structure with {len(structure)} elements")
+        return structure
+        
+    except Exception as e:
+        print(f"An unexpected error occurred during document structure extraction: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+

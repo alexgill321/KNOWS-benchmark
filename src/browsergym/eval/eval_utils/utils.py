@@ -229,6 +229,106 @@ class location(object):
             height=max_y - min_y
         )
 
+class layout(object):
+    def __init__(self, element, element_type, doc_structure):
+        """Initialize a layout object with an element and document structure.
+        
+        Args:
+            element: The element to find in the document structure. Can be a text string or image ID.
+            doc_structure: The document structure (as returned by extract_structure_from_doc).
+        """
+        self.doc_structure = doc_structure
+        (self.start_position, self.end_position, self.elements_before, self.elements_after) = self.find_in_structure(element, element_type, doc_structure)
+
+    def comes_before(self, other_element, other_element_type):
+        if self._find_in_structure(other_element, other_element_type, self.elements_after) is not None:
+            return True
+        return False
+    
+    def comes_after(self, other_element, other_element_type):
+        if self._find_in_structure(other_element, other_element_type, self.elements_before) is not None:
+            return True
+        return False
+    
+    def at_end(self):
+        """Check if the element is at the end of the document structure."""
+        return self.end_position == len(self.doc_structure) - 1
+    
+    def at_start(self):
+        """Check if the element is at the start of the document structure."""
+        return self.start_position == 0
+        
+    @staticmethod
+    def find_in_structure(element, element_type, doc_structure):
+        # TODO: Test this method thoroughly with various document structures 
+        """Recursively searches for an element in the document structure content.
+
+        For images, the content would be the image ID, and for text, it would be the text content.
+        This function traverses the document structure and returns the start index of the found element.
+        Matches must be exact, but can span across multiple lines of content in the document structure.
+        """
+        # TODO: In the future might need to handle this. For now positioned images are removed from the structure. so only inline images are considered.
+        for idx, item in enumerate(doc_structure):
+            # Check for match in this element
+            content_match = False
+            if item.get('type') == 'image':
+                if item.get("source") == "positioned":
+                    doc_structure.remove(item)
+                    continue
+        # Iterate through structure to find the element
+        for idx, item in enumerate(doc_structure):
+            if element_type == 'image':
+                # For image IDs, check exact match of content field
+                if item.get('type') == 'image' and item.get('content') == element:
+                    content_match = True
+            else:
+                # For text, check if the text contains our element or vice versa
+                if item.get('type') == 'text':
+                    item_content = item.get('content', '')
+                    if element in item_content:
+                        content_match = True
+            
+            if content_match:
+                # We found a match - build the before/after lists
+                elements_before = doc_structure[:idx]
+                elements_after = doc_structure[idx+1:]
+                start_position = idx
+                end_position = idx
+                return (start_position, end_position, elements_before, elements_after)
+                
+        # Handle multi-element text matches (text that spans across multiple elements)
+        if element_type != 'image':
+            content_match = False
+            best_start_idx = None
+            best_end_idx = None
+            # Try concatenating text elements to find longer matches
+            for start_idx in range(len(doc_structure)):
+                combined_text = ""
+                for end_idx in range(start_idx, len(doc_structure)):
+                    if doc_structure[end_idx].get('type') == 'text':
+                        combined_text += doc_structure[end_idx].get('content', '')
+                        
+                    # Check if our combined text contains the element or vice versa
+                    if element in combined_text:
+                        content_match = True
+                        best_start_idx = start_idx
+                        best_end_idx = end_idx
+            
+            if content_match:
+                for start_idx in range(best_start_idx, best_end_idx + 1):
+                    combined_text = ""
+                    # Collect all text elements in the range
+                    for end_idx in range(start_idx, best_end_idx + 1):
+                        if doc_structure[end_idx].get('type') == 'text':
+                            combined_text += doc_structure[end_idx].get('content', '')
+                    
+                    if element in combined_text:
+                        best_start_idx = start_idx
+                    else:
+                        return (best_start_idx, best_end_idx, doc_structure[:best_start_idx], doc_structure[best_end_idx+1:])
+        # Element not found
+        return None
+
 def bbox_ratio_to_location(bbox_ratio, page_number, image_width, image_height):
     """
     Converts bounding box coordinates from ratio format to absolute pixel values 
