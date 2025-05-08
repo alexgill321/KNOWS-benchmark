@@ -1,5 +1,6 @@
 import sys
-sys.path.append("C:/Users/alexg/Documents/GitHub/Agent-Benchmark")
+import os
+sys.path.append(os.getcwd())
 from src.browsergym.eval.eval_utils.google_services_helpers import *
 import requests
 import mimetypes
@@ -130,7 +131,7 @@ def extract_images_from_doc(doc_id, output_dir=None):
 
             if content_uri:
                 image_count += 1
-                print(f"Found image {image_count} (Object ID: {obj_id}) at URI: {content_uri}")
+                print(f"Found image {image_count} (Object ID: {obj_id})")
 
                 try:
                     response = authed_session.get(content_uri)
@@ -249,12 +250,8 @@ def download_doc_as_pdf(doc_id, output_file, service=None):
         fh = io.FileIO(output_file, 'wb')
         downloader = MediaIoBaseDownload(fh, request)
         done = False
-        print(f"Downloading '{doc_id}' as PDF to '{output_file}'...")
         while done is False:
             status, done = downloader.next_chunk()
-            if status:
-                print(f"Download {int(status.progress() * 100)}%.")
-        print("Download complete.")
         return True
     except HttpError as error:
         print(f'An error occurred during PDF download: {error}')

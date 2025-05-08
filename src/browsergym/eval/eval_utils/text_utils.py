@@ -2,9 +2,10 @@ from fuzzywuzzy import fuzz, process
 from doctr.models import ocr_predictor
 from doctr.io import DocumentFile
 import sys
-sys.path.append("C:/Users/alexg/Documents/GitHub/Agent-Benchmark")
-from eval.eval_utils.utils import retrieve_validate_doc_path, bbox_ratio_to_location, location
-from eval.eval_utils.text_helpers import *
+import os
+sys.path.append(os.getcwd())
+from src.browsergym.eval.eval_utils.utils import retrieve_validate_doc_path, bbox_ratio_to_location, location
+from src.browsergym.eval.eval_utils.text_helpers import *
 
 def text_exact_match_contained(src_text, ref_text):
     """

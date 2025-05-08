@@ -9,12 +9,6 @@ class location(object):
         self.y = y
         self.width = width
         self.height = height
-        self.upper_left_bb = location(0,0,1250,1100)
-        self.upper_right_bb = location(1250,0,1250,1100)
-        self.lower_left_bb = location(0,2200,1250,1100)
-        self.lower_right_bb = location(1250,2200,1250,1100)
-        self.upper = location(0,0,2550,1100)
-        self.lower = location(0,2200,2550,1100)
 
     def __repr__(self):
         return f"Location(page_number={self.page_number}, x={self.x}, y={self.y}, width={self.width}, height={self.height})"
@@ -33,10 +27,11 @@ class location(object):
         Returns:
             bool: True if the location is in the upper left corner, False otherwise.
         """
+        upper_left = location(self.page_number, 0, 0, 1250, 1100)
         if mostly:
-            return self.is_mostly_inside(self.upper_left_bb)
+            return self.is_mostly_inside(upper_left)
         else:
-            return self.is_inside(self.upper_left_bb)
+            return self.is_inside(upper_left)
     
     def is_upper_right(self, mostly=False):
         """
@@ -51,10 +46,11 @@ class location(object):
         Returns:
             bool: True if the location is in the upper right corner, False otherwise.
         """
+        upper_right = location(self.page_number,1250,0,1250,1100)
         if mostly:
-            return self.is_mostly_inside(self.upper_right_bb)
+            return self.is_mostly_inside(upper_right)
         else:
-            return self.is_inside(self.upper_right_bb)
+            return self.is_inside(upper_right)
     
     def is_lower_left(self, mostly=False):
         """
@@ -69,10 +65,11 @@ class location(object):
         Returns:
             bool: True if the location is in the lower left corner, False otherwise.
         """
+        lower_left = location(self.page_number, 0, 0, 1250, 1100)
         if mostly:
-            return self.is_mostly_inside(self.lower_left_bb)
+            return self.is_mostly_inside(lower_left)
         else:
-            return self.is_inside(self.lower_left_bb)
+            return self.is_inside(lower_left)
     
     def is_lower_right(self, mostly=False):
         """
@@ -87,10 +84,11 @@ class location(object):
         Returns:
             bool: True if the location is in the lower right corner, False otherwise.
         """
+        lower_right = location(self.page_number,1250,2200,1250,1100)
         if mostly:
-            return self.is_mostly_inside(self.lower_right_bb)
+            return self.is_mostly_inside(lower_right)
         else:
-            return self.is_inside(self.lower_right_bb)
+            return self.is_inside(lower_right)
     
     def is_upper(self, mostly=False):
         """
@@ -106,10 +104,11 @@ class location(object):
         Returns:
             bool: True if the location is in the upper region, False otherwise.
         """
+        upper = location(self.page_number,0,0,2550,1100)
         if mostly:
-            return self.is_mostly_inside(self.upper)
+            return self.is_mostly_inside(upper)
         else:
-            return self.is_inside(self.upper)
+            return self.is_inside(upper)
     
     def is_lower(self, mostly=False):
         """
@@ -125,10 +124,11 @@ class location(object):
         Returns:
             bool: True if the location is in the lower region, False otherwise.
         """
+        lower = location(self.page_number,0,2200,2550,1100)
         if mostly:
-            return self.is_mostly_inside(self.lower)
+            return self.is_mostly_inside(lower)
         else:
-            return self.is_inside(self.lower)
+            return self.is_inside(lower)
     
     def is_inside(self, other):
         """
@@ -387,7 +387,6 @@ def retrieve_validate_doc_path(doc_path):
     
     # Sort the images to ensure correct page order
     image_paths.sort()
-    print(f"Found {len(image_paths)} page images in {doc_path}")
 
     return image_paths
     

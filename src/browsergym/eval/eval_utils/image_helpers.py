@@ -2,8 +2,7 @@ import cv2
 import numpy as np
 import os
 import sys
-sys.path.append("C:/Users/alexg/Documents/GitHub/Agent-Benchmark")
-from eval.eval_utils.utils import retrieve_validate_doc_path
+sys.path.append(os.getcwd())
 
 def parse_response(response):
     """Parses yes or no response from the model and returns a boolean value.
@@ -77,7 +76,7 @@ def read_transparent_png(filename):
         return None
     # Check if image has 4 channels (BGRA)
     if len(image_4channel.shape) < 3 or image_4channel.shape[2] < 4:
-        print(f"Warning: Image {filename} does not appear to have an alpha channel. Reading as BGR.")
+        # print(f"Warning: Image {filename} does not appear to have an alpha channel. Reading as BGR.")
         # Ensure it still has 3 channels if it was grayscale
         if len(image_4channel.shape) == 2:
             return cv2.cvtColor(image_4channel, cv2.COLOR_GRAY2BGR)
@@ -179,7 +178,7 @@ def _load_process_images(source_image_path, template_image_path, crop_template_w
             or (None, None, None, None, None) on error.
     """
     # Load source image
-    print(f"Loading source image: {source_image_path}")
+    # print(f"Loading source image: {source_image_path}")
     if not os.path.exists(source_image_path): 
         print(f"Error: Source image not found")
         return None, None, None, None, None
@@ -191,10 +190,10 @@ def _load_process_images(source_image_path, template_image_path, crop_template_w
     
     source_img_gray = cv2.cvtColor(source_img_bgr, cv2.COLOR_BGR2GRAY)
     source_h, source_w = source_img_gray.shape[:2]
-    print(f"Source Image    (HxW): {source_h} x {source_w}")
+    # print(f"Source Image    (HxW): {source_h} x {source_w}")
 
     # Load and process template image
-    print(f"Loading template image: {template_image_path}")
+    # print(f"Loading template image: {template_image_path}")
     if not os.path.exists(template_image_path): 
         print(f"Error: Template image not found")
         return None, None, None, None, None
@@ -206,14 +205,10 @@ def _load_process_images(source_image_path, template_image_path, crop_template_w
     
     # Crop whitespace if requested
     if crop_template_whitespace:
-        print(f"Cropping template whitespace (threshold={whitespace_crop_threshold})...")
+        # print(f"Cropping template whitespace (threshold={whitespace_crop_threshold})...")
         original_shape = template_bgr.shape[:2]
         template_bgr_cropped = crop_whitespace(template_bgr, threshold=whitespace_crop_threshold)
         if template_bgr_cropped is not None and template_bgr_cropped.shape[0]>0 and template_bgr_cropped.shape[1]>0:
-            if template_bgr_cropped.shape != original_shape: 
-                print(f" -> Cropped template shape (HxW): {template_bgr_cropped.shape[0]}x{template_bgr_cropped.shape[1]}")
-            else: 
-                print(" -> No significant whitespace found/cropped.")
             template_bgr = template_bgr_cropped
         else: 
             print("Warning: Cropping failed or resulted in empty image. Using uncropped template.")
@@ -224,7 +219,6 @@ def _load_process_images(source_image_path, template_image_path, crop_template_w
     
     template_gray = cv2.cvtColor(template_bgr, cv2.COLOR_BGR2GRAY)
     orig_template_h, orig_template_w = template_gray.shape[:2]
-    print(f"Template to match (HxW): {orig_template_h} x {orig_template_w}")
     
     if orig_template_h == 0 or orig_template_w == 0: 
         print(f"Error: Template dimensions are zero")
@@ -260,9 +254,9 @@ def _determine_scale_range(template_dims, source_dims, min_scale=None, max_scale
 
     if min_source_fraction is not None and max_source_fraction is not None:
         method = "Fraction of Source Width"
-        print(f"\nCalculating scale range based on source width fractions:")
-        print(f"  Min Fraction: {min_source_fraction:.4f}")
-        print(f"  Max Fraction: {max_source_fraction:.4f}")
+        # print(f"\nCalculating scale range based on source width fractions:")
+        # print(f"  Min Fraction: {min_source_fraction:.4f}")
+        # print(f"  Max Fraction: {max_source_fraction:.4f}")
 
         if orig_template_w == 0:
             print("Error: Template width is zero, cannot calculate scales based on fractions.")
@@ -485,15 +479,15 @@ def find_template_scale_invariant(source_image_path, template_image_path,
         return None
     
     actual_min_scale, actual_max_scale, scale_calculation_method = scale_range
-    print(f"\nUsing Scale Calculation Method: {scale_calculation_method}")
-    print(f"Effective Scale Range: Min={actual_min_scale:.4f}, Max={actual_max_scale:.4f}")
-    print(f"Searching across {num_scale_steps} steps...")
+    # print(f"\nUsing Scale Calculation Method: {scale_calculation_method}")
+    # print(f"Effective Scale Range: Min={actual_min_scale:.4f}, Max={actual_max_scale:.4f}")
+    # print(f"Searching across {num_scale_steps} steps...")
 
     # --- 3. Iterate Through Scales ---
     best_match_info = None
     found_score = -np.inf
     method = cv2.TM_CCORR_NORMED
-    print(f"Using matching method: TM_CCORR_NORMED")
+    # print(f"Using matching method: TM_CCORR_NORMED")
     
     if visualize_steps:
         print(f"-> Step visualization enabled (Resize: {resize_display}, Max WxH: {max_display_width}x{max_display_height}). Press 'q'/'Esc' to stop.")
@@ -589,11 +583,11 @@ def find_template_scale_invariant(source_image_path, template_image_path,
     print(f"\nOverall Best Score: {best_score:.4f} found at scale {best_scale:.3f} (Size: {best_w}x{best_h})")
     
     match_found = best_score >= threshold
-    if match_found: 
+    if match_found and verbose: 
         print(f"Match found ABOVE threshold ({threshold:.2f})!")
-    elif not quit_early: 
+    elif not quit_early and verbose: 
         print(f"-> No match found exceeding the threshold ({threshold:.2f}).")
-    elif quit_early: 
+    elif quit_early and verbose: 
         print(f"-> Search stopped early. Best score {best_score:.4f} may be below threshold {threshold:.2f}.")
 
     # --- 5. Final Visualization ---

@@ -1,12 +1,12 @@
 import sys
-sys.path.append("C:/Users/alexg/Documents/GitHub/Agent-Benchmark")
 import os
+sys.path.append(os.getcwd())
 import fitz  # PyMuPDF
 from PIL import Image
 import cv2
 import numpy as np
-from eval.eval_utils.image_helpers import *
-from eval.eval_utils.utils import location
+from src.browsergym.eval.eval_utils.image_helpers import *
+from src.browsergym.eval.eval_utils.utils import location, retrieve_validate_doc_path
 import torch
 
 def convert_pdf_to_pngs(pdf_path, output_dir, dpi=300):
@@ -36,10 +36,8 @@ def convert_pdf_to_pngs(pdf_path, output_dir, dpi=300):
 
             output_filename = os.path.join(output_dir, f"page_{page_num + 1:03d}.png")
             pix.save(output_filename)
-            print(f"Saved: {output_filename}")
 
         doc.close()
-        print("PDF conversion to PNGs complete.")
         return num_pages
 
     except Exception as e:
@@ -307,7 +305,7 @@ def extract_image_location(image_path, doc_path):
     
     doc_images = retrieve_validate_doc_path(doc_path)
     
-    print(f"Looking for {image_path} in document with {len(doc_images)} pages")
+    # print(f"Looking for {image_path} in document with {len(doc_images)} pages")
     
     # Parameters for the image search
     match_threshold = 0.8
@@ -317,7 +315,7 @@ def extract_image_location(image_path, doc_path):
     
     # Try to find the image in each page of the document
     for page_index, doc_image_path in enumerate(doc_images):
-        print(f"Searching page {page_index + 1} of {len(doc_images)}: {os.path.basename(doc_image_path)}")
+        # print(f"Searching page {page_index + 1} of {len(doc_images)}: {os.path.basename(doc_image_path)}")
         
         location_info = find_template_scale_invariant(
             doc_image_path,          # The source image (document page)
@@ -334,24 +332,25 @@ def extract_image_location(image_path, doc_path):
         if location_info:
             # Found a match! Extract the coordinates
             top_left_x, top_left_y, bottom_right_x, bottom_right_y, found_scale = location_info
+
             width = bottom_right_x - top_left_x
             height = bottom_right_y - top_left_y
             
-            print(f"Found match on page {page_index + 1}!")
-            print(f"Coordinates: ({top_left_x}, {top_left_y}) to ({bottom_right_x}, {bottom_right_y})")
-            print(f"Size: {width}x{height} at scale {found_scale:.3f}")
+            # print(f"Found match on page {page_index + 1}!")
+            # print(f"Coordinates: ({top_left_x}, {top_left_y}) to ({bottom_right_x}, {bottom_right_y})")
+            # print(f"Size: {width}x{height} at scale {found_scale:.3f}")
             
             # Create and return a location object
             return location(
                 page_number=page_index + 1,  # 1-indexed page number
                 x=top_left_x,
-                y=bottom_right_y,
+                y=top_left_y,
                 width=width,
                 height=height
             )
     
     # Image not found in any page
-    print("Image not found in any page of the document.")
+    # print("Image not found in any page of the document.")
     return None
     
 def image_exact_match(src_image_path, gld_image_path):
@@ -382,7 +381,6 @@ def image_exact_match(src_image_path, gld_image_path):
         for filename in os.listdir(src_image_path):
             if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
                 src_paths.append(os.path.join(src_image_path, filename))
-        print(f"Found {len(src_paths)} images in {src_image_path}")
     else:
         # Single image file
         src_paths.append(src_image_path)
@@ -430,7 +428,7 @@ def image_exact_match(src_image_path, gld_image_path):
                     
                     # If all pixel differences are zero, we have a match
                     if np.count_nonzero(difference) == 0:
-                        print(f"Match found between {src_path} and {gld_path}")
+                        print(f"Match found between {src_path.split('/')[-1]} and {gld_path.split('/')[-1]}")
                         return src_path
                         
                 except Exception as e:
