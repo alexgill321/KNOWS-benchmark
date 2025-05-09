@@ -4,5 +4,9 @@ google-auth-oauthlib
 fuzzywuzzy
 python-doctr
 python-Levenshtein
+opencv-python
 PyMuPDF
 flask
+gunicorn
+transformers
+torch
