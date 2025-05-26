@@ -467,3 +467,135 @@ def extract_structure_from_doc(doc_id):
         traceback.print_exc()
         return None
 
+#  SHEET HELPERS
+
+"""Is it fine to use pandas? I was thinking it could be easier to use pandas DataFrame as opposed
+   to individual checks using other methods, I'm not sure if there are any drawbacks to it"""
+import pandas as pd
+
+# def extract_tables_from_sheet(sheet_id):
+#     sheet_obj, _ = get_sheet_content(sheet_id)
+#     if sheet_obj is None:
+#         return []
+#
+#     tables = []
+#     for tab in sheet_obj.get("sheets", []):
+#         rows = tab['data'][0].get('rowData', [])
+#         table = []
+#         for r in rows:
+#             values = [cell.get('formattedValue', '') for cell in r.get('values', [])]
+#             if any(values):            # skip completely blank rows
+#                 table.append(values)
+#
+#         if table:                      # convert to DataFrame
+#             header = table[0]
+#             data   = table[1:]
+#             tables.append(pd.DataFrame(data, columns=header))
+#
+#     return tables
+
+def search_sheet(filename, folder_id=None):
+    """Search GSheet by name"""
+    sheet = None
+    if folder_id:
+        sheet = find_sheet_specified_location(folder_id, filename)
+    if sheet is None:
+        sheet = find_sheet_any(filename)
+        if sheet is None:
+            return 0, None
+        return 1, sheet
+    else:
+        return 2, sheet
+
+
+def find_sheet_specified_location(folder_id, filename):
+    """
+    Search for a GSheet name contains filename inside a specific folder
+
+    Args:
+        1. Drive folder ID
+        1. Filename
+
+    Returns:
+        str or none : ID on success, otherwise None
+    """
+    service = build('drive', 'v3', credentials=authenticate(['DRIVE']))
+    query = (f"'{folder_id}' in parents and "
+             "mimeType='application/vnd.google-apps.spreadsheet' "
+             "and trashed=false")
+    files = service.files().list(q=query, fields="files(id,name)").execute().get('files', [])
+    for f in files:
+        if filename in f['name']:
+            print(f"Found sheet: {f['name']} (ID: {f['id']})")
+            return f['id']
+    return None
+
+
+def find_sheet_any(filename):
+    """
+    Search entire Drive for GSheet whose name exactly equals filename
+
+    Args:
+        filename
+
+    Returns:
+        str          : Single unique ID if one match
+        list[str]    : List of IDs if multiple
+        None         : If no Sheet
+    """
+
+    service = build('drive', 'v3', credentials=authenticate(['DRIVE']))
+    query = (f"name='{filename}' and "
+             "mimeType='application/vnd.google-apps.spreadsheet' "
+             "and trashed=false")
+    items = service.files().list(q=query, spaces='drive',
+                                 fields='files(id,name)', pageSize=10).execute().get('files', [])
+    if not items:
+        return None
+    if len(items) > 1:
+        return [it['id'] for it in items]
+    return items[0]['id']
+
+
+def extract_tables_from_sheet(sheet_id):
+    """
+    Return list[pd.DataFrame] one per tab.
+    """
+    sheet_obj, _ = get_sheet_content(sheet_id)
+    if not sheet_obj:
+        return []
+
+    tables = []
+    for tab in sheet_obj.get("sheets", []):
+        rows = tab["data"][0].get("rowData", [])
+        raw = [[cell.get("formattedValue", "") for cell in r.get("values", [])]
+               for r in rows if any(c.get("formattedValue", "") for c in r.get("values", []))]
+        if raw:
+            tables.append(pd.DataFrame(raw[1:], columns=raw[0]))
+    return tables
+
+
+def extract_structure_from_sheet(sheet_id):
+    """
+    Returns ordered cell list with metadata for layout check.
+    elements like: {'row': r, 'col': c, 'value': v, 'format': {...}}
+    """
+    service = build('sheets', 'v4', credentials=authenticate(['SHEETS']))
+    sheet_obj = service.spreadsheets().get(
+        spreadsheetId=sheet_id, includeGridData=True).execute()
+    structure = []
+    for tab in sheet_obj.get('sheets', []):
+        title = tab['properties']['title']
+        rows = tab['data'][0].get('rowData', [])
+        for r_idx, row in enumerate(rows):
+            for c_idx, cell in enumerate(row.get('values', [])):
+                val = cell.get('formattedValue', '')
+                fmt = cell.get('effectiveFormat', {})
+                structure.append({
+                    'sheet': title,
+                    'row': r_idx,
+                    'col': c_idx,
+                    'value': val,
+                    'format': fmt
+                })
+    return structure
