@@ -285,7 +285,7 @@ def extract_text_from_pdf(doc_path):
     print(f"Text extraction complete. Extracted text from {len(result)} pages.")
     return result
 
-def extract_image_location(image_path, doc_path):
+def extract_image_location(image_path, doc_path, debug=False):
     """Extracts the location of an image in a document from jpg images of a PDF doc/slide/sheet.
 
     Args:
@@ -316,7 +316,6 @@ def extract_image_location(image_path, doc_path):
     # Try to find the image in each page of the document
     for page_index, doc_image_path in enumerate(doc_images):
         # print(f"Searching page {page_index + 1} of {len(doc_images)}: {os.path.basename(doc_image_path)}")
-        
         location_info = find_template_scale_invariant(
             doc_image_path,          # The source image (document page)
             image_path,              # The template image to find
@@ -324,9 +323,9 @@ def extract_image_location(image_path, doc_path):
             max_source_fraction=max_source_fraction,
             num_scale_steps=scale_steps,
             threshold=match_threshold,
-            visualize_final=False,
-            visualize_steps=False,
-            verbose=False            # Change to True for more debugging information
+            visualize_final=debug,
+            visualize_steps=debug,
+            verbose=debug            # Change to True for more debugging information
         )
         
         if location_info:

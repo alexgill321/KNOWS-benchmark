@@ -4,11 +4,79 @@ sys.path.append(os.getcwd())
 from src.browsergym.eval.eval_utils.google_services_helpers import *
 import requests
 import mimetypes
-from googleapiclient.errors import HttpError
+from google.oauth2.service_account import Credentials # For Service Account
+from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
+from google.cloud import secretmanager
 import io
+import json
 
-def search_doc(filename, folder_id=None):
+GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID") # e.g., your-project-id
+SECRET_ID = os.environ.get("DRIVE_SA_SECRET_ID")   # e.g., doc-eval-service-account-key
+SECRET_VERSION_ID = os.environ.get("DRIVE_SA_SECRET_VERSION_ID", "latest")
+
+# Global variable to hold initialized Google API services
+# (Initialize them once, not on every request)
+DRIVE_SERVICE = None
+DOCS_SERVICE = None
+
+def initialize_google_services():
+    global DRIVE_SERVICE, DOCS_SERVICE
+
+    if not GCP_PROJECT_ID or not SECRET_ID:
+        print("Error: GCP_PROJECT_ID or DRIVE_SA_SECRET_ID environment variables not set.")
+        print("Attempting local initialization...")
+
+        # Attempt to initialize without Secret Manager (for local development)
+        
+        try:
+            credentials = authenticate(['DRIVE', 'DOCS'])
+            DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+            DOCS_SERVICE = build('docs', 'v1', credentials=credentials)
+            print("Successfully initialized Google API services using local credentials.")
+            return DRIVE_SERVICE, DOCS_SERVICE
+        except Exception as e:
+            print(f"Error initializing Google API services locally: {e}")
+            return None, None        
+
+    try:
+        # Create the Secret Manager client
+        client = secretmanager.SecretManagerServiceClient()
+
+        # Build the resource name of the secret version
+        name = f"projects/{GCP_PROJECT_ID}/secrets/{SECRET_ID}/versions/{SECRET_VERSION_ID}"
+
+        # Access the secret version
+        response = client.access_secret_version(request={"name": name})
+        payload = response.payload.data.decode("UTF-8")
+        
+        # The payload is the JSON string of your service account key
+        service_account_info = json.loads(payload)
+
+        # Define the scopes your application needs
+        # Adjust these based on what your 'search_doc', 'extract_images_from_doc', etc. require
+        SCOPES = [
+            'https://www.googleapis.com/auth/documents', # Example: if only reading
+            # 'https://www.googleapis.com/auth/drive', # If needing to write/modify
+            'https://www.googleapis.com/auth/drive' # For Google Docs API
+            # 'https://www.googleapis.com/auth/documents'
+        ]
+
+        # Create credentials from the service account info
+        credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
+
+        # Build the service objects
+        DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+        DOCS_SERVICE = build('docs', 'v1', credentials=credentials)
+        print("Successfully initialized Google API services using Service Account from Secret Manager.")
+        return DRIVE_SERVICE, DOCS_SERVICE
+    except Exception as e:
+        print(f"Error initializing Google API services: {e}")
+        # Handle the error appropriately (e.g., log it, raise an exception, etc.)
+        return None, None
+
+
+def search_doc(filename, service, folder_id=None):
     """Search for a Google Doc by its filename.
 
     Args:
@@ -22,16 +90,16 @@ def search_doc(filename, folder_id=None):
     """
     doc = None
     if folder_id:
-        doc =  find_doc_specified_location(folder_id, filename)
+        doc =  find_doc_specified_location(folder_id, filename, service)
     if doc is None:
-        doc = find_doc_any(filename)
+        doc = find_doc_any(filename, service)
         if doc is None:
             return 0, None
         return 1, doc
     else:
         return 2, doc
 
-def find_doc_specified_location(folder_id, filename):
+def find_doc_specified_location(folder_id, filename, service):
     """Find a Google Doc in a specified folder by its filename.
 
     Args:
@@ -41,7 +109,7 @@ def find_doc_specified_location(folder_id, filename):
     Returns:
         file_id (str): The ID of the found Google Doc, or None if not found.
     """
-    service = build('drive', 'v3', credentials=authenticate(services=['DRIVE']))
+    
 
     query = f"'{folder_id}' in parents and mimeType='application/vnd.google-apps.document' and trashed=false"
     results = service.files().list(q=query, fields="files(id, name, webViewLink)").execute()
@@ -58,8 +126,8 @@ def find_doc_specified_location(folder_id, filename):
         else:
             print("No matching file found.")
             return None
-        
-def find_doc_any(filename):
+
+def find_doc_any(filename, service):
     """Find a Google Doc by its filename.
 
     Args:
@@ -68,8 +136,6 @@ def find_doc_any(filename):
     Returns:
         The ID of the found Google Doc.
     """
-    service = build('drive', 'v3', credentials=authenticate(services=['DRIVE']))
-
     query = f"name='{filename}' and mimeType='application/vnd.google-apps.document' and trashed=false"
     results = service.files().list(
         q=query,
@@ -91,10 +157,11 @@ def find_doc_any(filename):
         print(f"Found document: '{items[0]['name']}' (ID: {doc_id})")
         return doc_id
                    
-def extract_images_from_doc(doc_id, output_dir=None):
+def extract_images_from_doc(doc_id, service, output_dir=None):
     """Extracts images from a Google document.
 
     Args:
+        service: The Google Docs service instance.
         doc_id (str): The ID of the Google Doc to extract images from.
         output_dir (str): The directory to save the extracted images. If None, the extracted images will not be saved.
 
@@ -102,7 +169,6 @@ def extract_images_from_doc(doc_id, output_dir=None):
         list: A list of images extracted from the document. Each image is represented as a byte string.
             Returns None if no images were found or an error occurred.
     """
-    service = build('docs', 'v1', credentials=authenticate(services=['DOCS']))
     if output_dir is not None:
         # Ensure the output directory exists
         if not os.path.exists(output_dir):
@@ -171,7 +237,7 @@ def extract_images_from_doc(doc_id, output_dir=None):
         return images
     return None
 
-def extract_text_from_doc(doc_id):
+def extract_text_from_doc(doc_id, service):
     """Extracts all text content from a Google Document.
 
     Args:
@@ -183,7 +249,7 @@ def extract_text_from_doc(doc_id):
         Returns None if an error occurs (e.g., document not found, API error).
     """
     try:
-        doc, service = get_doc_content(doc_id)
+        doc = get_doc_content(doc_id, service)
         doc_content = doc.get('body', {}).get('content', [])
         extracted_text = []
         print("Extracting text from document elements...")
@@ -232,19 +298,17 @@ def extract_text_from_doc(doc_id):
         print(f"An unexpected error occurred during text extraction: {e}")
         return None
 
-def download_doc_as_pdf(doc_id, output_file, service=None):
+def download_doc_as_pdf(doc_id, output_file, service):
     """Downloads a Google Doc as a PDF and saves it to the specified output directory.
 
     Args:
         doc_id (str): The ID of the Google Doc to download.
         output_file (str): The path to save the downloaded PDF file.
-        service: The Google Drive service instance. If None, it will be created.
+        service: The Google Drive service instance.
 
     Returns:
         True if the download was successful, False otherwise.
     """
-    if service is None:
-        service = build('drive', 'v3', credentials=authenticate(services=['DRIVE']))
     try:
         request = service.files().export_media(fileId=doc_id, mimeType='application/pdf')
         fh = io.FileIO(output_file, 'wb')
@@ -268,7 +332,7 @@ def download_doc_as_pdf(doc_id, output_file, service=None):
         if 'fh' in locals() and not fh.closed:
             fh.close()
 
-def extract_structure_from_doc(doc_id):
+def extract_structure_from_doc(doc_id, service):
     """Extracts the structure of a Google Document as an ordered list of elements.
     
     Parses the document structure and returns an ordered list of elements (text and images)
@@ -286,7 +350,7 @@ def extract_structure_from_doc(doc_id):
             Returns None if an error occurs.
     """
     # Use the helper method to get document content
-    document, service = get_doc_content(doc_id)
+    document = get_doc_content(doc_id, service)
     if not document:
         return None
     

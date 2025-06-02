@@ -115,21 +115,20 @@ def binary_judge_text(model, src_text, gld_text):
         }
     ]
 
-def extract_text_from_pdf(pdf_path):
+def extract_text_from_pdf(pdf_images_path):
     """
     Extract text from a PDF file OCR via doctr.
 
     Args:
-        pdf_path (str): Path to the PDF file.
+        pdf_images_path (str): Path to the PDF file images.
 
     Outputs:
         str: Extracted text from the PDF.
     """
-    image_paths = retrieve_validate_doc_path(pdf_path)
+    image_paths = retrieve_validate_doc_path(pdf_images_path)
     doc = DocumentFile.from_images(image_paths)
     model = ocr_predictor(pretrained=True)
     result = model(doc)
-    result.show()
     result_json = result.export()
     formatted_results = {}
     for page in result_json["pages"]:
