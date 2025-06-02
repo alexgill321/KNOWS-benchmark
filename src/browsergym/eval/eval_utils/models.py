@@ -1,4 +1,3 @@
-import transformers
 import torch
 
 def gemma_3_27b_it():

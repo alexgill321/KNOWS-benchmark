@@ -308,10 +308,10 @@ def extract_image_location(image_path, doc_path, debug=False):
     # print(f"Looking for {image_path} in document with {len(doc_images)} pages")
     
     # Parameters for the image search
-    match_threshold = 0.8
+    match_threshold = 0.98
     min_source_fraction = 1/8
     max_source_fraction = 0.8
-    scale_steps = 100
+    scale_steps = 200
     
     # Try to find the image in each page of the document
     for page_index, doc_image_path in enumerate(doc_images):
