@@ -52,7 +52,6 @@ def get_doc_content(doc_id, service):
         doc_id (str): The ID of the Google Doc to fetch.
         
     Returns:
-
         dict: The content of the document in JSON format.
     """
     try:
