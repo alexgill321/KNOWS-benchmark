@@ -119,171 +119,292 @@ def binary_judge_image(model, image_path, text):
     print("No images passed the classification")
     return None
 
-def extract_text_from_pdf(doc_path):
-    """Extracts text items from screenshots of a PDF document using Omniparser.
+# def extract_text_from_pdf(doc_path):
+#     """Extracts text items from screenshots of a PDF document using Omniparser.
+
+#     Args:
+#         doc_path (str): The path to the folder where images of the pdf are stored.
+
+#     Returns:
+#         dict: A dictionary containing dictionaries with the text items and their locations in the document. 
+#             The dictionary has entries for each page of the document. Only items with type "text" are included.
+#     """
+#     image_paths = retrieve_validate_doc_path(doc_path)
+    
+#     # Try to import OmniParser modules
+#     try:
+#         # Add path for OmniParser if needed
+#         sys_path_added = False
+#         if "OmniParser" not in ' '.join(sys.path):
+#             omniparser_possible_paths = [
+#                 os.path.expanduser("~/Documents/GitHub/OmniParser"),
+#                 "C:/Users/alexg/Documents/GitHub/OmniParser"  # From process_screenshot_omniparser.py
+#             ]
+            
+#             for path in omniparser_possible_paths:
+#                 if os.path.exists(path):
+#                     sys.path.append(path)
+#                     sys_path_added = True
+#                     print(f"Added OmniParser path: {path}")
+#                     break
+        
+#         if not sys_path_added:
+#             print("Warning: Could not find OmniParser path. Attempting to import anyway.")
+        
+#         # Import OmniParser utilities
+#         from util.utils import get_som_labeled_img, check_ocr_box, get_caption_model_processor, get_yolo_model
+#     except ImportError as e:
+#         print(f"Error importing OmniParser utilities: {e}")
+#         print("Please ensure OmniParser is installed and accessible.")
+#         return None
+    
+#     # Check for device availability (CPU/GPU)
+#     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+#     print(f"Using device: {device}")
+    
+#     # Set model paths based on process_screenshot_omniparser.py
+#     model_path = "C:/Users/alexg/Documents/GitHub/OmniParser/weights/icon_detect/model.pt"
+#     caption_path = "C:/Users/alexg/Documents/GitHub/OmniParser/weights/icon_caption_florence"
+    
+#     # Load models
+#     try:
+#         # Load SOM model for object detection
+#         som_model = get_yolo_model(model_path)
+#         som_model.to(device)
+        
+#         # Get caption model processor
+#         caption_model_processor = get_caption_model_processor(
+#             model_name="florence2", 
+#             model_name_or_path=caption_path, 
+#             device=device
+#         )
+#     except Exception as e:
+#         print(f"Error loading OmniParser models: {e}")
+#         return None
+    
+#     # Process each page and extract text
+#     result = {}
+    
+#     for page_index, image_path in enumerate(image_paths):
+#         page_number = page_index + 1  # 1-indexed page numbers
+#         print(f"Processing page {page_number}: {os.path.basename(image_path)}")
+        
+#         try:
+#             # Get image size for converting bbox ratios to pixel coordinates
+#             image = Image.open(image_path)
+#             image_width, image_height = image.size
+#             print(f"Image size: {image_width}x{image_height}")
+            
+#             # Configure bbox visualization (for debugging)
+#             box_overlay_ratio = max(image_width, image_height) / 3200
+#             draw_bbox_config = {
+#                 'text_scale': 0.8 * box_overlay_ratio,
+#                 'text_thickness': max(int(2 * box_overlay_ratio), 1),
+#                 'text_padding': max(int(3 * box_overlay_ratio), 1),
+#                 'thickness': max(int(3 * box_overlay_ratio), 1),
+#             }
+            
+#             # Detection threshold
+#             BOX_THRESHOLD = 0.05
+            
+#             # Run OCR to get text and bounding boxes
+#             print("Running OCR...")
+#             ocr_bbox_rslt, is_goal_filtered = check_ocr_box(
+#                 image_path, 
+#                 display_img=False, 
+#                 output_bb_format='xyxy', 
+#                 goal_filtering=None, 
+#                 easyocr_args={'paragraph': False, 'text_threshold': 0.9}, 
+#                 use_paddleocr=True
+#             )
+#             text, ocr_bbox = ocr_bbox_rslt
+            
+#             # Run semantic analysis
+#             print("Running semantic analysis...")
+#             _, label_coordinates, parsed_content_list = get_som_labeled_img(
+#                 image_path, 
+#                 som_model, 
+#                 BOX_TRESHOLD=BOX_THRESHOLD, 
+#                 output_coord_in_ratio=True,  # Coordinates as ratio of image size
+#                 ocr_bbox=ocr_bbox,
+#                 draw_bbox_config=draw_bbox_config, 
+#                 caption_model_processor=caption_model_processor, 
+#                 ocr_text=text,
+#                 use_local_semantics=True, 
+#                 iou_threshold=0.7, 
+#                 scale_img=False, 
+#                 batch_size=128
+#             )
+            
+#             # Filter for text items only and convert to location objects
+#             text_items = {}
+#             for item in parsed_content_list:
+#                 if item.get('type') == 'text':
+#                     bbox = item.get('bbox', [0, 0, 0, 0])  # [x1, y1, x2, y2] as ratios
+#                     if len(bbox) == 4:
+#                         x1, y1, x2, y2 = bbox
+                        
+#                         # Convert ratios to pixel coordinates
+#                         x_px = x1 * image_width
+#                         y_px = y1 * image_height
+#                         width_px = (x2 - x1) * image_width
+#                         height_px = (y2 - y1) * image_height
+                        
+#                         # Create location object
+#                         loc = location(
+#                             page_number=page_number,
+#                             x=x_px,
+#                             y=y_px,
+#                             width=width_px,
+#                             height=height_px
+#                         )
+                        
+#                         # Get item ID (use original ID if available, otherwise generate one)
+#                         item_id = item.get('ID', len(text_items))
+                        
+#                         # Store the text item with its location
+#                         text_items[item_id] = {
+#                             'text': item.get('content', ''),
+#                             'location': loc,
+#                             'bbox_ratio': bbox  # Keep original ratio coordinates
+#                         }
+            
+#             # Add text items to result dictionary
+#             result[page_number] = text_items
+#             print(f"Found {len(text_items)} text items on page {page_number}")
+            
+#         except Exception as e:
+#             print(f"Error processing page {page_number}: {e}")
+#             import traceback
+#             traceback.print_exc()
+    
+#     if not result:
+#         print("No text items were extracted from any pages.")
+#         return None
+    
+#     print(f"Text extraction complete. Extracted text from {len(result)} pages.")
+#     return result
+
+def extract_image_location_size(image_path, image_size, doc_path, debug=False):
+    """Extracts the location of an image in a document with known size from jpg images of a PDF doc/slide/sheet.
 
     Args:
+        image_path (str): The path to the image file.
+        image_size (dict): Known size of the image as it appears in the document.
+            Format: {'width': {'magnitude': float, 'unit': str}, 'height': {'magnitude': float, 'unit': str}}
         doc_path (str): The path to the folder where images of the pdf are stored.
+        debug (bool): Whether to enable debug visualization. Default is False.
 
     Returns:
-        dict: A dictionary containing dictionaries with the text items and their locations in the document. 
-            The dictionary has entries for each page of the document. Only items with type "text" are included.
+        location: A location object of the bounding box of the image in the document.
+        Returns None if not found.
+
+    Raises:
+        FileNotFoundError: If the provided image path does not exist or the document path is invalid.
     """
-    image_paths = retrieve_validate_doc_path(doc_path)
+    # Validate inputs
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"Image path does not exist: {image_path}")
     
-    # Try to import OmniParser modules
-    try:
-        # Add path for OmniParser if needed
-        sys_path_added = False
-        if "OmniParser" not in ' '.join(sys.path):
-            omniparser_possible_paths = [
-                os.path.expanduser("~/Documents/GitHub/OmniParser"),
-                "C:/Users/alexg/Documents/GitHub/OmniParser"  # From process_screenshot_omniparser.py
-            ]
-            
-            for path in omniparser_possible_paths:
-                if os.path.exists(path):
-                    sys.path.append(path)
-                    sys_path_added = True
-                    print(f"Added OmniParser path: {path}")
-                    break
+    doc_images = retrieve_validate_doc_path(doc_path)
+    
+    if debug:
+        print(f"Looking for {image_path} in document with {len(doc_images)} pages")
+        print(f"Known size: {image_size}")
+    
+    # Convert known size to pixels (screenshots are at 300 DPI)
+    target_width_px = None
+    target_height_px = None
+    
+    if image_size and 'width' in image_size and 'height' in image_size:
+        width_info = image_size['width']
+        height_info = image_size['height']
         
-        if not sys_path_added:
-            print("Warning: Could not find OmniParser path. Attempting to import anyway.")
+        if width_info.get('unit') == 'PT':  # Points
+            target_width_px = width_info.get('magnitude', 0) * 300 / 72  # Convert points to pixels at 300 DPI
+            target_height_px = height_info.get('magnitude', 0) * 300 / 72
+        elif width_info.get('unit') == 'PX':  # Pixels
+            target_width_px = width_info.get('magnitude', 0)
+            target_height_px = height_info.get('magnitude', 0)
         
-        # Import OmniParser utilities
-        from util.utils import get_som_labeled_img, check_ocr_box, get_caption_model_processor, get_yolo_model
-    except ImportError as e:
-        print(f"Error importing OmniParser utilities: {e}")
-        print("Please ensure OmniParser is installed and accessible.")
-        return None
+        if debug:
+            print(f"Target dimensions in pixels: {target_width_px:.1f}x{target_height_px:.1f}")
     
-    # Check for device availability (CPU/GPU)
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    print(f"Using device: {device}")
+    # Use direct template matching since we know the exact size
+    match_threshold = 0.99
     
-    # Set model paths based on process_screenshot_omniparser.py
-    model_path = "C:/Users/alexg/Documents/GitHub/OmniParser/weights/icon_detect/model.pt"
-    caption_path = "C:/Users/alexg/Documents/GitHub/OmniParser/weights/icon_caption_florence"
-    
-    # Load models
-    try:
-        # Load SOM model for object detection
-        som_model = get_yolo_model(model_path)
-        som_model.to(device)
+    # Try to find the image in each page of the document
+    for page_index, doc_image_path in enumerate(doc_images):
+        if debug:
+            print(f"Searching page {page_index + 1} of {len(doc_images)}: {os.path.basename(doc_image_path)}")
         
-        # Get caption model processor
-        caption_model_processor = get_caption_model_processor(
-            model_name="florence2", 
-            model_name_or_path=caption_path, 
-            device=device
-        )
-    except Exception as e:
-        print(f"Error loading OmniParser models: {e}")
-        return None
-    
-    # Process each page and extract text
-    result = {}
-    
-    for page_index, image_path in enumerate(image_paths):
-        page_number = page_index + 1  # 1-indexed page numbers
-        print(f"Processing page {page_number}: {os.path.basename(image_path)}")
+        # Load the template image
+        template = cv2.imread(image_path)
+        if template is None:
+            raise FileNotFoundError(f"Could not load template image: {image_path}")
         
-        try:
-            # Get image size for converting bbox ratios to pixel coordinates
-            image = Image.open(image_path)
-            image_width, image_height = image.size
-            print(f"Image size: {image_width}x{image_height}")
+        # Load the document page
+        doc_image = cv2.imread(doc_image_path)
+        if doc_image is None:
+            continue
+        
+        # If we have target dimensions, resize template to match expected size
+        if target_width_px and target_height_px:
+            template_resized = cv2.resize(template, (int(target_width_px), int(target_height_px)))
+        else:
+            template_resized = template
+        
+        # Perform template matching
+        result = cv2.matchTemplate(doc_image, template_resized, cv2.TM_CCOEFF_NORMED)
+        
+        # Find the best match
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+        
+        # Get match info regardless of threshold
+        top_left_x, top_left_y = max_loc
+        height, width = template_resized.shape[:2]
+        bottom_right_x = top_left_x + width
+        bottom_right_y = top_left_y + height
+        
+        if debug:
+            print(f"Page {page_index + 1} - Best match confidence: {max_val:.3f}")
+            print(f"Coordinates: ({top_left_x}, {top_left_y}) to ({bottom_right_x}, {bottom_right_y})")
+            print(f"Size: {width}x{height}")
             
-            # Configure bbox visualization (for debugging)
-            box_overlay_ratio = max(image_width, image_height) / 3200
-            draw_bbox_config = {
-                'text_scale': 0.8 * box_overlay_ratio,
-                'text_thickness': max(int(2 * box_overlay_ratio), 1),
-                'text_padding': max(int(3 * box_overlay_ratio), 1),
-                'thickness': max(int(3 * box_overlay_ratio), 1),
-            }
+            # Create visualization
+            vis_image = doc_image.copy()
+            color = (0, 255, 0) if max_val >= match_threshold else (0, 0, 255)  # Green if match, red if not
+            cv2.rectangle(vis_image, (top_left_x, top_left_y), (bottom_right_x, bottom_right_y), color, 2)
             
-            # Detection threshold
-            BOX_THRESHOLD = 0.05
+            # Add confidence text
+            label = f"Confidence: {max_val:.3f}"
+            cv2.putText(vis_image, label, (top_left_x, top_left_y - 10), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
             
-            # Run OCR to get text and bounding boxes
-            print("Running OCR...")
-            ocr_bbox_rslt, is_goal_filtered = check_ocr_box(
-                image_path, 
-                display_img=False, 
-                output_bb_format='xyxy', 
-                goal_filtering=None, 
-                easyocr_args={'paragraph': False, 'text_threshold': 0.9}, 
-                use_paddleocr=True
+            # Save visualization
+            base_name = os.path.splitext(os.path.basename(image_path))[0]
+            page_name = os.path.splitext(os.path.basename(doc_image_path))[0]
+            vis_filename = f"{base_name}_in_{page_name}_conf_{max_val:.3f}.png"
+            cv2.imwrite(vis_filename, vis_image)
+            print(f"Visualization saved as: {vis_filename}")
+        
+        if max_val >= match_threshold:
+            if debug:
+                print(f"Match found on page {page_index + 1}!")
+            
+            # Create and return a location object
+            return location(
+                page_number=page_index + 1,  # 1-indexed page number
+                x=top_left_x,
+                y=top_left_y,
+                width=width,
+                height=height
             )
-            text, ocr_bbox = ocr_bbox_rslt
-            
-            # Run semantic analysis
-            print("Running semantic analysis...")
-            _, label_coordinates, parsed_content_list = get_som_labeled_img(
-                image_path, 
-                som_model, 
-                BOX_TRESHOLD=BOX_THRESHOLD, 
-                output_coord_in_ratio=True,  # Coordinates as ratio of image size
-                ocr_bbox=ocr_bbox,
-                draw_bbox_config=draw_bbox_config, 
-                caption_model_processor=caption_model_processor, 
-                ocr_text=text,
-                use_local_semantics=True, 
-                iou_threshold=0.7, 
-                scale_img=False, 
-                batch_size=128
-            )
-            
-            # Filter for text items only and convert to location objects
-            text_items = {}
-            for item in parsed_content_list:
-                if item.get('type') == 'text':
-                    bbox = item.get('bbox', [0, 0, 0, 0])  # [x1, y1, x2, y2] as ratios
-                    if len(bbox) == 4:
-                        x1, y1, x2, y2 = bbox
-                        
-                        # Convert ratios to pixel coordinates
-                        x_px = x1 * image_width
-                        y_px = y1 * image_height
-                        width_px = (x2 - x1) * image_width
-                        height_px = (y2 - y1) * image_height
-                        
-                        # Create location object
-                        loc = location(
-                            page_number=page_number,
-                            x=x_px,
-                            y=y_px,
-                            width=width_px,
-                            height=height_px
-                        )
-                        
-                        # Get item ID (use original ID if available, otherwise generate one)
-                        item_id = item.get('ID', len(text_items))
-                        
-                        # Store the text item with its location
-                        text_items[item_id] = {
-                            'text': item.get('content', ''),
-                            'location': loc,
-                            'bbox_ratio': bbox  # Keep original ratio coordinates
-                        }
-            
-            # Add text items to result dictionary
-            result[page_number] = text_items
-            print(f"Found {len(text_items)} text items on page {page_number}")
-            
-        except Exception as e:
-            print(f"Error processing page {page_number}: {e}")
-            import traceback
-            traceback.print_exc()
     
-    if not result:
-        print("No text items were extracted from any pages.")
-        return None
-    
-    print(f"Text extraction complete. Extracted text from {len(result)} pages.")
-    return result
+    # Image not found in any page
+    if debug:
+        print("Image not found in any page of the document.")
+    return None
 
 def extract_image_location(image_path, doc_path, debug=False):
     """Extracts the location of an image in a document from jpg images of a PDF doc/slide/sheet.

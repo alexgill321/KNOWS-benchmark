@@ -332,6 +332,64 @@ def download_doc_as_pdf(doc_id, output_file, service):
         if 'fh' in locals() and not fh.closed:
             fh.close()
 
+def get_image_dimensions_from_doc(doc_id, image_uri, service):
+    """Gets the dimensions of an image in a Google Document by its URI.
+    
+    Args:
+        doc_id (str): The ID of the Google Doc containing the image.
+        image_uri (str): The URI/filename of the image to find dimensions for.
+        service: The Google Docs service instance.
+        
+    Returns:
+        dict: A dictionary containing width and height of the image as it appears in the doc.
+            Format: {'width': {'magnitude': float, 'unit': str}, 'height': {'magnitude': float, 'unit': str}}
+            Returns None if image not found or error occurs.
+    """
+    try:
+        document = get_doc_content(doc_id, service)
+        if not document:
+            return None
+            
+        inline_objects = document.get('inlineObjects', {})
+        positioned_objects = document.get('positionedObjects', {})
+        
+        # Check inline objects first
+        for obj_id, obj_data in inline_objects.items():
+            embedded_object = obj_data.get('inlineObjectProperties', {}).get('embeddedObject', {})
+            if embedded_object and embedded_object.get('imageProperties'):
+                image_properties = embedded_object['imageProperties']
+                content_uri = image_properties.get('contentUri', '')
+                
+                # Check if this is the image we're looking for
+                if image_uri in content_uri or obj_id in image_uri:
+                    size = embedded_object.get('size', {})
+                    if size:
+                        print(f"Found image dimensions for {image_uri}: {size}")
+                        return size
+        
+        # Check positioned objects
+        for obj_id, obj_data in positioned_objects.items():
+            pos_obj = obj_data.get('positionedObjectProperties', {})
+            embedded_object = pos_obj.get('embeddedObject', {})
+            
+            if embedded_object and embedded_object.get('imageProperties'):
+                image_properties = embedded_object['imageProperties']
+                content_uri = image_properties.get('contentUri', '')
+                
+                # Check if this is the image we're looking for
+                if image_uri in content_uri or obj_id in image_uri:
+                    size = embedded_object.get('size', {})
+                    if size:
+                        print(f"Found image dimensions for {image_uri}: {size}")
+                        return size
+        
+        print(f"Image with URI {image_uri} not found in document {doc_id}")
+        return None
+        
+    except Exception as e:
+        print(f"Error getting image dimensions: {e}")
+        return None
+
 def extract_structure_from_doc(doc_id, service):
     """Extracts the structure of a Google Document as an ordered list of elements.
     
