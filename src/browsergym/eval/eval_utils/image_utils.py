@@ -5,7 +5,7 @@ import fitz  # PyMuPDF
 from PIL import Image
 import cv2
 import numpy as np
-from src.browsergym.eval.eval_utils.image_helpers import *
+from src.browsergym.eval.eval_utils.image_helpers import load_process_images, find_template_scale_invariant
 from src.browsergym.eval.eval_utils.utils import location, retrieve_validate_doc_path
 import torch
 
@@ -338,22 +338,16 @@ def extract_image_location_size(image_path, image_size, doc_path, debug=False):
         if debug:
             print(f"Searching page {page_index + 1} of {len(doc_images)}: {os.path.basename(doc_image_path)}")
         
-        # Load the template image
-        template = cv2.imread(image_path)
-        if template is None:
-            raise FileNotFoundError(f"Could not load template image: {image_path}")
         
-        # Load the document page
-        doc_image = cv2.imread(doc_image_path)
-        if doc_image is None:
-            continue
+        _, doc_image, template, _, _ = load_process_images( doc_image_path, image_path, False )
         
         # If we have target dimensions, resize template to match expected size
         if target_width_px and target_height_px:
             template_resized = cv2.resize(template, (int(target_width_px), int(target_height_px)))
         else:
             template_resized = template
-        
+        if debug:
+            cv2.imshow("Template Image", template_resized)
         # Perform template matching
         result = cv2.matchTemplate(doc_image, template_resized, cv2.TM_CCOEFF_NORMED)
         
@@ -384,9 +378,7 @@ def extract_image_location_size(image_path, image_size, doc_path, debug=False):
             # Save visualization
             base_name = os.path.splitext(os.path.basename(image_path))[0]
             page_name = os.path.splitext(os.path.basename(doc_image_path))[0]
-            vis_filename = f"{base_name}_in_{page_name}_conf_{max_val:.3f}.png"
-            cv2.imwrite(vis_filename, vis_image)
-            print(f"Visualization saved as: {vis_filename}")
+            cv2.imshow("Template Match Visualization", vis_image)
         
         if max_val >= match_threshold:
             if debug:

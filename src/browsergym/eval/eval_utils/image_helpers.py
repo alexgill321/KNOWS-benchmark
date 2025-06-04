@@ -163,7 +163,7 @@ def crop_whitespace(image, threshold=245):
     return cropped_image
 
 
-def _load_process_images(source_image_path, template_image_path, crop_template_whitespace=True, whitespace_crop_threshold=245):
+def load_process_images(source_image_path, template_image_path, crop_template_whitespace=True, whitespace_crop_threshold=245):
     """Load and process source and template images for template matching.
     
     Args:
@@ -451,7 +451,7 @@ def find_template_scale_invariant(source_image_path, template_image_path,
                or None if no match above threshold found or on error.
     """
     # --- 1. Load Images ---
-    images = _load_process_images(
+    images = load_process_images(
         source_image_path, 
         template_image_path, 
         crop_template_whitespace, 
