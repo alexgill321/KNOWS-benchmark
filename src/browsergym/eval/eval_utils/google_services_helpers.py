@@ -37,6 +37,7 @@ def get_scopes(services):
         'DRIVE': 'https://www.googleapis.com/auth/drive',
         'DOCS': 'https://www.googleapis.com/auth/documents',
         'SHEETS': 'https://www.googleapis.com/auth/spreadsheets',
+        'SLIDES': 'https://www.googleapis.com/auth/presentations',
         # Add more mappings as needed
     }
     
@@ -64,3 +65,53 @@ def get_doc_content(doc_id, service):
     except Exception as e:
         print(f"Error fetching document content: {e}")
         return None
+
+def get_sheet_content(sheet_id):
+    """
+    Fetches the content of a Google Sheet.
+
+    Args:
+        sheet_id (str): The ID of the Google Sheet.
+
+    Returns:
+        tuple: (sheet, service) where `sheet` is the full spreadsheet data and `service` is the
+         Sheets API service. Returns (None, None) if an error occurs.
+    """
+    try: # different for the sheets as compared to docs
+        service = build('sheets', 'v4', credentials=authenticate(services=['SHEETS']))
+        print(f"Fetching sheet content for ID: {sheet_id}")
+
+        # `includeGridData=True` includes values, formatting, and layout info
+        sheet = service.spreadsheets().get(spreadsheetId=sheet_id, includeGridData=True).execute()
+
+        print("Sheet content fetched successfully.")
+        return sheet, service
+
+    except Exception as e:
+        print(f"Error fetching sheet content: {e}")
+        return None, None
+
+
+def get_slide_content(slide_id):
+    """
+    Fetches the content of a Google Slides presentation.
+
+    Args:
+        slide_id (str): The ID of the Slides presentation.
+
+    Returns:
+        tuple: (presentation, service) where `presentation` is the full slide deck data and `service`
+         is the Slides API service. Returns (None, None) if an error occurs.
+    """
+    try:
+        service = build('slides', 'v1', credentials=authenticate(services=['SLIDES']))
+        print(f"Fetching slide content for ID: {slide_id}")
+
+        presentation = service.presentations().get(presentationId=slide_id).execute()
+
+        print("Slides content fetched successfully.")
+        return presentation, service
+
+    except Exception as e:
+        print(f"Error fetching slide content: {e}")
+        return None, None
