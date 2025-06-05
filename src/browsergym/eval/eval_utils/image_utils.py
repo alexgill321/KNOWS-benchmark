@@ -285,6 +285,186 @@ def binary_judge_image(model, image_path, text):
 #     print(f"Text extraction complete. Extracted text from {len(result)} pages.")
 #     return result
 
+def extract_image_location_size_feature_based(image_path, image_size, doc_path, debug=False):
+    """Extracts the location of an image in a document with known size using feature-based matching.
+
+    Args:
+        image_path (str): The path to the image file.
+        image_size (dict): Known size of the image as it appears in the document.
+            Format: {'width': {'magnitude': float, 'unit': str}, 'height': {'magnitude': float, 'unit': str}}
+        doc_path (str): The path to the folder where images of the pdf are stored.
+        debug (bool): Whether to enable debug visualization. Default is False.
+
+    Returns:
+        location: A location object of the bounding box of the image in the document.
+        Returns None if not found.
+
+    Raises:
+        FileNotFoundError: If the provided image path does not exist or the document path is invalid.
+    """
+    # Validate inputs
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"Image path does not exist: {image_path}")
+    
+    doc_images = retrieve_validate_doc_path(doc_path)
+    
+    if debug:
+        print(f"Looking for {image_path} in document with {len(doc_images)} pages")
+        print(f"Known size: {image_size}")
+    
+    # Convert known size to pixels (screenshots are at 300 DPI)
+    target_width_px = None
+    target_height_px = None
+    
+    if image_size and 'width' in image_size and 'height' in image_size:
+        width_info = image_size['width']
+        height_info = image_size['height']
+        
+        if width_info.get('unit') == 'PT':  # Points
+            target_width_px = width_info.get('magnitude', 0) * 300 / 72  # Convert points to pixels at 300 DPI
+            target_height_px = height_info.get('magnitude', 0) * 300 / 72
+        elif width_info.get('unit') == 'PX':  # Pixels
+            target_width_px = width_info.get('magnitude', 0)
+            target_height_px = height_info.get('magnitude', 0)
+        
+        if debug:
+            print(f"Target dimensions in pixels: {target_width_px:.1f}x{target_height_px:.1f}")
+    
+    # Initialize SIFT detector for feature matching
+    sift = cv2.SIFT_create()
+    
+    # FLANN parameters for fast matching
+    FLANN_INDEX_KDTREE = 1
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    search_params = dict(checks=50)
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
+    
+    # Try to find the image in each page of the document
+    for page_index, doc_image_path in enumerate(doc_images):
+        if debug:
+            print(f"Searching page {page_index + 1} of {len(doc_images)}: {os.path.basename(doc_image_path)}")
+        
+        _, doc_image, template, _, _ = load_process_images(doc_image_path, image_path, False)
+        
+        # If we have target dimensions, resize template to match expected size
+        if target_width_px and target_height_px:
+            template_resized = cv2.resize(template, (int(target_width_px), int(target_height_px)))
+        else:
+            template_resized = template
+        
+        # Detect features in both images
+        kp1, des1 = sift.detectAndCompute(template_resized, None)
+        kp2, des2 = sift.detectAndCompute(doc_image, None)
+        
+        # Check if features were found
+        if des1 is None or des2 is None or len(des1) < 4 or len(des2) < 4:
+            if debug:
+                print(f"Page {page_index + 1} - Insufficient features detected")
+            continue
+        
+        # Match features using FLANN
+        matches = flann.knnMatch(des1, des2, k=2)
+        
+        # Apply ratio test to filter good matches
+        good_matches = []
+        for match_pair in matches:
+            if len(match_pair) == 2:
+                m, n = match_pair
+                if m.distance < 0.7 * n.distance:
+                    good_matches.append(m)
+        
+        if debug:
+            print(f"Page {page_index + 1} - Found {len(good_matches)} good feature matches")
+            
+            # Display template and document with detected features
+            template_with_features = cv2.drawKeypoints(template_resized, kp1, None, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+            doc_with_features = cv2.drawKeypoints(doc_image, kp2, None, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+            
+            cv2.imwrite(f"template_features_page_{page_index + 1}.png", template_with_features)
+            cv2.imwrite(f"doc_features_page_{page_index + 1}.png", doc_with_features)
+            
+            # Display feature matches if there are good matches
+            if len(good_matches) > 0:
+                match_img = cv2.drawMatches(template_resized, kp1, doc_image, kp2, good_matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+                cv2.imwrite(f"feature_matches_page_{page_index + 1}.png", match_img)
+        
+        # Need at least 4 good matches for homography
+        if len(good_matches) >= 4:
+            # Extract matched keypoints
+            src_pts = np.float32([kp1[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+            dst_pts = np.float32([kp2[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+            
+            # Find homography
+            M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+            
+            if M is not None:
+                # Calculate match confidence based on inliers
+                inliers = np.sum(mask)
+                match_confidence = inliers / len(good_matches)
+                
+                if debug:
+                    print(f"Page {page_index + 1} - Homography found with {inliers}/{len(good_matches)} inliers")
+                    print(f"Match confidence: {match_confidence:.3f}")
+                
+                # Check if confidence is sufficient
+                if match_confidence >= 0.3:  # Adjust threshold as needed
+                    # Get template dimensions
+                    h, w = template_resized.shape[:2]
+                    
+                    # Define template corners
+                    template_corners = np.float32([[0, 0], [w, 0], [w, h], [0, h]]).reshape(-1, 1, 2)
+                    
+                    # Transform corners to document coordinates
+                    doc_corners = cv2.perspectiveTransform(template_corners, M)
+                    
+                    # Calculate bounding box
+                    x_coords = doc_corners[:, 0, 0]
+                    y_coords = doc_corners[:, 0, 1]
+                    
+                    top_left_x = int(np.min(x_coords))
+                    top_left_y = int(np.min(y_coords))
+                    bottom_right_x = int(np.max(x_coords))
+                    bottom_right_y = int(np.max(y_coords))
+                    
+                    width = bottom_right_x - top_left_x
+                    height = bottom_right_y - top_left_y
+                    
+                    if debug:
+                        print(f"Match found on page {page_index + 1}!")
+                        print(f"Coordinates: ({top_left_x}, {top_left_y}) to ({bottom_right_x}, {bottom_right_y})")
+                        print(f"Size: {width}x{height}")
+                        
+                        # Create visualization
+                        vis_image = doc_image.copy()
+                        
+                        # Draw the transformed corners
+                        cv2.polylines(vis_image, [np.int32(doc_corners)], True, (0, 255, 0), 3)
+                        
+                        # Draw bounding box
+                        cv2.rectangle(vis_image, (top_left_x, top_left_y), (bottom_right_x, bottom_right_y), (255, 0, 0), 2)
+                        
+                        # Add confidence text
+                        label = f"Confidence: {match_confidence:.3f}"
+                        cv2.putText(vis_image, label, (top_left_x, top_left_y - 10), 
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                        
+                        # cv2.imshow("Feature Match Visualization", vis_image)
+                        cv2.imwrite(f"feature_match_page_{page_index + 1}.png", vis_image)
+                    
+                    # Create and return a location object
+                    return location(
+                        page_number=page_index + 1,  # 1-indexed page number
+                        x=top_left_x,
+                        y=top_left_y,
+                        width=width,
+                        height=height
+                    )
+    
+    # Image not found in any page
+    if debug:
+        print("Image not found in any page of the document.")
+    return None
+
 def extract_image_location_size(image_path, image_size, doc_path, debug=False):
     """Extracts the location of an image in a document with known size from jpg images of a PDF doc/slide/sheet.
 

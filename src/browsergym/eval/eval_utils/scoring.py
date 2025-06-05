@@ -1,10 +1,21 @@
-from dataclasses import dataclass
-from typing import List, Callable, Optional
+from dataclasses import dataclass, field
+from typing import List, Callable, Optional, Dict, Any
+
+@dataclass
+class EvaluationStep:
+    name: str
+    success: bool
+    step_id: int
+    details: Optional[str] = None
+    score: int = 0
+    max_score: int = 1
 
 @dataclass
 class Checkpoint:
     total: int
     result: int
+    steps: List[EvaluationStep] = field(default_factory=list)
+    name: Optional[str] = None
     
     def __post_init__(self):
         if not isinstance(self.total, int):
@@ -17,6 +28,33 @@ class Checkpoint:
             raise ValueError(f"result cannot be negative, got {self.result}")
         if self.result > self.total:
             raise ValueError(f"result ({self.result}) cannot be greater than total ({self.total})")
+    
+    def add_step(self, name: str, success: bool, step_id: int, details: Optional[str] = None, score: int = None, max_score: int = 1):
+        """Add an evaluation step to this checkpoint."""
+        if score is None:
+            score = max_score if success else 0
+        step = EvaluationStep(name=name, success=success, step_id=step_id, details=details, score=score, max_score=max_score)
+        self.steps.append(step)
+        return step
+    
+    def get_step_summary(self) -> Dict[str, Any]:
+        """Get a summary of all steps in this checkpoint."""
+        return {
+            "total_steps": len(self.steps),
+            "successful_steps": sum(1 for step in self.steps if step.success),
+            "failed_steps": sum(1 for step in self.steps if not step.success),
+            "steps": [
+                {
+                    "step_id": step.step_id,
+                    "name": step.name,
+                    "success": step.success,
+                    "details": step.details,
+                    "score": step.score,
+                    "max_score": step.max_score
+                }
+                for step in self.steps
+            ]
+        }
 
 @dataclass
 class Result:
@@ -55,8 +93,27 @@ class Result:
         """Convert the Result instance to a dictionary."""
         return {
             "checkpoints": [
-                {"total": cp.total, "result": cp.result}
+                {
+                    "total": cp.total, 
+                    "result": cp.result,
+                    "name": cp.name,
+                    "step_summary": cp.get_step_summary()
+                }
                 for cp in self.checkpoints
             ],
             "final_score": self.final_score
+        }
+    
+    def get_detailed_report(self) -> Dict[str, Any]:
+        """Get a detailed report of all evaluation steps."""
+        return {
+            "final_score": self.final_score,
+            "checkpoints": [
+                {
+                    "name": cp.name or f"Checkpoint {i+1}",
+                    "score": f"{cp.result}/{cp.total}",
+                    "steps": cp.get_step_summary()["steps"]
+                }
+                for i, cp in enumerate(self.checkpoints)
+            ]
         }

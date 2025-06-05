@@ -237,6 +237,132 @@ def extract_images_from_doc(doc_id, service, output_dir=None):
         return images
     return None
 
+def extract_images_from_doc_with_cropping(doc_id, service, output_dir=None):
+    """Extracts images from a Google document and applies document cropping.
+
+    Args:
+        doc_id (str): The ID of the Google Doc to extract images from.
+        service: The Google Docs service instance.
+        output_dir (str): The directory to save the extracted images. If None, images not saved.
+
+    Returns:
+        list: A list of tuples containing (image_data, crop_info) for each extracted image.
+            Returns None if no images were found or an error occurred.
+    """
+    from PIL import Image
+    from io import BytesIO
+    
+    if output_dir is not None:
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            print(f"Created output directory: {output_dir}")
+
+    document = service.documents().get(documentId=doc_id).execute()
+    inline_objects = document.get("inlineObjects")
+
+    if not inline_objects:
+        print("No inline objects found in the document.")
+        return None
+    
+    image_count = 0
+    authed_session = requests.Session()
+    authed_session.headers.update({'Authorization': f'Bearer {service._http.credentials.token}'})
+
+    extracted_images = []
+    
+    for obj_id, obj_data in inline_objects.items():
+        embedded_object = obj_data.get('inlineObjectProperties', {}).get('embeddedObject')
+        if embedded_object and embedded_object.get('imageProperties'):
+            image_properties = embedded_object['imageProperties']
+            content_uri = image_properties.get('contentUri')
+            crop_properties = image_properties.get('cropProperties', {})
+
+            if content_uri:
+                image_count += 1
+                print(f"Found image {image_count} (Object ID: {obj_id})")
+                
+                if crop_properties:
+                    print(f"  Crop properties: {crop_properties}")
+
+                try:
+                    # Download original image
+                    response = authed_session.get(content_uri)
+                    response.raise_for_status()
+                    
+                    # Load image with PIL
+                    original_image = Image.open(BytesIO(response.content))
+                    width, height = original_image.size
+                    
+                    # Apply cropping if crop properties exist
+                    if crop_properties:
+                        offset_top = crop_properties.get('offsetTop', 0.0)
+                        offset_bottom = crop_properties.get('offsetBottom', 0.0)
+                        offset_left = crop_properties.get('offsetLeft', 0.0)
+                        offset_right = crop_properties.get('offsetRight', 0.0)
+                        
+                        # Calculate crop coordinates
+                        # Google Docs crop offsets are ratios of how much to crop from each edge
+                        left = int(width * offset_left)
+                        top = int(height * offset_top)
+                        right = int(width * (1.0 - offset_right))
+                        bottom = int(height * (1.0 - offset_bottom))
+                        
+                        print(f"  Applying crop: left={left}, top={top}, right={right}, bottom={bottom}")
+                        print(f"  Original size: {width}x{height}")
+                        
+                        # Crop the image
+                        cropped_image = original_image.crop((left, top, right, bottom))
+                        print(f"  Cropped size: {cropped_image.size}")
+                        
+                        # Convert back to bytes
+                        img_buffer = BytesIO()
+                        img_format = original_image.format if original_image.format else 'PNG'
+                        cropped_image.save(img_buffer, format=img_format)
+                        cropped_data = img_buffer.getvalue()
+                        
+                        image_to_save = cropped_data
+                        final_image = cropped_image
+                    else:
+                        print("  No crop properties found, using original image")
+                        image_to_save = response.content
+                        final_image = original_image
+                    
+                    # Store result
+                    crop_info = {
+                        'original_size': (width, height),
+                        'final_size': final_image.size,
+                        'crop_applied': bool(crop_properties),
+                        'crop_properties': crop_properties
+                    }
+                    extracted_images.append((image_to_save, crop_info))
+
+                    if output_dir is not None:
+                        # Determine file extension
+                        content_type = response.headers.get('Content-Type')
+                        extension = mimetypes.guess_extension(content_type) if content_type else '.jpg'
+                        if not extension:
+                            if 'png' in content_type.lower(): extension = '.png'
+                            elif 'jpeg' in content_type.lower() or 'jpg' in content_type.lower(): extension = '.jpg'
+                            else: extension = '.jpg'
+                        
+                        # Save cropped image
+                        filename = f"image_{image_count}_{obj_id}{extension}"
+                        filepath = os.path.join(output_dir, filename)
+                        
+                        with open(filepath, 'wb') as f:
+                            f.write(image_to_save)
+                        print(f"  -> Saved cropped image to: {filepath}")
+
+                except Exception as e:
+                    print(f"  -> Error processing image {image_count} (Object ID: {obj_id}): {e}")
+
+    if image_count == 0:
+        print("No images found in the document.")
+        return None
+    else:
+        print(f"Extracted {image_count} images (with cropping applied) from the document.")
+        return extracted_images
+
 def extract_text_from_doc(doc_id, service):
     """Extracts all text content from a Google Document.
 
