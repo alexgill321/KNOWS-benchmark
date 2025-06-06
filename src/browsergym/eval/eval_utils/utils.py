@@ -380,7 +380,9 @@ def retrieve_validate_doc_path(doc_path):
         return None
     
     # Find the page images in the directory
-    image_paths = glob.glob(os.path.join(doc_path, "*.png"))
+    # image_paths = glob.glob(os.path.join(doc_path, "*.png"))
+    image_paths = glob.glob(os.path.join('src/browsergym/tasks/docs_1_formal_letter/data/pdf_images', '*.png'))
+
     if not image_paths:
         print(f"Error: No PNG images found in document path: {doc_path}")
         return None
