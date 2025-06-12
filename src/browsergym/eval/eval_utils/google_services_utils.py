@@ -19,9 +19,10 @@ SECRET_VERSION_ID = os.environ.get("DRIVE_SA_SECRET_VERSION_ID", "latest")
 # (Initialize them once, not on every request)
 DRIVE_SERVICE = None
 DOCS_SERVICE = None
+SHEETS_SERVICE = None
 
-def initialize_google_services():
-    global DRIVE_SERVICE, DOCS_SERVICE
+def initialize_google_services(service_type=None):
+    global DRIVE_SERVICE, DOCS_SERVICE, SHEETS_SERVICE
 
     if not GCP_PROJECT_ID or not SECRET_ID:
         print("Error: GCP_PROJECT_ID or DRIVE_SA_SECRET_ID environment variables not set.")
@@ -30,11 +31,20 @@ def initialize_google_services():
         # Attempt to initialize without Secret Manager (for local development)
         
         try:
-            credentials = authenticate(['DRIVE', 'DOCS'])
-            DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
-            DOCS_SERVICE = build('docs', 'v1', credentials=credentials)
-            print("Successfully initialized Google API services using local credentials.")
-            return DRIVE_SERVICE, DOCS_SERVICE
+            if service_type == 'sheets':
+                credentials = authenticate(['DRIVE','SHEETS'])
+                DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+                SHEETS_SERVICE = build('sheets', 'v4', credentials=credentials)
+                return DRIVE_SERVICE, SHEETS_SERVICE
+            if service_type == 'docs':
+                credentials = authenticate(['DRIVE', 'DOCS'])
+                DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+                DOCS_SERVICE = build('docs', 'v1', credentials=credentials)
+                return DRIVE_SERVICE, DOCS_SERVICE
+            else:
+                credentials = authenticate(['DRIVE'])
+                DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+                return DRIVE_SERVICE, None
         except Exception as e:
             print(f"Error initializing Google API services locally: {e}")
             return None, None        
@@ -741,42 +751,6 @@ import pandas as pd
 #             tables.append(pd.DataFrame(data, columns=header))
 #
 #     return tables
-
-def search_sheet(filename, folder_id=None):
-    """Search GSheet by name"""
-    sheet = None
-    if folder_id:
-        sheet = find_sheet_specified_location(folder_id, filename)
-    if sheet is None:
-        sheet = find_sheet_any(filename)
-        if sheet is None:
-            return 0, None
-        return 1, sheet
-    else:
-        return 2, sheet
-
-
-def find_sheet_specified_location(folder_id, filename):
-    """
-    Search for a GSheet name contains filename inside a specific folder
-
-    Args:
-        1. Drive folder ID
-        1. Filename
-
-    Returns:
-        str or none : ID on success, otherwise None
-    """
-    service = build('drive', 'v3', credentials=authenticate(['DRIVE']))
-    query = (f"'{folder_id}' in parents and "
-             "mimeType='application/vnd.google-apps.spreadsheet' "
-             "and trashed=false")
-    files = service.files().list(q=query, fields="files(id,name)").execute().get('files', [])
-    for f in files:
-        if filename in f['name']:
-            print(f"Found sheet: {f['name']} (ID: {f['id']})")
-            return f['id']
-    return None
 
 
 def find_sheet_any(filename):
