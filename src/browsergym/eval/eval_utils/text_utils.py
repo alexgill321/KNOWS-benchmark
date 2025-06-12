@@ -126,6 +126,7 @@ def extract_text_from_pdf(pdf_images_path):
         str: Extracted text from the PDF.
     """
     image_paths = retrieve_validate_doc_path(pdf_images_path)
+    
     doc = DocumentFile.from_images(image_paths)
     model = ocr_predictor(pretrained=True)
     result = model(doc)

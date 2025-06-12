@@ -54,9 +54,8 @@ def table_partial_match(df: pd.DataFrame, gold_df: pd.DataFrame, key_column: str
 def find_matching_column_or_row(
     df: pd.DataFrame,
     criteria: str,
-    llm_function: Any,
+    model: Any,
     search_type: str = "column",
-    model_name: str = "gpt-4"
 ) -> Optional[Tuple[str, Union[int, str]]]:
     """
     Find a column or row in a DataFrame that best matches natural language criteria using an LLM.
@@ -64,14 +63,13 @@ def find_matching_column_or_row(
     Args:
         df (pd.DataFrame): The DataFrame to search.
         criteria (str): Natural language description of what to look for.
-        llm_function (Any): LLM function that takes (prompt, model) and returns a response.
+        model (Any): LLM model that takes (prompt) and returns a response.
         search_type (str): Either "column" or "row" to specify search direction.
-        model_name (str): Name/ID of the LLM model to use.
-        
+
     Returns:
-        Optional[Tuple[str, Union[int, str]]]: Tuple of (title, location) where location is 
+        Optional[Tuple[str, Union[int, str]]]: Tuple of (title, location) where location is
         column name for columns or row index for rows, or None if no match found.
-        
+
     Raises:
         ValueError: If search_type is not "column" or "row".
     """
@@ -106,9 +104,12 @@ Please analyze each header and determine which one best matches the criteria. Re
 Your response should be just the number or "NONE", nothing else."""
 
     try:
-        response = llm_function(prompt, model_name)
+        messages = [
+            {"role": "user", "content": prompt}
+        ]
+        response = model(messages)
         response = response.strip().upper()
-        
+
         if response == "NONE":
             return None
         
