@@ -1,6 +1,11 @@
 import os
 import glob
 import cv2
+import numpy as np
+
+# Check if GUI functions are available (not available in headless mode)
+# Set to False by default for headless environments
+GUI_AVAILABLE = False
 
 class location(object):
     def __init__(self, page_number, x, y, width, height):
@@ -450,13 +455,16 @@ def display_location_overlay(doc_path, loc, color=(0, 255, 0), max_width=1200, m
     # Resize for display if needed
     display_image = resize_for_display(overlay_image, max_width, max_height)
     
-    # Display the image
-    window_name = f"Location Overlay (Page {loc.page_number})"
-    cv2.imshow(window_name, display_image)
-    
-    print("Press any key to close the window...")
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # Display the image (only if GUI is available)
+    if GUI_AVAILABLE:
+        window_name = f"Location Overlay (Page {loc.page_number})"
+        cv2.imshow(window_name, display_image)
+        
+        print("Press any key to close the window...")
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    else:
+        print(f"GUI not available in headless mode. Image overlay created for page {loc.page_number}.")
     
     # Save the original (non-resized) overlay image if requested
     if save_path:
