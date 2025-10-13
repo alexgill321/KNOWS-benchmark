@@ -21,10 +21,11 @@ SECRET_VERSION_ID = os.environ.get("DRIVE_SA_SECRET_VERSION_ID", "latest")
 # (Initialize them once, not on every request)
 DRIVE_SERVICE = None
 DOCS_SERVICE = None
+SLIDES_SERVICE = None
 SHEETS_SERVICE = None
 
 def initialize_google_services(service_type=None):
-    global DRIVE_SERVICE, DOCS_SERVICE, SHEETS_SERVICE
+    global DRIVE_SERVICE, DOCS_SERVICE, SLIDES_SERVICE, SHEETS_SERVICE
 
     if not GCP_PROJECT_ID or not SECRET_ID:
         print("Error: GCP_PROJECT_ID or DRIVE_SA_SECRET_ID environment variables not set.")
@@ -43,6 +44,11 @@ def initialize_google_services(service_type=None):
                 DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
                 DOCS_SERVICE = build('docs', 'v1', credentials=credentials)
                 return DRIVE_SERVICE, DOCS_SERVICE
+            if service_type == 'slides':
+                credentials = authenticate(['DRIVE', 'SLIDES'])
+                DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+                SLIDES_SERVICE = build('slides', 'v1', credentials=credentials)
+                return DRIVE_SERVICE, SLIDES_SERVICE
             else:
                 credentials = authenticate(['DRIVE'])
                 DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
@@ -66,22 +72,43 @@ def initialize_google_services(service_type=None):
         service_account_info = json.loads(payload)
 
         # Define the scopes your application needs
-        # Adjust these based on what your 'search_doc', 'extract_images_from_doc', etc. require
-        SCOPES = [
-            'https://www.googleapis.com/auth/documents', # Example: if only reading
-            # 'https://www.googleapis.com/auth/drive', # If needing to write/modify
-            'https://www.googleapis.com/auth/drive' # For Google Docs API
-            # 'https://www.googleapis.com/auth/documents'
-        ]
+        if service_type == 'sheets':
+            SCOPES = [
+                'https://www.googleapis.com/auth/drive',
+                'https://www.googleapis.com/auth/spreadsheets'
+            ]
+        elif service_type == 'docs':
+            SCOPES = [
+                'https://www.googleapis.com/auth/drive',
+                'https://www.googleapis.com/auth/documents'
+            ]
+        elif service_type == 'slides':
+            SCOPES = [
+                'https://www.googleapis.com/auth/drive',
+                'https://www.googleapis.com/auth/presentations'
+            ]
 
         # Create credentials from the service account info
         credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
 
-        # Build the service objects
-        DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
-        DOCS_SERVICE = build('docs', 'v1', credentials=credentials)
-        print("Successfully initialized Google API services using Service Account from Secret Manager.")
-        return DRIVE_SERVICE, DOCS_SERVICE
+        if service_type == 'sheets':
+            # Build the service objects
+            DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+            SHEETS_SERVICE = build('sheets', 'v4', credentials=credentials)
+            print("Successfully initialized Google API services using Service Account from Secret Manager.")
+            return DRIVE_SERVICE, SHEETS_SERVICE
+        if service_type == 'slides':
+            # Build the service objects
+            DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+            SLIDES_SERVICE = build('slides', 'v1', credentials=credentials)
+            print("Successfully initialized Google API services using Service Account from Secret Manager.")
+            return DRIVE_SERVICE, SLIDES_SERVICE
+        if service_type == 'docs':
+            # Build the service objects
+            DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+            DOCS_SERVICE = build('docs', 'v1', credentials=credentials)
+            print("Successfully initialized Google API services using Service Account from Secret Manager.")
+            return DRIVE_SERVICE, DOCS_SERVICE
     except Exception as e:
         print(f"Error initializing Google API services: {e}")
         # Handle the error appropriately (e.g., log it, raise an exception, etc.)

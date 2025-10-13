@@ -13,3 +13,4 @@ torch
 torchvision
 google-cloud-secret-manager
 pandas
+paperscraper
