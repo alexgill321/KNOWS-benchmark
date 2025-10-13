@@ -9,6 +9,7 @@ class EvaluationStep:
     details: Optional[str] = None
     score: int = 0
     max_score: int = 1
+    execution_time: Optional[float] = None  # Time in seconds
 
 @dataclass
 class Checkpoint:
@@ -16,6 +17,7 @@ class Checkpoint:
     result: int
     steps: List[EvaluationStep] = field(default_factory=list)
     name: Optional[str] = None
+    execution_time: Optional[float] = None  # Time in seconds
     
     def __post_init__(self):
         if not isinstance(self.total, int):
@@ -29,11 +31,11 @@ class Checkpoint:
         if self.result > self.total:
             raise ValueError(f"result ({self.result}) cannot be greater than total ({self.total})")
     
-    def add_step(self, name: str, success: bool, step_id: int, details: Optional[str] = None, score: int = None, max_score: int = 1):
+    def add_step(self, name: str, success: bool, step_id: int, details: Optional[str] = None, score: int = None, max_score: int = 1, execution_time: Optional[float] = None):
         """Add an evaluation step to this checkpoint."""
         if score is None:
             score = max_score if success else 0
-        step = EvaluationStep(name=name, success=success, step_id=step_id, details=details, score=score, max_score=max_score)
+        step = EvaluationStep(name=name, success=success, step_id=step_id, details=details, score=score, max_score=max_score, execution_time=execution_time)
         self.steps.append(step)
         return step
     
@@ -50,7 +52,8 @@ class Checkpoint:
                     "success": step.success,
                     "details": step.details,
                     "score": step.score,
-                    "max_score": step.max_score
+                    "max_score": step.max_score,
+                    "execution_time": step.execution_time
                 }
                 for step in self.steps
             ]
@@ -60,6 +63,7 @@ class Checkpoint:
 class Result:
     checkpoints: List[Checkpoint]
     scoring_strategy: Optional[Callable[[List[Checkpoint]], dict]] = None
+    total_execution_time: Optional[float] = None  # Time in seconds
     
     def __post_init__(self):
         if self.scoring_strategy is None:
@@ -97,11 +101,13 @@ class Result:
                     "total": cp.total, 
                     "result": cp.result,
                     "name": cp.name,
+                    "execution_time": cp.execution_time,
                     "step_summary": cp.get_step_summary()
                 }
                 for cp in self.checkpoints
             ],
-            "final_score": self.final_score
+            "final_score": self.final_score,
+            "total_execution_time": self.total_execution_time
         }
     
     def get_detailed_report(self) -> Dict[str, Any]:
