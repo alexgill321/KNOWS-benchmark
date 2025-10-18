@@ -11,6 +11,8 @@ gunicorn
 transformers
 torch
 torchvision
+accelerate
+llama-cpp-python
 google-cloud-secret-manager
 pandas
 paperscraper

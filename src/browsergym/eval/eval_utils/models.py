@@ -52,6 +52,42 @@ def gemma_3_27b_it():
         return decoded
     
     return query
+
+def gemma_3_27b_it_quantized():
+    from llama_cpp import Llama
+    model = Llama.from_pretrained(
+        repo_id="google/gemma-3-27b-it-qat-q4_0-gguf",
+        filename="gemma-3-27b-it-q4_0.gguf",
+        n_gpu_layers=-1,  # Use all GPU layers
+        n_ctx=2048       # Context length
+    )
+
+    def query(messages):
+        response = model.create_chat_completion(
+            messages=messages,
+            max_tokens=10)
+        return response.choices[0].message['content']
+    return query
+
+def gemma_3_12b_it_quantized():
+    from llama_cpp import Llama
+
+    model = Llama.from_pretrained(
+        repo_id="google/gemma-3-12b-it-qat-q4_0-gguf",
+	    filename="gemma-3-12b-it-q4_0.gguf",
+        n_gpu_layers=-1,  # Use all GPU layers
+        n_ctx=2048       # Context length
+    )
+
+    def query(messages):
+        response = model.create_chat_completion(
+            messages=messages,
+            max_tokens=10)
+        return response.choices[0].message['content']
+        
+
+
+    return query
     
 def qwen2_5_vl_72b_instruct():
     from transformers import Qwen2_5_VLForConditionalGeneration, AutoTokenizer, AutoProcessor
@@ -91,6 +127,8 @@ def qwen2_5_vl_72b_instruct():
 
 _models = {
     "gemma-3-27b-it": gemma_3_27b_it,
+    "gemma-3-12b-it-qat-q4_0-gguf": gemma_3_12b_it_quantized,
+    "gemma-3-27b-it-qat-q4_0-gguf": gemma_3_27b_it_quantized,
     "qwen2-5-vl-72b-instruct": qwen2_5_vl_72b_instruct,
 
 }

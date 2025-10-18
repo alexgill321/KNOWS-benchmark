@@ -36,7 +36,7 @@ DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 CLEANUP_ENABLED = os.environ.get("CLEANUP", "True").lower() == "true"
 
 model = None
-model_id = "gemma-3-27b-it"
+model_id = "gemma-3-27b-it-qat-q4_0-gguf"
 
 DRIVE_SERVICE, DOCS_SERVICE = initialize_google_services()
 
@@ -253,7 +253,9 @@ def grade_checkpoint_2():
     else:
         # Try AI-based detection as fallback
         global model
+        print("Model being used for AI-based image matching is:", model_id)
         if model is None:
+            print(f"Preloaded model not found, loading {model_id}...")
             model = load_model(model_id)
         
         step_start = time.time()

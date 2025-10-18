@@ -1,6 +1,9 @@
 from fuzzywuzzy import fuzz, process
 from doctr.models import ocr_predictor
 from doctr.io import DocumentFile
+
+# Global cache for DocTR OCR model to avoid reloading
+_ocr_model_cache = None
 import sys
 import os
 sys.path.append(os.getcwd())
@@ -125,11 +128,19 @@ def extract_text_from_pdf(pdf_images_path):
     Outputs:
         str: Extracted text from the PDF.
     """
+    global _ocr_model_cache
+
     image_paths = retrieve_validate_doc_path(pdf_images_path)
-    
+
     doc = DocumentFile.from_images(image_paths)
-    model = ocr_predictor(pretrained=True)
-    result = model(doc)
+
+    # Use cached OCR model or create new one
+    if _ocr_model_cache is None:
+        print("Loading DocTR OCR model for the first time...")
+        _ocr_model_cache = ocr_predictor(pretrained=True)
+        print("DocTR OCR model loaded and cached!")
+
+    result = _ocr_model_cache(doc)
     result_json = result.export()
     formatted_results = {}
     for page in result_json["pages"]:

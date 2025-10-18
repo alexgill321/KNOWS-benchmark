@@ -38,7 +38,7 @@ CLEANUP_ENABLED = os.environ.get("CLEANUP", "True").lower() == "true"
 model = None
 model_id = "gemma-3-27b-it"
 
-DRIVE_SERVICE, DOCS_SERVICE = initialize_google_services()
+DRIVE_SERVICE, DOCS_SERVICE = initialize_google_services(service_type="docs")
 
 # Global variables that will be set by setup_document
 doc_id = None
