@@ -1,6 +1,7 @@
-google-api-python-client 
-google-auth-httplib2 
+google-api-python-client
+google-auth-httplib2
 google-auth-oauthlib
+google-genai
 fuzzywuzzy
 python-doctr
 python-Levenshtein
@@ -12,7 +13,6 @@ transformers
 torch
 torchvision
 accelerate
-llama-cpp-python
 google-cloud-secret-manager
 pandas
 paperscraper

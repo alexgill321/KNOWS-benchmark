@@ -36,7 +36,7 @@ DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 CLEANUP_ENABLED = os.environ.get("CLEANUP", "True").lower() == "true"
 
 model = None
-model_id = "gemma-3-27b-it-qat-q4_0-gguf"
+model_id = "gemma-google-ai"  # Using Google AI API instead of cloud service
 
 DRIVE_SERVICE, DOCS_SERVICE = initialize_google_services()
 

@@ -5,6 +5,7 @@ import fitz  # PyMuPDF
 from PIL import Image
 import cv2
 import numpy as np
+import io
 
 # Check if GUI functions are available (not available in headless mode)
 # Set to False by default for headless environments
@@ -102,9 +103,7 @@ def binary_judge_image(model, image_path, text, examples=None):
             example_content.append({"type": "text", "text": "Here are example images for reference:"})
             for example_path in example_files:
                 try:
-                    example_image = Image.open(example_path)
-                    example_image = example_image.convert("RGB")
-                    example_content.append({"type": "image", "image": example_image})
+                    example_content.append({"type": "image", "image": example_path})
                     example_content.append({"type": "text", "text": f"Example: {os.path.basename(example_path)}"})
                 except Exception as e:
                     print(f"Error loading example image {example_path}: {e}")
@@ -112,16 +111,16 @@ def binary_judge_image(model, image_path, text, examples=None):
     # Process each image until one passes or all fail
     for img_path in image_paths:
         try:
-            print(f"Processing image: {os.path.basename(img_path)}")
-            image = Image.open(img_path)
-            image = image.convert("RGB")
+            # print(f"Processing image: {os.path.basename(img_path)}")
+            # image = Image.open(img_path)
+            # image = image.convert("RGB")
             
             # Build user content starting with examples (if any)
             user_content = []
             user_content.extend(example_content)
 
             # Add the current image and question
-            user_content.append({"type": "image", "image": image})
+            user_content.append({"type": "image", "image": img_path})
             user_content.append({"type": "text", "text": text})
 
             messages = [
@@ -134,8 +133,9 @@ def binary_judge_image(model, image_path, text, examples=None):
                     "content": user_content
                 },
             ]
-            
+
             response = model(messages)
+
             result = parse_response(response)
             
             if result is True:
