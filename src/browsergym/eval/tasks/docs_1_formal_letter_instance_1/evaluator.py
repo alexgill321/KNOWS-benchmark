@@ -253,9 +253,7 @@ def grade_checkpoint_2():
     else:
         # Try AI-based detection as fallback
         global model
-        print("Model being used for AI-based image matching is:", model_id)
         if model is None:
-            print(f"Preloaded model not found, loading {model_id}...")
             model = load_model(model_id)
         
         step_start = time.time()

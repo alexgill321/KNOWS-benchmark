@@ -131,7 +131,6 @@ def extract_text_from_pdf(pdf_images_path):
     global _ocr_model_cache
 
     image_paths = retrieve_validate_doc_path(pdf_images_path)
-
     doc = DocumentFile.from_images(image_paths)
 
     # Use cached OCR model or create new one
