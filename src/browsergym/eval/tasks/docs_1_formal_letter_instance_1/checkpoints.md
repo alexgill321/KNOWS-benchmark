@@ -1,5 +1,5 @@
 # Checkpoints
-This task has 11 points in total. 
+This task has 10 points in total. 
 
 ## Checkpoint 1 (6pt): 
 Check that common information about the letter writer is placed at a reasonable location in the document letter. 
@@ -21,7 +21,6 @@ The logo was added to the requested place in the document.
 ### Outcome Evaluation:
 - Image in the doc is an image of the University of Washington.
 - Logo is placed at the top left of the document
-- Logo is placed above the writer’s name and address.
 
 ### Eval Template(s)
 - Image Similarity Match, Image Location Match

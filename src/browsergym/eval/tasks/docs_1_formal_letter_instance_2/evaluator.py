@@ -98,23 +98,20 @@ def cleanup_generated_files():
 
     print("Cleanup completed")
 
-def setup_document(workspace_doc_id=None):
+def setup_document(workspace_doc_id):
     """
-    Setup document processing using either provided workspace_doc_id or search.
-    
+    Setup document processing using the provided workspace_doc_id.
+
     Args:
-        workspace_doc_id (str, optional): Direct Google Docs document ID to use
+        workspace_doc_id (str): The Google Docs document ID (gold instance ID) to use
     """
     global doc_id, gold_text, text_ocr, doc_structure
-    
-    if workspace_doc_id:
-        print(f"Using provided workspace document ID: {workspace_doc_id}")
-        doc_id = workspace_doc_id
-    else:
-        print("Searching for 'Formal Letter' document in folder")
-        find_status, doc_id = search_doc("Formal Letter", DRIVE_SERVICE, FOLDER_ID)
-        if not find_status:
-            raise ValueError("Could not find 'Formal Letter' document in the specified folder")
+
+    if not workspace_doc_id:
+        raise ValueError("workspace_doc_id is required")
+
+    print(f"Using workspace document ID: {workspace_doc_id}")
+    doc_id = workspace_doc_id
     
     # Download and process the document
     pdf_path = os.path.join(TASK_DIR, "data/ethan_ashby_formal_letter.pdf")
@@ -344,12 +341,12 @@ def grade_checkpoint_3(doc_structure):
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
-def grade_checkpoints(workspace_doc_id=None, cached_models=None):
+def grade_checkpoints(workspace_doc_id, cached_models=None):
     """
     Grade all checkpoints for the document.
 
     Args:
-        workspace_doc_id (str, optional): Direct Google Docs document ID to use
+        workspace_doc_id (str): The Google Docs document ID (gold instance ID) to use
         cached_models (dict, optional): Dictionary of preloaded models by model_id
 
     Returns:
