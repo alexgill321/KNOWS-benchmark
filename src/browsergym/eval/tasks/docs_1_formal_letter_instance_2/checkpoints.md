@@ -1,5 +1,5 @@
 # Checkpoints
-This task has 11 points in total. 
+This task has 10 points in total. 
 
 ## Checkpoint 1 (6pt): 
 Check that common information about the letter writer is placed at a reasonable location in the document letter. 
@@ -15,13 +15,12 @@ Check that common information about the letter writer is placed at a reasonable 
 ### Eval Template(s)
 - Text Exact Match, Text Location Match
 
-## Checkpoint 2 (3 pt):
+## Checkpoint 2 (2 pt):
 The logo was added to the requested place in the document.
 
 ### Outcome Evaluation:
 - Image in the doc is an image of the Ideo logo.
 - Logo is placed at the top left of the document
-- Logo is placed above the writer’s name and address.
 
 ### Eval Template(s)
 - Image Similarity Match, Image Location Match
