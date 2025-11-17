@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 def table_exact_match(df1: pd.DataFrame, df2: pd.DataFrame, ignore_case: bool = False) -> bool:
     if df1.shape != df2.shape:
         return False

@@ -806,9 +806,7 @@ def find_sheet_any(filename):
 
 
 def extract_tables_from_sheet(sheet_id):
-    """
-    Return list[pd.DataFrame] one per tab.
-    """
+    """Return list[pd.DataFrame] one per tab, with row padding to match header."""
     sheet_obj, _ = get_sheet_content(sheet_id)
     if not sheet_obj:
         return []
@@ -818,8 +816,17 @@ def extract_tables_from_sheet(sheet_id):
         rows = tab["data"][0].get("rowData", [])
         raw = [[cell.get("formattedValue", "") for cell in r.get("values", [])]
                for r in rows if any(c.get("formattedValue", "") for c in r.get("values", []))]
+
         if raw:
-            tables.append(pd.DataFrame(raw[1:], columns=raw[0]))
+            header = raw[0]
+            header_len = len(header)
+            # Pad or truncate all data rows to match header
+            data = [
+                (row + [""] * (header_len - len(row)))[:header_len]
+                for row in raw[1:]
+            ]
+            tables.append(pd.DataFrame(data, columns=header))
+
     return tables
 
 
