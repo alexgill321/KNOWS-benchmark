@@ -7,9 +7,11 @@ import mimetypes
 from google.oauth2.service_account import Credentials # For Service Account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
+from googleapiclient.errors import HttpError
 from google.cloud import secretmanager
 import io
 import json
+import pandas as pd
 
 GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID") # e.g., your-project-id
 SECRET_ID = os.environ.get("DRIVE_SA_SECRET_ID")   # e.g., doc-eval-service-account-key
@@ -19,9 +21,25 @@ SECRET_VERSION_ID = os.environ.get("DRIVE_SA_SECRET_VERSION_ID", "latest")
 # (Initialize them once, not on every request)
 DRIVE_SERVICE = None
 DOCS_SERVICE = None
+SLIDES_SERVICE = None
+SHEETS_SERVICE = None
 
-def initialize_google_services():
-    global DRIVE_SERVICE, DOCS_SERVICE
+def initialize_google_services(service_type=None):
+    global DRIVE_SERVICE, DOCS_SERVICE, SLIDES_SERVICE, SHEETS_SERVICE
+
+    # Auto-detect service type if not provided
+    if service_type is None:
+        import inspect
+        caller_path = inspect.stack()[1].filename if len(inspect.stack()) > 1 else ""
+
+        if 'docs_' in caller_path:
+            service_type = 'docs'
+        elif 'sheets_' in caller_path:
+            service_type = 'sheets'
+        elif 'slides_' in caller_path:
+            service_type = 'slides'
+        else:
+            service_type = 'docs'  # Default to docs for most common case
 
     if not GCP_PROJECT_ID or not SECRET_ID:
         print("Error: GCP_PROJECT_ID or DRIVE_SA_SECRET_ID environment variables not set.")
@@ -30,11 +48,25 @@ def initialize_google_services():
         # Attempt to initialize without Secret Manager (for local development)
         
         try:
-            credentials = authenticate(['DRIVE', 'DOCS'])
-            DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
-            DOCS_SERVICE = build('docs', 'v1', credentials=credentials)
-            print("Successfully initialized Google API services using local credentials.")
-            return DRIVE_SERVICE, DOCS_SERVICE
+            if service_type == 'sheets':
+                credentials = authenticate(['DRIVE','SHEETS'])
+                DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+                SHEETS_SERVICE = build('sheets', 'v4', credentials=credentials)
+                return DRIVE_SERVICE, SHEETS_SERVICE
+            if service_type == 'docs':
+                credentials = authenticate(['DRIVE', 'DOCS'])
+                DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+                DOCS_SERVICE = build('docs', 'v1', credentials=credentials)
+                return DRIVE_SERVICE, DOCS_SERVICE
+            if service_type == 'slides':
+                credentials = authenticate(['DRIVE', 'SLIDES'])
+                DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+                SLIDES_SERVICE = build('slides', 'v1', credentials=credentials)
+                return DRIVE_SERVICE, SLIDES_SERVICE
+            else:
+                credentials = authenticate(['DRIVE'])
+                DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+                return DRIVE_SERVICE, None
         except Exception as e:
             print(f"Error initializing Google API services locally: {e}")
             return None, None        
@@ -54,22 +86,53 @@ def initialize_google_services():
         service_account_info = json.loads(payload)
 
         # Define the scopes your application needs
-        # Adjust these based on what your 'search_doc', 'extract_images_from_doc', etc. require
-        SCOPES = [
-            'https://www.googleapis.com/auth/documents', # Example: if only reading
-            # 'https://www.googleapis.com/auth/drive', # If needing to write/modify
-            'https://www.googleapis.com/auth/drive' # For Google Docs API
-            # 'https://www.googleapis.com/auth/documents'
-        ]
+        if service_type == 'sheets':
+            SCOPES = [
+                'https://www.googleapis.com/auth/drive',
+                'https://www.googleapis.com/auth/spreadsheets'
+            ]
+        elif service_type == 'docs':
+            SCOPES = [
+                'https://www.googleapis.com/auth/drive',
+                'https://www.googleapis.com/auth/documents'
+            ]
+        elif service_type == 'slides':
+            SCOPES = [
+                'https://www.googleapis.com/auth/drive',
+                'https://www.googleapis.com/auth/presentations'
+            ]
+        else:
+            # Default to drive access if service_type is None or unrecognized
+            SCOPES = [
+                'https://www.googleapis.com/auth/drive'
+            ]
 
         # Create credentials from the service account info
         credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
 
-        # Build the service objects
-        DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
-        DOCS_SERVICE = build('docs', 'v1', credentials=credentials)
-        print("Successfully initialized Google API services using Service Account from Secret Manager.")
-        return DRIVE_SERVICE, DOCS_SERVICE
+        if service_type == 'sheets':
+            # Build the service objects
+            DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+            SHEETS_SERVICE = build('sheets', 'v4', credentials=credentials)
+            print("Successfully initialized Google API services using Service Account from Secret Manager.")
+            return DRIVE_SERVICE, SHEETS_SERVICE
+        elif service_type == 'slides':
+            # Build the service objects
+            DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+            SLIDES_SERVICE = build('slides', 'v1', credentials=credentials)
+            print("Successfully initialized Google API services using Service Account from Secret Manager.")
+            return DRIVE_SERVICE, SLIDES_SERVICE
+        elif service_type == 'docs':
+            # Build the service objects
+            DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+            DOCS_SERVICE = build('docs', 'v1', credentials=credentials)
+            print("Successfully initialized Google API services using Service Account from Secret Manager.")
+            return DRIVE_SERVICE, DOCS_SERVICE
+        else:
+            # Default case - just return drive service
+            DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+            print("Successfully initialized Google Drive API service using Service Manager.")
+            return DRIVE_SERVICE, None
     except Exception as e:
         print(f"Error initializing Google API services: {e}")
         # Handle the error appropriately (e.g., log it, raise an exception, etc.)
@@ -81,6 +144,7 @@ def search_doc(filename, service, folder_id=None):
 
     Args:
         filename (str): The name of the Google Doc to search for.
+        service: The Google Drive service instance.
         folder_id (str, optional): The ID of the Google Drive folder to search in. If None, searches in the entire Drive.
 
     Returns:
@@ -90,9 +154,9 @@ def search_doc(filename, service, folder_id=None):
     """
     doc = None
     if folder_id:
-        doc =  find_doc_specified_location(folder_id, filename, service)
+        doc = find_doc_specified_location(folder_id, filename, service)
     if doc is None:
-        doc = find_doc_any(filename, service)
+        doc = find_file_any(filename, service, 'document')
         if doc is None:
             return 0, None
         return 1, doc
@@ -127,35 +191,60 @@ def find_doc_specified_location(folder_id, filename, service):
             print("No matching file found.")
             return None
 
-def find_doc_any(filename, service):
-    """Find a Google Doc by its filename.
+def find_file_any(filename, service, file_type=None):
+    """Find a Google Drive file by its filename and optionally by file type.
 
     Args:
-        filename (str): The name of the Google Doc to find.
+        filename (str): The name of the file to find.
+        service: The Google Drive service instance.
+        file_type (str, optional): The type of file to search for. Options:
+            - 'document' or 'doc': Google Docs
+            - 'spreadsheet' or 'sheet': Google Sheets
+            - 'presentation' or 'slides': Google Slides
+            - None: Search all file types
 
     Returns:
-        The ID of the found Google Doc.
+        str: Single file ID if one match found
+        list: List of file IDs if multiple matches found
+        None: If no files found
     """
-    query = f"name='{filename}' and mimeType='application/vnd.google-apps.document' and trashed=false"
+    # Map file types to MIME types
+    mime_types = {
+        'document': 'application/vnd.google-apps.document',
+        'doc': 'application/vnd.google-apps.document',
+        'spreadsheet': 'application/vnd.google-apps.spreadsheet',
+        'sheet': 'application/vnd.google-apps.spreadsheet',
+        'presentation': 'application/vnd.google-apps.presentation',
+        'slides': 'application/vnd.google-apps.presentation'
+    }
+
+    # Build query
+    query = f"name='{filename}' and trashed=false"
+    if file_type and file_type.lower() in mime_types:
+        mime_type = mime_types[file_type.lower()]
+        query += f" and mimeType='{mime_type}'"
+
     results = service.files().list(
         q=query,
         spaces='drive',
-        fields='files(id, name)',
-        pageSize=10 # Look for up to 10 matches
+        fields='files(id, name, mimeType)',
+        pageSize=10
     ).execute()
     items = results.get('files', [])
 
     if not items:
-        print("No Google Docs found with the specified filename.")
+        file_type_str = f" {file_type}" if file_type else ""
+        print(f"No{file_type_str} files found with the specified filename.")
         return None
     elif len(items) > 1:
-        print("Multiple Google Docs found with the specified filename.")
+        file_type_str = f" {file_type}" if file_type else ""
+        print(f"Multiple{file_type_str} files found with the specified filename.")
         ids = [item["id"] for item in items]
         return ids
     else:
-        doc_id = items[0]['id']
-        print(f"Found document: '{items[0]['name']}' (ID: {doc_id})")
-        return doc_id
+        file_id = items[0]['id']
+        print(f"Found file: '{items[0]['name']}' (ID: {file_id})")
+        return file_id
                    
 def extract_images_from_doc(doc_id, service, output_dir=None):
     """Extracts images from a Google document.
@@ -715,99 +804,42 @@ def extract_structure_from_doc(doc_id, service):
         traceback.print_exc()
         return None
 
-#  SHEET HELPERS
+def search_sheet(filename, service, folder_id=None):
+    """Search for a Google Sheet by its filename.
 
-"""Is it fine to use pandas? I was thinking it could be easier to use pandas DataFrame as opposed
-   to individual checks using other methods, I'm not sure if there are any drawbacks to it"""
-import pandas as pd
+    Args:
+        filename (str): The name of the Google Sheet to search for.
+        service: The Google Drive service instance.
+        folder_id (str, optional): The ID of the Google Drive folder to search in. If None, searches in the entire Drive.
 
-# def extract_tables_from_sheet(sheet_id):
-#     sheet_obj, _ = get_sheet_content(sheet_id)
-#     if sheet_obj is None:
-#         return []
-#
-#     tables = []
-#     for tab in sheet_obj.get("sheets", []):
-#         rows = tab['data'][0].get('rowData', [])
-#         table = []
-#         for r in rows:
-#             values = [cell.get('formattedValue', '') for cell in r.get('values', [])]
-#             if any(values):            # skip completely blank rows
-#                 table.append(values)
-#
-#         if table:                      # convert to DataFrame
-#             header = table[0]
-#             data   = table[1:]
-#             tables.append(pd.DataFrame(data, columns=header))
-#
-#     return tables
-
-def search_sheet(filename, folder_id=None):
-    """Search GSheet by name"""
+    Returns:
+        A tuple (status, sheet_id) containing:
+            - status (int): 0 if not found, 1 if found in any location, 2 if found in specified location.
+            - sheet_id (str): The ID of the found Google Sheet, or None if not found.
+    """
     sheet = None
     if folder_id:
-        sheet = find_sheet_specified_location(folder_id, filename)
+        sheet = find_doc_specified_location(folder_id, filename, service)
     if sheet is None:
-        sheet = find_sheet_any(filename)
+        sheet = find_file_any(filename, service, 'spreadsheet')
         if sheet is None:
             return 0, None
         return 1, sheet
     else:
         return 2, sheet
 
-
-def find_sheet_specified_location(folder_id, filename):
+def extract_tables_from_sheet(sheet_id, service):
     """
-    Search for a GSheet name contains filename inside a specific folder
+    Return list[pd.DataFrame] one per tab.
 
     Args:
-        1. Drive folder ID
-        1. Filename
+        sheet_id (str): The ID of the Google Sheet to extract tables from.
+        service: The Google Sheets service instance.
 
     Returns:
-        str or none : ID on success, otherwise None
+        list: List of pandas DataFrames, one per sheet tab.
     """
-    service = build('drive', 'v3', credentials=authenticate(['DRIVE']))
-    query = (f"'{folder_id}' in parents and "
-             "mimeType='application/vnd.google-apps.spreadsheet' "
-             "and trashed=false")
-    files = service.files().list(q=query, fields="files(id,name)").execute().get('files', [])
-    for f in files:
-        if filename in f['name']:
-            print(f"Found sheet: {f['name']} (ID: {f['id']})")
-            return f['id']
-    return None
-
-
-def find_sheet_any(filename):
-    """
-    Search entire Drive for GSheet whose name exactly equals filename
-
-    Args:
-        filename
-
-    Returns:
-        str          : Single unique ID if one match
-        list[str]    : List of IDs if multiple
-        None         : If no Sheet
-    """
-
-    service = build('drive', 'v3', credentials=authenticate(['DRIVE']))
-    query = (f"name='{filename}' and "
-             "mimeType='application/vnd.google-apps.spreadsheet' "
-             "and trashed=false")
-    items = service.files().list(q=query, spaces='drive',
-                                 fields='files(id,name)', pageSize=10).execute().get('files', [])
-    if not items:
-        return None
-    if len(items) > 1:
-        return [it['id'] for it in items]
-    return items[0]['id']
-
-
-def extract_tables_from_sheet(sheet_id):
-    """Return list[pd.DataFrame] one per tab, with row padding to match header."""
-    sheet_obj, _ = get_sheet_content(sheet_id)
+    sheet_obj = get_sheet_content(sheet_id, service)
     if not sheet_obj:
         return []
 
@@ -816,24 +848,22 @@ def extract_tables_from_sheet(sheet_id):
         rows = tab["data"][0].get("rowData", [])
         raw = [[cell.get("formattedValue", "") for cell in r.get("values", [])]
                for r in rows if any(c.get("formattedValue", "") for c in r.get("values", []))]
-
         if raw:
-            header = raw[0]
-            header_len = len(header)
-            # Pad or truncate all data rows to match header
-            data = [
-                (row + [""] * (header_len - len(row)))[:header_len]
-                for row in raw[1:]
-            ]
-            tables.append(pd.DataFrame(data, columns=header))
-
+            tables.append(pd.DataFrame(raw[1:], columns=raw[0]))
     return tables
 
 
-def extract_structure_from_sheet(sheet_id):
+def extract_structure_from_sheet(sheet_id, service):
     """
     Returns ordered cell list with metadata for layout check.
     elements like: {'row': r, 'col': c, 'value': v, 'format': {...}}
+
+    Args:
+        sheet_id (str): The ID of the Google Sheet to extract structure from.
+        service: The Google Sheets service instance.
+
+    Returns:
+        list: List of dictionaries containing cell data and metadata.
     """
     service = build('sheets', 'v4', credentials=authenticate(['SHEETS']))
     sheet_obj = service.spreadsheets().get(
@@ -854,3 +884,187 @@ def extract_structure_from_sheet(sheet_id):
                     'format': fmt
                 })
     return structure
+
+
+def extract_charts_from_sheet(sheet_id, service):
+    """Extracts all charts from a Google Sheets document.
+
+    Args:
+        sheet_id (str): The ID of the Google Sheets document to extract charts from.
+        service: The Google Sheets service instance.
+
+    Returns:
+        list: A list of chart objects containing chart metadata and properties.
+            Each chart object contains:
+            - 'chart_id' (int): The unique ID of the chart
+            - 'sheet_id' (int): The ID of the sheet containing the chart
+            - 'sheet_name' (str): The name of the sheet containing the chart
+            - 'chart_type' (str): The type of chart (e.g., 'COLUMN', 'PIE', 'LINE')
+            - 'title' (str): The chart title
+            - 'position' (dict): Chart position and size information
+            - 'data_range' (dict): Information about the data range used by the chart
+            - 'series' (list): List of data series in the chart
+            - 'raw_chart' (dict): The complete raw chart specification from the API
+            Returns empty list if no charts found or error occurs.
+    """
+    try:
+        # Get sheet content with chart information
+        sheet_obj = service.spreadsheets().get(spreadsheetId=sheet_id).execute()
+        if not sheet_obj:
+            print("Failed to fetch sheet content for chart extraction")
+            return []
+
+        charts = []
+        chart_count = 0
+
+        # Process each sheet/tab to find charts
+        for sheet_data in sheet_obj.get('sheets', []):
+            sheet_properties = sheet_data.get('properties', {})
+            sheet_name = sheet_properties.get('title', 'Unknown')
+            sheet_index = sheet_properties.get('sheetId', 0)
+
+            # Get charts from this sheet
+            sheet_charts = sheet_data.get('charts', [])
+
+            for chart_data in sheet_charts:
+                try:
+                    chart_count += 1
+                    chart_id = chart_data.get('chartId')
+                    print(f"Processing chart {chart_count}: ID {chart_id} in sheet '{sheet_name}'")
+
+                    # Extract chart specification
+                    chart_spec = chart_data.get('spec', {})
+
+                    # Get chart type and basic properties
+                    chart_type = 'UNKNOWN'
+                    chart_title = ''
+                    data_range_info = {}
+                    series_info = []
+
+                    # Determine chart type and extract relevant information
+                    if 'basicChart' in chart_spec:
+                        basic_chart = chart_spec['basicChart']
+                        chart_type = basic_chart.get('chartType', 'UNKNOWN')
+                        chart_title = chart_spec.get('title', '')
+
+                        # Extract data ranges and series
+                        series_info = []
+                        for series in basic_chart.get('series', []):
+                            series_data = {
+                                'type': series.get('type', 'UNKNOWN'),
+                                'target_axis': series.get('targetAxis', 'LEFT_AXIS')
+                            }
+
+                            # Extract source range if available
+                            if 'sourceRange' in series:
+                                source_range = series['sourceRange']
+                                series_data['source_range'] = {
+                                    'sheet_id': source_range.get('sheetId'),
+                                    'start_row': source_range.get('startRowIndex'),
+                                    'end_row': source_range.get('endRowIndex'),
+                                    'start_col': source_range.get('startColumnIndex'),
+                                    'end_col': source_range.get('endColumnIndex')
+                                }
+
+                            series_info.append(series_data)
+
+                        # Extract domain/category axis info
+                        domain_axis = basic_chart.get('domains', [])
+                        if domain_axis:
+                            domain_range = domain_axis[0].get('domain', {}).get('sourceRange', {})
+                            data_range_info['domain_range'] = {
+                                'sheet_id': domain_range.get('sheetId'),
+                                'start_row': domain_range.get('startRowIndex'),
+                                'end_row': domain_range.get('endRowIndex'),
+                                'start_col': domain_range.get('startColumnIndex'),
+                                'end_col': domain_range.get('endColumnIndex')
+                            }
+
+                    elif 'pieChart' in chart_spec:
+                        pie_chart = chart_spec['pieChart']
+                        chart_type = 'PIE'
+                        chart_title = chart_spec.get('title', '')
+
+                        # Extract pie chart specific data
+                        if 'domain' in pie_chart:
+                            domain_range = pie_chart['domain'].get('sourceRange', {})
+                            data_range_info['domain_range'] = {
+                                'sheet_id': domain_range.get('sheetId'),
+                                'start_row': domain_range.get('startRowIndex'),
+                                'end_row': domain_range.get('endRowIndex'),
+                                'start_col': domain_range.get('startColumnIndex'),
+                                'end_col': domain_range.get('endColumnIndex')
+                            }
+
+                        if 'series' in pie_chart:
+                            series_range = pie_chart['series'].get('sourceRange', {})
+                            series_info = [{
+                                'type': 'PIE_SERIES',
+                                'source_range': {
+                                    'sheet_id': series_range.get('sheetId'),
+                                    'start_row': series_range.get('startRowIndex'),
+                                    'end_row': series_range.get('endRowIndex'),
+                                    'start_col': series_range.get('startColumnIndex'),
+                                    'end_col': series_range.get('endColumnIndex')
+                                }
+                            }]
+
+                    elif 'candlestickChart' in chart_spec:
+                        chart_type = 'CANDLESTICK'
+                        chart_title = chart_spec.get('title', '')
+
+                    elif 'orgChart' in chart_spec:
+                        chart_type = 'ORG_CHART'
+                        chart_title = chart_spec.get('title', '')
+
+                    elif 'histogramChart' in chart_spec:
+                        chart_type = 'HISTOGRAM'
+                        chart_title = chart_spec.get('title', '')
+
+                    # Extract position information
+                    position_info = {}
+                    if 'position' in chart_data:
+                        position = chart_data['position']
+                        if 'overlayPosition' in position:
+                            overlay = position['overlayPosition']
+                            position_info = {
+                                'type': 'overlay',
+                                'anchor_cell': {
+                                    'sheet_id': overlay.get('anchorCell', {}).get('sheetId'),
+                                    'row': overlay.get('anchorCell', {}).get('rowIndex'),
+                                    'col': overlay.get('anchorCell', {}).get('columnIndex')
+                                },
+                                'offset_x': overlay.get('offsetXPixels', 0),
+                                'offset_y': overlay.get('offsetYPixels', 0),
+                                'width': overlay.get('widthPixels', 0),
+                                'height': overlay.get('heightPixels', 0)
+                            }
+                        elif 'newSheet' in position:
+                            position_info = {'type': 'new_sheet'}
+
+                    # Create chart object
+                    chart_obj = {
+                        'chart_id': chart_id,
+                        'sheet_id': sheet_index,
+                        'sheet_name': sheet_name,
+                        'chart_type': chart_type,
+                        'title': chart_title,
+                        'position': position_info,
+                        'data_range': data_range_info,
+                        'series': series_info,
+                        'raw_chart': chart_data  # Include full raw data for advanced analysis
+                    }
+
+                    charts.append(chart_obj)
+                    print(f"  Extracted {chart_type} chart: '{chart_title}'")
+
+                except Exception as chart_error:
+                    print(f"  Error processing chart {chart_id}: {chart_error}")
+                    continue
+
+        print(f"Chart extraction complete. Found {len(charts)} charts across {len(sheet_obj.get('sheets', []))} sheets.")
+        return charts
+
+    except Exception as e:
+        print(f"Error extracting charts from sheet: {e}")
+        return []

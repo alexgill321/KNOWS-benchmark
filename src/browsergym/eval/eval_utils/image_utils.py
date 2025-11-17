@@ -5,7 +5,12 @@ import fitz  # PyMuPDF
 from PIL import Image
 import cv2
 import numpy as np
-from src.browsergym.eval.eval_utils.image_helpers import load_process_images, find_template_scale_invariant
+import io
+
+# Check if GUI functions are available (not available in headless mode)
+# Set to False by default for headless environments
+GUI_AVAILABLE = False
+from src.browsergym.eval.eval_utils.image_helpers import load_process_images, find_template_scale_invariant, parse_response
 from src.browsergym.eval.eval_utils.utils import location, retrieve_validate_doc_path
 import torch
 
@@ -44,15 +49,16 @@ def convert_pdf_to_pngs(pdf_path, output_dir, dpi=300):
         print(f"An error occurred during PDF to PNG conversion: {e}")
         return None
     
-def binary_judge_image(model, image_path, text):
+def binary_judge_image(model, image_path, text, examples=None):
     """Classifies an image (or a folder of images) based on the provided text using a pre-trained model.
-    
+
     If a folder is provided, it will check each image until one passes (returns True) or all fail.
 
     Args:
         model: The pre-trained model to use. Model should be loaded beforehand.
         image_path (str): The path to the image file or a folder containing images.
         text (str): The text to classify the image(s) against.
+        examples (str, optional): The path to a folder containing example images to provide as reference.
 
     Returns:
         string: The path of the image that passed the classification, or None if no image passed.
@@ -81,28 +87,55 @@ def binary_judge_image(model, image_path, text):
     if not image_paths:
         raise FileNotFoundError(f"No valid images found in {image_path}")
     
+    # Prepare example images content if examples folder is provided
+    example_content = []
+    if examples and os.path.exists(examples) and os.path.isdir(examples):
+        print(f"Loading example images from: {examples}")
+        example_files = []
+        for filename in os.listdir(examples):
+            if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
+                example_files.append(os.path.join(examples, filename))
+
+        print(f"Found {len(example_files)} example images")
+
+        # Add example images to content
+        if example_files:
+            example_content.append({"type": "text", "text": "Here are example images for reference:"})
+            for example_path in example_files:
+                try:
+                    example_content.append({"type": "image", "image": example_path})
+                    example_content.append({"type": "text", "text": f"Example: {os.path.basename(example_path)}"})
+                except Exception as e:
+                    print(f"Error loading example image {example_path}: {e}")
+
     # Process each image until one passes or all fail
     for img_path in image_paths:
         try:
-            print(f"Processing image: {os.path.basename(img_path)}")
-            image = Image.open(img_path)
-            image = image.convert("RGB")
+            # print(f"Processing image: {os.path.basename(img_path)}")
+            # image = Image.open(img_path)
+            # image = image.convert("RGB")
             
+            # Build user content starting with examples (if any)
+            user_content = []
+            user_content.extend(example_content)
+
+            # Add the current image and question
+            user_content.append({"type": "image", "image": img_path})
+            user_content.append({"type": "text", "text": text})
+
             messages = [
                 {
                     "role": "system",
-                    "content": [{"type": "text", "text": "Given an image and a text which will ask a question about the image, answer the question with either \"Yes\" or \"No\". If the question is not answerable with \"Yes\" or \"No\", respond with \"I don't know\"."}]
+                    "content": [{"type": "text", "text": "Given an image and a text which will ask a question about the image, answer the question with either \"Yes\" or \"No\". If the question is not answerable with \"Yes\" or \"No\", respond with \"I don't know\". If example images are provided, use them as reference for what you should be looking for."}]
                 },
                 {
                     "role": "user",
-                    "content": [
-                        {"type": "image", "image": image},
-                        {"type": "text", "text": text}
-                    ]
+                    "content": user_content
                 },
             ]
-            
+
             response = model(messages)
+
             result = parse_response(response)
             
             if result is True:
@@ -526,7 +559,7 @@ def extract_image_location_size(image_path, image_size, doc_path, debug=False):
             template_resized = cv2.resize(template, (int(target_width_px), int(target_height_px)))
         else:
             template_resized = template
-        if debug:
+        if debug and GUI_AVAILABLE:
             cv2.imshow("Template Image", template_resized)
         # Perform template matching
         result = cv2.matchTemplate(doc_image, template_resized, cv2.TM_CCOEFF_NORMED)
@@ -558,7 +591,8 @@ def extract_image_location_size(image_path, image_size, doc_path, debug=False):
             # Save visualization
             base_name = os.path.splitext(os.path.basename(image_path))[0]
             page_name = os.path.splitext(os.path.basename(doc_image_path))[0]
-            cv2.imshow("Template Match Visualization", vis_image)
+            if GUI_AVAILABLE:
+                cv2.imshow("Template Match Visualization", vis_image)
         
         if max_val >= match_threshold:
             if debug:

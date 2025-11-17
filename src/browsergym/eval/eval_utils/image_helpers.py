@@ -4,6 +4,10 @@ import os
 import sys
 sys.path.append(os.getcwd())
 
+# Check if GUI functions are available (not available in headless mode)
+# Set to False by default for headless environments
+GUI_AVAILABLE = False
+
 def parse_response(response):
     """Parses yes or no response from the model and returns a boolean value.
     
@@ -342,11 +346,11 @@ def _visualize_match_step(source_img_bgr, current_best_loc, current_score, scale
     if resize_display:
         display_img_resized = resize_for_display(display_img, max_display_width, max_display_height)
         if display_img_resized is not None: 
-            cv2.imshow(progress_window_name, display_img_resized)
+            if GUI_AVAILABLE: cv2.imshow(progress_window_name, display_img_resized)
     else:
-        cv2.imshow(progress_window_name, display_img)
+        if GUI_AVAILABLE: cv2.imshow(progress_window_name, display_img)
 
-    key = cv2.waitKey(50) & 0xFF
+    key = cv2.waitKey(50) & 0xFF if GUI_AVAILABLE else 0
     return key
 
 
@@ -391,11 +395,11 @@ def _visualize_final_result(source_img_bgr, best_loc, best_w, best_h, best_score
     if resize_display:
         final_display_img_resized = resize_for_display(final_display_img, max_display_width, max_display_height)
         if final_display_img_resized is not None: 
-            cv2.imshow(title, final_display_img_resized)
+            if GUI_AVAILABLE: cv2.imshow(title, final_display_img_resized)
     else: 
-        cv2.imshow(title, final_display_img)
+        if GUI_AVAILABLE: cv2.imshow(title, final_display_img)
     
-    cv2.waitKey(0)
+    if GUI_AVAILABLE: cv2.waitKey(0)
 
 
 def find_template_scale_invariant(source_image_path, template_image_path,
@@ -570,7 +574,7 @@ def find_template_scale_invariant(source_image_path, template_image_path,
     # Clean up step visualization
     if visualize_steps:
         try: 
-            cv2.destroyWindow(progress_window_name)
+            if GUI_AVAILABLE: cv2.destroyWindow(progress_window_name)
         except cv2.error: 
             pass
 
@@ -600,7 +604,7 @@ def find_template_scale_invariant(source_image_path, template_image_path,
 
     # Clean up all windows
     try: 
-        cv2.destroyAllWindows()
+        if GUI_AVAILABLE: cv2.destroyAllWindows()
     except cv2.error: 
         pass
 

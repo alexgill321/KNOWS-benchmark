@@ -66,30 +66,29 @@ def get_doc_content(doc_id, service):
         print(f"Error fetching document content: {e}")
         return None
 
-def get_sheet_content(sheet_id):
+def get_sheet_content(sheet_id, service):
     """
     Fetches the content of a Google Sheet.
 
     Args:
         sheet_id (str): The ID of the Google Sheet.
+        service: The Google Sheets service instance.
 
     Returns:
-        tuple: (sheet, service) where `sheet` is the full spreadsheet data and `service` is the
-         Sheets API service. Returns (None, None) if an error occurs.
+        dict: The full spreadsheet data. Returns None if an error occurs.
     """
-    try: # different for the sheets as compared to docs
-        service = build('sheets', 'v4', credentials=authenticate(services=['SHEETS']))
+    try:
         print(f"Fetching sheet content for ID: {sheet_id}")
 
         # `includeGridData=True` includes values, formatting, and layout info
         sheet = service.spreadsheets().get(spreadsheetId=sheet_id, includeGridData=True).execute()
 
         print("Sheet content fetched successfully.")
-        return sheet, service
+        return sheet
 
     except Exception as e:
         print(f"Error fetching sheet content: {e}")
-        return None, None
+        return None
 
 
 def get_slide_content(slide_id):

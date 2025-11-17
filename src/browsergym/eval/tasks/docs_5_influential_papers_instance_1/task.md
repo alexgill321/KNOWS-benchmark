@@ -1,0 +1,1 @@
+Create a google docs with 5 influential papers on high quality dataset creation for Large Language Models. Include links to arxiv.org for each of the papers. The papers should have at least 50 citations and be from the last 3 years. Include the name of the paper, a link below the name, and the abstract of each of the papers below the link.
