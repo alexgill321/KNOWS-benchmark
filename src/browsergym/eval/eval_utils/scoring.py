@@ -35,6 +35,7 @@ class Checkpoint:
         """Add an evaluation step to this checkpoint."""
         if score is None:
             score = max_score if success else 0
+        self.result += score
         step = EvaluationStep(name=name, success=success, step_id=step_id, details=details, score=score, max_score=max_score, execution_time=execution_time)
         self.steps.append(step)
         return step

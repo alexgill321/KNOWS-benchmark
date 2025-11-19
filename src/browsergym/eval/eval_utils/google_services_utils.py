@@ -12,6 +12,7 @@ from google.cloud import secretmanager
 import io
 import json
 import pandas as pd
+import difflib
 
 GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID") # e.g., your-project-id
 SECRET_ID = os.environ.get("DRIVE_SA_SECRET_ID")   # e.g., doc-eval-service-account-key
@@ -885,13 +886,125 @@ def extract_structure_from_sheet(sheet_id, service):
     return structure
 
 
+def find_text_structure(text_to_match, doc_structure):
+    """Finds the text structure element containing the highest percentage of the matching text.
+
+    Searches through a document structure (from extract_structure_from_doc) and finds
+    which text element contains the largest portion of the text to match. This is useful
+    for locating where specific text appears in the document structure.
+
+    Args:
+        text_to_match (str): The text string to find in the document structure.
+        doc_structure (list): The document structure from extract_structure_from_doc.
+            Each element is a dict with 'type' ('text' or 'image'), 'content', and 'metadata'.
+
+    Returns:
+        tuple: A tuple containing (structure_element, index) or (None, None) if no match found.
+            - structure_element (dict): The structure element containing the highest percentage match.
+                Includes:
+                - 'type': 'text' or 'image'
+                - 'content': The text content or image ID
+                - 'metadata': Additional metadata about the element
+                - 'match_percentage': The percentage of text_to_match found in this element (0-100)
+                - 'matched_length': Number of characters matched
+                - 'match_start_index': The starting character index of the match within the element content
+            - index (int): The index of this element in the doc_structure list
+    """
+    if not doc_structure or not text_to_match:
+        print("Empty document structure or text to match.")
+        return None, None
+
+    text_to_match = text_to_match.strip().lower()
+    text_length = len(text_to_match)
+
+    if text_length == 0:
+        print("Text to match is empty after stripping.")
+        return None, None
+
+    best_match = None
+    best_match_index = None
+    best_match_percentage = 0
+    best_matched_length = 0
+    best_match_start_index = float('inf')
+
+    # Iterate through all structure elements
+    for idx, element in enumerate(doc_structure):
+        # Only check text elements
+        if element.get('type') != 'text':
+            continue
+
+        content = element.get('content', '').strip().lower()
+        if not content:
+            continue
+
+        # Use difflib to find the longest contiguous match
+        matcher = difflib.SequenceMatcher(None, text_to_match, content)
+        match = matcher.find_longest_match(0, len(text_to_match), 0, len(content))
+        
+        matched_chars = match.size
+        current_start_index = match.b # Start index in content
+        
+        # Calculate percentage match based on the longest contiguous block
+        match_percentage = (matched_chars / text_length) * 100
+
+        # Update best match if this is better
+        if match_percentage > best_match_percentage:
+            best_match_percentage = match_percentage
+            best_matched_length = matched_chars
+            best_match = element.copy()  # Copy to avoid modifying original
+            best_match['match_percentage'] = match_percentage
+            best_match['matched_length'] = matched_chars
+            best_match['match_start_index'] = current_start_index
+            best_match_index = idx
+            
+    if best_match:
+        print(f"Found best match at index {best_match_index} with {best_match_percentage:.1f}% of text matched ({best_matched_length}/{text_length} chars)")
+        return best_match, best_match_index
+    else:
+        print("No matching text structure found.")
+        return None, None
+
+def get_structural_element_order(doc_structure, texts):
+    """
+    Orders a list of texts based on their sequential appearance in the document structure.
+    
+    If two texts are in the same structural element, they are ordered by their
+    position within that element.
+
+    Args:
+        doc_structure (list): Document structure list from extract_structure_from_doc.
+        texts (list): List of text strings to order.
+        
+    Returns:
+        list: The input texts sorted by their location in the document.
+              Texts not found in the structure are excluded.
+    """
+    matches = []
+    for text in texts:
+        element, index = find_text_structure(text, doc_structure)
+        if element:
+            matches.append({
+                'text': text,
+                'index': index,
+                'start_index': element.get('match_start_index', -1)
+            })
+        else:
+             # Log warning for unfound text
+             safe_text = text[:50] + "..." if len(text) > 50 else text
+             print(f"Warning: Text not found in structure during ordering: '{safe_text}'")
+             
+    # Sort by structure index (primary) and content start index (secondary)
+    matches.sort(key=lambda x: (x['index'], x['start_index']))
+    
+    return [m['text'] for m in matches]
+
 def extract_charts_from_sheet(sheet_id, service):
     """Extracts all charts from a Google Sheets document.
-    
+
     Args:
         sheet_id (str): The ID of the Google Sheets document to extract charts from.
         service: The Google Sheets service instance.
-    
+
     Returns:
         list: A list of chart objects containing chart metadata and properties.
             Each chart object contains:

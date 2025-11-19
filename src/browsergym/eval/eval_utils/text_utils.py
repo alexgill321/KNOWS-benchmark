@@ -1,6 +1,4 @@
-from fuzzywuzzy import fuzz, process
-from doctr.models import ocr_predictor
-from doctr.io import DocumentFile
+from rapidfuzz import fuzz, process
 
 # Global cache for DocTR OCR model to avoid reloading
 _ocr_model_cache = None
@@ -29,9 +27,53 @@ def text_exact_match_contained(src_text, ref_text):
             if preprocess_text(text) in preprocess_text(ref_text):
                 return text
         return None
+    
+def text_fuzzy_match_contained_long(target, full_text, threshold=85):
+    """
+    Uses rapidfuzz for faster fuzzy matching.
+    """
+    target_words = target.split()
+    full_words = full_text.split()
+    
+    # Use a window slightly larger than the target to accommodate inserted text/noise
+    # partial_ratio will find the best match WITHIN this window
+    window_size = int(len(target_words) * 1.2) + 10
+    
+    best_score = 0
+    best_match = None
+    
+    # Optimization: Step size can be larger because we use a larger window and partial_ratio
+    # If window is 120% of target, stepping by 10% ensures we cover all potential full matches
+    step_size = max(1, int(len(target_words) * 0.1))
+    
+    for i in range(0, max(1, len(full_words) - len(target_words)), step_size):
+        # Define window bounds
+        end_idx = min(i + window_size, len(full_words))
+        window_words = full_words[i:end_idx]
+        if not window_words:
+            break
+            
+        window = ' '.join(window_words)
+        
+        # Use partial_ratio as originally intended for substring matching
+        score = fuzz.partial_ratio(target, window)
+        
+        if score > best_score:
+            best_score = score
+            best_match = window
+            
+            # Early exit for perfect match
+            if score == 100:
+                break
+    
+    if best_score >= threshold:
+        return best_match, best_score
+    return None, best_score
 
-def text_fuzzy_match_contained(text1, text2):
+def text_fuzzy_match_contained_short(query, larger_text):
     """Check if text1 is contained in text2 with fuzzy matching.
+
+    USE THIS ONE FOR SHORT TEXTS (e.g., a sentence or less).
     
     Uses a sliding window approach with fuzzy string matching to find text1 within text2,
     even when there are slight variations in spelling or formatting.
@@ -43,8 +85,6 @@ def text_fuzzy_match_contained(text1, text2):
     Returns:
         str: The best matching substring found in text2, or None if no match is found.
     """
-    query = preprocess_text(text1)
-    larger_text = preprocess_text(text2)
     query_len = len(query)
     best_match_tuple = (None, 0) # (matching_substring, score)
 
@@ -128,6 +168,8 @@ def extract_text_from_pdf(pdf_images_path):
     Outputs:
         str: Extracted text from the PDF.
     """
+    from doctr.models import ocr_predictor
+    from doctr.io import DocumentFile
     global _ocr_model_cache
 
     image_paths = retrieve_validate_doc_path(pdf_images_path)
