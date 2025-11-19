@@ -1,6 +1,7 @@
 import re
 from typing import List
 from urllib.parse import urlparse
+import requests
 
 def extract_arxiv_links_from_text(text):
     """
@@ -30,6 +31,51 @@ def extract_arxiv_links_from_text(text):
             arxiv_links.append(match)
 
     return list(set(arxiv_links))  # Remove duplicates
+
+def get_paper_info_ss(arxiv_id):
+    # Remove 'arXiv:' prefix if present
+    arxiv_id = arxiv_id.replace('arXiv:', '')
+    
+    # Query Semantic Scholar
+    url = f"https://api.semanticscholar.org/graph/v1/paper/ARXIV:{arxiv_id}"
+    params = {'fields': 'citationCount,title,publicationDate'}
+    
+    response = requests.get(url, params=params)
+    
+    if response.status_code == 200:
+        data = response.json()
+        return data
+    else:
+        return None
+    
+from datetime import datetime, timedelta
+
+def is_within_x_years(date_string, years, reference_date=None):
+    """
+    Check if date_string is no more than x years before reference_date.
+    
+    Args:
+        date_string: Date string in format "YYYY-MM-DD"
+        reference_date: datetime object or date string to compare against
+        years: Maximum number of years before reference_date
+    
+    Returns:
+        True if date_string is within x years before reference_date
+    """
+    # Parse the date string
+    date = datetime.strptime(date_string, "%Y-%m-%d")
+    
+    # Convert reference_date if it's a string
+    if reference_date is None:
+        reference_date = datetime.now()
+    if isinstance(reference_date, str):
+        reference_date = datetime.strptime(reference_date, "%Y-%m-%d")
+    
+    # Calculate the cutoff date (x years before reference)
+    cutoff_date = reference_date - timedelta(days=years*365.25)  # Accounts for leap years
+    
+    # Check if date is within range
+    return date >= cutoff_date
 
 def normalize_arxiv_url(url):
     """
