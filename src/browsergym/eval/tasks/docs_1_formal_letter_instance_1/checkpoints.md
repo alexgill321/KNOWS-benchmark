@@ -15,7 +15,7 @@ Check that common information about the letter writer is placed at a reasonable 
 ### Eval Template(s)
 - Text Exact Match, Text Location Match
 
-## Checkpoint 2 (3 pt):
+## Checkpoint 2 (2 pt):
 The logo was added to the requested place in the document.
 
 ### Outcome Evaluation:

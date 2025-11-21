@@ -321,3 +321,87 @@ def extract_text_location(ocr_result, text_to_find):
     # Text not found
     print(f"Text not found in OCR results: '{text_to_find}'")
     return None
+
+def numerical_match_with_error(value1, value2, error_percent=5.0):
+    """
+    Match numerical values with a given error bound in percentage.
+
+    Can compare either:
+    - Two single numerical values
+    - Two lists of numerical values (element-wise comparison)
+
+    Args:
+        value1: A single number or list of numbers (reference/gold values)
+        value2: A single number or list of numbers (actual values to check)
+        error_percent (float): Allowed percentage error. Default is 5.0%
+
+    Returns:
+        If comparing single values: tuple (bool, float)
+            - bool: True if values match within error bound
+            - float: Actual percentage difference
+        If comparing lists: tuple (list[bool], list[float], float)
+            - list[bool]: Match result for each pair
+            - list[float]: Percentage difference for each pair
+            - float: Overall match rate (percentage of pairs that matched)
+
+    Examples:
+        >>> numerical_match_with_error(100, 103, error_percent=5.0)
+        (True, 3.0)
+
+        >>> numerical_match_with_error([100, 200], [103, 210], error_percent=5.0)
+        ([True, False], [3.0, 5.0], 50.0)
+    """
+    def compare_single(ref, actual, threshold):
+        """Compare two single values."""
+        try:
+            ref = float(ref)
+            actual = float(actual)
+
+            if ref == 0:
+                # Special case: if reference is 0, check if actual is also 0
+                return (actual == 0, 0.0 if actual == 0 else float('inf'))
+
+            # Calculate percentage difference relative to reference
+            diff = abs(actual - ref)
+            percent_diff = (diff / abs(ref)) * 100.0
+
+            is_match = percent_diff <= threshold
+            return (is_match, percent_diff)
+
+        except (ValueError, TypeError) as e:
+            print(f"Error comparing values {ref} and {actual}: {e}")
+            return (False, float('inf'))
+
+    # Handle single value comparison
+    if not isinstance(value1, (list, tuple)) and not isinstance(value2, (list, tuple)):
+        return compare_single(value1, value2, error_percent)
+
+    # Handle list comparison
+    if isinstance(value1, (list, tuple)) and isinstance(value2, (list, tuple)):
+        if len(value1) != len(value2):
+            print(f"Warning: List lengths don't match ({len(value1)} vs {len(value2)})")
+            # Pad shorter list with None or truncate
+            max_len = max(len(value1), len(value2))
+            value1 = list(value1) + [None] * (max_len - len(value1))
+            value2 = list(value2) + [None] * (max_len - len(value2))
+
+        results = []
+        diffs = []
+
+        for v1, v2 in zip(value1, value2):
+            if v1 is None or v2 is None:
+                results.append(False)
+                diffs.append(float('inf'))
+            else:
+                match, diff = compare_single(v1, v2, error_percent)
+                results.append(match)
+                diffs.append(diff)
+
+        # Calculate overall match rate
+        match_count = sum(results)
+        match_rate = (match_count / len(results)) * 100.0 if results else 0.0
+
+        return (results, diffs, match_rate)
+
+    # Mismatched types (one is list, one is not)
+    raise TypeError("Both values must be either single numbers or lists of numbers")

@@ -142,15 +142,13 @@ def grade_checkpoint_1(gold_text, text_ocr):
     
     if name_found:
         print("Name match successful")
-        checkpoint.result += 1
         checkpoint.add_step("Name Text Match", True, 1, f"Found '{name}' in document", execution_time=step_time)
-        
+
         step_start = time.time()
         location = extract_text_location(text_ocr, name)
         step_time = time.time() - step_start
-        
+
         if location.is_upper_left():
-            checkpoint.result += 1
             checkpoint.add_step("Name Location", True, 2, f"Name correctly positioned in upper left at {location}", execution_time=step_time)
         else:
             print("Name location failed")
@@ -167,16 +165,14 @@ def grade_checkpoint_1(gold_text, text_ocr):
     
     if email_found:
         print("Email match successful")
-        checkpoint.result += 1
         checkpoint.add_step("Email Text Match", True, 3, f"Found '{email}' in document", execution_time=step_time)
 
         step_start = time.time()
         location = extract_text_location(text_ocr, email)
         step_time = time.time() - step_start
-        
+
         if location is not None:
             if location.is_upper_left():
-                checkpoint.result += 1
                 checkpoint.add_step("Email Location", True, 4, f"Email correctly positioned in upper left at {location}", execution_time=step_time)
             else:
                 print("Email location failed")
@@ -195,7 +191,6 @@ def grade_checkpoint_1(gold_text, text_ocr):
     step_time = time.time() - step_start
     if title_found:
         print("Title match successful")
-        checkpoint.result += 1
         checkpoint.add_step("Title Text Match", True, 5, f"Found title in document", execution_time=step_time)
 
         step_start = time.time()
@@ -203,7 +198,6 @@ def grade_checkpoint_1(gold_text, text_ocr):
         step_time = time.time() - step_start
 
         if location.is_upper_left():
-            checkpoint.result += 1
             checkpoint.add_step("Title Location", True, 6, f"Title correctly positioned in upper left at {location}", execution_time=step_time)
         else:
             print("Title location failed")
@@ -230,18 +224,16 @@ def grade_checkpoint_2():
         logo_uri = logo_path.split("_")[-1].replace(".png", "")
         logo_size = get_image_dimensions_from_doc(doc_id, logo_uri, DOCS_SERVICE)
         print("Image match successful\n")
-        checkpoint.result += 1
         checkpoint.add_step("Logo Image Match", True, 7, f"Exact logo match found at {logo_path}", execution_time=step_time)
-        
+
         print("Locating Logo Image")
         step_start = time.time()
         exact_size_location = extract_image_location_size_feature_based(cropped_logo_path, logo_size, PDF_IMAGES_DIR, True)
         step_time = time.time() - step_start
         print(f"Location is {exact_size_location}")
-        
+
         if exact_size_location.is_upper_left():
             print("Image location match successful")
-            checkpoint.result += 1
             checkpoint.add_step("Logo Location", True, 8, f"Logo correctly positioned in upper left at {exact_size_location}", execution_time=step_time)
         else:
             print("Image location exact match failed")
@@ -261,9 +253,8 @@ def grade_checkpoint_2():
             cropped_logo_uri = cropped_logo_path.split("_")[-1].replace(".png", "")
             logo_size = get_image_dimensions_from_doc(doc_id, cropped_logo_uri, DOCS_SERVICE)
             print("Image match successful\n")
-            checkpoint.result += 1
             checkpoint.add_step("Logo Image Match", True, 7, f"Exact logo match found at {logo_path}", execution_time=step_time)
-            
+
             print("Locating Logo Image")
             step_start = time.time()
             exact_size_location = extract_image_location_size_feature_based(cropped_logo_path, logo_size, PDF_IMAGES_DIR, True)
@@ -272,7 +263,6 @@ def grade_checkpoint_2():
             if exact_size_location:
                 if exact_size_location.is_upper_left():
                     print("Image location match successful")
-                    checkpoint.result += 1
                     checkpoint.add_step("Logo Location", True, 8, f"Logo correctly positioned in upper left at {exact_size_location}", execution_time=step_time)
                 else:
                     print("Image location exact match failed")
@@ -302,21 +292,19 @@ def grade_checkpoint_3(doc_structure):
         signature_uri = signature_path.split("_")[-1].replace(".png", "")
         signature_size = get_image_dimensions_from_doc(doc_id, signature_uri, DOCS_SERVICE)
         print("Image match successful")
-        checkpoint.result += 1
         checkpoint.add_step("Signature Image Match", True, 9, f"Signature found at {signature_path}", execution_time=step_time)
-        
+
         print("Locating Signature Image")
         step_start = time.time()
         location = extract_image_location_size_feature_based(cropped_signature_path, signature_size, PDF_IMAGES_DIR, DEBUG)
         print(f"Signature Location: {location}")
-        
+
         location_success = False
         location_details = ""
-        
+
         if location.is_lower(mostly=True):
             location_success = True
             location_details = f"Signature correctly positioned in lower section at {location}"
-            checkpoint.result += 1
         else:
             print("Signature location exact match failed")
             # Try structural location as fallback
@@ -326,11 +314,10 @@ def grade_checkpoint_3(doc_structure):
                 print("Signature structured location successful")
                 location_success = True
                 location_details = f"Signature found at end of document structure (fallback from pixel location at {location})"
-                checkpoint.result += 1
             else:
                 print("Signature location failed")
                 location_details = f"Signature not in lower section at {location} and not at end of document structure"
-        
+
         step_time = time.time() - step_start
         checkpoint.add_step("Signature Location", location_success, 10, location_details, execution_time=step_time)
     else:

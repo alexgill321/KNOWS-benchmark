@@ -849,8 +849,18 @@ def extract_tables_from_sheet(sheet_id, service):
         rows = tab["data"][0].get("rowData", [])
         raw = [[cell.get("formattedValue", "") for cell in r.get("values", [])]
                for r in rows if any(c.get("formattedValue", "") for c in r.get("values", []))]
-        if raw:
-            tables.append(pd.DataFrame(raw[1:], columns=raw[0]))
+
+        # DROP empty cells at end of rows
+        cleaned_raw = []
+        for row in raw:
+            # Remove trailing empty cells
+            while row and row[-1] == "":
+                row.pop()
+            if row:  # Only add non-empty rows
+                cleaned_raw.append(row)
+
+        if cleaned_raw:
+            tables.append(pd.DataFrame(cleaned_raw[1:], columns=cleaned_raw[0]))
     return tables
 
 
