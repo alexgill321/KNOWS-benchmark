@@ -118,7 +118,7 @@ def validate_stock_symbol(symbol: str, api_key: str) -> bool:
         return False
 
 
-def scrape_companies_market_cap() -> List[Dict]:
+def scrape_companies_market_cap(url) -> List[Dict]:
     """
     Scrape tech companies data from companiesmarketcap.com
     
@@ -126,7 +126,6 @@ def scrape_companies_market_cap() -> List[Dict]:
         List of dictionaries containing company data
     """
     try:
-        url = "https://companiesmarketcap.com/tech/largest-tech-companies-by-market-cap/"
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -186,7 +185,7 @@ def scrape_companies_market_cap() -> List[Dict]:
                     print(f"Extracted: {company_data}")
                     
                 # Limit to avoid too much output during testing
-                if len(companies) >= 20:
+                if len(companies) >= 100:
                     break
                     
             except Exception as e:

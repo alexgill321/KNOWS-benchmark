@@ -196,7 +196,7 @@ def grade_checkpoint_2():
 
 def grade_checkpoint_3():
     """
-    Checkpoint 3 (25pt): The doc structure for each paper is correct.
+    Checkpoint 3 (20pt): The doc structure for each paper is correct.
     
     Outcome Evaluation:
     - Each paper abstract is included in the google docs.

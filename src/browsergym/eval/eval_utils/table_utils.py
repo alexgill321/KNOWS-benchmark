@@ -56,15 +56,18 @@ def find_matching_column_or_row(
     criteria: str,
     model: Any,
     search_type: str = "column",
+    example_keywords: Optional[list] = None,
 ) -> Optional[Tuple[str, Union[int, str]]]:
     """
     Find a column or row in a DataFrame that best matches natural language criteria using an LLM.
-    
+
     Args:
         df (pd.DataFrame): The DataFrame to search.
         criteria (str): Natural language description of what to look for.
         model (Any): LLM model that takes (prompt) and returns a response.
         search_type (str): Either "column" or "row" to specify search direction.
+        example_keywords (Optional[list]): Optional list of example keywords/terms that might match
+            the criteria. Helps the LLM better understand what to look for.
 
     Returns:
         Optional[Tuple[str, Union[int, str]]]: Tuple of (title, location) where location is
@@ -75,7 +78,7 @@ def find_matching_column_or_row(
     """
     if search_type not in ["column", "row"]:
         raise ValueError("search_type must be either 'column' or 'row'")
-    
+
     if search_type == "column":
         headers = df.columns.tolist()
     else:
@@ -85,34 +88,45 @@ def find_matching_column_or_row(
             headers = df.iloc[:, 0].tolist()
         else:
             headers = [f"Row {i}" for i in range(len(df))]
-    
+
     if not headers:
         return None
-    
+
     # Create prompt for LLM
     headers_text = "\n".join([f"{i+1}. {header}" for i, header in enumerate(headers)])
-    
+
+    # Add example keywords to the prompt if provided
+    keywords_section = ""
+    if example_keywords:
+        keywords_section = f"\nExample keywords that might match the criteria: {', '.join(example_keywords)}"
+
     prompt = f"""You are analyzing a Google Sheets {search_type} headers to find the one that best matches specific criteria.
 
-Criteria: {criteria}
+Criteria: {criteria}{keywords_section}
 
 Available {search_type} headers:
 {headers_text}
 
-Please analyze each header and determine which one best matches the criteria. Respond with ONLY the number (1, 2, 3, etc.) of the best matching header, or "NONE" if no header adequately matches the criteria.
+Please analyze each header and determine which one best matches the criteria. Consider:
+- Exact matches
+- Synonyms and semantically similar terms
+- Common abbreviations
+- Spreadsheet naming conventions
+
+Respond with ONLY the number (1, 2, 3, etc.) of the best matching header, or "NONE" if no header adequately matches the criteria.
 
 Your response should be just the number or "NONE", nothing else."""
 
     try:
         messages = [
-            {"role": "user", "content": prompt}
+            {"role": "user", "content": [{"type": "text", "text": prompt}]}
         ]
         response = model(messages)
         response = response.strip().upper()
 
         if response == "NONE":
             return None
-        
+
         # Try to parse the response as a number
         try:
             header_index = int(response) - 1
@@ -128,9 +142,9 @@ Your response should be just the number or "NONE", nothing else."""
                 return (header_title, location)
         except ValueError:
             pass
-        
+
         return None
-        
+
     except Exception as e:
         print(f"Error calling LLM: {e}")
         return None
