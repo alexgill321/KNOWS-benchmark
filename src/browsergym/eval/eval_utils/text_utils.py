@@ -74,14 +74,14 @@ def text_fuzzy_match_contained_short(query, larger_text):
     """Check if text1 is contained in text2 with fuzzy matching.
 
     USE THIS ONE FOR SHORT TEXTS (e.g., a sentence or less).
-    
+
     Uses a sliding window approach with fuzzy string matching to find text1 within text2,
     even when there are slight variations in spelling or formatting.
-    
+
     Args:
         text1 (str): The text to search for.
         text2 (str): The text to search within.
-        
+
     Returns:
         str: The best matching substring found in text2, or None if no match is found.
     """
@@ -117,14 +117,56 @@ def text_fuzzy_match_contained_short(query, larger_text):
         print("No chunks generated to compare.")
 
 
-    print(f"Query: '{query}'")
+    #print(f"Query: '{query}'")
     if best_match_tuple and best_match_tuple[0] is not None:
         print(f"Best match found in larger text: '{best_match_tuple[0]}'")
         print(f"Score: {best_match_tuple[1]}%")
         return best_match_tuple[0]
     else:
-        print("No suitable match found.")
+        #print("No suitable match found.")
         return None
+
+
+def match_text_in_list(text, text_list, threshold=80):
+    """
+    Find the best matching item from a list in the given text.
+
+    Uses fuzzy matching to find which item from a predefined list best matches
+    the given text, handling minor variations in spelling, formatting, or extra text.
+
+    Args:
+        text (str): The text to search within.
+        text_list (list[str]): List of valid text items to match against.
+        threshold (int): Minimum similarity score (0-100) to consider a match. Default is 80.
+
+    Returns:
+        tuple: (matched_item, score) where matched_item is the item from the list that best
+               matches (or None if no match above threshold), and score is the match quality (0-100).
+
+    Examples:
+        >>> match_text_in_list("Darrow O'Lycos", ["Darrow", "Sevro", "Mustang"])
+        ("Darrow", 90)
+
+        >>> match_text_in_list("Character: Sevro au Barca", ["Darrow", "Sevro", "Mustang"])
+        ("Sevro", 85)
+    """
+    if not text or not text_list:
+        return None, 0
+
+    # Use rapidfuzz's process.extractOne to find the best match
+    result = process.extractOne(
+        text,
+        text_list,
+        scorer=fuzz.partial_ratio,  # partial_ratio works well for finding list items within larger text
+        score_cutoff=threshold
+    )
+
+    if result:
+        matched_item, score = result[0], result[1]
+        print(f"Matched '{matched_item}' in text '{text}' with score {score}")
+        return matched_item, score
+
+    return None, 0
 
 def binary_judge_text(model, src_text, gld_text):
     """Classifies a text based on its presence in another text using a pre-trained LLM.

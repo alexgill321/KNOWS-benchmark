@@ -200,7 +200,7 @@ def find_file_any(filename, service, file_type=None):
         service: The Google Drive service instance.
         file_type (str, optional): The type of file to search for. Options:
             - 'document' or 'doc': Google Docs
-            - 'spreadsheet' or 'sheet': Google Sheets  
+            - 'spreadsheet' or 'sheet': Google Sheets
             - 'presentation' or 'slides': Google Slides
             - None: Search all file types
 
@@ -218,13 +218,13 @@ def find_file_any(filename, service, file_type=None):
         'presentation': 'application/vnd.google-apps.presentation',
         'slides': 'application/vnd.google-apps.presentation'
     }
-    
+
     # Build query
     query = f"name='{filename}' and trashed=false"
     if file_type and file_type.lower() in mime_types:
         mime_type = mime_types[file_type.lower()]
         query += f" and mimeType='{mime_type}'"
-    
+
     results = service.files().list(
         q=query,
         spaces='drive',
@@ -804,7 +804,7 @@ def extract_structure_from_doc(doc_id, service):
         import traceback
         traceback.print_exc()
         return None
-    
+
 def search_sheet(filename, service, folder_id=None):
     """Search for a Google Sheet by its filename.
 
@@ -831,14 +831,17 @@ def search_sheet(filename, service, folder_id=None):
 
 def extract_tables_from_sheet(sheet_id, service):
     """
-    Return list[pd.DataFrame] one per tab.
-    
+    Return list[pd.DataFrame] - extracts all tables from all tabs.
+
+    Handles multiple side-by-side tables within a single sheet tab by
+    detecting column gaps between tables.
+
     Args:
         sheet_id (str): The ID of the Google Sheet to extract tables from.
         service: The Google Sheets service instance.
-    
+
     Returns:
-        list: List of pandas DataFrames, one per sheet tab.
+        list: List of pandas DataFrames for all detected tables across all tabs.
     """
     sheet_obj = get_sheet_content(sheet_id, service)
     if not sheet_obj:
@@ -847,20 +850,44 @@ def extract_tables_from_sheet(sheet_id, service):
     tables = []
     for tab in sheet_obj.get("sheets", []):
         rows = tab["data"][0].get("rowData", [])
-        raw = [[cell.get("formattedValue", "") for cell in r.get("values", [])]
-               for r in rows if any(c.get("formattedValue", "") for c in r.get("values", []))]
 
-        # DROP empty cells at end of rows
-        cleaned_raw = []
-        for row in raw:
-            # Remove trailing empty cells
-            while row and row[-1] == "":
-                row.pop()
-            if row:  # Only add non-empty rows
-                cleaned_raw.append(row)
+        # Build raw grid with all cell values
+        raw = []
+        for r in rows:
+            row_vals = [cell.get("formattedValue", "") for cell in r.get("values", [])]
+            if any(v for v in row_vals):  # Only include rows with some data
+                raw.append(row_vals)
 
-        if cleaned_raw:
-            tables.append(pd.DataFrame(cleaned_raw[1:], columns=cleaned_raw[0]))
+        if not raw:
+            continue
+
+        # Detect table column ranges (handles multiple side-by-side tables)
+        table_ranges = find_table_column_ranges(raw)
+
+        for start_col, end_col in table_ranges:
+            # Extract this table's columns from each row
+            table_rows = []
+            for row in raw:
+                # Pad row if needed, then slice
+                padded_row = row + [''] * (end_col - len(row))
+                table_row = padded_row[start_col:end_col]
+                # Remove trailing empty cells
+                while table_row and table_row[-1] == '':
+                    table_row.pop()
+                if table_row:
+                    table_rows.append(table_row)
+
+            if len(table_rows) >= 2:  # Need at least header + 1 data row
+                # Normalize column count to header length
+                header = table_rows[0]
+                data_rows = []
+                for row in table_rows[1:]:
+                    # Pad or truncate to match header length
+                    normalized = (row + [''] * len(header))[:len(header)]
+                    data_rows.append(normalized)
+
+                tables.append(pd.DataFrame(data_rows, columns=header))
+
     return tables
 
 
@@ -868,14 +895,15 @@ def extract_structure_from_sheet(sheet_id, service):
     """
     Returns ordered cell list with metadata for layout check.
     elements like: {'row': r, 'col': c, 'value': v, 'format': {...}}
-    
+
     Args:
         sheet_id (str): The ID of the Google Sheet to extract structure from.
         service: The Google Sheets service instance.
-    
+
     Returns:
         list: List of dictionaries containing cell data and metadata.
     """
+    service = build('sheets', 'v4', credentials=authenticate(['SHEETS']))
     sheet_obj = service.spreadsheets().get(
         spreadsheetId=sheet_id, includeGridData=True).execute()
     structure = []
@@ -1035,40 +1063,40 @@ def extract_charts_from_sheet(sheet_id, service):
         if not sheet_obj:
             print("Failed to fetch sheet content for chart extraction")
             return []
-        
+
         charts = []
         chart_count = 0
-        
+
         # Process each sheet/tab to find charts
         for sheet_data in sheet_obj.get('sheets', []):
             sheet_properties = sheet_data.get('properties', {})
             sheet_name = sheet_properties.get('title', 'Unknown')
             sheet_index = sheet_properties.get('sheetId', 0)
-            
+
             # Get charts from this sheet
             sheet_charts = sheet_data.get('charts', [])
-            
+
             for chart_data in sheet_charts:
                 try:
                     chart_count += 1
                     chart_id = chart_data.get('chartId')
                     print(f"Processing chart {chart_count}: ID {chart_id} in sheet '{sheet_name}'")
-                    
+
                     # Extract chart specification
                     chart_spec = chart_data.get('spec', {})
-                    
+
                     # Get chart type and basic properties
                     chart_type = 'UNKNOWN'
                     chart_title = ''
                     data_range_info = {}
                     series_info = []
-                    
+
                     # Determine chart type and extract relevant information
                     if 'basicChart' in chart_spec:
                         basic_chart = chart_spec['basicChart']
                         chart_type = basic_chart.get('chartType', 'UNKNOWN')
                         chart_title = chart_spec.get('title', '')
-                        
+
                         # Extract data ranges and series
                         series_info = []
                         for series in basic_chart.get('series', []):
@@ -1076,7 +1104,7 @@ def extract_charts_from_sheet(sheet_id, service):
                                 'type': series.get('type', 'UNKNOWN'),
                                 'target_axis': series.get('targetAxis', 'LEFT_AXIS')
                             }
-                            
+
                             # Extract source range if available
                             if 'sourceRange' in series:
                                 source_range = series['sourceRange']
@@ -1087,9 +1115,9 @@ def extract_charts_from_sheet(sheet_id, service):
                                     'start_col': source_range.get('startColumnIndex'),
                                     'end_col': source_range.get('endColumnIndex')
                                 }
-                            
+
                             series_info.append(series_data)
-                        
+
                         # Extract domain/category axis info
                         domain_axis = basic_chart.get('domains', [])
                         if domain_axis:
@@ -1101,12 +1129,12 @@ def extract_charts_from_sheet(sheet_id, service):
                                 'start_col': domain_range.get('startColumnIndex'),
                                 'end_col': domain_range.get('endColumnIndex')
                             }
-                    
+
                     elif 'pieChart' in chart_spec:
                         pie_chart = chart_spec['pieChart']
                         chart_type = 'PIE'
                         chart_title = chart_spec.get('title', '')
-                        
+
                         # Extract pie chart specific data
                         if 'domain' in pie_chart:
                             domain_range = pie_chart['domain'].get('sourceRange', {})
@@ -1117,7 +1145,7 @@ def extract_charts_from_sheet(sheet_id, service):
                                 'start_col': domain_range.get('startColumnIndex'),
                                 'end_col': domain_range.get('endColumnIndex')
                             }
-                        
+
                         if 'series' in pie_chart:
                             series_range = pie_chart['series'].get('sourceRange', {})
                             series_info = [{
@@ -1130,19 +1158,19 @@ def extract_charts_from_sheet(sheet_id, service):
                                     'end_col': series_range.get('endColumnIndex')
                                 }
                             }]
-                    
+
                     elif 'candlestickChart' in chart_spec:
                         chart_type = 'CANDLESTICK'
                         chart_title = chart_spec.get('title', '')
-                    
+
                     elif 'orgChart' in chart_spec:
                         chart_type = 'ORG_CHART'
                         chart_title = chart_spec.get('title', '')
-                    
+
                     elif 'histogramChart' in chart_spec:
                         chart_type = 'HISTOGRAM'
                         chart_title = chart_spec.get('title', '')
-                    
+
                     # Extract position information
                     position_info = {}
                     if 'position' in chart_data:
@@ -1163,7 +1191,7 @@ def extract_charts_from_sheet(sheet_id, service):
                             }
                         elif 'newSheet' in position:
                             position_info = {'type': 'new_sheet'}
-                    
+
                     # Create chart object
                     chart_obj = {
                         'chart_id': chart_id,
@@ -1176,17 +1204,17 @@ def extract_charts_from_sheet(sheet_id, service):
                         'series': series_info,
                         'raw_chart': chart_data  # Include full raw data for advanced analysis
                     }
-                    
+
                     charts.append(chart_obj)
                     print(f"  Extracted {chart_type} chart: '{chart_title}'")
-                    
+
                 except Exception as chart_error:
                     print(f"  Error processing chart {chart_id}: {chart_error}")
                     continue
-        
+
         print(f"Chart extraction complete. Found {len(charts)} charts across {len(sheet_obj.get('sheets', []))} sheets.")
         return charts
-        
+
     except Exception as e:
         print(f"Error extracting charts from sheet: {e}")
         return []
