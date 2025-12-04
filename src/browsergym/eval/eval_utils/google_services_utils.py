@@ -831,14 +831,17 @@ def search_sheet(filename, service, folder_id=None):
 
 def extract_tables_from_sheet(sheet_id, service):
     """
-    Return list[pd.DataFrame] one per tab.
+    Return list[pd.DataFrame] - extracts all tables from all tabs.
+
+    Handles multiple side-by-side tables within a single sheet tab by
+    detecting column gaps between tables.
 
     Args:
         sheet_id (str): The ID of the Google Sheet to extract tables from.
         service: The Google Sheets service instance.
 
     Returns:
-        list: List of pandas DataFrames, one per sheet tab.
+        list: List of pandas DataFrames for all detected tables across all tabs.
     """
     sheet_obj = get_sheet_content(sheet_id, service)
     if not sheet_obj:
@@ -847,20 +850,44 @@ def extract_tables_from_sheet(sheet_id, service):
     tables = []
     for tab in sheet_obj.get("sheets", []):
         rows = tab["data"][0].get("rowData", [])
-        raw = [[cell.get("formattedValue", "") for cell in r.get("values", [])]
-               for r in rows if any(c.get("formattedValue", "") for c in r.get("values", []))]
 
-        # DROP empty cells at end of rows
-        cleaned_raw = []
-        for row in raw:
-            # Remove trailing empty cells
-            while row and row[-1] == "":
-                row.pop()
-            if row:  # Only add non-empty rows
-                cleaned_raw.append(row)
+        # Build raw grid with all cell values
+        raw = []
+        for r in rows:
+            row_vals = [cell.get("formattedValue", "") for cell in r.get("values", [])]
+            if any(v for v in row_vals):  # Only include rows with some data
+                raw.append(row_vals)
 
-        if cleaned_raw:
-            tables.append(pd.DataFrame(cleaned_raw[1:], columns=cleaned_raw[0]))
+        if not raw:
+            continue
+
+        # Detect table column ranges (handles multiple side-by-side tables)
+        table_ranges = find_table_column_ranges(raw)
+
+        for start_col, end_col in table_ranges:
+            # Extract this table's columns from each row
+            table_rows = []
+            for row in raw:
+                # Pad row if needed, then slice
+                padded_row = row + [''] * (end_col - len(row))
+                table_row = padded_row[start_col:end_col]
+                # Remove trailing empty cells
+                while table_row and table_row[-1] == '':
+                    table_row.pop()
+                if table_row:
+                    table_rows.append(table_row)
+
+            if len(table_rows) >= 2:  # Need at least header + 1 data row
+                # Normalize column count to header length
+                header = table_rows[0]
+                data_rows = []
+                for row in table_rows[1:]:
+                    # Pad or truncate to match header length
+                    normalized = (row + [''] * len(header))[:len(header)]
+                    data_rows.append(normalized)
+
+                tables.append(pd.DataFrame(data_rows, columns=header))
+
     return tables
 
 
