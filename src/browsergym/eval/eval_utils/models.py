@@ -141,7 +141,7 @@ def gemma3_27b_cloud():
     """Factory function for Gemma 3 27B cloud service."""
     return CloudRunModel(CLOUD_SERVICES["gemma3-27b-cloud"])
 
-def gemma_google_ai():
+def gemma_google_ai(model_id="gemma-3-27b-it"):
     """Factory function for Gemini model using Google GenAI client with vision support."""
     # Configure Google GenAI client
     api_key = os.environ.get("GOOGLE_AI_API_KEY")
@@ -203,7 +203,7 @@ def gemma_google_ai():
                                 )
 
             response = client.models.generate_content(
-                model='gemma-3-27b-it',
+                model=model_id,
                 contents=contents
             )
             return response.text
@@ -222,7 +222,8 @@ _models = {
     "qwen2-5-vl-72b-instruct": qwen2_5_vl_72b_instruct,
 
     # Google AI API models
-    "gemma-google-ai": gemma_google_ai,
+    "gemma-google-ai": lambda: gemma_google_ai(model_id="gemma-3-27b-it"),
+    "gemini-2.5-flash-google-ai": lambda: gemma_google_ai(model_id="gemini-2.5-flash"),
 
     # Cloud Run services - same interface as local models
     "gemma3-12b-cloud": gemma3_12b_cloud,

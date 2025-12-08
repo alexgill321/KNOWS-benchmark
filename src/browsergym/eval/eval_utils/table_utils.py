@@ -1,6 +1,74 @@
 import pandas as pd
 import numpy as np
-from typing import Optional, Tuple, Union, Any
+from dataclasses import dataclass, field
+from typing import Optional, Tuple, Union, Any, List, Dict
+
+
+# =============================================================================
+# SheetTable Class
+# =============================================================================
+
+@dataclass
+class SheetTable:
+    """
+    Represents a table extracted from a Google Sheet with position metadata.
+
+    Attributes:
+        df: The table data as a pandas DataFrame.
+        start_col: 0-indexed starting column position in the sheet.
+        end_col: 0-indexed ending column position (exclusive).
+        start_row: 0-indexed starting row position in the sheet.
+        end_row: 0-indexed ending row position (exclusive).
+        sheet_name: Name of the sheet tab containing this table.
+    """
+    df: pd.DataFrame
+    start_col: int = 0
+    end_col: int = 0
+    start_row: int = 0
+    end_row: int = 0
+    sheet_name: str = ""
+
+    @property
+    def col_letter(self) -> str:
+        """Return starting column as Excel-style letter (e.g., 'A', 'K', 'AA')."""
+        return self._col_index_to_letter(self.start_col)
+
+    @property
+    def end_col_letter(self) -> str:
+        """Return ending column as Excel-style letter."""
+        return self._col_index_to_letter(self.end_col - 1) if self.end_col > 0 else ""
+
+    @property
+    def columns(self) -> List[str]:
+        """Return list of column names."""
+        return list(self.df.columns)
+
+    @property
+    def num_rows(self) -> int:
+        """Return number of data rows (excluding header)."""
+        return len(self.df)
+
+    @property
+    def num_cols(self) -> int:
+        """Return number of columns."""
+        return len(self.df.columns)
+
+    def __len__(self) -> int:
+        """Return number of data rows."""
+        return len(self.df)
+
+    @staticmethod
+    def _col_index_to_letter(idx: int) -> str:
+        """Convert 0-indexed column number to Excel-style letter."""
+        result = ""
+        while idx >= 0:
+            result = chr(idx % 26 + ord('A')) + result
+            idx = idx // 26 - 1
+        return result
+
+    def __repr__(self) -> str:
+        return (f"SheetTable(cols={self.col_letter}:{self.end_col_letter}, "
+                f"rows={self.num_rows}, columns={self.columns})")
 
 def table_exact_match(df1: pd.DataFrame, df2: pd.DataFrame, ignore_case: bool = False) -> bool:
     if df1.shape != df2.shape:
@@ -148,3 +216,80 @@ Your response should be just the number or "NONE", nothing else."""
     except Exception as e:
         print(f"Error calling LLM: {e}")
         return None
+
+
+# =============================================================================
+# Google Sheets Text Visibility Utilities
+# =============================================================================
+
+def is_text_visible_in_cell(
+    content: str,
+    col_width: int,
+    wrap_strategy: str,
+    row_values: List[Dict],
+    col_idx: int,
+    char_width: int = 7
+) -> bool:
+    """
+    Check if text is fully visible in a Google Sheets cell.
+
+    Text is visible if:
+    - Column width is sufficient for the text, OR
+    - Wrap strategy is 'WRAP' (text wraps to multiple lines), OR
+    - Wrap strategy is 'OVERFLOW_CELL' and adjacent cells are empty (text overflows)
+
+    Text is NOT visible (truncated/hidden) if:
+    - Text width exceeds column width AND wrap strategy is 'CLIP', OR
+    - Text width exceeds column width AND wrap strategy is 'OVERFLOW_CELL' but next cell has content
+
+    Args:
+        content: The text content of the cell.
+        col_width: Width of the column in pixels.
+        wrap_strategy: One of 'WRAP', 'OVERFLOW_CELL', or 'CLIP'.
+        row_values: List of all cell values in the row (to check adjacent cells).
+        col_idx: Column index of this cell.
+        char_width: Approximate width per character in pixels (default 7).
+
+    Returns:
+        True if text is fully visible, False if truncated/hidden.
+    """
+    if not content:
+        return True
+
+    expected_width = len(content) * char_width
+
+    # If text fits in column, it's visible
+    if expected_width <= col_width:
+        return True
+
+    # If wrapping is enabled, text is visible (wraps to multiple lines)
+    if wrap_strategy == 'WRAP':
+        return True
+
+    # If CLIP, text is hidden when it exceeds width
+    if wrap_strategy == 'CLIP':
+        return False
+
+    # For OVERFLOW_CELL (default), check if next cell blocks the overflow
+    if wrap_strategy == 'OVERFLOW_CELL':
+        # Check subsequent cells to see if overflow is blocked
+        overflow_needed = expected_width - col_width
+        current_col = col_idx + 1
+
+        while overflow_needed > 0 and current_col < len(row_values):
+            next_cell = row_values[current_col] if current_col < len(row_values) else {}
+            next_content = next_cell.get('formattedValue', '') if isinstance(next_cell, dict) else ''
+
+            if next_content:
+                # Next cell has content, overflow is blocked - text is hidden
+                return False
+
+            # Assume default column width for overflow calculation
+            overflow_needed -= 100  # Default column width
+            current_col += 1
+
+        # Overflow has room, text is visible
+        return True
+
+    # Unknown wrap strategy, assume visible
+    return True

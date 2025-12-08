@@ -1,6 +1,6 @@
 # Checkpoints
 
-This task has 57 points in total.
+This task has 55 points in total.
 
 ## Checkpoint 1 (10 pts): Spreadsheet Structure
 The spreadsheet contains columns for all desired features and at least 5 listings.
@@ -50,12 +50,11 @@ A summary statistics table exists with auto-updating formulas.
 - A summary statistics table exists starting at column K (top-right area of sheet).
 - The summary table contains formulas/equations that reference the main listing data (not hardcoded values).
 
-## Checkpoint 6 (5 pts): Text Visibility and Formatting
+## Checkpoint 6 (4 pts): Text Visibility and Formatting
 All text in both tables is fully visible and not cut off.
 
 ### Outcome Evaluation:
 - All column headers in the main table are fully visible (not truncated).
 - All data cells in the main table have adequate column width to display content without truncation.
 - All text in the summary statistics table is fully visible.
-- Row heights are adequate to display multi-line content if present.
 - No text is hidden due to cell overflow issues.

@@ -66,52 +66,6 @@ def get_doc_content(doc_id, service):
         print(f"Error fetching document content: {e}")
         return None
 
-def find_table_column_ranges(rows: list) -> list:
-    """
-    Identify separate table regions by finding column gaps.
-
-    Detects multiple side-by-side tables within a sheet by finding
-    contiguous column regions that contain data, separated by empty columns.
-
-    Args:
-        rows: List of rows, each row is a list of cell values.
-
-    Returns:
-        List of (start_col, end_col) tuples for each detected table region.
-    """
-    if not rows:
-        return []
-
-    # Find max column count across all rows
-    max_cols = max(len(row) for row in rows) if rows else 0
-    if max_cols == 0:
-        return []
-
-    # Track which columns have any non-empty data
-    col_has_data = [False] * max_cols
-    for row in rows:
-        for col_idx, cell in enumerate(row):
-            if cell and str(cell).strip():
-                col_has_data[col_idx] = True
-
-    # Find contiguous regions of columns with data
-    table_ranges = []
-    start_col = None
-
-    for col_idx, has_data in enumerate(col_has_data):
-        if has_data and start_col is None:
-            start_col = col_idx
-        elif not has_data and start_col is not None:
-            table_ranges.append((start_col, col_idx))
-            start_col = None
-
-    # Handle last table if it extends to the end
-    if start_col is not None:
-        table_ranges.append((start_col, max_cols))
-
-    return table_ranges
-
-
 def get_sheet_content(sheet_id, service):
     """
     Fetches the content of a Google Sheet.

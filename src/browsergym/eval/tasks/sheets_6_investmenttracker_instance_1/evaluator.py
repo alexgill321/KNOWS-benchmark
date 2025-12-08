@@ -68,13 +68,15 @@ def setup(workspace_doc_id):
         sheet_id = workspace_doc_id
 
     # Extract data from the spreadsheet
+    # table_data is list of SheetTable objects
     table_data = extract_tables_from_sheet(sheet_id, SHEETS_SERVICE)
     chart_data = extract_charts_from_sheet(sheet_id, SHEETS_SERVICE)
     gold_data = extract_tables_from_sheet(GOLD_LABELS_SHEET_ID, SHEETS_SERVICE)
 
-    # Initialize df for use across checkpoints
+    # Initialize df for use across checkpoints (first table's DataFrame)
     if table_data:
-        df = table_data[0] if isinstance(table_data, list) else table_data
+        first_table = table_data[0]
+        df = first_table.df if hasattr(first_table, 'df') else first_table
         if isinstance(df, dict):
             df = pd.DataFrame(df)
 
@@ -125,10 +127,11 @@ def grade_checkpoint_1_and_2():
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    # Load reference stocks from gold CSV
+    # Load reference stocks from gold data
     step_start = time.time()
-    reference_tickers = gold_data[0]['Ticker'].tolist()
-    reference_names = gold_data[0]['Stock Name'].tolist()
+    gold_df = gold_data[0].df if hasattr(gold_data[0], 'df') else gold_data[0]
+    reference_tickers = gold_df['Ticker'].tolist()
+    reference_names = gold_df['Stock Name'].tolist()
 
     # Check for required columns and store matches
     required_columns = [
@@ -301,7 +304,7 @@ def grade_checkpoint_1_and_2():
         ticker_col = matched_columns["Ticker Symbol"]
 
         # Get gold past prices
-        gold_df = gold_data[0]
+        gold_df = gold_data[0].df if hasattr(gold_data[0], 'df') else gold_data[0]
 
         # Build mapping of gold ticker to gold past price
         gold_past_prices = {}
@@ -360,7 +363,7 @@ def grade_checkpoint_1_and_2():
         ticker_col = matched_columns["Ticker Symbol"]
 
         # Get gold current prices
-        gold_df = gold_data[0]
+        gold_df = gold_data[0].df if hasattr(gold_data[0], 'df') else gold_data[0]
 
         # Build mapping of gold ticker to gold current price
         gold_current_prices = {}

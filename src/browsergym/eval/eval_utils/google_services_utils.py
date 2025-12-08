@@ -831,62 +831,79 @@ def search_sheet(filename, service, folder_id=None):
 
 def extract_tables_from_sheet(sheet_id, service):
     """
-    Return list[pd.DataFrame] - extracts all tables from all tabs.
+    Extract all tables from a Google Sheet as SheetTable objects.
 
-    Handles multiple side-by-side tables within a single sheet tab by
-    detecting column gaps between tables.
+    Uses the Google Sheets API 'tables' property to get table positions
+    directly from the sheet metadata.
 
     Args:
         sheet_id (str): The ID of the Google Sheet to extract tables from.
         service: The Google Sheets service instance.
 
     Returns:
-        list: List of pandas DataFrames for all detected tables across all tabs.
+        list[SheetTable]: List of SheetTable objects for each detected table.
     """
+    from src.browsergym.eval.eval_utils.table_utils import SheetTable
+
     sheet_obj = get_sheet_content(sheet_id, service)
     if not sheet_obj:
         return []
 
     tables = []
-    for tab in sheet_obj.get("sheets", []):
-        rows = tab["data"][0].get("rowData", [])
+    for tab in sheet_obj.get('sheets', []):
+        sheet_name = tab.get('properties', {}).get('title', '')
+        tab_tables = tab.get('tables', [])
+        grid_data = tab.get('data', [{}])[0]
+        rows = grid_data.get('rowData', [])
 
-        # Build raw grid with all cell values
-        raw = []
-        for r in rows:
-            row_vals = [cell.get("formattedValue", "") for cell in r.get("values", [])]
-            if any(v for v in row_vals):  # Only include rows with some data
-                raw.append(row_vals)
+        for table in tab_tables:
+            # Extract position from GridRange
+            table_range = table.get('range', {})
+            start_col = table_range.get('startColumnIndex', 0)
+            end_col = table_range.get('endColumnIndex', 0)
+            start_row = table_range.get('startRowIndex', 0)
+            end_row = table_range.get('endRowIndex', 0)
 
-        if not raw:
-            continue
+            # Get column names from columnProperties
+            col_props = table.get('columnProperties', [])
+            headers = [col.get('columnName', f'Column{i}') for i, col in enumerate(col_props)]
 
-        # Detect table column ranges (handles multiple side-by-side tables)
-        table_ranges = find_table_column_ranges(raw)
+            # If no columnProperties, extract headers from first row
+            if not headers and rows and start_row < len(rows):
+                header_row = rows[start_row].get('values', [])
+                headers = []
+                for c_idx in range(start_col, min(end_col, len(header_row))):
+                    cell = header_row[c_idx] if c_idx < len(header_row) else {}
+                    headers.append(cell.get('formattedValue', f'Column{c_idx - start_col}'))
 
-        for start_col, end_col in table_ranges:
-            # Extract this table's columns from each row
-            table_rows = []
-            for row in raw:
-                # Pad row if needed, then slice
-                padded_row = row + [''] * (end_col - len(row))
-                table_row = padded_row[start_col:end_col]
-                # Remove trailing empty cells
-                while table_row and table_row[-1] == '':
-                    table_row.pop()
-                if table_row:
-                    table_rows.append(table_row)
+            if not headers:
+                continue
 
-            if len(table_rows) >= 2:  # Need at least header + 1 data row
-                # Normalize column count to header length
-                header = table_rows[0]
-                data_rows = []
-                for row in table_rows[1:]:
-                    # Pad or truncate to match header length
-                    normalized = (row + [''] * len(header))[:len(header)]
-                    data_rows.append(normalized)
+            # Extract data rows (skip header row)
+            data_rows = []
+            for r_idx in range(start_row + 1, min(end_row, len(rows))):
+                row = rows[r_idx].get('values', []) if r_idx < len(rows) else []
+                row_data = []
+                for c_idx in range(start_col, end_col):
+                    cell = row[c_idx] if c_idx < len(row) else {}
+                    row_data.append(cell.get('formattedValue', ''))
+                # Pad or truncate to match header length
+                row_data = (row_data + [''] * len(headers))[:len(headers)]
+                data_rows.append(row_data)
 
-                tables.append(pd.DataFrame(data_rows, columns=header))
+            if not data_rows:
+                continue
+
+            df = pd.DataFrame(data_rows, columns=headers)
+
+            tables.append(SheetTable(
+                df=df,
+                start_col=start_col,
+                end_col=end_col,
+                start_row=start_row,
+                end_row=end_row,
+                sheet_name=sheet_name
+            ))
 
     return tables
 

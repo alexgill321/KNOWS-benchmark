@@ -27,7 +27,7 @@ from src.browsergym.eval.eval_utils.google_services_utils import (
     extract_tables_from_sheet
 )
 from src.browsergym.eval.eval_utils.google_services_helpers import get_sheet_content
-from src.browsergym.eval.eval_utils.table_utils import find_matching_column_or_row
+from src.browsergym.eval.eval_utils.table_utils import find_matching_column_or_row, is_text_visible_in_cell
 from src.browsergym.eval.eval_utils.text_utils import numerical_match_with_error
 from src.browsergym.eval.eval_utils.models import load_model
 
@@ -45,7 +45,7 @@ TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_38_apartmen
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 model = None
-model_id = "gemma-google-ai"
+model_id = "gemini-2.5-flash-google-ai"
 
 DRIVE_SERVICE, SHEETS_SERVICE = initialize_google_services(service_type="sheets")
 
@@ -71,12 +71,14 @@ def setup(workspace_doc_id: str):
         sheet_id = workspace_doc_id
 
     # Extract data from the spreadsheet
+    # table_data is list of SheetTable objects
     table_data = extract_tables_from_sheet(sheet_id, SHEETS_SERVICE)
     sheet_raw = get_sheet_content(sheet_id, SHEETS_SERVICE)
 
-    # Initialize df for use across checkpoints
+    # Initialize df for use across checkpoints (first table's DataFrame)
     if table_data:
-        df = table_data[0] if isinstance(table_data, list) else table_data
+        first_table = table_data[0]
+        df = first_table.df if hasattr(first_table, 'df') else first_table
         if isinstance(df, dict):
             df = pd.DataFrame(df)
 
@@ -328,7 +330,7 @@ def grade_checkpoint_2():
 
             if craigslist_beds is not None:
                 step_time = time.time() - step_start
-                if abs(user_beds - craigslist_beds) < 0.1:
+                if abs(user_beds == craigslist_beds):
                     checkpoint.add_step(f"Listing {listing_num} - Bedrooms Match", True, step_num,
                                       f"Bedrooms match: {int(user_beds)}",
                                       execution_time=step_time)
@@ -356,7 +358,7 @@ def grade_checkpoint_2():
 
             if craigslist_baths is not None:
                 step_time = time.time() - step_start
-                if abs(user_baths - craigslist_baths) < 0.1:
+                if abs(user_baths == craigslist_baths):
                     checkpoint.add_step(f"Listing {listing_num} - Bathrooms Match", True, step_num,
                                       f"Bathrooms match: {user_baths}",
                                       execution_time=step_time)
@@ -407,13 +409,20 @@ def grade_checkpoint_2():
 
             step_time = time.time() - step_start
             # Unknown is acceptable if user also has unknown or if Craigslist doesn't specify
-            if craigslist_laundry is None or user_laundry == craigslist_laundry:
+            if user_laundry == craigslist_laundry:
+                status = "Yes" if user_laundry else "No"
                 checkpoint.add_step(f"Listing {listing_num} - Laundry Match", True, step_num,
-                                  f"Laundry status matches (user: {user_laundry}, craigslist: {craigslist_laundry_str})",
+                                  f"In-unit laundry: {status}",
+                                  execution_time=step_time)
+            elif craigslist_laundry is None:
+                checkpoint.add_step(f"Listing {listing_num} - Laundry Match", True, step_num,
+                                  f"Craigslist laundry status unclear, skipping check",
                                   execution_time=step_time)
             else:
+                user_status = "Yes" if user_laundry else "No"
+                cl_status = "Yes" if craigslist_laundry else "No"
                 checkpoint.add_step(f"Listing {listing_num} - Laundry Match", False, step_num,
-                                  f"Laundry mismatch: user {user_laundry} vs Craigslist {craigslist_laundry_str}",
+                                  f"Laundry mismatch: spreadsheet says {user_status}, Craigslist says {cl_status}",
                                   execution_time=step_time)
         except Exception as e:
             step_time = time.time() - step_start
@@ -431,13 +440,20 @@ def grade_checkpoint_2():
 
             step_time = time.time() - step_start
             # Unknown is acceptable
-            if craigslist_pet is None or user_pet == craigslist_pet:
+            if user_pet == craigslist_pet:
+                status = "Yes" if user_pet else "No"
                 checkpoint.add_step(f"Listing {listing_num} - Pet-Friendly Match", True, step_num,
-                                  f"Pet status matches (user: {user_pet}, craigslist: {craigslist_pet_str})",
+                                  f"Pet-friendly: {status}",
+                                  execution_time=step_time)
+            elif craigslist_pet is None:
+                checkpoint.add_step(f"Listing {listing_num} - Pet-Friendly Match", True, step_num,
+                                  f"Craigslist pet status unclear, skipping check",
                                   execution_time=step_time)
             else:
+                user_status = "Yes" if user_pet else "No"
+                cl_status = "Yes" if craigslist_pet else "No"
                 checkpoint.add_step(f"Listing {listing_num} - Pet-Friendly Match", False, step_num,
-                                  f"Pet mismatch: user {user_pet} vs Craigslist {craigslist_pet_str}",
+                                  f"Pet mismatch: spreadsheet says {user_status}, Craigslist says {cl_status}",
                                   execution_time=step_time)
         except Exception as e:
             step_time = time.time() - step_start
@@ -692,73 +708,50 @@ def grade_checkpoint_5():
     - The summary table contains formulas/equations that reference the main listing data.
     """
     print("----------------- CHECKPOINT 5 ----------------")
-    global sheet_raw
+    global table_data, sheet_raw
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=2, result=0, name="Summary Statistics Table")
 
-    if not sheet_raw:
+    # Column K is index 10 (0-indexed)
+    MIN_SUMMARY_COL = 10
+
+    if not table_data:
         checkpoint.add_step("Summary Table Exists", False, 1,
-                          "Could not access raw sheet data",
+                          "No tables found in spreadsheet",
                           execution_time=time.time() - checkpoint_start)
         checkpoint.add_step("Contains Formulas", False, 2,
-                          "Cannot check - no sheet data",
+                          "Cannot check - no tables found",
                           execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    # Step 1: Check for data in column K and beyond
+    # Step 1: Check if a second table exists at column K or later
     step_start = time.time()
+    summary_start_col = None
+    summary_end_col = None
+
     try:
-        sheets = sheet_raw.get('sheets', [])
-        if not sheets:
-            step_time = time.time() - step_start
-            checkpoint.add_step("Summary Table Exists", False, 1,
-                              "No sheets found",
-                              execution_time=step_time)
-            checkpoint.add_step("Contains Formulas", False, 2,
-                              "Cannot check - no sheets",
-                              execution_time=0)
-            checkpoint.execution_time = time.time() - checkpoint_start
-            return checkpoint
-
-        rows = sheets[0].get('data', [{}])[0].get('rowData', [])
-
-        summary_cells = []
-        formula_cells = []
-
-        for r_idx, row in enumerate(rows):
-            for c_idx, cell in enumerate(row.get('values', [])):
-                if c_idx >= 10:  # Column K (index 10) onwards
-                    formatted_value = cell.get('formattedValue', '')
-                    user_entered = cell.get('userEnteredValue', {})
-                    formula = user_entered.get('formulaValue', '')
-
-                    if formatted_value:
-                        summary_cells.append({
-                            'row': r_idx,
-                            'col': c_idx,
-                            'value': formatted_value
-                        })
-
-                    if formula:
-                        formula_cells.append({
-                            'row': r_idx,
-                            'col': c_idx,
-                            'formula': formula
-                        })
+        # Find a table that starts at column K (index 10) or later
+        summary_sheet_table = None
+        for sheet_table in table_data:
+            if sheet_table.start_col >= MIN_SUMMARY_COL:
+                summary_sheet_table = sheet_table
+                summary_start_col = sheet_table.start_col
+                summary_end_col = sheet_table.end_col
+                break
 
         step_time = time.time() - step_start
 
-        if summary_cells:
+        if summary_sheet_table is not None:
             checkpoint.add_step("Summary Table Exists", True, 1,
-                              f"Found {len(summary_cells)} cells in summary area (column K+)",
+                              f"Found summary table at column {summary_sheet_table.col_letter} with {summary_sheet_table.num_cols} columns",
                               execution_time=step_time)
         else:
             checkpoint.add_step("Summary Table Exists", False, 1,
-                              "No data found in column K or beyond",
+                              f"No table found starting at column K or later (found {len(table_data)} table(s))",
                               execution_time=step_time)
             checkpoint.add_step("Contains Formulas", False, 2,
-                              "Cannot check - no summary table",
+                              "Cannot check - no summary table at column K+",
                               execution_time=0)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
@@ -766,7 +759,7 @@ def grade_checkpoint_5():
     except Exception as e:
         step_time = time.time() - step_start
         checkpoint.add_step("Summary Table Exists", False, 1,
-                          f"Error checking summary table: {str(e)[:50]}",
+                          f"Error checking for summary table: {str(e)[:50]}",
                           execution_time=step_time)
         checkpoint.add_step("Contains Formulas", False, 2,
                           "Cannot check - error occurred",
@@ -774,32 +767,65 @@ def grade_checkpoint_5():
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    # Step 2: Check if summary contains formulas referencing main data
+    # Step 2: Check if summary table contains formulas referencing main data
     step_start = time.time()
+    try:
+        if not sheet_raw:
+            step_time = time.time() - step_start
+            checkpoint.add_step("Contains Formulas", False, 2,
+                              "Cannot check formulas - no raw sheet data",
+                              execution_time=step_time)
+            checkpoint.execution_time = time.time() - checkpoint_start
+            return checkpoint
 
-    if formula_cells:
-        # Check if any formulas reference columns A-J (main data)
+        sheets = sheet_raw.get('sheets', [])
+        if not sheets:
+            step_time = time.time() - step_start
+            checkpoint.add_step("Contains Formulas", False, 2,
+                              "Cannot check formulas - no sheets found",
+                              execution_time=step_time)
+            checkpoint.execution_time = time.time() - checkpoint_start
+            return checkpoint
+
+        rows = sheets[0].get('data', [{}])[0].get('rowData', [])
+
+        # Look for formulas in the summary table area
+        formula_cells = []
         main_data_refs = 0
-        for fc in formula_cells:
-            formula = fc['formula'].upper()
-            # Check for references to columns A-J
-            if any(f'{col}' in formula for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']):
-                main_data_refs += 1
+
+        for r_idx, row in enumerate(rows):
+            for c_idx, cell in enumerate(row.get('values', [])):
+                # Check if cell is in the summary table column range
+                if summary_start_col <= c_idx < summary_end_col:
+                    user_entered = cell.get('userEnteredValue', {})
+                    formula = user_entered.get('formulaValue', '')
+
+                    if formula:
+                        formula_cells.append(formula)
+                        # Check if formula references columns A-J (main data)
+                        formula_upper = formula.upper()
+                        if any(f'{col}' in formula_upper for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']):
+                            main_data_refs += 1
 
         step_time = time.time() - step_start
 
-        if main_data_refs > 0:
+        if formula_cells and main_data_refs > 0:
             checkpoint.add_step("Contains Formulas", True, 2,
                               f"Found {len(formula_cells)} formulas, {main_data_refs} reference main data",
                               execution_time=step_time)
-        else:
+        elif formula_cells:
             checkpoint.add_step("Contains Formulas", False, 2,
                               f"Found {len(formula_cells)} formulas but none reference main data (columns A-J)",
                               execution_time=step_time)
-    else:
+        else:
+            checkpoint.add_step("Contains Formulas", False, 2,
+                              "No formulas found in summary table - appears to use hardcoded values",
+                              execution_time=step_time)
+
+    except Exception as e:
         step_time = time.time() - step_start
         checkpoint.add_step("Contains Formulas", False, 2,
-                          "No formulas found in summary area - appears to use hardcoded values",
+                          f"Error checking formulas: {str(e)[:50]}",
                           execution_time=step_time)
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -808,23 +834,29 @@ def grade_checkpoint_5():
 
 def grade_checkpoint_6():
     """
-    Checkpoint 6: Text Visibility and Formatting (5 pts)
+    Checkpoint 6: Text Visibility and Formatting (4 pts)
     Validates that all text in both tables is fully visible and not cut off.
 
     Outcome Evaluation:
     - All column headers in the main table are fully visible (not truncated).
     - All data cells in the main table have adequate column width.
     - All text in the summary statistics table is fully visible.
-    - Row heights are adequate to display multi-line content if present.
     - No text is hidden due to cell overflow issues.
+
+    Key Logic:
+    - Text is only considered "out of bounds" if it exceeds cell width AND
+      wrapping is not enabled (wrapStrategy != 'WRAP').
+    - If wrapStrategy is 'WRAP', text wraps to multiple lines and is visible.
+    - If wrapStrategy is 'OVERFLOW_CELL', text overflows into adjacent empty cells.
+    - If wrapStrategy is 'CLIP', text is clipped/hidden.
     """
     print("----------------- CHECKPOINT 6 ----------------")
     global sheet_raw, df
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=5, result=0, name="Text Visibility and Formatting")
+    checkpoint = Checkpoint(total=4, result=0, name="Text Visibility and Formatting")
 
     if not sheet_raw:
-        for i in range(1, 6):
+        for i in range(1, 5):
             checkpoint.add_step(f"Visibility Check {i}", False, i,
                               "Could not access raw sheet data",
                               execution_time=0)
@@ -834,7 +866,7 @@ def grade_checkpoint_6():
     try:
         sheets = sheet_raw.get('sheets', [])
         if not sheets:
-            for i in range(1, 6):
+            for i in range(1, 5):
                 checkpoint.add_step(f"Visibility Check {i}", False, i,
                                   "No sheets found",
                                   execution_time=0)
@@ -844,19 +876,23 @@ def grade_checkpoint_6():
         sheet_data = sheets[0].get('data', [{}])[0]
         rows = sheet_data.get('rowData', [])
         col_metadata = sheet_data.get('columnMetadata', [])
-        row_metadata = sheet_data.get('rowMetadata', [])
 
         # Approximate character width in pixels (default font)
         CHAR_WIDTH = 7
-        MIN_PADDING = 10
 
     except Exception as e:
-        for i in range(1, 6):
+        for i in range(1, 5):
             checkpoint.add_step(f"Visibility Check {i}", False, i,
                               f"Error accessing sheet structure: {str(e)[:50]}",
                               execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
+
+    # Helper to get column width
+    def get_col_width(c_idx):
+        if c_idx < len(col_metadata):
+            return col_metadata[c_idx].get('pixelSize', 100)
+        return 100  # Default
 
     # Step 1: Check column headers visibility (first row)
     step_start = time.time()
@@ -870,23 +906,23 @@ def grade_checkpoint_6():
                 if not content:
                     continue
 
-                col_width = 100  # Default
-                if c_idx < len(col_metadata):
-                    col_width = col_metadata[c_idx].get('pixelSize', 100)
+                col_width = get_col_width(c_idx)
+                fmt = cell.get('effectiveFormat', {})
+                wrap_strategy = fmt.get('wrapStrategy', 'OVERFLOW_CELL')
 
-                expected_width = len(content) * CHAR_WIDTH + MIN_PADDING
-                if expected_width > col_width:
+                if not is_text_visible_in_cell(content, col_width, wrap_strategy,
+                                               header_row, c_idx, CHAR_WIDTH):
                     truncated_headers.append(content[:20])
 
             step_time = time.time() - step_start
 
             if not truncated_headers:
                 checkpoint.add_step("Headers Visible", True, 1,
-                                  "All column headers have adequate width",
+                                  "All column headers are fully visible",
                                   execution_time=step_time)
             else:
                 checkpoint.add_step("Headers Visible", False, 1,
-                                  f"Potentially truncated headers: {', '.join(truncated_headers[:3])}...",
+                                  f"Truncated headers: {', '.join(truncated_headers[:3])}...",
                                   execution_time=step_time)
         else:
             step_time = time.time() - step_start
@@ -902,12 +938,13 @@ def grade_checkpoint_6():
     # Step 2: Check data cells in main table (columns A-J)
     step_start = time.time()
     try:
-        truncated_cells = 0
+        hidden_cells = 0
         total_cells = 0
 
         for r_idx, row in enumerate(rows[1:], 1):  # Skip header
-            for c_idx, cell in enumerate(row.get('values', [])):
-                if c_idx >= 10:  # Only main table
+            row_values = row.get('values', [])
+            for c_idx, cell in enumerate(row_values):
+                if c_idx >= 10:  # Only main table (columns A-J)
                     continue
 
                 content = cell.get('formattedValue', '')
@@ -915,13 +952,13 @@ def grade_checkpoint_6():
                     continue
 
                 total_cells += 1
-                col_width = 100
-                if c_idx < len(col_metadata):
-                    col_width = col_metadata[c_idx].get('pixelSize', 100)
+                col_width = get_col_width(c_idx)
+                fmt = cell.get('effectiveFormat', {})
+                wrap_strategy = fmt.get('wrapStrategy', 'OVERFLOW_CELL')
 
-                expected_width = len(content) * CHAR_WIDTH + MIN_PADDING
-                if expected_width > col_width:
-                    truncated_cells += 1
+                if not is_text_visible_in_cell(content, col_width, wrap_strategy,
+                                               row_values, c_idx, CHAR_WIDTH):
+                    hidden_cells += 1
 
         step_time = time.time() - step_start
 
@@ -929,17 +966,13 @@ def grade_checkpoint_6():
             checkpoint.add_step("Data Cells Adequate", False, 2,
                               "No data cells found in main table",
                               execution_time=step_time)
-        elif truncated_cells == 0:
+        elif hidden_cells == 0:
             checkpoint.add_step("Data Cells Adequate", True, 2,
-                              f"All {total_cells} data cells have adequate column width",
-                              execution_time=step_time)
-        elif truncated_cells / total_cells < 0.1:  # Less than 10% truncated
-            checkpoint.add_step("Data Cells Adequate", True, 2,
-                              f"Most cells adequate ({total_cells - truncated_cells}/{total_cells})",
+                              f"All {total_cells} data cells are fully visible",
                               execution_time=step_time)
         else:
             checkpoint.add_step("Data Cells Adequate", False, 2,
-                              f"{truncated_cells}/{total_cells} cells may be truncated",
+                              f"{hidden_cells}/{total_cells} cells have hidden/truncated text",
                               execution_time=step_time)
     except Exception as e:
         step_time = time.time() - step_start
@@ -950,12 +983,13 @@ def grade_checkpoint_6():
     # Step 3: Check summary table text (column K+)
     step_start = time.time()
     try:
-        summary_truncated = 0
+        summary_hidden = 0
         summary_total = 0
 
         for r_idx, row in enumerate(rows):
-            for c_idx, cell in enumerate(row.get('values', [])):
-                if c_idx < 10:  # Only summary area
+            row_values = row.get('values', [])
+            for c_idx, cell in enumerate(row_values):
+                if c_idx < 10:  # Only summary area (column K+)
                     continue
 
                 content = cell.get('formattedValue', '')
@@ -963,13 +997,13 @@ def grade_checkpoint_6():
                     continue
 
                 summary_total += 1
-                col_width = 100
-                if c_idx < len(col_metadata):
-                    col_width = col_metadata[c_idx].get('pixelSize', 100)
+                col_width = get_col_width(c_idx)
+                fmt = cell.get('effectiveFormat', {})
+                wrap_strategy = fmt.get('wrapStrategy', 'OVERFLOW_CELL')
 
-                expected_width = len(content) * CHAR_WIDTH + MIN_PADDING
-                if expected_width > col_width:
-                    summary_truncated += 1
+                if not is_text_visible_in_cell(content, col_width, wrap_strategy,
+                                               row_values, c_idx, CHAR_WIDTH):
+                    summary_hidden += 1
 
         step_time = time.time() - step_start
 
@@ -977,13 +1011,13 @@ def grade_checkpoint_6():
             checkpoint.add_step("Summary Text Visible", True, 3,
                               "No summary text to check (or no summary table)",
                               execution_time=step_time)
-        elif summary_truncated == 0:
+        elif summary_hidden == 0:
             checkpoint.add_step("Summary Text Visible", True, 3,
-                              f"All {summary_total} summary cells have adequate width",
+                              f"All {summary_total} summary cells are fully visible",
                               execution_time=step_time)
         else:
             checkpoint.add_step("Summary Text Visible", False, 3,
-                              f"{summary_truncated}/{summary_total} summary cells may be truncated",
+                              f"{summary_hidden}/{summary_total} summary cells have hidden text",
                               execution_time=step_time)
     except Exception as e:
         step_time = time.time() - step_start
@@ -991,78 +1025,41 @@ def grade_checkpoint_6():
                           f"Error checking summary: {str(e)[:50]}",
                           execution_time=step_time)
 
-    # Step 4: Check row heights for multi-line content
+    # Step 4: Check for clipped text (wrapStrategy = CLIP with overflow)
     step_start = time.time()
     try:
-        DEFAULT_ROW_HEIGHT = 21
-        inadequate_rows = 0
+        clipped_cells = 0
 
-        for r_idx, row in enumerate(rows):
-            row_height = DEFAULT_ROW_HEIGHT
-            if r_idx < len(row_metadata):
-                row_height = row_metadata[r_idx].get('pixelSize', DEFAULT_ROW_HEIGHT)
-
-            # Check if any cell in this row has newlines or very long content
-            for cell in row.get('values', []):
+        for row in rows:
+            row_values = row.get('values', [])
+            for c_idx, cell in enumerate(row_values):
                 content = cell.get('formattedValue', '')
-                if '\n' in content:
-                    lines = content.count('\n') + 1
-                    needed_height = lines * 18  # Approximate line height
-                    if row_height < needed_height:
-                        inadequate_rows += 1
-                        break
-
-        step_time = time.time() - step_start
-
-        if inadequate_rows == 0:
-            checkpoint.add_step("Row Heights Adequate", True, 4,
-                              "Row heights are adequate for content",
-                              execution_time=step_time)
-        else:
-            checkpoint.add_step("Row Heights Adequate", False, 4,
-                              f"{inadequate_rows} rows may have inadequate height for multi-line content",
-                              execution_time=step_time)
-    except Exception as e:
-        step_time = time.time() - step_start
-        checkpoint.add_step("Row Heights Adequate", False, 4,
-                          f"Error checking row heights: {str(e)[:50]}",
-                          execution_time=step_time)
-
-    # Step 5: Check for overflow/hidden text (wrap strategy)
-    step_start = time.time()
-    try:
-        overflow_issues = 0
-
-        for r_idx, row in enumerate(rows):
-            for c_idx, cell in enumerate(row.get('values', [])):
-                content = cell.get('formattedValue', '')
-                if not content or len(content) < 30:  # Only check longer content
+                if not content:
                     continue
 
                 fmt = cell.get('effectiveFormat', {})
-                wrap = fmt.get('wrapStrategy', 'OVERFLOW_CELL')
+                wrap_strategy = fmt.get('wrapStrategy', 'OVERFLOW_CELL')
 
-                col_width = 100
-                if c_idx < len(col_metadata):
-                    col_width = col_metadata[c_idx].get('pixelSize', 100)
-
-                expected_width = len(content) * CHAR_WIDTH
-                if expected_width > col_width and wrap == 'CLIP':
-                    overflow_issues += 1
+                # Only CLIP strategy actually hides text unconditionally
+                if wrap_strategy == 'CLIP':
+                    col_width = get_col_width(c_idx)
+                    text_width = len(content) * CHAR_WIDTH
+                    if text_width > col_width:
+                        clipped_cells += 1
 
         step_time = time.time() - step_start
 
-        if overflow_issues == 0:
-            checkpoint.add_step("No Overflow Issues", True, 5,
-                              "No text hidden due to cell overflow",
+        if clipped_cells == 0:
+            checkpoint.add_step("No Overflow Issues", True, 4,
+                              "No text hidden due to cell clipping",
                               execution_time=step_time)
         else:
-            checkpoint.add_step("No Overflow Issues", False, 5,
-                              f"{overflow_issues} cells may have hidden text due to clipping",
+            checkpoint.add_step("No Overflow Issues", False, 4,
+                              f"{clipped_cells} cells have text clipped/hidden",
                               execution_time=step_time)
     except Exception as e:
         step_time = time.time() - step_start
-        checkpoint.add_step("No Overflow Issues", False, 5,
+        checkpoint.add_step("No Overflow Issues", False, 4,
                           f"Error checking overflow: {str(e)[:50]}",
                           execution_time=step_time)
 
