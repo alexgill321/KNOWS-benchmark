@@ -1,18 +1,42 @@
+# Google Services
 google-api-python-client
-google-auth-httplib2
 google-auth-oauthlib
 google-genai
-rapidfuzz
-python-doctr
-python-Levenshtein
+google-cloud-secret-manager
+
+# HTTP & Web
+requests
+beautifulsoup4
+html2text
+
+# Data Processing
+pandas
+numpy
+
+# Image Processing
+Pillow
 opencv-python
 PyMuPDF
+imagehash
+
+# Text Processing
+rapidfuzz
+python-doctr
+
+# Machine Learning
+torch
+transformers
+huggingface-hub
+
+# Academic APIs
+arxiv
+
+# Web Server
 flask
 gunicorn
-transformers
-torch
-torchvision
-accelerate
-google-cloud-secret-manager
-pandas
-paperscraper
+
+# Optional: Task-specific dependencies (uncomment if needed)
+# oxylabs        # sheets_38 task
+# playwright     # sheets_38 task, browsergym
+# llama-cpp-python  # Local Llama models
+# qwen-vl-utils     # Qwen VL models

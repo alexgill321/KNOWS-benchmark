@@ -554,3 +554,178 @@ def check_text_vertical_order(slide: Dict[str, Any], text_list: List[str]) -> bo
             return False
 
     return True
+
+
+def get_element_bbox(element: Dict[str, Any]) -> Dict[str, float]:
+    """
+    Convert a Slides API element (transform + size) to a bounding box dictionary.
+
+    The Google Slides API uses EMUs (English Metric Units) for coordinates.
+    1 inch = 914400 EMUs, 1 point = 12700 EMUs.
+
+    The transform matrix includes scaleX and scaleY which must be multiplied
+    with the raw size values to get the actual rendered dimensions.
+
+    Args:
+        element (dict): Page element from Google Slides API with 'transform' and 'size'.
+
+    Returns:
+        dict: Bounding box with 'x', 'y', 'width', 'height' in EMUs.
+            Returns zeros if transform/size not available.
+    """
+    transform = element.get('transform', {})
+    size = element.get('size', {})
+
+    # Get raw width and height from size
+    raw_width = size.get('width', {}).get('magnitude', 0)
+    raw_height = size.get('height', {}).get('magnitude', 0)
+
+    # Apply scale factors from transform (default to 1 if not present)
+    scale_x = transform.get('scaleX', 1)
+    scale_y = transform.get('scaleY', 1)
+
+    return {
+        'x': transform.get('translateX', 0),
+        'y': transform.get('translateY', 0),
+        'width': raw_width * abs(scale_x),
+        'height': raw_height * abs(scale_y)
+    }
+
+
+def extract_text_boxes_from_slide(slide: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Extract all text box elements from a slide with their positions and content.
+
+    Args:
+        slide (dict): Slide object from Google Slides API.
+
+    Returns:
+        list: List of dictionaries, each containing:
+            - 'objectId': Element ID
+            - 'text': Text content
+            - 'bbox': Bounding box dict with x, y, width, height
+            - 'element': The full element for additional processing
+    """
+    text_boxes = []
+
+    if 'pageElements' not in slide:
+        return text_boxes
+
+    for element in slide['pageElements']:
+        if 'shape' in element and 'text' in element['shape']:
+            text_content = _extract_text_from_text_element(element['shape']['text'])
+
+            if text_content.strip():  # Only include non-empty text boxes
+                text_boxes.append({
+                    'objectId': element.get('objectId', ''),
+                    'text': text_content,
+                    'bbox': get_element_bbox(element),
+                    'element': element
+                })
+
+    return text_boxes
+
+
+def get_text_style_from_shape(shape: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Extract text styling information (color, font size) from a shape element.
+
+    Args:
+        shape (dict): Shape object from Google Slides API containing 'text'.
+
+    Returns:
+        dict: Text style information containing:
+            - 'foregroundColor': RGB color dict or None
+            - 'fontSize': Font size dict with 'magnitude' and 'unit', or None
+            - 'bold': Boolean or None
+            - 'italic': Boolean or None
+    """
+    result = {
+        'foregroundColor': None,
+        'fontSize': None,
+        'bold': None,
+        'italic': None
+    }
+
+    if 'text' not in shape:
+        return result
+
+    text_element = shape['text']
+
+    # Look through text elements for style information
+    for text_run in text_element.get('textElements', []):
+        if 'textRun' in text_run:
+            style = text_run['textRun'].get('style', {})
+
+            # Extract foreground color
+            if 'foregroundColor' in style and result['foregroundColor'] is None:
+                color_info = style['foregroundColor'].get('opaqueColor', {})
+                if 'rgbColor' in color_info:
+                    rgb = color_info['rgbColor']
+                    result['foregroundColor'] = {
+                        'red': rgb.get('red', 0),
+                        'green': rgb.get('green', 0),
+                        'blue': rgb.get('blue', 0)
+                    }
+
+            # Extract font size
+            if 'fontSize' in style and result['fontSize'] is None:
+                result['fontSize'] = style['fontSize']
+
+            # Extract bold/italic
+            if 'bold' in style and result['bold'] is None:
+                result['bold'] = style['bold']
+            if 'italic' in style and result['italic'] is None:
+                result['italic'] = style['italic']
+
+    return result
+
+
+def is_text_red(text_style: Dict[str, Any], threshold: float = 0.7) -> bool:
+    """
+    Check if text foreground color is red.
+
+    Args:
+        text_style (dict): Text style from get_text_style_from_shape().
+        threshold (float): Minimum red value and maximum green/blue values.
+            Default 0.7 means red > 0.7 and green < 0.3 and blue < 0.3.
+
+    Returns:
+        bool: True if text color is red, False otherwise.
+    """
+    fg_color = text_style.get('foregroundColor')
+    if not fg_color:
+        return False
+
+    red = fg_color.get('red', 0)
+    green = fg_color.get('green', 0)
+    blue = fg_color.get('blue', 0)
+
+    return red > threshold and green < (1 - threshold) and blue < (1 - threshold)
+
+
+def is_text_big(text_style: Dict[str, Any], min_pt: float = 18) -> bool:
+    """
+    Check if font size is at least the specified minimum in points.
+
+    Args:
+        text_style (dict): Text style from get_text_style_from_shape().
+        min_pt (float): Minimum font size in points. Default is 18pt.
+
+    Returns:
+        bool: True if font size >= min_pt, False otherwise.
+    """
+    font_size = text_style.get('fontSize')
+    if not font_size:
+        return False
+
+    magnitude = font_size.get('magnitude', 0)
+    unit = font_size.get('unit', 'PT')
+
+    if unit == 'PT':
+        return magnitude >= min_pt
+    elif unit == 'EMU':
+        # 1 point = 12700 EMUs
+        return magnitude >= min_pt * 12700
+
+    return False

@@ -476,28 +476,104 @@ def display_location_overlay(doc_path, loc, color=(0, 255, 0), max_width=1200, m
 def image_id_from_path(image_path):
     """
     Extracts the image ID from the file name of an image path.
-    
+
     The expected format is: image_{image_count}_{obj_id}{extension}
     where obj_id is the actual image ID we want to extract.
-    
+
     Args:
         image_path (str): Path to the image file.
-        
+
     Returns:
         str: Image ID (obj_id) extracted from the file name.
     """
     # Extract the file name without the directory path
     file_name = os.path.basename(image_path)
-    
+
     # Remove the file extension
     base_name = os.path.splitext(file_name)[0]
-    
+
     # Check if the file follows the expected format
     if base_name.startswith('image_'):
         # Split by underscore and get the obj_id (the part after the second underscore)
         parts = base_name.split('_', 2)
         if len(parts) >= 3:
             return parts[2]  # Return the obj_id part
-    
+
     # If the format doesn't match, return the base name as fallback
     return base_name
+
+
+def bbox_overlap_ratio(bbox1, bbox2):
+    """
+    Calculate the overlap ratio of bbox1 with respect to bbox2.
+
+    This calculates what percentage of bbox1's area overlaps with bbox2.
+
+    Args:
+        bbox1 (dict): First bounding box with 'x', 'y', 'width', 'height'.
+        bbox2 (dict): Second bounding box with 'x', 'y', 'width', 'height'.
+
+    Returns:
+        float: Overlap ratio (0.0 to 1.0) representing the percentage of bbox1
+               that overlaps with bbox2. Returns 0.0 if no overlap or invalid input.
+    """
+    # Extract coordinates
+    x1_1 = bbox1.get('x', 0)
+    y1_1 = bbox1.get('y', 0)
+    x2_1 = x1_1 + bbox1.get('width', 0)
+    y2_1 = y1_1 + bbox1.get('height', 0)
+
+    x1_2 = bbox2.get('x', 0)
+    y1_2 = bbox2.get('y', 0)
+    x2_2 = x1_2 + bbox2.get('width', 0)
+    y2_2 = y1_2 + bbox2.get('height', 0)
+
+    # Calculate intersection
+    x_intersect_start = max(x1_1, x1_2)
+    y_intersect_start = max(y1_1, y1_2)
+    x_intersect_end = min(x2_1, x2_2)
+    y_intersect_end = min(y2_1, y2_2)
+
+    # Check if there's any overlap
+    if x_intersect_start >= x_intersect_end or y_intersect_start >= y_intersect_end:
+        return 0.0
+
+    # Calculate areas
+    overlap_area = (x_intersect_end - x_intersect_start) * (y_intersect_end - y_intersect_start)
+    bbox1_area = bbox1.get('width', 0) * bbox1.get('height', 0)
+
+    if bbox1_area == 0:
+        return 0.0
+
+    return overlap_area / bbox1_area
+
+
+def is_bbox_mostly_inside(inner_bbox, outer_bbox, threshold=0.6):
+    """
+    Check if inner_bbox is mostly inside outer_bbox based on overlap ratio.
+
+    Args:
+        inner_bbox (dict): The bbox to check, with 'x', 'y', 'width', 'height'.
+        outer_bbox (dict): The containing bbox, with 'x', 'y', 'width', 'height'.
+        threshold (float): Minimum overlap ratio required (0.0 to 1.0).
+            Default is 0.6, meaning at least 60% of inner_bbox must be inside outer_bbox.
+
+    Returns:
+        bool: True if the overlap ratio >= threshold, False otherwise.
+    """
+    ratio = bbox_overlap_ratio(inner_bbox, outer_bbox)
+    return ratio >= threshold
+
+
+def bboxes_overlap(bbox1, bbox2):
+    """
+    Check if two bounding boxes overlap at all.
+
+    Args:
+        bbox1 (dict): First bounding box with 'x', 'y', 'width', 'height'.
+        bbox2 (dict): Second bounding box with 'x', 'y', 'width', 'height'.
+
+    Returns:
+        bool: True if bboxes overlap, False otherwise.
+    """
+    return bbox_overlap_ratio(bbox1, bbox2) > 0

@@ -1235,3 +1235,104 @@ def extract_charts_from_sheet(sheet_id, service):
     except Exception as e:
         print(f"Error extracting charts from sheet: {e}")
         return []
+
+
+def list_drive_folder_files(folder_id, service):
+    """List all files in a Google Drive folder.
+
+    Args:
+        folder_id (str): The ID of the Google Drive folder to list files from.
+        service: The Google Drive service instance.
+
+    Returns:
+        list: List of file dictionaries, each containing 'id', 'name', and 'mimeType'.
+            Returns empty list if folder is empty or error occurs.
+    """
+    try:
+        query = f"'{folder_id}' in parents and trashed=false"
+        results = service.files().list(
+            q=query,
+            fields="files(id, name, mimeType, createdTime, modifiedTime)",
+            pageSize=1000
+        ).execute()
+        files = results.get('files', [])
+        print(f"Found {len(files)} files in folder {folder_id}")
+        return files
+    except Exception as e:
+        print(f"Error listing files in folder {folder_id}: {e}")
+        return []
+
+
+def download_drive_file_as_image(file_id, service, output_path=None):
+    """Download a file from Google Drive and return as PIL Image.
+
+    Args:
+        file_id (str): The ID of the file to download.
+        service: The Google Drive service instance.
+        output_path (str, optional): Path to save the downloaded file.
+            If None, the image is only returned as PIL Image without saving.
+
+    Returns:
+        PIL.Image.Image: The downloaded image, or None if download failed.
+    """
+    from PIL import Image
+
+    try:
+        # Get file metadata to determine mime type
+        file_metadata = service.files().get(fileId=file_id, fields='name, mimeType').execute()
+        file_name = file_metadata.get('name', 'unknown')
+        mime_type = file_metadata.get('mimeType', '')
+
+        # Download file content
+        request = service.files().get_media(fileId=file_id)
+        file_content = io.BytesIO()
+        downloader = MediaIoBaseDownload(file_content, request)
+
+        done = False
+        while not done:
+            status, done = downloader.next_chunk()
+            if status:
+                print(f"Download {file_name}: {int(status.progress() * 100)}%")
+
+        file_content.seek(0)
+
+        # Open as PIL Image
+        image = Image.open(file_content)
+
+        # Save to output path if specified
+        if output_path:
+            image.save(output_path)
+            print(f"Saved image to: {output_path}")
+
+        return image
+
+    except Exception as e:
+        print(f"Error downloading file {file_id}: {e}")
+        return None
+
+
+def download_drive_file_bytes(file_id, service):
+    """Download a file from Google Drive and return as bytes.
+
+    Args:
+        file_id (str): The ID of the file to download.
+        service: The Google Drive service instance.
+
+    Returns:
+        bytes: The file content as bytes, or None if download failed.
+    """
+    try:
+        request = service.files().get_media(fileId=file_id)
+        file_content = io.BytesIO()
+        downloader = MediaIoBaseDownload(file_content, request)
+
+        done = False
+        while not done:
+            status, done = downloader.next_chunk()
+
+        file_content.seek(0)
+        return file_content.read()
+
+    except Exception as e:
+        print(f"Error downloading file {file_id}: {e}")
+        return None

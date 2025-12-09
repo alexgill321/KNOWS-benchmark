@@ -766,5 +766,113 @@ def image_exact_match(src_image_path, gld_image_path):
             continue
     
     # No matches found
-    print("No exact matches found between the images")
     return None
+
+
+def perceptual_hash_match(img1_path, img2_path, threshold=10):
+    """Compare two images using perceptual hashing.
+
+    Uses the pHash (perceptual hash) algorithm which is robust to minor
+    differences like compression artifacts, slight color changes, and resizing.
+
+    Args:
+        img1_path (str): Path to the first image file.
+        img2_path (str): Path to the second image file.
+        threshold (int): Maximum hash difference to consider a match.
+            Lower values are more strict. Default is 10.
+            - 0: Identical images
+            - 1-10: Very similar images (compression differences, minor edits)
+            - 10-20: Similar images (might have some modifications)
+            - >20: Likely different images
+
+    Returns:
+        bool: True if images match within the threshold, False otherwise.
+
+    Raises:
+        ImportError: If imagehash library is not installed.
+        FileNotFoundError: If image paths don't exist.
+    """
+    try:
+        import imagehash
+    except ImportError:
+        raise ImportError("imagehash library is required. Install with: pip install imagehash")
+
+    if not os.path.exists(img1_path):
+        raise FileNotFoundError(f"Image path does not exist: {img1_path}")
+    if not os.path.exists(img2_path):
+        raise FileNotFoundError(f"Image path does not exist: {img2_path}")
+
+    try:
+        img1 = Image.open(img1_path)
+        img2 = Image.open(img2_path)
+
+        hash1 = imagehash.phash(img1)
+        hash2 = imagehash.phash(img2)
+
+        hash_diff = hash1 - hash2
+
+        return hash_diff <= threshold
+    except Exception as e:
+        print(f"Error computing perceptual hash: {e}")
+        return False
+
+
+def match_image_tiered(candidate_path, gold_path, model=None, description="", hash_threshold=10):
+    """Match images using a tiered approach: exact match -> perceptual hash -> VLM.
+
+    This function attempts to match two images using increasingly flexible methods:
+    1. Exact pixel match (fastest, most strict)
+    2. Perceptual hash comparison (fast, tolerant to minor differences)
+    3. VLM-based comparison (slowest, most flexible)
+
+    Args:
+        candidate_path (str): Path to the candidate image to check.
+        gold_path (str): Path to the gold/reference image.
+        model: Pre-loaded VLM model for fallback comparison. If None, VLM step is skipped.
+        description (str): Text description of the image for VLM comparison.
+        hash_threshold (int): Threshold for perceptual hash matching. Default is 10.
+
+    Returns:
+        tuple: (bool, str) - (match_result, match_method)
+            - match_result: True if images match, False otherwise
+            - match_method: One of "exact", "perceptual_hash", "vlm", or "no_match"
+
+    Raises:
+        FileNotFoundError: If image paths don't exist.
+    """
+    if not os.path.exists(candidate_path):
+        raise FileNotFoundError(f"Candidate image path does not exist: {candidate_path}")
+    if not os.path.exists(gold_path):
+        raise FileNotFoundError(f"Gold image path does not exist: {gold_path}")
+
+    # Step 1: Try exact pixel match
+    try:
+        exact_result = image_exact_match(candidate_path, gold_path)
+        if exact_result:
+            return True, "exact"
+    except Exception as e:
+        print(f"Exact match failed: {e}")
+
+    # Step 2: Try perceptual hash
+    try:
+        if perceptual_hash_match(candidate_path, gold_path, threshold=hash_threshold):
+            return True, "perceptual_hash"
+    except ImportError:
+        print("Perceptual hash skipped - imagehash library not available")
+    except Exception as e:
+        print(f"Perceptual hash failed: {e}")
+
+    # Step 3: Try VLM comparison as fallback
+    if model is not None and description:
+        try:
+            vlm_result = binary_judge_image(
+                model,
+                candidate_path,
+                f"Is this the same image or a very similar image? Description of expected image: {description}"
+            )
+            if vlm_result:
+                return True, "vlm"
+        except Exception as e:
+            print(f"VLM comparison failed: {e}")
+
+    return False, "no_match"
