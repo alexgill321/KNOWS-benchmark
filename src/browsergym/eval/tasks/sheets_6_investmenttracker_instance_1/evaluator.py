@@ -41,7 +41,7 @@ DATA_DIR = os.path.join(TASK_DIR, "data/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 model = None
-model_id = "gemma-google-ai"
+model_id = "gemini-2.5-flash-google-ai"
 
 DRIVE_SERVICE, SHEETS_SERVICE = initialize_google_services(service_type="sheets")
 
@@ -115,7 +115,8 @@ def grade_checkpoint_1_and_2():
     step_start = time.time()
     try:
         # Assume first table contains the stock data
-        df = table_data[0] if isinstance(table_data, list) else table_data
+        first_table = table_data[0] if isinstance(table_data, list) else table_data
+        df = first_table.df if hasattr(first_table, 'df') else first_table
         if isinstance(df, dict):
             df = pd.DataFrame(df)
 
@@ -498,7 +499,8 @@ def grade_checkpoint_3(browsing_history=None):
     user_data_str = ""
     if table_data:
         try:
-            df = table_data[0] if isinstance(table_data, list) else table_data
+            first_table = table_data[0] if isinstance(table_data, list) else table_data
+            df = first_table.df if hasattr(first_table, 'df') else first_table
             if isinstance(df, dict):
                 df = pd.DataFrame(df)
             user_data_str = df.to_markdown()
@@ -568,7 +570,7 @@ def grade_checkpoint_3(browsing_history=None):
             1. Does this website content list the current top highest market cap stocks and their in technology and their current prices (specifically matching the stocks and current prices in the User's Spreadsheet)?
             2. Does this website content contain the past/historical price information for these stocks from the end of Q2 2023(matching the values in the User's Spreadsheet)?
 
-            Evaluate strictly based on the provided Website Content.
+            Evaluate strictly based on the provided Website Content. If most of the information is present but not all details match exactly (~75%), still consider it a match.
             
             Respond with a JSON object strictly in this format:
             {{

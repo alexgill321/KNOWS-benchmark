@@ -12,7 +12,7 @@ Title slide has all required elements.
 - Structural Location match for title above name and below photo.
 - Photo is above both title and name.
 
-## Checkpoint 2 (25 pt) x5:
+## Checkpoint 2 (25 pt):
 The character slides meet the requirements.
 
 ### Outcome Evaluation:
