@@ -83,6 +83,7 @@ def setup(workspace_doc_id):
 def grade_checkpoint_1_and_2():
     """
     Combined Checkpoint 1 & 2: Spreadsheet structure and data accuracy.
+    Returns two separate Checkpoint objects for proper display.
 
     Checkpoint 1 Outcome Evaluation:
     - There is a column/row with the name of each stock.
@@ -98,18 +99,23 @@ def grade_checkpoint_1_and_2():
     - The past price of each stock is correct.
     - The current price of each stock is correct.
     - The gain/loss of each stock is correct.
+
+    Returns:
+        tuple: (checkpoint1, checkpoint2) - Two separate Checkpoint objects
     """
     print("----------------- CHECKPOINT 1 & 2 ----------------")
     global model, matched_columns, gold_to_user_ticker_map, df
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=11, result=0, name="Spreadsheet Structure and Data Accuracy")
+    checkpoint1 = Checkpoint(total=7, result=0, name="Spreadsheet Structure")
+    checkpoint2 = Checkpoint(total=4, result=0, name="Data Accuracy")
 
     if not table_data:
-        checkpoint.add_step("Table Data Extraction", False, 1,
+        checkpoint1.add_step("Table Data Extraction", False, 1,
                           "No table data found in spreadsheet",
                           execution_time=time.time() - checkpoint_start)
-        checkpoint.execution_time = time.time() - checkpoint_start
-        return checkpoint
+        checkpoint1.execution_time = time.time() - checkpoint_start
+        checkpoint2.execution_time = 0
+        return (checkpoint1, checkpoint2)
 
     # Convert table_data to DataFrame for easier analysis
     step_start = time.time()
@@ -122,11 +128,12 @@ def grade_checkpoint_1_and_2():
 
     except Exception as e:
         step_time = time.time() - step_start
-        checkpoint.add_step("Table Data Extraction", False, 1,
+        checkpoint1.add_step("Table Data Extraction", False, 1,
                           f"Failed to parse table data: {str(e)}",
                           execution_time=step_time)
-        checkpoint.execution_time = time.time() - checkpoint_start
-        return checkpoint
+        checkpoint1.execution_time = time.time() - checkpoint_start
+        checkpoint2.execution_time = 0
+        return (checkpoint1, checkpoint2)
 
     # Load reference stocks from gold data
     step_start = time.time()
@@ -165,7 +172,7 @@ def grade_checkpoint_1_and_2():
         step_time = time.time() - step_start
 
         if found:
-            checkpoint.add_step(f"{col_name.title()} Column", True, step_num,
+            checkpoint1.add_step(f"{col_name.title()} Column", True, step_num,
                               f"Found column matching '{col_name}': '{matched_column}' (keyword match)",
                               execution_time=step_time)
         else:
@@ -185,17 +192,17 @@ def grade_checkpoint_1_and_2():
                     _, matched_location = result
                     matched_columns[col_name] = matched_location
                     llm_time = time.time() - llm_start
-                    checkpoint.add_step(f"{col_name.title()} Column", True, step_num,
+                    checkpoint1.add_step(f"{col_name.title()} Column", True, step_num,
                                       f"Found column for '{col_name}': '{matched_location}' (LLM semantic match)",
                                       execution_time=step_time + llm_time)
                 else:
                     llm_time = time.time() - llm_start
-                    checkpoint.add_step(f"{col_name.title()} Column", False, step_num,
+                    checkpoint1.add_step(f"{col_name.title()} Column", False, step_num,
                                       f"No column found for '{col_name}' via keyword or LLM matching. Available columns: {', '.join(original_columns)}",
                                       execution_time=step_time + llm_time)
             except Exception as e:
                 llm_time = time.time() - llm_start
-                checkpoint.add_step(f"{col_name.title()} Column", False, step_num,
+                checkpoint1.add_step(f"{col_name.title()} Column", False, step_num,
                                   f"No column found for '{col_name}'. LLM backup failed: {str(e)}. Available columns: {', '.join(original_columns)}",
                                   execution_time=step_time + llm_time)
 
@@ -280,11 +287,11 @@ def grade_checkpoint_1_and_2():
             match_details = f"{exact_match_count} exact"
             if llm_matches:
                 match_details += f", {len(llm_matches)} LLM-matched"
-            checkpoint.add_step("Stock Selection Accuracy", True, 8,
+            checkpoint2.add_step("Stock Selection Accuracy", True, 1,
                               f"All 10 stocks match ({match_details}): {', '.join(user_tickers[:10])}",
                               execution_time=step_time)
         else:
-            checkpoint.add_step("Stock Selection Accuracy", False, 8,
+            checkpoint2.add_step("Stock Selection Accuracy", False, 1,
                               f"Only {total_match_count}/10 stocks match ({exact_match_count} exact, {len(llm_matches)} LLM). Expected: {', '.join(reference_tickers[:5])}...",
                               execution_time=step_time)
     else:
@@ -294,11 +301,11 @@ def grade_checkpoint_1_and_2():
             missing.append("ticker symbol")
         if "Stock Name" not in matched_columns:
             missing.append("stock name")
-        checkpoint.add_step("Stock Selection Accuracy", False, 8,
+        checkpoint2.add_step("Stock Selection Accuracy", False, 1,
                           f"Cannot validate stocks - {' and '.join(missing)} column(s) not found",
                           execution_time=step_time)
 
-    # Step 9: Verify past prices are correct (5% tolerance)
+    # Step 2 (checkpoint2): Verify past prices are correct (5% tolerance)
     step_start = time.time()
     if "Past Price" in matched_columns and "Ticker Symbol" in matched_columns and gold_to_user_ticker_map:
         past_price_col = matched_columns["Past Price"]
@@ -340,24 +347,24 @@ def grade_checkpoint_1_and_2():
 
         step_time = time.time() - step_start
         if total_comparisons == 0:
-            checkpoint.add_step("Past Price Accuracy", False, 9,
+            checkpoint2.add_step("Past Price Accuracy", False, 2,
                               "No past prices found to validate",
                               execution_time=step_time)
         elif match_count == total_comparisons:
-            checkpoint.add_step("Past Price Accuracy", True, 9,
+            checkpoint2.add_step("Past Price Accuracy", True, 2,
                               f"All {match_count}/{total_comparisons} past prices match within 5% tolerance",
                               execution_time=step_time)
         else:
-            checkpoint.add_step("Past Price Accuracy", False, 9,
+            checkpoint2.add_step("Past Price Accuracy", False, 2,
                               f"Only {match_count}/{total_comparisons} past prices match. Mismatches: {'; '.join(mismatches[:3])}{'...' if len(mismatches) > 3 else ''}",
                               execution_time=step_time)
     else:
         step_time = time.time() - step_start
-        checkpoint.add_step("Past Price Accuracy", False, 9,
+        checkpoint2.add_step("Past Price Accuracy", False, 2,
                           "Cannot validate past prices - required columns not found or no ticker mapping available",
                           execution_time=step_time)
 
-    # Step 10: Verify current prices are correct (5% tolerance)
+    # Step 3 (checkpoint2): Verify current prices are correct (5% tolerance)
     step_start = time.time()
     if "Current Price" in matched_columns and "Ticker Symbol" in matched_columns and gold_to_user_ticker_map:
         current_price_col = matched_columns["Current Price"]
@@ -399,24 +406,24 @@ def grade_checkpoint_1_and_2():
 
         step_time = time.time() - step_start
         if total_comparisons == 0:
-            checkpoint.add_step("Current Price Accuracy", False, 10,
+            checkpoint2.add_step("Current Price Accuracy", False, 3,
                               "No current prices found to validate",
                               execution_time=step_time)
         elif match_count == total_comparisons:
-            checkpoint.add_step("Current Price Accuracy", True, 10,
+            checkpoint2.add_step("Current Price Accuracy", True, 3,
                               f"All {match_count}/{total_comparisons} current prices match within 5% tolerance",
                               execution_time=step_time)
         else:
-            checkpoint.add_step("Current Price Accuracy", False, 10,
+            checkpoint2.add_step("Current Price Accuracy", False, 3,
                               f"Only {match_count}/{total_comparisons} current prices match. Mismatches: {'; '.join(mismatches[:3])}{'...' if len(mismatches) > 3 else ''}",
                               execution_time=step_time)
     else:
         step_time = time.time() - step_start
-        checkpoint.add_step("Current Price Accuracy", False, 10,
+        checkpoint2.add_step("Current Price Accuracy", False, 3,
                           "Cannot validate current prices - required columns not found or no ticker mapping available",
                           execution_time=step_time)
 
-    # Step 11: Verify gain/loss calculations are correct
+    # Step 4 (checkpoint2): Verify gain/loss calculations are correct
     # Calculate expected gain/loss from actual current and past prices, then compare
     step_start = time.time()
     if "Gain/Loss" in matched_columns and "Current Price" in matched_columns and "Past Price" in matched_columns:
@@ -452,25 +459,26 @@ def grade_checkpoint_1_and_2():
 
         step_time = time.time() - step_start
         if total_comparisons == 0:
-            checkpoint.add_step("Gain/Loss Calculation Accuracy", False, 11,
+            checkpoint2.add_step("Gain/Loss Calculation Accuracy", False, 4,
                               "No gain/loss values found to validate",
                               execution_time=step_time)
         elif match_count == total_comparisons:
-            checkpoint.add_step("Gain/Loss Calculation Accuracy", True, 11,
+            checkpoint2.add_step("Gain/Loss Calculation Accuracy", True, 4,
                               f"All {match_count}/{total_comparisons} gain/loss calculations are correct within 5% tolerance",
                               execution_time=step_time)
         else:
-            checkpoint.add_step("Gain/Loss Calculation Accuracy", False, 11,
+            checkpoint2.add_step("Gain/Loss Calculation Accuracy", False, 4,
                               f"Only {match_count}/{total_comparisons} gain/loss calculations are correct. Mismatches: {'; '.join(mismatches[:3])}{'...' if len(mismatches) > 3 else ''}",
                               execution_time=step_time)
     else:
         step_time = time.time() - step_start
-        checkpoint.add_step("Gain/Loss Calculation Accuracy", False, 11,
+        checkpoint2.add_step("Gain/Loss Calculation Accuracy", False, 4,
                           "Cannot validate gain/loss - required columns not found",
                           execution_time=step_time)
 
-    checkpoint.execution_time = time.time() - checkpoint_start
-    return checkpoint
+    checkpoint1.execution_time = time.time() - checkpoint_start
+    checkpoint2.execution_time = time.time() - checkpoint_start
+    return (checkpoint1, checkpoint2)
 
 def grade_checkpoint_3(browsing_history=None):
     """
@@ -890,7 +898,9 @@ def grade_checkpoints(workspace_doc_id=None, browsing_history=None):
 
         checkpoints: List[Checkpoint] = []
 
-        checkpoints.append(grade_checkpoint_1_and_2())
+        checkpoint1, checkpoint2 = grade_checkpoint_1_and_2()
+        checkpoints.append(checkpoint1)
+        checkpoints.append(checkpoint2)
         checkpoints.append(grade_checkpoint_3(browsing_history))
         checkpoints.append(grade_checkpoint_4())
 
