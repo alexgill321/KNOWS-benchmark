@@ -152,6 +152,84 @@ def binary_judge_image(model, image_path, text, examples=None):
     print("No images passed the classification")
     return None
 
+
+def binary_compare_images(model, image1_path, image2_path, mode="same"):
+    """Compare two images using a VLM with different comparison modes.
+
+    Args:
+        model: The pre-trained VLM model to use. Model should be loaded beforehand.
+        image1_path (str): Path to the first image file.
+        image2_path (str): Path to the second image file.
+        mode (str): Comparison mode. Options:
+            - "same": Check if images are the same (default)
+            - "similar": Check if images are similar/related
+            - "replacement": Check if image2 is a reasonable replacement for image1
+            - Custom string: Use as the question text directly
+
+    Returns:
+        bool: True if comparison passes, False otherwise.
+
+    Raises:
+        FileNotFoundError: If either image path does not exist.
+    """
+    if not os.path.exists(image1_path):
+        raise FileNotFoundError(f"Image path does not exist: {image1_path}")
+    if not os.path.exists(image2_path):
+        raise FileNotFoundError(f"Image path does not exist: {image2_path}")
+
+    # Define system prompts and questions for different modes
+    mode_configs = {
+        "same": {
+            "system": "You are comparing two images to determine if they are the same image or very similar. Answer 'Yes' if they appear to be the same image (even with minor differences like compression, resizing, or slight color variations). Answer 'No' if they are clearly different images.",
+            "question": "Are these the same image or very similar versions of the same image?"
+        },
+        "similar": {
+            "system": "You are comparing two images to determine if they show similar content or subjects. Answer 'Yes' if the images depict the same general subject, scene, or concept, even if they are different photos. Answer 'No' if they show completely different subjects.",
+            "question": "Do these images show similar content or the same subject?"
+        },
+        "replacement": {
+            "system": "You are comparing two images to determine if the second image is a reasonable replacement for the first. Answer 'Yes' if the second image retains the key important details and subject matter of the first image, even if the style, quality, or minor details differ. Answer 'No' only if the second image is clearly showing something completely different or unrelated.",
+            "question": "Is the second image a reasonable replacement that retains the key details of the first image?"
+        }
+    }
+
+    # Get config for the mode, or use custom text
+    if mode in mode_configs:
+        config = mode_configs[mode]
+        system_text = config["system"]
+        question_text = config["question"]
+    else:
+        # Custom mode - use the mode string as the question
+        system_text = "You are comparing two images. Answer 'Yes' or 'No' based on the question asked."
+        question_text = mode
+
+    try:
+        messages = [
+            {
+                "role": "system",
+                "content": [{"type": "text", "text": system_text}]
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Image 1:"},
+                    {"type": "image", "image": image1_path},
+                    {"type": "text", "text": "Image 2:"},
+                    {"type": "image", "image": image2_path},
+                    {"type": "text", "text": question_text}
+                ]
+            }
+        ]
+
+        response = model(messages)
+        result = parse_response(response)
+        return result is True
+
+    except Exception as e:
+        print(f"Error comparing images: {e}")
+        return False
+
+
 # def extract_text_from_pdf(doc_path):
 #     """Extracts text items from screenshots of a PDF document using Omniparser.
 
@@ -823,13 +901,13 @@ def match_image_tiered(candidate_path, gold_path, model=None, description="", ha
     This function attempts to match two images using increasingly flexible methods:
     1. Exact pixel match (fastest, most strict)
     2. Perceptual hash comparison (fast, tolerant to minor differences)
-    3. VLM-based comparison (slowest, most flexible)
+    3. VLM-based comparison (slowest, most flexible) - compares both images directly
 
     Args:
         candidate_path (str): Path to the candidate image to check.
         gold_path (str): Path to the gold/reference image.
         model: Pre-loaded VLM model for fallback comparison. If None, VLM step is skipped.
-        description (str): Text description of the image for VLM comparison.
+        description (str): Optional text description (unused, kept for backwards compatibility).
         hash_threshold (int): Threshold for perceptual hash matching. Default is 10.
 
     Returns:
@@ -862,15 +940,10 @@ def match_image_tiered(candidate_path, gold_path, model=None, description="", ha
     except Exception as e:
         print(f"Perceptual hash failed: {e}")
 
-    # Step 3: Try VLM comparison as fallback
-    if model is not None and description:
+    # Step 3: Try VLM comparison as fallback - compare both images directly
+    if model is not None:
         try:
-            vlm_result = binary_judge_image(
-                model,
-                candidate_path,
-                f"Is this the same image or a very similar image? Description of expected image: {description}"
-            )
-            if vlm_result:
+            if binary_compare_images(model, candidate_path, gold_path):
                 return True, "vlm"
         except Exception as e:
             print(f"VLM comparison failed: {e}")

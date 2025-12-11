@@ -21,7 +21,7 @@ Original images are replaced with similar images found online, with proper URL a
 
 ### Outcome Evaluation:
 - Each image placeholder location now contains a replacement image from the web - 60% overlap required (10pt).
-- Each replacement image has a URL credit on the slide (10pt).
-- The URL on the slide matches a URL found in the agent trace (10pt).
-- VLM check confirms the replacement image is visually similar to the original image/matches the description (10pt).
+- Each replacement image has a URL credit beneath it (10pt).
+- The URL below the image is a valid link to the image address online.
+- VLM check confirms the replacement image is a reasonable substitute for the original image by comparing both images directly, with description-based fallback if image comparison fails (10pt).
 - The replacement image fully covers the text placeholder so no red text is visible - 90% coverage required (10pt).

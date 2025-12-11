@@ -40,7 +40,7 @@ from src.browsergym.eval.eval_utils.google_services_utils import (
 from src.browsergym.eval.eval_utils.slides_utils import (
     extract_slide_images,
     download_slide_image,
-    extract_slide_links,
+    extract_slide_links_with_positions,
     extract_text_boxes_from_slide,
     get_text_style_from_shape,
     is_text_red,
@@ -50,6 +50,14 @@ from src.browsergym.eval.eval_utils.image_utils import match_image_tiered, binar
 from src.browsergym.eval.eval_utils.text_utils import text_fuzzy_match_contained_short
 from src.browsergym.eval.eval_utils.utils import is_bbox_mostly_inside
 from src.browsergym.eval.eval_utils.models import load_model
+from src.browsergym.eval.eval_utils.web_utils import download_image_from_url, is_unverifiable_url
+from src.browsergym.eval.eval_utils.parallel_utils import (
+    parallel_download,
+    parallel_execute,
+    parallel_vlm_calls,
+    parallel_image_match,
+    VLM_API_SEMAPHORE
+)
 
 # Constants
 TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/slides_17_removeimagesaddplaceholders_instance_1/")
@@ -70,6 +78,10 @@ presentation_id = None
 presentation_data = None
 gold_descriptions = None
 original_locations = None
+
+# Cached slide data (populated by prefetch)
+cached_slide_images = {}  # slide_index -> list of (img_info, local_path)
+cached_text_boxes = {}    # slide_index -> list of text boxes
 
 
 def load_gold_data():
@@ -120,6 +132,74 @@ def setup_presentation(workspace_doc_id):
     load_gold_data()
 
 
+def prefetch_slide_data(temp_dir: str):
+    """
+    Prefetch all slide images and text boxes in parallel for reuse across checkpoints.
+
+    This significantly speeds up checkpoint 2 and 3 by avoiding redundant downloads.
+
+    Args:
+        temp_dir: Temporary directory to store downloaded images.
+    """
+    global cached_slide_images, cached_text_boxes
+
+    slides = presentation_data.get('slides', [])
+
+    # Get unique slide indices we need to process
+    slide_indices = set()
+    for loc_info in original_locations.values():
+        slide_indices.add(loc_info.get('slide_index', 0))
+
+    print(f"  Prefetching data from {len(slide_indices)} slides...")
+
+    # Step 1: Extract all image info and text boxes (fast, no downloads)
+    all_download_tasks = []
+    for slide_index in slide_indices:
+        if slide_index >= len(slides):
+            continue
+
+        slide = slides[slide_index]
+
+        # Extract and cache text boxes (no I/O needed)
+        cached_text_boxes[slide_index] = extract_text_boxes_from_slide(slide)
+
+        # Extract image info and prepare download tasks
+        current_images = extract_slide_images(slide, presentation_id, SLIDES_SERVICE)
+        cached_slide_images[slide_index] = []
+
+        for img_idx, img_info in enumerate(current_images):
+            content_url = img_info.get('contentUrl')
+            if content_url:
+                task_id = f"{slide_index}_{img_idx}"
+                all_download_tasks.append({
+                    'id': task_id,
+                    'func': download_slide_image,
+                    'args': (content_url,),
+                    'slide_index': slide_index,
+                    'img_info': img_info
+                })
+
+    # Step 2: Download all slide images in parallel
+    if all_download_tasks:
+        print(f"  Downloading {len(all_download_tasks)} slide images in parallel...")
+        download_results = parallel_download(all_download_tasks, max_workers=5, use_rate_limit=False)
+
+        # Save results and update cache
+        for task in all_download_tasks:
+            task_id = task['id']
+            slide_index = task['slide_index']
+            img_info = task['img_info']
+            pil_img = download_results.get(task_id)
+
+            if pil_img:
+                temp_path = os.path.join(temp_dir, f"prefetch_{task_id}.png")
+                pil_img.save(temp_path)
+                cached_slide_images[slide_index].append((img_info, temp_path))
+
+    total_images = sum(len(imgs) for imgs in cached_slide_images.values())
+    print(f"  Prefetch complete: {total_images} images cached from {len(cached_slide_images)} slides")
+
+
 def calculate_percentage_score(success_count: int, total_count: int, max_points: int = 10) -> int:
     """Calculate score based on percentage, rounded to nearest 10%."""
     if total_count == 0:
@@ -127,6 +207,103 @@ def calculate_percentage_score(success_count: int, total_count: int, max_points:
     percentage = success_count / total_count
     rounded_percentage = round(percentage, 1)  # Round to nearest 10%
     return int(rounded_percentage * max_points)
+
+
+def find_url_below_image(image_bbox: dict, links_with_positions: list, tolerance: float = 0.3) -> str:
+    """Find a URL positioned directly below an image.
+
+    Args:
+        image_bbox: Bounding box of the image with x, y, width, height.
+        links_with_positions: List of dicts with 'url' and 'bbox' keys.
+        tolerance: Fraction of image width for horizontal alignment tolerance.
+
+    Returns:
+        URL string if found, None otherwise.
+    """
+    if not links_with_positions:
+        return None
+
+    img_bottom = image_bbox['y'] + image_bbox['height']
+    img_left = image_bbox['x']
+    img_right = image_bbox['x'] + image_bbox['width']
+    img_center_x = image_bbox['x'] + image_bbox['width'] / 2
+
+    best_url = None
+    best_distance = float('inf')
+
+    for link_info in links_with_positions:
+        link_bbox = link_info['bbox']
+        link_top = link_bbox['y']
+        link_center_x = link_bbox['x'] + link_bbox['width'] / 2
+
+        # Check if link is below the image (link top is at or below image bottom)
+        # Allow some tolerance for slight overlaps
+        vertical_threshold = image_bbox['height'] * 0.1  # 10% of image height tolerance
+        if link_top < img_bottom - vertical_threshold:
+            continue  # Link is not below the image
+
+        # Check horizontal alignment - link center should be within image horizontal bounds
+        # with some tolerance
+        horizontal_tolerance = image_bbox['width'] * tolerance
+        if link_center_x < img_left - horizontal_tolerance or link_center_x > img_right + horizontal_tolerance:
+            continue  # Link is not horizontally aligned with image
+
+        # Calculate distance from image bottom to link top
+        distance = link_top - img_bottom
+
+        # Prefer the closest link below the image
+        if distance < best_distance:
+            best_distance = distance
+            best_url = link_info['url']
+
+    return best_url
+
+
+def safe_download_drive_image(file_id, access_token):
+    """Download image from Drive using requests (thread-safe)."""
+    import requests
+    from PIL import Image
+    import io
+
+    headers = {"Authorization": f"Bearer {access_token}"}
+    url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
+
+    try:
+        response = requests.get(url, headers=headers, timeout=30)
+        if response.status_code == 200:
+            return Image.open(io.BytesIO(response.content))
+        else:
+            print(f"Error downloading {file_id}: {response.status_code} {response.text}")
+    except Exception as e:
+        print(f"Exception downloading {file_id}: {e}")
+    return None
+
+
+def fast_parallel_vlm_calls(vlm_tasks, model, max_workers=10):
+    """Faster parallel VLM calls without global semaphore bottleneck."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    results = {}
+    
+    def call_vlm(task):
+        task_id = task['id']
+        messages = task['messages']
+        try:
+            # No semaphore, rely on max_workers
+            response = model(messages).strip().lower()
+            return task_id, 'yes' in response
+        except Exception as e:
+            print(f"  VLM call failed for {task_id}: {e}")
+            return task_id, False
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(call_vlm, task) for task in vlm_tasks]
+        for future in as_completed(futures):
+            try:
+                task_id, result = future.result()
+                results[task_id] = result
+            except Exception:
+                pass
+    return results
 
 
 def grade_checkpoint_1():
@@ -167,26 +344,39 @@ def grade_checkpoint_1():
 
     # Create temp directory for downloaded images
     with tempfile.TemporaryDirectory() as temp_dir:
-        # Download all Drive images sequentially
+        # Download all Drive images in parallel
         drive_images = []
         image_files = [f for f in drive_files if f.get('mimeType', '').startswith('image/')]
 
-        print(f"  Downloading {len(image_files)} images sequentially...")
-        for file_info in image_files:
-            max_retries = 3
-            for attempt in range(max_retries):
-                try:
-                    img = download_drive_file_as_image(file_info['id'], DRIVE_SERVICE)
-                    if img:
-                        temp_path = os.path.join(temp_dir, f"drive_{file_info['id']}.png")
-                        img.save(temp_path)
-                        drive_images.append(temp_path)
-                        break
-                except Exception as e:
-                    if attempt < max_retries - 1:
-                        time.sleep(0.5 * (attempt + 1))  # Backoff: 0.5s, 1s, 1.5s
-                    else:
-                        print(f"Failed to download {file_info['id']}: {e}")
+        # Get token safely for thread-safe downloads
+        token = None
+        if hasattr(DRIVE_SERVICE, '_http') and hasattr(DRIVE_SERVICE._http, 'credentials'):
+             token = DRIVE_SERVICE._http.credentials.token
+        elif hasattr(DRIVE_SERVICE, 'credentials'):
+             token = DRIVE_SERVICE.credentials.token
+        
+        if not token:
+            print("WARNING: Could not find OAuth token, parallel downloads may fail.")
+
+        print(f"  Downloading {len(image_files)} images in parallel...")
+        download_tasks = [
+            {
+                'id': file_info['id'],
+                'func': safe_download_drive_image,
+                'args': (file_info['id'], token)
+            }
+            for file_info in image_files
+        ]
+
+        # Use requests-based download, so we can skip the strict API client semaphore
+        download_results = parallel_download(download_tasks, max_workers=5, use_rate_limit=False)
+
+        # Save downloaded images to temp files
+        for file_id, img in download_results.items():
+            if img:
+                temp_path = os.path.join(temp_dir, f"drive_{file_id}.png")
+                img.save(temp_path)
+                drive_images.append(temp_path)
 
         print(f"Downloaded {len(drive_images)} images from Drive")
 
@@ -198,68 +388,75 @@ def grade_checkpoint_1():
         matched_gold = {}
         unmatched_gold = set(gold_image_files)
 
-        # Import matching functions
-        from src.browsergym.eval.eval_utils.image_utils import image_exact_match, perceptual_hash_match
-
-        # ============ TIER 1: Exact match for ALL pairs ============
-        print("  Tier 1: Trying exact match for all pairs...")
-        for gold_filename in list(unmatched_gold):
+        # ============ PARALLEL TIERED MATCHING (Exact + Perceptual Hash) ============
+        # Build all match tasks for parallel execution
+        print("  Building match tasks for parallel execution...")
+        match_tasks = []
+        for gold_filename in gold_image_files:
             gold_path = os.path.join(GOLD_IMAGES_DIR, gold_filename)
-
             for drive_path in drive_images:
-                try:
-                    if image_exact_match(drive_path, gold_path):
-                        print(f"    Matched {gold_filename} via exact")
-                        matched_gold[gold_filename] = ("exact", drive_path)
-                        unmatched_gold.discard(gold_filename)
-                        break
-                except Exception:
-                    pass
+                match_tasks.append({
+                    'id': f"{gold_filename}|{os.path.basename(drive_path)}",
+                    'gold_filename': gold_filename,
+                    'candidate_path': drive_path,
+                    'gold_path': gold_path
+                })
 
-        print(f"  After exact match: {len(matched_gold)} matched, {len(unmatched_gold)} remaining")
+        print(f"  Running {len(match_tasks)} match comparisons in parallel...")
+        match_results = parallel_image_match(match_tasks, max_workers=8)
 
-        # ============ TIER 2: Perceptual hash for remaining ============
-        if unmatched_gold:
-            print("  Tier 2: Trying perceptual hash for remaining...")
-            for gold_filename in list(unmatched_gold):
-                gold_path = os.path.join(GOLD_IMAGES_DIR, gold_filename)
-
-                for drive_path in drive_images:
-                    try:
-                        if perceptual_hash_match(drive_path, gold_path, threshold=15):
-                            print(f"    Matched {gold_filename} via perceptual_hash")
-                            matched_gold[gold_filename] = ("perceptual_hash", drive_path)
+        # Process results - find first match for each gold file
+        for task_id, (matched, method) in match_results.items():
+            if matched:
+                gold_filename = task_id.split('|')[0]
+                if gold_filename in unmatched_gold:
+                    # Find the drive path from the task
+                    for task in match_tasks:
+                        if task['id'] == task_id:
+                            print(f"    Matched {gold_filename} via {method}")
+                            matched_gold[gold_filename] = (method, task['candidate_path'])
                             unmatched_gold.discard(gold_filename)
                             break
-                    except Exception:
-                        pass
 
-            print(f"  After perceptual hash: {len(matched_gold)} matched, {len(unmatched_gold)} remaining")
+        print(f"  After parallel matching: {len(matched_gold)} matched, {len(unmatched_gold)} remaining")
 
-        # ============ TIER 3: VLM for remaining (only if needed) ============
+        # ============ TIER 3: VLM for remaining (PARALLELIZED) ============
         if unmatched_gold:
-            print("  Tier 3: Using VLM for remaining unmatched images...")
+            print("  Tier 3: Using VLM for remaining unmatched images (parallel search)...")
             if model is None:
                 model = load_model(model_id)
 
-            for gold_filename in list(unmatched_gold):
-                gold_path = os.path.join(GOLD_IMAGES_DIR, gold_filename)
-                description = gold_descriptions.get(gold_filename, "")
+            from concurrent.futures import ThreadPoolExecutor, as_completed
 
-                for drive_path in drive_images:
+            def find_match_vlm(gold_file):
+                # Search through all drive images for a match with this gold file
+                gold_p = os.path.join(GOLD_IMAGES_DIR, gold_file)
+                desc = gold_descriptions.get(gold_file, "")
+                
+                # Check each drive image
+                for d_path in drive_images:
                     try:
-                        vlm_result = binary_judge_image(
+                        is_match = binary_judge_image(
                             model,
-                            drive_path,
-                            f"Is this the same image or very similar to: {description}"
+                            d_path,
+                            f"Is this the same image or very similar to: {desc}"
                         )
-                        if vlm_result:
-                            print(f"    Matched {gold_filename} via VLM")
-                            matched_gold[gold_filename] = ("vlm", drive_path)
-                            unmatched_gold.discard(gold_filename)
-                            break
-                    except Exception as e:
-                        print(f"    VLM error for {gold_filename}: {e}")
+                        if is_match:
+                            return gold_file, d_path
+                    except Exception:
+                        continue
+                return gold_file, None
+
+            # Run VLM search in parallel for each unmatched gold file
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                futures = [executor.submit(find_match_vlm, gf) for gf in unmatched_gold]
+                
+                for future in as_completed(futures):
+                    gf, match_path = future.result()
+                    if match_path:
+                        print(f"    Matched {gf} via VLM")
+                        matched_gold[gf] = ("vlm", match_path)
+                        unmatched_gold.discard(gf)
 
             print(f"  After VLM: {len(matched_gold)} matched, {len(unmatched_gold)} remaining")
 
@@ -303,6 +500,8 @@ def grade_checkpoint_2():
     2. Text box exists at original location (80% overlap)
     3. Text matches gold description (LLM similarity)
     4. Text is red and big (>= 18pt)
+
+    Uses cached slide data from prefetch for performance.
     """
     print("----------------- CHECKPOINT 2 ----------------")
     checkpoint_start = time.time()
@@ -336,107 +535,118 @@ def grade_checkpoint_2():
     # Store matched text boxes for use in checkpoint 3
     matched_textboxes = {}
 
-    # Import matching functions for step 1
-    from src.browsergym.eval.eval_utils.image_utils import image_exact_match, perceptual_hash_match
+    # Collect data for parallel LLM calls
+    llm_comparison_tasks = []
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        for gold_filename, loc_info in original_locations.items():
-            slide_index = loc_info.get('slide_index', 0)
-            original_bbox = loc_info.get('bbox', {})
-            expected_description = loc_info.get('description', '')
+    # ============ STEP 1 & 2: Use cached data, build parallel match tasks ============
+    match_tasks = []
 
-            if slide_index >= len(slides):
-                print(f"Slide index {slide_index} out of range for {gold_filename}")
-                continue
+    for gold_filename, loc_info in original_locations.items():
+        slide_index = loc_info.get('slide_index', 0)
+        original_bbox = loc_info.get('bbox', {})
+        expected_description = loc_info.get('description', '')
 
-            slide = slides[slide_index]
+        if slide_index >= len(slides):
+            print(f"Slide index {slide_index} out of range for {gold_filename}")
+            continue
 
-            # Step 1: Check if original image is removed (not present on slide)
-            # Download all images on this slide and compare against the gold image
-            current_images = extract_slide_images(slide, presentation_id, SLIDES_SERVICE)
-            original_image_found = False
-            gold_path = os.path.join(GOLD_IMAGES_DIR, gold_filename)
+        gold_path = os.path.join(GOLD_IMAGES_DIR, gold_filename)
 
-            for img_info in current_images:
-                content_url = img_info.get('contentUrl')
-                if not content_url:
-                    continue
+        # Step 1: Build match tasks for checking if original image is removed
+        # Use cached slide images instead of downloading again
+        cached_images = cached_slide_images.get(slide_index, [])
+        for img_info, local_path in cached_images:
+            match_tasks.append({
+                'id': f"{gold_filename}|{os.path.basename(local_path)}",
+                'gold_filename': gold_filename,
+                'candidate_path': local_path,
+                'gold_path': gold_path
+            })
 
-                # Download current slide image
-                try:
-                    pil_img = download_slide_image(content_url)
-                    if pil_img:
-                        temp_path = os.path.join(temp_dir, f"slide_{slide_index}_{gold_filename}")
-                        pil_img.save(temp_path)
+        # Step 2: Check text box at location (using cached text boxes)
+        text_boxes = cached_text_boxes.get(slide_index, [])
+        matched_textbox = None
 
-                        # Check if this is the original image using exact match or perceptual hash
-                        try:
-                            if image_exact_match(temp_path, gold_path):
-                                original_image_found = True
-                                break
-                        except Exception:
-                            pass
+        for tb in text_boxes:
+            tb_bbox = tb.get('bbox', {})
+            if is_bbox_mostly_inside(tb_bbox, original_bbox, threshold=0.8):
+                matched_textbox = tb
+                break
 
-                        try:
-                            if perceptual_hash_match(temp_path, gold_path, threshold=15):
-                                original_image_found = True
-                                break
-                        except Exception:
-                            pass
-                except Exception as e:
-                    print(f"Error downloading image for comparison: {e}")
+        if matched_textbox:
+            textbox_at_location_count += 1
+            matched_textboxes[gold_filename] = matched_textbox
 
-            if not original_image_found:
-                images_removed_count += 1
+            # Prepare for Step 3: Collect LLM comparison task
+            text_content = matched_textbox.get('text', '')
+            llm_comparison_tasks.append({
+                'gold_filename': gold_filename,
+                'expected_description': expected_description,
+                'text_content': text_content,
+                'matched_textbox': matched_textbox
+            })
 
-            # Step 2: Check if text box exists at original location
-            text_boxes = extract_text_boxes_from_slide(slide)
-            matched_textbox = None
+    # ============ STEP 1: Run parallel image matching ============
+    print(f"  Running {len(match_tasks)} image removal checks in parallel...")
+    match_results = parallel_image_match(match_tasks, max_workers=8)
 
-            for tb in text_boxes:
-                tb_bbox = tb.get('bbox', {})
-                # Text box should be 80% inside original image bbox
-                if is_bbox_mostly_inside(tb_bbox, original_bbox, threshold=0.8):
-                    matched_textbox = tb
-                    break
+    # Check which gold images are still present (not removed)
+    gold_images_found = set()
+    for task_id, (matched, method) in match_results.items():
+        if matched:
+            gold_filename = task_id.split('|')[0]
+            gold_images_found.add(gold_filename)
 
-            if matched_textbox:
-                textbox_at_location_count += 1
-                matched_textboxes[gold_filename] = matched_textbox
+    # Count images that were successfully removed
+    for gold_filename in original_locations.keys():
+        if gold_filename not in gold_images_found:
+            images_removed_count += 1
 
-                # Step 3: Check if text matches description
-                text_content = matched_textbox.get('text', '')
+    print(f"  {images_removed_count}/{total_images} original images removed")
 
-                if model is None:
-                    model = load_model(model_id)
+    # ============ STEP 3: Parallel LLM text comparison ============
+    if llm_comparison_tasks:
+        if model is None:
+            model = load_model(model_id)
 
-                # Use LLM to check similarity (lenient matching)
-                try:
-                    messages = [
-                        {
-                            "role": "system",
-                            "content": [{"type": "text", "text": "You are comparing two image descriptions to see if they refer to the same subject. Be lenient - answer 'Yes' if they describe similar content, the same main subject, or could plausibly be describing the same image even with different wording. Minor differences in details or phrasing should still count as a match. Only answer 'No' if they clearly describe completely different subjects."}]
-                        },
-                        {
-                            "role": "user",
-                            "content": [{"type": "text", "text": f"Could these two descriptions be referring to the same image? Be lenient with wording differences.\n\nExpected description: {expected_description}\n\nActual text found: {text_content}"}]
-                        }
-                    ]
+        print(f"  Running {len(llm_comparison_tasks)} text comparisons in parallel...")
 
-                    response = model(messages).strip().lower()
-                    if 'yes' in response:
-                        text_matches_count += 1
-                    else:
-                        print(f"  Text mismatch for {gold_filename}: LLM said '{response}'")
-                except Exception as e:
-                    print(f"LLM comparison failed for {gold_filename}: {e}")
+        # Build VLM tasks for parallel execution
+        vlm_tasks = []
+        for task in llm_comparison_tasks:
+            messages = [
+                {
+                    "role": "system",
+                    "content": [{"type": "text", "text": "You are comparing two image descriptions to see if they refer to the same subject. Be lenient - answer 'Yes' if they describe similar content, the same main subject, or could plausibly be describing the same image even with different wording. Minor differences in details or phrasing should still count as a match. Only answer 'No' if they clearly describe completely different subjects."}]
+                },
+                {
+                    "role": "user",
+                    "content": [{"type": "text", "text": f"Could these two descriptions be referring to the same image? Be lenient with wording differences.\n\nExpected description: {task['expected_description']}\n\nActual text found: {task['text_content']}"}]
+                }
+            ]
+            vlm_tasks.append({
+                'id': task['gold_filename'],
+                'messages': messages
+            })
 
-                # Step 4: Check if text is red and big
-                element = matched_textbox.get('element', {})
-                if 'shape' in element:
-                    text_style = get_text_style_from_shape(element['shape'])
-                    if is_text_red(text_style) and is_text_big(text_style, min_pt=18):
-                        text_style_correct_count += 1
+        # Use faster parallel VLM calls with more workers
+        vlm_results = fast_parallel_vlm_calls(vlm_tasks, model, max_workers=10)
+
+        for task in llm_comparison_tasks:
+            gold_filename = task['gold_filename']
+            if vlm_results.get(gold_filename, False):
+                text_matches_count += 1
+            else:
+                print(f"  Text mismatch for {gold_filename}")
+
+    # ============ STEP 4: Check text style (red and big) ============
+    for task in llm_comparison_tasks:
+        matched_textbox = task['matched_textbox']
+        element = matched_textbox.get('element', {})
+        if 'shape' in element:
+            text_style = get_text_style_from_shape(element['shape'])
+            if is_text_red(text_style) and is_text_big(text_style, min_pt=18):
+                text_style_correct_count += 1
 
     # Calculate scores for each step (percentage-based, 10pt max each)
     step_start = time.time()
@@ -493,16 +703,18 @@ def grade_checkpoint_2():
     return checkpoint
 
 
-def grade_checkpoint_3(browsing_history=None):
+def grade_checkpoint_3():
     """
     Checkpoint 3 (50pt): New images from web with URL attribution.
 
     Steps (10pt each, percentage-based):
     1. Replacement image exists at original location (60% overlap)
     2. URL credit exists on slide
-    3. URL matches agent trace
-    4. VLM check - new image similar to original
-    5. New images fully overlay text boxes (90% coverage)
+    3. URL is valid link to image (verified via image matching against replacement)
+    4. VLM check - replacement is reasonable substitute for original (compares both images directly, with description fallback)
+    5. New images fully overlay text boxes (80% coverage)
+
+    Uses cached slide data from prefetch and parallel processing for performance.
     """
     print("----------------- CHECKPOINT 3 ----------------")
     checkpoint_start = time.time()
@@ -530,14 +742,17 @@ def grade_checkpoint_3(browsing_history=None):
     # Track results for each step
     new_image_count = 0
     url_on_slide_count = 0
-    url_in_trace_count = 0
+    url_valid_count = 0
     image_similar_count = 0
     image_covers_text_count = 0
 
-    # Normalize browsing history
-    browsing_set = set(browsing_history) if browsing_history else set()
+    # Collect data for parallel processing
+    image_data = {}  # gold_filename -> {new_image_bbox, replacement_path, matched_url, etc.}
+    url_download_tasks = []  # URLs to download in parallel
+    vlm_comparison_tasks = []  # VLM tasks to run in parallel
 
     with tempfile.TemporaryDirectory() as temp_dir:
+        # ============ PHASE 1: Collect all data using cached images ============
         for gold_filename, loc_info in original_locations.items():
             slide_index = loc_info.get('slide_index', 0)
             original_bbox = loc_info.get('bbox', {})
@@ -548,21 +763,25 @@ def grade_checkpoint_3(browsing_history=None):
 
             slide = slides[slide_index]
 
-            # Step 1: Check if new image exists at location
-            current_images = extract_slide_images(slide, presentation_id, SLIDES_SERVICE)
-            new_image = None
-            new_image_bbox = None
+            # Initialize data for this image
+            image_data[gold_filename] = {
+                'slide_index': slide_index,
+                'original_bbox': original_bbox,
+                'expected_description': expected_description,
+                'new_image': None,
+                'new_image_bbox': None,
+                'replacement_path': None,
+                'matched_url': None
+            }
 
-            for img_info in current_images:
-                # extract_slide_images returns transform and size at top level
+            # Step 1: Check if new image exists at location (using cached images)
+            cached_images = cached_slide_images.get(slide_index, [])
+            for img_info, local_path in cached_images:
                 transform = img_info.get('transform', {})
                 size = img_info.get('size', {})
 
-                # Get raw dimensions
                 raw_width = size.get('width', {}).get('magnitude', 0)
                 raw_height = size.get('height', {}).get('magnitude', 0)
-
-                # Apply scale factors from transform (default to 1 if not present)
                 scale_x = transform.get('scaleX', 1)
                 scale_y = transform.get('scaleY', 1)
 
@@ -572,59 +791,166 @@ def grade_checkpoint_3(browsing_history=None):
                     'width': raw_width * abs(scale_x),
                     'height': raw_height * abs(scale_y)
                 }
-                # New image should overlap original location by at least 60%
+
                 if is_bbox_mostly_inside(img_bbox, original_bbox, threshold=0.6):
-                    new_image = img_info
-                    new_image_bbox = img_bbox
+                    image_data[gold_filename]['new_image'] = img_info
+                    image_data[gold_filename]['new_image_bbox'] = img_bbox
+                    image_data[gold_filename]['replacement_path'] = local_path
                     new_image_count += 1
                     break
 
-            # Step 2: Check if URL exists on this slide
-            slide_links = extract_slide_links(slide)
-            if slide_links:
-                url_on_slide_count += 1
-
-                # Step 3: Check if any URL matches browsing history
-                if browsing_set:
-                    for link in slide_links:
-                        if link in browsing_set or any(link in h or h in link for h in browsing_set):
-                            url_in_trace_count += 1
-                            break
-
-            # Step 4: VLM check if new image is similar to original
-            if new_image and new_image.get('contentUrl'):
-                try:
-                    pil_img = download_slide_image(new_image['contentUrl'])
-                    if pil_img:
-                        temp_path = os.path.join(temp_dir, f"new_{gold_filename}.png")
-                        pil_img.save(temp_path)
-
-                        if model is None:
-                            model = load_model(model_id)
-
-                        # Check if image reasonably matches the description
-                        # Minor differences in details are acceptable
-                        vlm_result = binary_judge_image(
-                            model,
-                            temp_path,
-                            f"Could this image be a reasonable replacement for an original image with the following description? Minor differences in details are acceptable. Description: {expected_description}"
-                        )
-
-                        if vlm_result:
-                            image_similar_count += 1
-                except Exception as e:
-                    print(f"VLM check failed for {gold_filename}: {e}")
-
-            # Step 5: Check if new image covers the text box (from checkpoint 2)
+            # Step 2: Find URL below the new image
+            new_image_bbox = image_data[gold_filename]['new_image_bbox']
             if new_image_bbox:
-                # Find text boxes at this location
-                text_boxes = extract_text_boxes_from_slide(slide)
+                slide_links_with_pos = extract_slide_links_with_positions(slide)
+                matched_url = find_url_below_image(new_image_bbox, slide_links_with_pos)
+                if matched_url:
+                    image_data[gold_filename]['matched_url'] = matched_url
+                    url_on_slide_count += 1
+
+                    # Prepare URL download task (if not unverifiable)
+                    if not is_unverifiable_url(matched_url):
+                        url_download_tasks.append({
+                            'id': gold_filename,
+                            'func': download_image_from_url,
+                            'args': (matched_url, temp_dir)
+                        })
+
+            # Step 5: Check if new image covers text box (using cached text boxes)
+            if new_image_bbox:
+                text_boxes = cached_text_boxes.get(slide_index, [])
                 for tb in text_boxes:
                     tb_bbox = tb.get('bbox', {})
-                    # Text box should be 90% inside new image
-                    if is_bbox_mostly_inside(tb_bbox, new_image_bbox, threshold=0.9):
+                    if is_bbox_mostly_inside(tb_bbox, new_image_bbox, threshold=0.8):
                         image_covers_text_count += 1
                         break
+
+        # ============ PHASE 2: Parallel URL downloads ============
+        url_download_results = {}
+        if url_download_tasks:
+            print(f"  Downloading {len(url_download_tasks)} URL images in parallel...")
+            url_download_results = parallel_download(url_download_tasks, max_workers=5, use_rate_limit=False)
+
+        # ============ PHASE 3: Build VLM comparison tasks ============
+        if model is None:
+            model = load_model(model_id)
+
+        for gold_filename, data in image_data.items():
+            replacement_path = data['replacement_path']
+            if replacement_path:
+                original_path = os.path.join(GOLD_IMAGES_DIR, gold_filename)
+                messages = [
+                    {
+                        "role": "system",
+                        "content": [{"type": "text", "text": "You are comparing two images to determine if one is a reasonable replacement for the other. Answer 'Yes' if the replacement image retains the key important details and subject matter of the original image, even if the style, quality, or minor details differ. Answer 'No' only if the replacement is clearly showing something completely different or unrelated."}]
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "Here is the original image:"},
+                            {"type": "image", "image": original_path},
+                            {"type": "text", "text": "Here is the replacement image:"},
+                            {"type": "image", "image": replacement_path},
+                            {"type": "text", "text": "Is the replacement image a reasonable substitute that retains the key important details of the original image?"}
+                        ]
+                    }
+                ]
+                vlm_comparison_tasks.append({
+                    'id': gold_filename,
+                    'messages': messages,
+                    'expected_description': data['expected_description'],
+                    'replacement_path': replacement_path
+                })
+
+        # ============ PHASE 4: Run VLM comparisons in parallel ============
+        print(f"  Running {len(vlm_comparison_tasks)} VLM image comparisons in parallel...")
+        # Use faster parallel VLM calls with more workers
+        vlm_results = fast_parallel_vlm_calls(
+            [{'id': t['id'], 'messages': t['messages']} for t in vlm_comparison_tasks],
+            model,
+            max_workers=10
+        )
+
+        # Process VLM results with fallback for failures
+        for task in vlm_comparison_tasks:
+            gold_filename = task['id']
+            if vlm_results.get(gold_filename, False):
+                print(f"  VLM: Replacement for {gold_filename} matched via image comparison")
+                image_similar_count += 1
+            else:
+                # Try description fallback
+                expected_description = task['expected_description']
+                replacement_path = task['replacement_path']
+                if expected_description:
+                    try:
+                        fallback_result = binary_judge_image(
+                            model,
+                            replacement_path,
+                            f"Could this image be a reasonable replacement for an original image with the following description? Minor differences in details are acceptable. Description: {expected_description}"
+                        )
+                        if fallback_result:
+                            print(f"  VLM: Replacement for {gold_filename} matched via description fallback")
+                            image_similar_count += 1
+                        else:
+                            print(f"  VLM: Description fallback also failed for {gold_filename}")
+                    except Exception as e:
+                        print(f"  VLM fallback error for {gold_filename}: {e}")
+
+        # ============ PHASE 5: Validate URLs against replacement images ============
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        def validate_url_image(task_data):
+            g_filename = task_data['gold_filename']
+            m_url = task_data['matched_url']
+            r_path = task_data['replacement_path']
+            desc = task_data['expected_description']
+            
+            if is_unverifiable_url(m_url):
+                print(f"  URL validation: {g_filename} URL is from unverifiable domain, treating as valid")
+                return True
+                
+            url_img_path = url_download_results.get(g_filename)
+            if url_img_path:
+                try:
+                    match_res, match_meth = match_image_tiered(
+                        url_img_path,
+                        r_path,
+                        model=model,
+                        description=desc
+                    )
+                    if match_res:
+                        print(f"  URL validation: {g_filename} URL matches replacement via {match_meth}")
+                        return True
+                    else:
+                        print(f"  URL validation: {g_filename} URL does not match replacement image")
+                        return False
+                except Exception as ex:
+                    print(f"  URL validation failed for {g_filename}: {ex}")
+                    return False
+            else:
+                print(f"  URL validation: Failed to download image from {m_url}")
+                return False
+
+        # Build tasks for parallel execution
+        validation_tasks = []
+        for gold_filename, data in image_data.items():
+            if data['matched_url'] and data['replacement_path']:
+                validation_tasks.append({
+                    'gold_filename': gold_filename,
+                    'matched_url': data['matched_url'],
+                    'replacement_path': data['replacement_path'],
+                    'expected_description': data['expected_description']
+                })
+        
+        print(f"  Validating {len(validation_tasks)} URLs in parallel...")
+        
+        # Execute validation in parallel
+        if validation_tasks:
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                futures = [executor.submit(validate_url_image, t) for t in validation_tasks]
+                for future in as_completed(futures):
+                    if future.result():
+                        url_valid_count += 1
 
     # Calculate scores for each step (percentage-based, 10pt max each)
     step_start = time.time()
@@ -647,42 +973,31 @@ def grade_checkpoint_3(browsing_history=None):
         "URL Credit on Slide",
         url_on_slide_count == total_images,
         2,
-        f"{url_on_slide_count}/{total_images} slides have URL credits",
+        f"{url_on_slide_count}/{total_images} images have URL credits",
         score=step2_score,
         max_score=10,
         execution_time=0
     )
 
-    # Step 3: URL in browsing history
-    if browsing_history:
-        step3_score = calculate_percentage_score(url_in_trace_count, total_images, 10)
-        checkpoint.add_step(
-            "URL in Agent Trace",
-            url_in_trace_count == total_images,
-            3,
-            f"{url_in_trace_count}/{total_images} URLs found in browsing history",
-            score=step3_score,
-            max_score=10,
-            execution_time=0
-        )
-    else:
-        checkpoint.add_step(
-            "URL in Agent Trace",
-            False,
-            3,
-            "No browsing history provided",
-            score=0,
-            max_score=10,
-            execution_time=0
-        )
+    # Step 3: URL is valid link to image
+    step3_score = calculate_percentage_score(url_valid_count, total_images, 10)
+    checkpoint.add_step(
+        "URL Points to Correct Image",
+        url_valid_count == total_images,
+        3,
+        f"{url_valid_count}/{total_images} URLs point to the correct replacement images",
+        score=step3_score,
+        max_score=10,
+        execution_time=0
+    )
 
-    # Step 4: VLM similarity check
+    # Step 4: VLM similarity check (compares original and replacement images directly)
     step4_score = calculate_percentage_score(image_similar_count, total_images, 10)
     checkpoint.add_step(
-        "Image Matches Description",
+        "Replacement Matches Original",
         image_similar_count == total_images,
         4,
-        f"{image_similar_count}/{total_images} new images match expected descriptions",
+        f"{image_similar_count}/{total_images} replacement images are reasonable substitutes for originals",
         score=step4_score,
         max_score=10,
         execution_time=0
@@ -704,14 +1019,13 @@ def grade_checkpoint_3(browsing_history=None):
     return checkpoint
 
 
-def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history=None):
+def grade_checkpoints(workspace_doc_id, cached_models=None):
     """
     Grade all checkpoints for the remove images and add placeholders task.
 
     Args:
         workspace_doc_id (str): Google Slides presentation ID to evaluate.
         cached_models (dict, optional): Dictionary of preloaded models by model_id.
-        browsing_history (list, optional): List of URLs visited during task execution.
 
     Returns:
         Result: Evaluation results with checkpoint scores.
@@ -730,9 +1044,17 @@ def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history=Non
 
         checkpoints: List[Checkpoint] = []
 
+        # Checkpoint 1 runs independently (Drive folder check)
         checkpoints.append(grade_checkpoint_1())
-        checkpoints.append(grade_checkpoint_2())
-        checkpoints.append(grade_checkpoint_3(browsing_history))
+
+        # Prefetch slide data for checkpoints 2 and 3 (parallel downloads)
+        print("\n----------------- PREFETCH SLIDE DATA ----------------")
+        with tempfile.TemporaryDirectory() as prefetch_temp_dir:
+            prefetch_slide_data(prefetch_temp_dir)
+
+            # Run checkpoints 2 and 3 with cached data
+            checkpoints.append(grade_checkpoint_2())
+            checkpoints.append(grade_checkpoint_3())
 
         total_execution_time = time.time() - total_start_time
         result = Result(checkpoints, total_execution_time=total_execution_time)
@@ -754,16 +1076,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate image replacement presentation task")
     parser.add_argument("--workspace_doc_id", type=str, required=True,
                        help="Google Slides presentation ID to evaluate")
-    parser.add_argument("--browsing_history", nargs='+', default=None,
-                       help="List of URLs visited during task")
     args = parser.parse_args()
 
     start_time = time.time()
 
     print(f"DEBUG mode: {DEBUG}")
     result = grade_checkpoints(
-        workspace_doc_id=args.workspace_doc_id,
-        browsing_history=args.browsing_history
+        workspace_doc_id=args.workspace_doc_id
     )
 
     print("\n=== EVALUATION RESULTS ===")

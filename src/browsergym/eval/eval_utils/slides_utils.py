@@ -218,6 +218,55 @@ def extract_slide_links(slide: Dict[str, Any]) -> List[str]:
     return list(set(links))  # Remove duplicates
 
 
+def extract_slide_links_with_positions(slide: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Extract all URLs/links from a slide with their position information.
+
+    Args:
+        slide (dict): Slide object from Google Slides API.
+
+    Returns:
+        list: List of dictionaries containing 'url' and 'bbox' keys.
+              bbox contains x, y, width, height in EMUs.
+    """
+    links_with_positions = []
+
+    if 'pageElements' not in slide:
+        return links_with_positions
+
+    for element in slide['pageElements']:
+        # Get element position
+        transform = element.get('transform', {})
+        size = element.get('size', {})
+
+        # Calculate bbox
+        x = transform.get('translateX', 0)
+        y = transform.get('translateY', 0)
+        scale_x = transform.get('scaleX', 1)
+        scale_y = transform.get('scaleY', 1)
+        width = size.get('width', {}).get('magnitude', 0) * abs(scale_x)
+        height = size.get('height', {}).get('magnitude', 0) * abs(scale_y)
+
+        bbox = {'x': x, 'y': y, 'width': width, 'height': height}
+
+        # Links in shape text
+        if 'shape' in element and 'text' in element['shape']:
+            shape_links = _extract_links_from_text_element(element['shape']['text'])
+            for link in shape_links:
+                links_with_positions.append({'url': link, 'bbox': bbox})
+
+        # Links in tables
+        if 'table' in element:
+            for row in element['table'].get('tableRows', []):
+                for cell in row.get('tableCells', []):
+                    if 'text' in cell:
+                        cell_links = _extract_links_from_text_element(cell['text'])
+                        for link in cell_links:
+                            links_with_positions.append({'url': link, 'bbox': bbox})
+
+    return links_with_positions
+
+
 def _extract_links_from_text_element(text_element: Dict[str, Any]) -> List[str]:
     """
     Extract links from a text element structure.
