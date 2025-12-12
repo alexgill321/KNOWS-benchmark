@@ -231,3 +231,49 @@ def parallel_image_match(
                 print(f"  Image match future failed: {e}")
 
     return results
+
+
+def fast_parallel_vlm_calls(
+    vlm_tasks: List[Dict[str, Any]],
+    model: Callable,
+    max_workers: int = 10
+) -> Dict[str, bool]:
+    """
+    Execute multiple VLM calls in parallel without global semaphore bottleneck.
+
+    This is a faster version of parallel_vlm_calls that relies only on max_workers
+    for concurrency control, without using VLM_API_SEMAPHORE. Use when you need
+    higher throughput and the model/API can handle the load.
+
+    Args:
+        vlm_tasks: List of dicts with keys:
+            - 'id': Unique identifier (e.g., filename)
+            - 'messages': The messages to send to the model
+        model: The loaded model callable
+        max_workers: Maximum concurrent VLM calls (default 10)
+
+    Returns:
+        Dict mapping task 'id' to boolean result (True if response contains 'yes')
+    """
+    results = {}
+
+    def call_vlm(task):
+        task_id = task['id']
+        messages = task['messages']
+        try:
+            response = model(messages).strip().lower()
+            return task_id, 'yes' in response
+        except Exception as e:
+            print(f"  VLM call failed for {task_id}: {e}")
+            return task_id, False
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(call_vlm, task) for task in vlm_tasks]
+        for future in as_completed(futures):
+            try:
+                task_id, result = future.result()
+                results[task_id] = result
+            except Exception:
+                pass
+
+    return results

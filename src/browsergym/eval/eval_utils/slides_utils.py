@@ -778,3 +778,52 @@ def is_text_big(text_style: Dict[str, Any], min_pt: float = 18) -> bool:
         return magnitude >= min_pt * 12700
 
     return False
+
+
+def find_url_below_image(image_bbox: dict, links_with_positions: list, tolerance: float = 0.3) -> Optional[str]:
+    """Find a URL positioned directly below an image.
+
+    Args:
+        image_bbox: Bounding box of the image with x, y, width, height (in EMUs).
+        links_with_positions: List of dicts with 'url' and 'bbox' keys.
+        tolerance: Fraction of image width for horizontal alignment tolerance.
+
+    Returns:
+        URL string if found, None otherwise.
+    """
+    if not links_with_positions:
+        return None
+
+    img_bottom = image_bbox['y'] + image_bbox['height']
+    img_left = image_bbox['x']
+    img_right = image_bbox['x'] + image_bbox['width']
+
+    best_url = None
+    best_distance = float('inf')
+
+    for link_info in links_with_positions:
+        link_bbox = link_info['bbox']
+        link_top = link_bbox['y']
+        link_center_x = link_bbox['x'] + link_bbox['width'] / 2
+
+        # Check if link is below the image (link top is at or below image bottom)
+        # Allow some tolerance for slight overlaps
+        vertical_threshold = image_bbox['height'] * 0.1  # 10% of image height tolerance
+        if link_top < img_bottom - vertical_threshold:
+            continue  # Link is not below the image
+
+        # Check horizontal alignment - link center should be within image horizontal bounds
+        # with some tolerance
+        horizontal_tolerance = image_bbox['width'] * tolerance
+        if link_center_x < img_left - horizontal_tolerance or link_center_x > img_right + horizontal_tolerance:
+            continue  # Link is not horizontally aligned with image
+
+        # Calculate distance from image bottom to link top
+        distance = link_top - img_bottom
+
+        # Prefer the closest link below the image
+        if distance < best_distance:
+            best_distance = distance
+            best_url = link_info['url']
+
+    return best_url

@@ -1336,3 +1336,32 @@ def download_drive_file_bytes(file_id, service):
     except Exception as e:
         print(f"Error downloading file {file_id}: {e}")
         return None
+
+
+def download_drive_image_threadsafe(file_id, access_token):
+    """Download image from Google Drive using requests (thread-safe).
+
+    This function uses the requests library instead of the Google API client,
+    making it safe to use in multithreaded environments without SSL issues.
+
+    Args:
+        file_id (str): The ID of the file to download.
+        access_token (str): OAuth access token for authentication.
+
+    Returns:
+        PIL.Image.Image: The downloaded image, or None if download failed.
+    """
+    from PIL import Image
+
+    headers = {"Authorization": f"Bearer {access_token}"}
+    url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
+
+    try:
+        response = requests.get(url, headers=headers, timeout=30)
+        if response.status_code == 200:
+            return Image.open(io.BytesIO(response.content))
+        else:
+            print(f"Error downloading {file_id}: {response.status_code} {response.text}")
+    except Exception as e:
+        print(f"Exception downloading {file_id}: {e}")
+    return None

@@ -31,11 +31,12 @@ BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 # Imports
-from src.browsergym.eval.eval_utils.scoring import Checkpoint, Result
+from src.browsergym.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score
 from src.browsergym.eval.eval_utils.google_services_utils import (
     initialize_google_services,
     list_drive_folder_files,
-    download_drive_file_as_image
+    download_drive_file_as_image,
+    download_drive_image_threadsafe
 )
 from src.browsergym.eval.eval_utils.slides_utils import (
     extract_slide_images,
@@ -44,7 +45,8 @@ from src.browsergym.eval.eval_utils.slides_utils import (
     extract_text_boxes_from_slide,
     get_text_style_from_shape,
     is_text_red,
-    is_text_big
+    is_text_big,
+    find_url_below_image
 )
 from src.browsergym.eval.eval_utils.image_utils import match_image_tiered, binary_judge_image
 from src.browsergym.eval.eval_utils.text_utils import text_fuzzy_match_contained_short
@@ -56,6 +58,7 @@ from src.browsergym.eval.eval_utils.parallel_utils import (
     parallel_execute,
     parallel_vlm_calls,
     parallel_image_match,
+    fast_parallel_vlm_calls,
     VLM_API_SEMAPHORE
 )
 
@@ -200,112 +203,6 @@ def prefetch_slide_data(temp_dir: str):
     print(f"  Prefetch complete: {total_images} images cached from {len(cached_slide_images)} slides")
 
 
-def calculate_percentage_score(success_count: int, total_count: int, max_points: int = 10) -> int:
-    """Calculate score based on percentage, rounded to nearest 10%."""
-    if total_count == 0:
-        return 0
-    percentage = success_count / total_count
-    rounded_percentage = round(percentage, 1)  # Round to nearest 10%
-    return int(rounded_percentage * max_points)
-
-
-def find_url_below_image(image_bbox: dict, links_with_positions: list, tolerance: float = 0.3) -> str:
-    """Find a URL positioned directly below an image.
-
-    Args:
-        image_bbox: Bounding box of the image with x, y, width, height.
-        links_with_positions: List of dicts with 'url' and 'bbox' keys.
-        tolerance: Fraction of image width for horizontal alignment tolerance.
-
-    Returns:
-        URL string if found, None otherwise.
-    """
-    if not links_with_positions:
-        return None
-
-    img_bottom = image_bbox['y'] + image_bbox['height']
-    img_left = image_bbox['x']
-    img_right = image_bbox['x'] + image_bbox['width']
-    img_center_x = image_bbox['x'] + image_bbox['width'] / 2
-
-    best_url = None
-    best_distance = float('inf')
-
-    for link_info in links_with_positions:
-        link_bbox = link_info['bbox']
-        link_top = link_bbox['y']
-        link_center_x = link_bbox['x'] + link_bbox['width'] / 2
-
-        # Check if link is below the image (link top is at or below image bottom)
-        # Allow some tolerance for slight overlaps
-        vertical_threshold = image_bbox['height'] * 0.1  # 10% of image height tolerance
-        if link_top < img_bottom - vertical_threshold:
-            continue  # Link is not below the image
-
-        # Check horizontal alignment - link center should be within image horizontal bounds
-        # with some tolerance
-        horizontal_tolerance = image_bbox['width'] * tolerance
-        if link_center_x < img_left - horizontal_tolerance or link_center_x > img_right + horizontal_tolerance:
-            continue  # Link is not horizontally aligned with image
-
-        # Calculate distance from image bottom to link top
-        distance = link_top - img_bottom
-
-        # Prefer the closest link below the image
-        if distance < best_distance:
-            best_distance = distance
-            best_url = link_info['url']
-
-    return best_url
-
-
-def safe_download_drive_image(file_id, access_token):
-    """Download image from Drive using requests (thread-safe)."""
-    import requests
-    from PIL import Image
-    import io
-
-    headers = {"Authorization": f"Bearer {access_token}"}
-    url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
-
-    try:
-        response = requests.get(url, headers=headers, timeout=30)
-        if response.status_code == 200:
-            return Image.open(io.BytesIO(response.content))
-        else:
-            print(f"Error downloading {file_id}: {response.status_code} {response.text}")
-    except Exception as e:
-        print(f"Exception downloading {file_id}: {e}")
-    return None
-
-
-def fast_parallel_vlm_calls(vlm_tasks, model, max_workers=10):
-    """Faster parallel VLM calls without global semaphore bottleneck."""
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-    results = {}
-    
-    def call_vlm(task):
-        task_id = task['id']
-        messages = task['messages']
-        try:
-            # No semaphore, rely on max_workers
-            response = model(messages).strip().lower()
-            return task_id, 'yes' in response
-        except Exception as e:
-            print(f"  VLM call failed for {task_id}: {e}")
-            return task_id, False
-
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(call_vlm, task) for task in vlm_tasks]
-        for future in as_completed(futures):
-            try:
-                task_id, result = future.result()
-                results[task_id] = result
-            except Exception:
-                pass
-    return results
-
-
 def grade_checkpoint_1():
     """
     Checkpoint 1 (10pt): All original images saved to Drive folder.
@@ -362,7 +259,7 @@ def grade_checkpoint_1():
         download_tasks = [
             {
                 'id': file_info['id'],
-                'func': safe_download_drive_image,
+                'func': download_drive_image_threadsafe,
                 'args': (file_info['id'], token)
             }
             for file_info in image_files
