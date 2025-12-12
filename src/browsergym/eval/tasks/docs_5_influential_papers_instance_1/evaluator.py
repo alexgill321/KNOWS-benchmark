@@ -24,6 +24,7 @@ from src.browsergym.eval.eval_utils.scoring import Checkpoint, Result, Evaluatio
 from src.browsergym.eval.eval_utils.google_services_utils import *
 from src.browsergym.eval.eval_utils.text_utils import text_fuzzy_match_contained_short, text_fuzzy_match_contained_long
 from src.browsergym.eval.eval_utils.models import load_model
+from src.browsergym.eval.eval_utils.parallel_utils import fast_parallel_vlm_calls
 from src.browsergym.eval.tasks.docs_5_influential_papers_instance_1.utils import *
 
 # Constants
@@ -43,11 +44,41 @@ DRIVE_SERVICE, DOCS_SERVICE = initialize_google_services()
 doc_id = None
 gold_text = None
 doc_structure = None
+cached_arxiv_papers = None  # Cache arXiv paper info to avoid redundant API calls
 
 def cleanup_generated_files():
     """Clean up generated files and directories created during evaluation."""
     # Similar to other evaluators - clean PDFs, images, temp files
     pass
+
+
+def prefetch_arxiv_papers():
+    """
+    Prefetch arXiv paper info once for reuse across checkpoints 3 and 4.
+    This avoids redundant arXiv API calls.
+    """
+    global cached_arxiv_papers
+
+    paper_links = extract_arxiv_links_from_text(gold_text)
+    paper_links = [normalize_arxiv_url(url) for url in paper_links if normalize_arxiv_url(url)]
+    paper_links = list(set(paper_links))  # Unique IDs
+
+    if len(paper_links) < 5:
+        print(f"Warning: Only found {len(paper_links)} unique arxiv paper links in document, expected at least 5.")
+
+    if not paper_links:
+        print("Warning: No arXiv paper links found in document.")
+        cached_arxiv_papers = []
+        return
+
+    try:
+        client = arxiv.Client()
+        search = arxiv.Search(id_list=paper_links)
+        cached_arxiv_papers = list(client.results(search))
+        print(f"  Prefetched {len(cached_arxiv_papers)} arXiv papers")
+    except Exception as e:
+        print(f"Error prefetching arXiv papers: {e}")
+        cached_arxiv_papers = []
 
 def setup_document(workspace_doc_id):
     """
@@ -197,29 +228,28 @@ def grade_checkpoint_2():
 def grade_checkpoint_3():
     """
     Checkpoint 3 (20pt): The doc structure for each paper is correct.
-    
+
     Outcome Evaluation:
     - Each paper abstract is included in the google docs.
     - Each paper title is included in the google docs.
     - Each paper link is included in the google docs.
     - Each paper structure is correct: Title -> Link -> Abstract.
+
+    OPTIMIZED: Uses cached arXiv papers from prefetch to avoid redundant API calls.
     """
     print("----------------- CHECKPOINT 3 ----------------")
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=20, result=0, name="Document Structure Validation")
 
-    # Step 1: Check if abstracts are included
+    # Use cached papers instead of fetching again
     step_start = time.time()
-    
-    paper_links = extract_arxiv_links_from_text(gold_text)
-    paper_links = [normalize_arxiv_url(url) for url in paper_links if normalize_arxiv_url(url)]
-    paper_links = list(set(paper_links))  # Unique IDs
-    if len(paper_links) < 5:
-        print(f"Warning: Only found {len(paper_links)} unique arxiv paper links in document, expected at least 5.")
 
-    client = arxiv.Client()
-    search = arxiv.Search(id_list=paper_links)
-    papers_info = list(client.results(search))
+    if cached_arxiv_papers is None or len(cached_arxiv_papers) == 0:
+        checkpoint.add_step("Paper Data", False, 1, "No arXiv papers found or prefetch failed.")
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
+
+    papers_info = cached_arxiv_papers
 
     for i, paper in enumerate(papers_info):
         abstract = paper.summary
@@ -299,11 +329,13 @@ def grade_checkpoint_3():
 def grade_checkpoint_4():
     """
     Checkpoint 4 (5pt): The papers are from the correct relevant domain.
-    
+
     Outcome Evaluation:
-    - LLM as Judge for the relevance of each paper abstract to high quality dataset creation for Large 
+    - LLM as Judge for the relevance of each paper abstract to high quality dataset creation for Large
 Language Models.
     - 1 point for each relevant paper.
+
+    PARALLELIZED: Uses cached arXiv papers and parallel LLM calls for relevance checking.
     """
     print("----------------- CHECKPOINT 4 ----------------")
     checkpoint_start = time.time()
@@ -315,69 +347,63 @@ Language Models.
         model = load_model(model_id)
 
     step_start = time.time()
-    
-    # Extract papers to judge from the document content
-    # We use the document content to ensure we judge what's actually in the doc
-    paper_links = extract_arxiv_links_from_text(gold_text)
-    paper_links = [normalize_arxiv_url(url) for url in paper_links if normalize_arxiv_url(url)]
-    paper_links = list(set(paper_links))
-    
-    if not paper_links:
-        checkpoint.add_step("Paper Extraction", False, 5, 
-                          "No arXiv papers found in document to judge relevance.",
+
+    # Use cached papers instead of fetching again
+    if cached_arxiv_papers is None or len(cached_arxiv_papers) == 0:
+        checkpoint.add_step("Paper Data", False, 5,
+                          "No arXiv papers found or prefetch failed.",
                           execution_time=time.time() - step_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    try:
-        client = arxiv.Client()
-        search = arxiv.Search(id_list=paper_links)
-        papers_info = list(client.results(search))
-    except Exception as e:
-        checkpoint.add_step("ArXiv Fetch", False, 5,
-                          f"Failed to fetch paper details from arXiv: {e}",
-                          execution_time=time.time() - step_start)
-        checkpoint.execution_time = time.time() - checkpoint_start
-        return checkpoint
-    
+    papers_info = cached_arxiv_papers
+
+    # Build VLM tasks for parallel execution
+    vlm_tasks = []
     for i, paper in enumerate(papers_info):
-        paper_step_start = time.time()
         abstract = paper.summary
         title = paper.title
-        
+
         prompt = f"""
         Paper Title: {title}
         Abstract: {abstract}
-        
+
         Is this paper highly relevant to high quality dataset creation for Large Language Models?
 
         i.e. Does this paper discuss how to create datasets that improve the performance, safety, or capabilities of Large Language Models?
 
         Answer with exactly "YES" or "NO".
         """
-        
-        messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
-        
-        try:
-            # model is a query function (from load_model)
-            response = model(messages).strip().upper()
-            is_relevant = "YES" in response
-            
-            if is_relevant:
-                checkpoint.add_step(f"Relevance Check {i+1}", True, i+1,
-                                f"Paper '{title}' is relevant.",
-                                execution_time=time.time() - paper_step_start)
-            else:
-                checkpoint.add_step(f"Relevance Check {i+1}", False, i+1,
-                                f"Paper '{title}' judged NOT relevant. Response: {response}",
-                                execution_time=time.time() - paper_step_start)
-        except Exception as e:
-             checkpoint.add_step(f"Relevance Check {i+1}", False, i+1,
-                                f"Error judging paper '{title}': {str(e)}",
-                                execution_time=time.time() - paper_step_start)
 
-    # Handle case where fewer than 5 papers are found to ensure we have 5 steps if expected
-    # But Checkpoint class handles result sum. We just need to report.
+        messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
+        vlm_tasks.append({
+            'id': f'paper_{i}',
+            'messages': messages,
+            'title': title
+        })
+
+    # Run all relevance checks in parallel
+    print(f"  Running {len(vlm_tasks)} relevance checks in parallel...")
+    vlm_results = fast_parallel_vlm_calls(vlm_tasks, model, max_workers=5)
+    vlm_time = time.time() - step_start
+    print(f"  Parallel relevance checks completed in {vlm_time:.2f}s")
+
+    # Process results
+    for i, paper in enumerate(papers_info):
+        task_id = f'paper_{i}'
+        title = paper.title
+        is_relevant = vlm_results.get(task_id, False)
+
+        if is_relevant:
+            checkpoint.add_step(f"Relevance Check {i+1}", True, i+1,
+                            f"Paper '{title}' is relevant.",
+                            execution_time=0)
+        else:
+            checkpoint.add_step(f"Relevance Check {i+1}", False, i+1,
+                            f"Paper '{title}' judged NOT relevant.",
+                            execution_time=0)
+
+    # Handle case where fewer than 5 papers are found
     if len(papers_info) < 5:
         for j in range(len(papers_info), 5):
             checkpoint.add_step(f"Relevance Check {j+1}", False, j+1,
@@ -390,12 +416,12 @@ Language Models.
 def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history=None):
     """
     Grade all checkpoints for the influential papers task.
-    
+
     Args:
         workspace_doc_id (str, optional): Direct Google Docs document ID to use
         cached_models (dict, optional): Dictionary of preloaded models by model_id
         browsing_history (list, optional): List of URLs visited during task execution
-        
+
     Returns:
         Result: Evaluation results with checkpoint scores
     """
@@ -410,6 +436,10 @@ def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history=Non
         if cached_models and model_id in cached_models:
             model = cached_models[model_id]
             print(f"Using preloaded model {model_id}")
+
+        # Prefetch arXiv papers for checkpoints 3 and 4 (avoids redundant API calls)
+        print("Prefetching arXiv papers...")
+        prefetch_arxiv_papers()
 
         checkpoints: List[Checkpoint] = []
 

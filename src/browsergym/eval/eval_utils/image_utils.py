@@ -396,7 +396,7 @@ def binary_compare_images(model, image1_path, image2_path, mode="same"):
 #     print(f"Text extraction complete. Extracted text from {len(result)} pages.")
 #     return result
 
-def extract_image_location_size_feature_based(image_path, image_size, doc_path, debug=False):
+def extract_image_location_size_feature_based(image_path, image_size, doc_path, debug=False, dpi=300):
     """Extracts the location of an image in a document with known size using feature-based matching.
 
     Args:
@@ -405,6 +405,7 @@ def extract_image_location_size_feature_based(image_path, image_size, doc_path, 
             Format: {'width': {'magnitude': float, 'unit': str}, 'height': {'magnitude': float, 'unit': str}}
         doc_path (str): The path to the folder where images of the pdf are stored.
         debug (bool): Whether to enable debug visualization. Default is False.
+        dpi (int): DPI of the PDF images. Default is 300.
 
     Returns:
         location: A location object of the bounding box of the image in the document.
@@ -416,28 +417,28 @@ def extract_image_location_size_feature_based(image_path, image_size, doc_path, 
     # Validate inputs
     if not os.path.exists(image_path):
         raise FileNotFoundError(f"Image path does not exist: {image_path}")
-    
+
     doc_images = retrieve_validate_doc_path(doc_path)
-    
+
     if debug:
         print(f"Looking for {image_path} in document with {len(doc_images)} pages")
         print(f"Known size: {image_size}")
-    
-    # Convert known size to pixels (screenshots are at 300 DPI)
+
+    # Convert known size to pixels based on DPI
     target_width_px = None
     target_height_px = None
-    
+
     if image_size and 'width' in image_size and 'height' in image_size:
         width_info = image_size['width']
         height_info = image_size['height']
-        
+
         if width_info.get('unit') == 'PT':  # Points
-            target_width_px = width_info.get('magnitude', 0) * 300 / 72  # Convert points to pixels at 300 DPI
-            target_height_px = height_info.get('magnitude', 0) * 300 / 72
+            target_width_px = width_info.get('magnitude', 0) * dpi / 72  # Convert points to pixels at specified DPI
+            target_height_px = height_info.get('magnitude', 0) * dpi / 72
         elif width_info.get('unit') == 'PX':  # Pixels
             target_width_px = width_info.get('magnitude', 0)
             target_height_px = height_info.get('magnitude', 0)
-        
+
         if debug:
             print(f"Target dimensions in pixels: {target_width_px:.1f}x{target_height_px:.1f}")
     

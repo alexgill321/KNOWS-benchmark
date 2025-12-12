@@ -26,6 +26,7 @@ from src.browsergym.eval.eval_utils.google_services_utils import *
 from src.browsergym.eval.eval_utils.table_utils import *
 from src.browsergym.eval.eval_utils.models import load_model
 from src.browsergym.eval.eval_utils.text_utils import numerical_match_with_error
+from src.browsergym.eval.eval_utils.parallel_utils import parallel_download, fast_parallel_vlm_calls
 from src.browsergym.eval.eval_utils.chart_utils import (
     debug_chart_structure,
     extract_chart_domain_data,
@@ -542,29 +543,38 @@ def grade_checkpoint_3(browsing_history=None):
         model = load_model(model_id)
 
     step_start = time.time()
-    
-    for url in urls_to_check:
-        if found_tech_stocks_info and found_past_prices_info:
-            break
-            
-        print(f"Checking URL content: {url}")
+
+    # ============ PHASE 1: Parallel URL fetching ============
+    def fetch_url_with_timeout(url):
         try:
-            # Fetch content with timeout
-            try:
-                response = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
-                if response.status_code != 200:
-                    print(f"Failed to fetch {url}: Status {response.status_code}")
-                    continue
-                html_content = response.text
-            except Exception as e:
-                print(f"Error fetching {url}: {e}")
-                continue
+            response = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+            if response.status_code == 200:
+                return response.text
+            return None
+        except Exception:
+            return None
 
-            # Convert to Markdown
-            markdown_content = h.handle(html_content)
-            # Truncate if necessary (approx 15k tokens max to be safe)
-            markdown_content = markdown_content[:60000]
+    print(f"  Fetching {len(urls_to_check)} URLs in parallel...")
+    fetch_tasks = [
+        {'id': url, 'func': fetch_url_with_timeout, 'args': (url,)}
+        for url in urls_to_check
+    ]
+    fetch_results = parallel_download(fetch_tasks, max_workers=5, use_rate_limit=False)
 
+    # Convert HTML to markdown for successfully fetched URLs
+    url_contents = {}
+    for url, html_content in fetch_results.items():
+        if html_content:
+            markdown_content = h.handle(html_content)[:60000]  # Truncate
+            url_contents[url] = markdown_content
+            print(f"  Fetched {len(markdown_content)} chars from {url[:50]}...")
+
+    print(f"  Successfully fetched {len(url_contents)}/{len(urls_to_check)} URLs")
+
+    # ============ PHASE 2: Parallel LLM analysis ============
+    if url_contents:
+        vlm_tasks = []
+        for url, markdown_content in url_contents.items():
             prompt = f"""
             You are evaluating if a visited website contains the information used to populate a spreadsheet.
 
@@ -579,7 +589,7 @@ def grade_checkpoint_3(browsing_history=None):
             2. Does this website content contain the past/historical price information for these stocks from the end of Q2 2023(matching the values in the User's Spreadsheet)?
 
             Evaluate strictly based on the provided Website Content. If most of the information is present but not all details match exactly (~75%), still consider it a match.
-            
+
             Respond with a JSON object strictly in this format:
             {{
                 "has_top_tech_stocks": boolean,
@@ -589,33 +599,42 @@ def grade_checkpoint_3(browsing_history=None):
             """
 
             messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
-            
+            vlm_tasks.append({'id': url, 'messages': messages})
+
+        print(f"  Running {len(vlm_tasks)} LLM content analyses in parallel...")
+
+        # Run LLM tasks in parallel (don't use fast_parallel_vlm_calls since we need raw responses)
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        def analyze_url(task):
+            url = task['id']
+            messages = task['messages']
             try:
-                response_text = model(messages)
-                # Clean response to ensure JSON
-                response_text = response_text.strip()
+                response_text = model(messages).strip()
                 if response_text.startswith("```json"):
                     response_text = response_text[7:-3]
                 elif response_text.startswith("```"):
                     response_text = response_text[3:-3]
-                
                 result = json.loads(response_text)
-                
-                if result.get("has_top_tech_stocks") and not found_tech_stocks_info:
-                    found_tech_stocks_info = True
-                    evidence_urls["tech_stocks"].append(url)
-                    print(f"Found tech stocks info in {url}")
-                    
-                if result.get("has_past_prices") and not found_past_prices_info:
-                    found_past_prices_info = True
-                    evidence_urls["past_prices"].append(url)
-                    print(f"Found past prices info in {url}")
-                    
+                return url, result
             except Exception as e:
                 print(f"Error parsing LLM response for {url}: {e}")
-                
-        except Exception as e:
-            print(f"Unexpected error processing {url}: {e}")
+                return url, None
+
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = [executor.submit(analyze_url, task) for task in vlm_tasks]
+            for future in as_completed(futures):
+                url, result = future.result()
+                if result:
+                    if result.get("has_top_tech_stocks") and not found_tech_stocks_info:
+                        found_tech_stocks_info = True
+                        evidence_urls["tech_stocks"].append(url)
+                        print(f"  Found tech stocks info in {url}")
+
+                    if result.get("has_past_prices") and not found_past_prices_info:
+                        found_past_prices_info = True
+                        evidence_urls["past_prices"].append(url)
+                        print(f"  Found past prices info in {url}")
 
     step_time = time.time() - step_start
 

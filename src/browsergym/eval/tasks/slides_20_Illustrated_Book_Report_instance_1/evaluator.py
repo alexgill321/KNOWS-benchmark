@@ -23,6 +23,7 @@ from src.browsergym.eval.eval_utils.google_services_utils import initialize_goog
 from src.browsergym.eval.eval_utils.text_utils import text_exact_match_contained, text_fuzzy_match_contained_short, match_text_in_list
 from src.browsergym.eval.eval_utils.image_utils import binary_judge_image
 from src.browsergym.eval.eval_utils.models import load_model
+from src.browsergym.eval.eval_utils.parallel_utils import parallel_download, fast_parallel_vlm_calls
 from src.browsergym.eval.eval_utils.slides_utils import (
     extract_slide_text,
     extract_slide_images,
@@ -426,6 +427,75 @@ def grade_checkpoint_2(browsing_history=None):
     for i, (slide_idx, slide, char_name) in enumerate(character_slides[:5]):
         slide_bullet_texts[i] = extract_bullet_point_texts(slide)
 
+    # ============ PHASE 1: Parallel bullet characteristic validation ============
+    # Batch all bullet validation LLM calls across all slides
+    if model is None:
+        model = load_model(model_id)
+
+    all_bullet_tasks = []
+    for slide_i, (slide_idx, slide, char_name) in enumerate(character_slides[:5]):
+        bullet_texts = slide_bullet_texts.get(slide_i, [])
+        for bullet_j, bullet_text in enumerate(bullet_texts):
+            if bullet_text:
+                messages = [
+                    {
+                        "role": "system",
+                        "content": [{"type": "text", "text": "You are a helpful assistant that evaluates whether text describes a character trait, quality, or characteristic. Respond with ONLY 'Yes' or 'No'."}]
+                    },
+                    {
+                        "role": "user",
+                        "content": [{"type": "text", "text": f"Does this bullet point describe a characteristic, trait, or quality?\n\nBullet point: {bullet_text}"}]
+                    }
+                ]
+                all_bullet_tasks.append({
+                    'id': f'slide_{slide_i}_bullet_{bullet_j}',
+                    'messages': messages,
+                    'slide_i': slide_i,
+                    'bullet_j': bullet_j,
+                    'bullet_text': bullet_text
+                })
+
+    # Run all bullet characteristic checks in parallel
+    bullet_validation_results = {}
+    if all_bullet_tasks:
+        print(f"  Running {len(all_bullet_tasks)} bullet characteristic checks in parallel...")
+        vlm_results = fast_parallel_vlm_calls(all_bullet_tasks, model, max_workers=10)
+        for task in all_bullet_tasks:
+            task_id = task['id']
+            slide_i = task['slide_i']
+            bullet_j = task['bullet_j']
+            is_valid = vlm_results.get(task_id, False)
+            if slide_i not in bullet_validation_results:
+                bullet_validation_results[slide_i] = {}
+            bullet_validation_results[slide_i][bullet_j] = is_valid
+
+    # ============ PHASE 2: Collect all source URLs from all slides ============
+    all_slide_links = {}  # slide_i -> list of links
+    all_url_fetch_tasks = []
+    seen_urls = set()
+
+    for slide_i, (slide_idx, slide, char_name) in enumerate(character_slides[:5]):
+        slide_links = extract_slide_links(slide)
+        all_slide_links[slide_i] = slide_links
+        for link in slide_links:
+            if link not in seen_urls:
+                seen_urls.add(link)
+                all_url_fetch_tasks.append({
+                    'id': link,
+                    'func': fetch_url_content,
+                    'args': (link,)
+                })
+
+    # Fetch all URLs in parallel
+    url_contents_cache = {}
+    if all_url_fetch_tasks:
+        print(f"  Fetching {len(all_url_fetch_tasks)} source URLs in parallel...")
+        fetch_results = parallel_download(all_url_fetch_tasks, max_workers=5, use_rate_limit=False)
+        for url, content in fetch_results.items():
+            if content:
+                url_contents_cache[url] = content
+                print(f"  Fetched {len(content)} chars from {url[:50]}...")
+
     # Grade each character slide
     for i, (slide_idx, slide, char_name) in enumerate(character_slides[:5]):  # Limit to 5
         step_num_base = i * 5  # Each character gets 5 steps
@@ -460,38 +530,16 @@ def grade_checkpoint_2(browsing_history=None):
                               execution_time=step_time)
 
         # Step 3: At least 3 bullet points that describe characteristics
-        step_start = time.time()
+        # Use pre-computed results from parallel validation
         has_bullets, bullet_count = validate_bullet_points(slide, min_count=3)
+        bullet_texts = slide_bullet_texts.get(i, [])
 
-        # Use pre-extracted bullet texts and validate they describe characteristics
-        bullet_texts = slide_bullet_texts[i]
+        # Count valid characteristics from pre-computed results
         valid_characteristics_count = 0
-
-        if model is None:
-            model = load_model(model_id)
-
-        for bullet_text in bullet_texts:
-            if bullet_text:
-                try:
-                    messages = [
-                        {
-                            "role": "system",
-                            "content": [{"type": "text", "text": "You are a helpful assistant that evaluates whether text describes a character trait, quality, or characteristic. Respond with ONLY 'Yes' or 'No'."}]
-                        },
-                        {
-                            "role": "user",
-                            "content": [{"type": "text", "text": f"Does this bullet point describe a characteristic, trait, or quality?\n\nBullet point: {bullet_text}"}]
-                        }
-                    ]
-
-                    response = model(messages).strip().lower()
-
-                    if 'yes' in response:
-                        valid_characteristics_count += 1
-                except Exception as e:
-                    print(f"LLM validation failed for bullet point: {e}")
-
-        step_time = time.time() - step_start
+        slide_bullet_results = bullet_validation_results.get(i, {})
+        for bullet_j, is_valid in slide_bullet_results.items():
+            if is_valid:
+                valid_characteristics_count += 1
 
         # Require at least 3 bullet points that are valid characteristics
         passes_bullet_check = has_bullets and valid_characteristics_count >= 3
@@ -499,20 +547,20 @@ def grade_checkpoint_2(browsing_history=None):
         if passes_bullet_check:
             checkpoint.add_step(f"Character {i+1} - Bullet Points", True, step_num_base + 3,
                               f"Found {valid_characteristics_count}/{bullet_count} bullet points describing characteristics (>= 3 required)",
-                              execution_time=step_time)
+                              execution_time=0)
         else:
             if not has_bullets:
                 checkpoint.add_step(f"Character {i+1} - Bullet Points", False, step_num_base + 3,
                                   f"Only found {bullet_count} bullet points, need 3",
-                                  execution_time=step_time)
+                                  execution_time=0)
             else:
                 checkpoint.add_step(f"Character {i+1} - Bullet Points", False, step_num_base + 3,
                                   f"Only {valid_characteristics_count}/{bullet_count} bullet points describe characteristics, need 3",
-                                  execution_time=step_time)
+                                  execution_time=0)
 
         # Step 4: Source link at bottom of slide
-        step_start = time.time()
-        slide_links = extract_slide_links(slide)
+        # Use pre-computed slide_links from parallelization phase
+        slide_links = all_slide_links.get(i, [])
         has_source_links = len(slide_links) > 0
 
         # Check if ALL source links are at the bottom
@@ -526,48 +574,38 @@ def grade_checkpoint_2(browsing_history=None):
 
             all_links_at_bottom = links_at_bottom_count == len(slide_links)
 
-        step_time = time.time() - step_start
-
         if all_links_at_bottom:
             checkpoint.add_step(f"Character {i+1} - Source Link at Bottom", True, step_num_base + 4,
                               f"All {len(slide_links)} source link(s) correctly positioned at bottom of slide",
-                              execution_time=step_time)
+                              execution_time=0)
         elif has_source_links:
             checkpoint.add_step(f"Character {i+1} - Source Link at Bottom", False, step_num_base + 4,
                               f"Only {links_at_bottom_count}/{len(slide_links)} source link(s) positioned at bottom of slide",
-                              execution_time=step_time)
+                              execution_time=0)
         else:
             checkpoint.add_step(f"Character {i+1} - Source Link at Bottom", False, step_num_base + 4,
                               "No source links found on slide",
-                              execution_time=step_time)
+                              execution_time=0)
 
         # Step 5: Characteristics are direct quotes from source links
-        step_start = time.time()
+        # Use pre-fetched URL contents from parallel download
 
         characteristics_validated = False
         validation_details = []
+        validated_bullets = []
 
         if has_source_links and bullet_texts:
-            # Ensure model is loaded
-            if model is None:
-                model = load_model(model_id)
-
-            # Fetch all source URL contents
+            # Get URL contents from cache (already fetched in parallel)
             url_contents = {}
             for link in slide_links:
-                print(f"Fetching content from: {link}")
-                content = fetch_url_content(link)
-                if content:
-                    url_contents[link] = content
-                    print(f"Successfully fetched {len(content)} characters from {link}")
+                if link in url_contents_cache:
+                    url_contents[link] = url_contents_cache[link]
 
             if not url_contents:
                 # Failed to fetch any URLs
                 validation_details.append("Could not fetch any source URLs")
             else:
                 # Track which bullets are validated
-                validated_bullets = []
-
                 for bullet_text in bullet_texts:
                     if not bullet_text or bullet_text.strip() == "":
                         continue
@@ -588,15 +626,13 @@ def grade_checkpoint_2(browsing_history=None):
                 # Need at least 3 validated bullets
                 characteristics_validated = len(validated_bullets) >= 3
 
-        step_time = time.time() - step_start
-
         if characteristics_validated:
             checkpoint.add_step(
                 f"Character {i+1} - Characteristics from Sources",
                 True,
                 step_num_base + 5,
                 f"{len(validated_bullets)}/{len(bullet_texts)} characteristics validated as direct quotes from source URLs",
-                execution_time=step_time
+                execution_time=0
             )
         elif not has_source_links:
             checkpoint.add_step(
@@ -604,7 +640,7 @@ def grade_checkpoint_2(browsing_history=None):
                 False,
                 step_num_base + 5,
                 "No source links to validate",
-                execution_time=step_time
+                execution_time=0
             )
         elif not bullet_texts:
             checkpoint.add_step(
@@ -612,7 +648,7 @@ def grade_checkpoint_2(browsing_history=None):
                 False,
                 step_num_base + 5,
                 "No bullet points to validate",
-                execution_time=step_time
+                execution_time=0
             )
         elif not url_contents:
             checkpoint.add_step(
@@ -620,7 +656,7 @@ def grade_checkpoint_2(browsing_history=None):
                 False,
                 step_num_base + 5,
                 f"Could not fetch source URL content. {'; '.join(validation_details)}",
-                execution_time=step_time
+                execution_time=0
             )
         else:
             checkpoint.add_step(
@@ -628,7 +664,7 @@ def grade_checkpoint_2(browsing_history=None):
                 False,
                 step_num_base + 5,
                 f"Only {len(validated_bullets)}/{len(bullet_texts)} characteristics found as quotes. {'; '.join(validation_details[:3])}",
-                execution_time=step_time
+                execution_time=0
             )
 
     # Handle missing character slides

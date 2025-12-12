@@ -5,6 +5,7 @@ from pathlib import Path
 import time
 import shutil
 import glob
+from concurrent.futures import ThreadPoolExecutor
 # Get the base path that works in both Docker and local environments
 def get_base_path():
     # First check if we're in a Docker container at /app
@@ -22,6 +23,7 @@ sys.path.append(BASE_PATH)
 from src.browsergym.eval.eval_utils.scoring import Checkpoint, Result, EvaluationStep # type: ignore
 from src.browsergym.eval.eval_utils.google_services_utils import *  # type: ignore
 from src.browsergym.eval.eval_utils.text_utils import extract_text_from_pdf, text_exact_match_contained, extract_text_location # type: ignore
+from src.browsergym.eval.eval_utils.parallel_utils import parallel_execute  # type: ignore
 from src.browsergym.eval.eval_utils.image_utils import * # type: ignore
 from src.browsergym.eval.eval_utils.utils import layout, image_id_from_path # type: ignore
 from src.browsergym.eval.eval_utils.models import load_model # type: ignore
@@ -34,6 +36,7 @@ PDF_IMAGES_DIR = os.path.join(TASK_DIR, "data/pdf_images/")
 GOLD_IMAGES_DIR = os.path.join(TASK_DIR, "data/gold_images/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 CLEANUP_ENABLED = os.environ.get("CLEANUP", "True").lower() == "true"
+PDF_DPI = 150  # Lower DPI for faster OCR while maintaining text recognition quality
 
 model = None
 model_id = "gemma-google-ai"  # Using Google AI API instead of cloud service
@@ -112,18 +115,31 @@ def setup_document(workspace_doc_id):
 
     print(f"Using workspace document ID: {workspace_doc_id}")
     doc_id = workspace_doc_id
-    
-    # Download and process the document
+
+    # Phase 1: Download and convert PDF (sequential, required order)
     pdf_path = os.path.join(TASK_DIR, "data/ethan_ashby_formal_letter.pdf")
     download_doc_as_pdf(doc_id, pdf_path, DRIVE_SERVICE)
-    convert_pdf_to_pngs(pdf_path, PDF_IMAGES_DIR)
-    
-    # Extract document content and structure
-    extract_images_from_doc_with_cropping(doc_id, DOCS_SERVICE, DOC_IMAGES_CROPPED_DIR)
-    extract_images_from_doc(doc_id, DOCS_SERVICE, DOC_IMAGES_DIR)
-    gold_text = extract_text_from_doc(doc_id, DOCS_SERVICE)
-    text_ocr = extract_text_from_pdf(PDF_IMAGES_DIR)
-    doc_structure = extract_structure_from_doc(doc_id, DOCS_SERVICE)
+    convert_pdf_to_pngs(pdf_path, PDF_IMAGES_DIR, dpi=PDF_DPI)
+
+    # Phase 2: Run OCR and Google API calls in parallel
+    # OCR doesn't depend on Google APIs, so we can run them concurrently
+    def run_ocr():
+        return extract_text_from_pdf(PDF_IMAGES_DIR)
+
+    def run_google_api_calls():
+        # Keep Google API calls sequential to avoid rate limits
+        extract_images_from_doc_with_cropping(doc_id, DOCS_SERVICE, DOC_IMAGES_CROPPED_DIR)
+        extract_images_from_doc(doc_id, DOCS_SERVICE, DOC_IMAGES_DIR)
+        text = extract_text_from_doc(doc_id, DOCS_SERVICE)
+        structure = extract_structure_from_doc(doc_id, DOCS_SERVICE)
+        return text, structure
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        ocr_future = executor.submit(run_ocr)
+        api_future = executor.submit(run_google_api_calls)
+
+        text_ocr = ocr_future.result()
+        gold_text, doc_structure = api_future.result()
 
 ### Checkpoint 1 ###
 def grade_checkpoint_1(gold_text, text_ocr):
@@ -229,7 +245,7 @@ def grade_checkpoint_2():
 
         print("Locating Logo Image")
         step_start = time.time()
-        exact_size_location = extract_image_location_size_feature_based(cropped_logo_path, logo_size, PDF_IMAGES_DIR, True)
+        exact_size_location = extract_image_location_size_feature_based(cropped_logo_path, logo_size, PDF_IMAGES_DIR, True, dpi=PDF_DPI)
         step_time = time.time() - step_start
         print(f"Location is {exact_size_location}")
 
@@ -244,7 +260,7 @@ def grade_checkpoint_2():
         global model
         if model is None:
             model = load_model(model_id)
-        
+
         step_start = time.time()
         logo_path = binary_judge_image(model, DOC_IMAGES_DIR, "Is this an image of ONLY the University of Washington logo?", GOLD_IMAGES_DIR + "logos/")
         step_time = time.time() - step_start
@@ -258,7 +274,7 @@ def grade_checkpoint_2():
 
             print("Locating Logo Image")
             step_start = time.time()
-            exact_size_location = extract_image_location_size_feature_based(cropped_logo_path, logo_size, PDF_IMAGES_DIR, True)
+            exact_size_location = extract_image_location_size_feature_based(cropped_logo_path, logo_size, PDF_IMAGES_DIR, True, dpi=PDF_DPI)
             step_time = time.time() - step_start
             print(f"Location is {exact_size_location}")
             if exact_size_location:
@@ -297,7 +313,7 @@ def grade_checkpoint_3(doc_structure):
 
         print("Locating Signature Image")
         step_start = time.time()
-        location = extract_image_location_size_feature_based(cropped_signature_path, signature_size, PDF_IMAGES_DIR, DEBUG)
+        location = extract_image_location_size_feature_based(cropped_signature_path, signature_size, PDF_IMAGES_DIR, DEBUG, dpi=PDF_DPI)
         print(f"Signature Location: {location}")
 
         location_success = False

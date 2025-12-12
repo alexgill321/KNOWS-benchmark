@@ -941,17 +941,30 @@ def grade_checkpoints(workspace_doc_id, cached_models=None):
 
         checkpoints: List[Checkpoint] = []
 
-        # Checkpoint 1 runs independently (Drive folder check)
-        checkpoints.append(grade_checkpoint_1())
+        from concurrent.futures import ThreadPoolExecutor
 
-        # Prefetch slide data for checkpoints 2 and 3 (parallel downloads)
-        print("\n----------------- PREFETCH SLIDE DATA ----------------")
         with tempfile.TemporaryDirectory() as prefetch_temp_dir:
-            prefetch_slide_data(prefetch_temp_dir)
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                # Phase 1: Start CP1 in parallel with prefetch
+                # CP1 is independent (only checks Drive folder, no cache needed)
+                cp1_future = executor.submit(grade_checkpoint_1)
 
-            # Run checkpoints 2 and 3 with cached data
-            checkpoints.append(grade_checkpoint_2())
-            checkpoints.append(grade_checkpoint_3())
+                # Prefetch slide data (blocks until complete, populates cache)
+                print("\n----------------- PREFETCH SLIDE DATA ----------------")
+                prefetch_slide_data(prefetch_temp_dir)
+
+                # Phase 2: Run CP2 and CP3 in parallel (both only read from cache)
+                cp2_future = executor.submit(grade_checkpoint_2)
+                cp3_future = executor.submit(grade_checkpoint_3)
+
+                # Collect results in order
+                cp1 = cp1_future.result()
+                cp2 = cp2_future.result()
+                cp3 = cp3_future.result()
+
+                checkpoints.append(cp1)
+                checkpoints.append(cp2)
+                checkpoints.append(cp3)
 
         total_execution_time = time.time() - total_start_time
         result = Result(checkpoints, total_execution_time=total_execution_time)

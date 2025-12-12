@@ -30,6 +30,7 @@ from src.browsergym.eval.eval_utils.google_services_helpers import get_sheet_con
 from src.browsergym.eval.eval_utils.table_utils import find_matching_column_or_row, is_text_visible_in_cell
 from src.browsergym.eval.eval_utils.text_utils import numerical_match_with_error
 from src.browsergym.eval.eval_utils.models import load_model
+from src.browsergym.eval.eval_utils.parallel_utils import parallel_download, parallel_execute
 
 # Local utils
 from src.browsergym.eval.tasks.sheets_38_apartment_finder_instance_1.utils import (
@@ -196,6 +197,8 @@ def grade_checkpoint_2():
     - The address matches or is contained in the extracted address.
     - The in-unit laundry status matches.
     - The pet-friendly status matches.
+
+    PARALLELIZED: Phase 1 fetches all URLs in parallel, Phase 2 extracts data in parallel.
     """
     print("----------------- CHECKPOINT 2 ----------------")
     global model, matched_columns, df
@@ -232,6 +235,66 @@ def grade_checkpoint_2():
 
     # Process up to 5 listings
     listings_to_check = min(5, len(df))
+
+    # ============ PHASE 1: Parallel URL fetching ============
+    print(f"  Phase 1: Fetching {listings_to_check} Craigslist pages in parallel...")
+    fetch_start = time.time()
+
+    # Build fetch tasks for valid URLs
+    fetch_tasks = []
+    listing_urls = {}  # listing_idx -> url
+    invalid_urls = {}  # listing_idx -> reason
+
+    for listing_idx in range(listings_to_check):
+        row = df.iloc[listing_idx]
+        url = str(row.get(url_col, "")) if url_col else ""
+        url = url.strip()
+
+        if not url or not is_valid_craigslist_url(url):
+            invalid_urls[listing_idx] = f"Invalid or missing URL: {url[:50]}..."
+        else:
+            listing_urls[listing_idx] = url
+            fetch_tasks.append({
+                'id': f'listing_{listing_idx}',
+                'func': fetch_craigslist_page,
+                'args': (url,)
+            })
+
+    # Fetch all URLs in parallel
+    html_contents = {}
+    if fetch_tasks:
+        fetch_results = parallel_download(fetch_tasks, max_workers=5, use_rate_limit=False)
+        for task_id, html in fetch_results.items():
+            listing_idx = int(task_id.split('_')[1])
+            html_contents[listing_idx] = html
+
+    fetch_time = time.time() - fetch_start
+    print(f"  Phase 1 complete: {len(html_contents)} pages fetched in {fetch_time:.2f}s")
+
+    # ============ PHASE 2: Parallel LLM extraction ============
+    print(f"  Phase 2: Extracting data from {len(html_contents)} pages in parallel...")
+    extract_start = time.time()
+
+    extraction_tasks = []
+    for listing_idx, html in html_contents.items():
+        if html:
+            extraction_tasks.append({
+                'id': f'listing_{listing_idx}',
+                'func': extract_craigslist_data_with_llm,
+                'args': (html, model)
+            })
+
+    extracted_data_map = {}
+    if extraction_tasks:
+        extraction_results = parallel_execute(extraction_tasks, max_workers=5)
+        for task_id, data in extraction_results.items():
+            listing_idx = int(task_id.split('_')[1])
+            extracted_data_map[listing_idx] = data
+
+    extract_time = time.time() - extract_start
+    print(f"  Phase 2 complete: {len(extracted_data_map)} extractions in {extract_time:.2f}s")
+
+    # ============ PHASE 3: Sequential validation (fast, no I/O) ============
     step_num = 0
 
     for listing_idx in range(listings_to_check):
@@ -240,17 +303,12 @@ def grade_checkpoint_2():
 
         # Step 1: URL is valid and accessible
         step_num += 1
-        step_start = time.time()
 
-        url = str(row.get(url_col, "")) if url_col else ""
-        url = url.strip()
-
-        if not url or not is_valid_craigslist_url(url):
-            step_time = time.time() - step_start
+        # Check for invalid URL
+        if listing_idx in invalid_urls:
             checkpoint.add_step(f"Listing {listing_num} - URL Valid", False, step_num,
-                              f"Invalid or missing URL: {url[:50]}...",
-                              execution_time=step_time)
-            # Skip remaining validations for this listing
+                              invalid_urls[listing_idx],
+                              execution_time=0)
             for skip_step in range(6):
                 step_num += 1
                 checkpoint.add_step(f"Listing {listing_num} - Skipped", False, step_num,
@@ -258,14 +316,14 @@ def grade_checkpoint_2():
                                   execution_time=0)
             continue
 
-        # Fetch Craigslist page HTML
-        html_content = fetch_craigslist_page(url)
-        step_time = time.time() - step_start
+        # Check if fetch failed
+        html_content = html_contents.get(listing_idx)
+        url = listing_urls.get(listing_idx, "")
 
         if not html_content:
             checkpoint.add_step(f"Listing {listing_num} - URL Valid", False, step_num,
                               f"Could not fetch page: {url[:50]}...",
-                              execution_time=step_time)
+                              execution_time=0)
             for skip_step in range(6):
                 step_num += 1
                 checkpoint.add_step(f"Listing {listing_num} - Skipped", False, step_num,
@@ -275,191 +333,165 @@ def grade_checkpoint_2():
 
         checkpoint.add_step(f"Listing {listing_num} - URL Valid", True, step_num,
                           f"Successfully fetched page: {url[:50]}...",
-                          execution_time=step_time)
+                          execution_time=0)
 
-        # Extract data from HTML using LLM
-        step_start = time.time()
-        extracted_data = extract_craigslist_data_with_llm(html_content, model)
-        extraction_time = time.time() - step_start
-
+        # Check if extraction failed
+        extracted_data = extracted_data_map.get(listing_idx)
         if not extracted_data:
             for skip_step in range(6):
                 step_num += 1
                 checkpoint.add_step(f"Listing {listing_num} - Extraction Failed", False, step_num,
                                   "Could not extract data from Craigslist page",
-                                  execution_time=extraction_time if skip_step == 0 else 0)
+                                  execution_time=0)
             continue
-
-        # extracted_data is a dict for Craigslist (not a list like Zillow)
 
         # Step 2: Price matches
         step_num += 1
-        step_start = time.time()
         try:
             user_price = float(re.sub(r'[^\d.]', '', str(row.get(price_col, 0)))) if price_col else 0
             craigslist_price = extracted_data.get("price")
 
             if craigslist_price and user_price:
                 is_match, diff = numerical_match_with_error(craigslist_price, user_price, error_percent=5.0)
-                step_time = time.time() - step_start
                 if is_match:
                     checkpoint.add_step(f"Listing {listing_num} - Price Match", True, step_num,
                                       f"Price ${user_price:.0f} matches Craigslist ${craigslist_price:.0f}",
-                                      execution_time=step_time)
+                                      execution_time=0)
                 else:
                     checkpoint.add_step(f"Listing {listing_num} - Price Match", False, step_num,
                                       f"Price mismatch: user ${user_price:.0f} vs Craigslist ${craigslist_price:.0f} ({diff:.1f}% diff)",
-                                      execution_time=step_time)
+                                      execution_time=0)
             else:
-                step_time = time.time() - step_start
                 checkpoint.add_step(f"Listing {listing_num} - Price Match", False, step_num,
                                   f"Missing price data (user: {user_price}, craigslist: {craigslist_price})",
-                                  execution_time=step_time)
+                                  execution_time=0)
         except Exception as e:
-            step_time = time.time() - step_start
             checkpoint.add_step(f"Listing {listing_num} - Price Match", False, step_num,
                               f"Error comparing prices: {str(e)[:50]}",
-                              execution_time=step_time)
+                              execution_time=0)
 
         # Step 3: Bedroom count matches
         step_num += 1
-        step_start = time.time()
         try:
             user_beds = float(re.sub(r'[^\d.]', '', str(row.get(bed_col, 0)))) if bed_col else 0
             craigslist_beds = extracted_data.get("bedrooms")
 
             if craigslist_beds is not None:
-                step_time = time.time() - step_start
                 if abs(user_beds == craigslist_beds):
                     checkpoint.add_step(f"Listing {listing_num} - Bedrooms Match", True, step_num,
                                       f"Bedrooms match: {int(user_beds)}",
-                                      execution_time=step_time)
+                                      execution_time=0)
                 else:
                     checkpoint.add_step(f"Listing {listing_num} - Bedrooms Match", False, step_num,
                                       f"Bedroom mismatch: user {user_beds} vs Craigslist {craigslist_beds}",
-                                      execution_time=step_time)
+                                      execution_time=0)
             else:
-                step_time = time.time() - step_start
                 checkpoint.add_step(f"Listing {listing_num} - Bedrooms Match", False, step_num,
                                   "Could not extract bedroom count from Craigslist",
-                                  execution_time=step_time)
+                                  execution_time=0)
         except Exception as e:
-            step_time = time.time() - step_start
             checkpoint.add_step(f"Listing {listing_num} - Bedrooms Match", False, step_num,
                               f"Error comparing bedrooms: {str(e)[:50]}",
-                              execution_time=step_time)
+                              execution_time=0)
 
         # Step 4: Bathroom count matches
         step_num += 1
-        step_start = time.time()
         try:
             user_baths = float(re.sub(r'[^\d.]', '', str(row.get(bath_col, 0)))) if bath_col else 0
             craigslist_baths = extracted_data.get("bathrooms")
 
             if craigslist_baths is not None:
-                step_time = time.time() - step_start
                 if abs(user_baths == craigslist_baths):
                     checkpoint.add_step(f"Listing {listing_num} - Bathrooms Match", True, step_num,
                                       f"Bathrooms match: {user_baths}",
-                                      execution_time=step_time)
+                                      execution_time=0)
                 else:
                     checkpoint.add_step(f"Listing {listing_num} - Bathrooms Match", False, step_num,
                                       f"Bathroom mismatch: user {user_baths} vs Craigslist {craigslist_baths}",
-                                      execution_time=step_time)
+                                      execution_time=0)
             else:
-                step_time = time.time() - step_start
                 checkpoint.add_step(f"Listing {listing_num} - Bathrooms Match", False, step_num,
                                   "Could not extract bathroom count from Craigslist",
-                                  execution_time=step_time)
+                                  execution_time=0)
         except Exception as e:
-            step_time = time.time() - step_start
             checkpoint.add_step(f"Listing {listing_num} - Bathrooms Match", False, step_num,
                               f"Error comparing bathrooms: {str(e)[:50]}",
-                              execution_time=step_time)
+                              execution_time=0)
 
         # Step 5: Address matches
         step_num += 1
-        step_start = time.time()
         try:
             user_addr = str(row.get(addr_col, "")) if addr_col else ""
             craigslist_addr = extracted_data.get("address", "")
 
-            step_time = time.time() - step_start
             if user_addr and craigslist_addr and compare_addresses(user_addr, craigslist_addr):
                 checkpoint.add_step(f"Listing {listing_num} - Address Match", True, step_num,
                                   f"Address matches: {user_addr[:40]}...",
-                                  execution_time=step_time)
+                                  execution_time=0)
             else:
                 checkpoint.add_step(f"Listing {listing_num} - Address Match", False, step_num,
                                   f"Address mismatch: '{user_addr[:30]}' vs '{str(craigslist_addr)[:30]}'",
-                                  execution_time=step_time)
+                                  execution_time=0)
         except Exception as e:
-            step_time = time.time() - step_start
             checkpoint.add_step(f"Listing {listing_num} - Address Match", False, step_num,
                               f"Error comparing addresses: {str(e)[:50]}",
-                              execution_time=step_time)
+                              execution_time=0)
 
         # Step 6: In-unit laundry status matches
         step_num += 1
-        step_start = time.time()
         try:
             user_laundry = normalize_boolean_value(str(row.get(laundry_col, ""))) if laundry_col else None
             craigslist_laundry_str = extracted_data.get("in_unit_laundry", "Unknown")
             craigslist_laundry = normalize_boolean_value(craigslist_laundry_str)
 
-            step_time = time.time() - step_start
             # Unknown is acceptable if user also has unknown or if Craigslist doesn't specify
             if user_laundry == craigslist_laundry:
                 status = "Yes" if user_laundry else "No"
                 checkpoint.add_step(f"Listing {listing_num} - Laundry Match", True, step_num,
                                   f"In-unit laundry: {status}",
-                                  execution_time=step_time)
+                                  execution_time=0)
             elif craigslist_laundry is None:
                 checkpoint.add_step(f"Listing {listing_num} - Laundry Match", True, step_num,
                                   f"Craigslist laundry status unclear, skipping check",
-                                  execution_time=step_time)
+                                  execution_time=0)
             else:
                 user_status = "Yes" if user_laundry else "No"
                 cl_status = "Yes" if craigslist_laundry else "No"
                 checkpoint.add_step(f"Listing {listing_num} - Laundry Match", False, step_num,
                                   f"Laundry mismatch: spreadsheet says {user_status}, Craigslist says {cl_status}",
-                                  execution_time=step_time)
+                                  execution_time=0)
         except Exception as e:
-            step_time = time.time() - step_start
             checkpoint.add_step(f"Listing {listing_num} - Laundry Match", False, step_num,
                               f"Error comparing laundry: {str(e)[:50]}",
-                              execution_time=step_time)
+                              execution_time=0)
 
         # Step 7: Pet-friendly status matches
         step_num += 1
-        step_start = time.time()
         try:
             user_pet = normalize_boolean_value(str(row.get(pet_col, ""))) if pet_col else None
             craigslist_pet_str = extracted_data.get("pet_friendly", "Unknown")
             craigslist_pet = normalize_boolean_value(craigslist_pet_str)
 
-            step_time = time.time() - step_start
             # Unknown is acceptable
             if user_pet == craigslist_pet:
                 status = "Yes" if user_pet else "No"
                 checkpoint.add_step(f"Listing {listing_num} - Pet-Friendly Match", True, step_num,
                                   f"Pet-friendly: {status}",
-                                  execution_time=step_time)
+                                  execution_time=0)
             elif craigslist_pet is None:
                 checkpoint.add_step(f"Listing {listing_num} - Pet-Friendly Match", True, step_num,
                                   f"Craigslist pet status unclear, skipping check",
-                                  execution_time=step_time)
+                                  execution_time=0)
             else:
                 user_status = "Yes" if user_pet else "No"
                 cl_status = "Yes" if craigslist_pet else "No"
                 checkpoint.add_step(f"Listing {listing_num} - Pet-Friendly Match", False, step_num,
                                   f"Pet mismatch: spreadsheet says {user_status}, Craigslist says {cl_status}",
-                                  execution_time=step_time)
+                                  execution_time=0)
         except Exception as e:
-            step_time = time.time() - step_start
             checkpoint.add_step(f"Listing {listing_num} - Pet-Friendly Match", False, step_num,
                               f"Error comparing pet status: {str(e)[:50]}",
-                              execution_time=step_time)
+                              execution_time=0)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
