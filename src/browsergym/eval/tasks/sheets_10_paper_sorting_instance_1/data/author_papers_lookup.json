@@ -1,0 +1,140 @@
+{
+  "original_papers": [
+    {
+      "original_paper_title": "Kimi K2: Open Agentic Intelligence",
+      "original_paper_arxiv_id": "2507.20534",
+      "first_authors": [
+        "Kimi Team"
+      ],
+      "normalized_first_authors": [
+        "kimi team"
+      ],
+      "gscholar_urls": [],
+      "new_papers_count": 3,
+      "new_paper_arxiv_ids": [
+        "2510.26692",
+        "2504.07491",
+        "2501.12599"
+      ],
+      "new_paper_titles": [
+        "Kimi Linear: An Expressive, Efficient Attention Architecture",
+        "Kimi-VL Technical Report",
+        "Kimi k1.5: Scaling Reinforcement Learning with LLMs"
+      ],
+      "expected_new_papers": 3
+    },
+    {
+      "original_paper_title": "Transcoders Find Interpretable LLM Feature Circuits",
+      "original_paper_arxiv_id": "2406.11944",
+      "first_authors": [
+        "Jacob Dunefsky",
+        "Philippe Chlenski"
+      ],
+      "normalized_first_authors": [
+        "jacob dunefsky",
+        "philippe chlenski"
+      ],
+      "gscholar_urls": [
+        "https://scholar.google.com/citations?user=EIy0uooAAAAJ&hl=en&oi=sra",
+        "https://scholar.google.com/citations?user=_8s9f44AAAAJ&hl=en&oi=sra"
+      ],
+      "new_papers_count": 0,
+      "new_paper_arxiv_ids": [],
+      "new_paper_titles": [],
+      "expected_new_papers": 0
+    },
+    {
+      "original_paper_title": "On the Fundamental Limits of LLMs at Scale",
+      "original_paper_arxiv_id": "2511.12869",
+      "first_authors": [
+        "Muhammad Ahmed Mohsin"
+      ],
+      "normalized_first_authors": [
+        "muhammad ahmed mohsin"
+      ],
+      "gscholar_urls": [
+        "https://scholar.google.com/citations?user=ccxOv_QAAAAJ&hl=en&oi=sra"
+      ],
+      "new_papers_count": 0,
+      "new_paper_arxiv_ids": [],
+      "new_paper_titles": [],
+      "expected_new_papers": 0
+    },
+    {
+      "original_paper_title": "Weight-sparse transformers have interpretable circuits",
+      "original_paper_arxiv_id": "2511.13653",
+      "first_authors": [
+        "Leo Gao"
+      ],
+      "normalized_first_authors": [
+        "leo gao"
+      ],
+      "gscholar_urls": [
+        "https://scholar.google.com/citations?user=r6mBY50AAAAJ&hl=en&oi=sra"
+      ],
+      "new_papers_count": 0,
+      "new_paper_arxiv_ids": [],
+      "new_paper_titles": [],
+      "expected_new_papers": 0
+    },
+    {
+      "original_paper_title": "Verifying Chain-of-Thought Reasoning via Its Computational Graph",
+      "original_paper_arxiv_id": "2510.09312",
+      "first_authors": [
+        "Zheng Zhao"
+      ],
+      "normalized_first_authors": [
+        "zheng zhao"
+      ],
+      "gscholar_urls": [
+        "https://scholar.google.com/citations?user=UO0MJeQAAAAJ&hl=en&oi=sra"
+      ],
+      "new_papers_count": 0,
+      "new_paper_arxiv_ids": [],
+      "new_paper_titles": [],
+      "expected_new_papers": 0
+    },
+    {
+      "original_paper_title": "From Memorization to Reasoning in the Spectrum of Loss Curvature",
+      "original_paper_arxiv_id": "2510.24256",
+      "first_authors": [
+        "Jack Merullo",
+        "Srihita Vatsavaya"
+      ],
+      "normalized_first_authors": [
+        "jack merullo",
+        "srihita vatsavaya"
+      ],
+      "gscholar_urls": [
+        "https://scholar.google.com/citations?user=7w0xLF4AAAAJ&hl=en&oi=sra",
+        "https://scholar.google.com/citations?user=msRx3NwAAAAJ&hl=en&oi=sra"
+      ],
+      "new_papers_count": 0,
+      "new_paper_arxiv_ids": [],
+      "new_paper_titles": [],
+      "expected_new_papers": 0
+    },
+    {
+      "original_paper_title": "Cognitive Foundations for Reasoning and Their Manifestation in LLMs",
+      "original_paper_arxiv_id": "2511.16660",
+      "first_authors": [
+        "Priyanka Kargupta",
+        "Shuyue Stella Li"
+      ],
+      "normalized_first_authors": [
+        "priyanka kargupta",
+        "shuyue stella li"
+      ],
+      "gscholar_urls": [
+        "https://scholar.google.com/citations?user=Iu6nUEkAAAAJ&hl=en&oi=sra",
+        "https://scholar.google.com/citations?user=CRfOlOEAAAAJ&hl=en&oi=sra"
+      ],
+      "new_papers_count": 0,
+      "new_paper_arxiv_ids": [],
+      "new_paper_titles": [],
+      "expected_new_papers": 0
+    }
+  ],
+  "count": 7,
+  "generated_at": "2025-12-12T18:43:53.568650"
+}
