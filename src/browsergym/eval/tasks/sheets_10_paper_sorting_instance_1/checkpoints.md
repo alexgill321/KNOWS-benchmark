@@ -17,6 +17,7 @@ The spreadsheet has the correct column headers.
 4. **Column D Header:** Column D is labeled "arXiv Link" (or similar)
 5. **Column E Header:** Column E is labeled "Drive Link" (or similar)
 6. **Column F Header:** Column F is labeled "Figure 1" (or similar)
+7. **Column G Header:** Column G is labeled "New Papers" (or similar) and is a column of checkboxes
 
 ---
 
@@ -30,7 +31,8 @@ The spreadsheet contains correct information for all original papers from the so
 4. **arXiv Links (Column D):** X/N papers have valid arXiv URLs pointing to correct papers
 5. **Drive Links (Column E):** X/N papers have valid Drive URLs pointing to correct PDFs
 6. **Figure 1 Images (Column F):** X/N papers have images that match Figure 1 from the paper
-7. **arXiv URLs Visited:** X/N original paper arXiv URLs appear in the agent browsing history
+7. **New Papers Checkbox (Column G):** X/N papers have unchecked checkboxes (Not new papers)
+8. **arXiv URLs Visited:** X/N original paper arXiv URLs appear in the agent browsing history
 
 ---
 
@@ -52,7 +54,8 @@ The spreadsheet contains correct information for all new papers added by the age
 4. **arXiv Links (Column D):** X/M new papers have valid arXiv URLs pointing to correct papers
 5. **Drive Links (Column E):** X/M new papers have valid Drive URLs in the correct folder
 6. **Figure 1 Images (Column F):** X/M new papers have images that match Figure 1 from the paper
-7. **arXiv URLs Visited:** X/M new paper arXiv URLs appear in the agent browsing history
+7. **New Papers Checkbox (Column G):** X/N papers have checked checkboxes (Not new papers)
+8. **arXiv URLs Visited:** X/M new paper arXiv URLs appear in the agent browsing history
 
 ---
 
@@ -60,6 +63,6 @@ The spreadsheet contains correct information for all new papers added by the age
 Rows are correctly highlighted and organized by color grouping.
 
 ### Eval Steps:
-1. **Yellow Highlighting:** Binary (pass/fail) - all new paper rows must be yellow highlighted
-2. **Blue Highlighting:** Binary (pass/fail) - all papers with "world models" in related works must be blue highlighted
+1. **Yellow Highlighting:** Binary (pass/fail) - all papers that mention "chain-of-thought" in related works or similar section are highlighted
 3. **Row Grouping:** Binary (pass/fail) - rows must be grouped by highlight color (not interleaved)
+4. **Text Overflow:** No text in any cell is hidden due to cell overflow issues.

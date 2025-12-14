@@ -184,7 +184,7 @@
       "gold_labels_first_authors_normalized": [
         "kimi team"
       ],
-      "figure_1_path": "data/gold_figures/original_1_fig1.pdf",
+      "figure_1_path": "data/gold_figures/original_1_fig1.png",
       "has_world_models": false
     },
     {
@@ -207,7 +207,7 @@
         "jacob dunefsky",
         "philippe chlenski"
       ],
-      "figure_1_path": "data/gold_figures/original_2_fig1.PNG",
+      "figure_1_path": "data/gold_figures/original_2_fig1.png",
       "has_world_models": false
     },
     {
@@ -240,7 +240,7 @@
       "gold_labels_first_authors_normalized": [
         "muhammad ahmed mohsin"
       ],
-      "figure_1_path": "data/gold_figures/original_3_fig1.pdf",
+      "figure_1_path": "data/gold_figures/original_3_fig1.png",
       "has_world_models": false
     },
     {
@@ -264,7 +264,7 @@
       "gold_labels_first_authors_normalized": [
         "leo gao"
       ],
-      "figure_1_path": "data/gold_figures/original_4_fig1.pdf",
+      "figure_1_path": "data/gold_figures/original_4_fig1.png",
       "has_world_models": false
     },
     {
@@ -287,7 +287,7 @@
       "gold_labels_first_authors_normalized": [
         "zheng zhao"
       ],
-      "figure_1_path": "data/gold_figures/original_5_fig1.pdf",
+      "figure_1_path": "data/gold_figures/original_5_fig1.png",
       "has_world_models": false
     },
     {
@@ -311,7 +311,7 @@
         "jack merullo",
         "srihita vatsavaya"
       ],
-      "figure_1_path": "data/gold_figures/original_6_fig1.pdf",
+      "figure_1_path": "data/gold_figures/original_6_fig1.png",
       "has_world_models": false
     },
     {
@@ -343,11 +343,12 @@
         "priyanka kargupta",
         "shuyue stella li"
       ],
-      "figure_1_path": "data/gold_figures/original_7_fig1.pdf",
+      "figure_1_path": "data/gold_figures/original_7_fig1.png",
       "has_world_models": false
     }
   ],
   "count": 7,
   "source_folder_id": "1dfRMRjBHH4F1S9WMD6p6VqpYQZ-pbKWB",
-  "generated_at": "2025-12-12T18:43:53.561915"
+  "generated_at": "2025-12-14T00:44:23.213024",
+  "figure_extraction_date": "2025-12-14T01:05:23.666011"
 }

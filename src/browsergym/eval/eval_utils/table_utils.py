@@ -293,3 +293,167 @@ def is_text_visible_in_cell(
 
     # Unknown wrap strategy, assume visible
     return True
+
+
+# =============================================================================
+# Google Sheets Image Extraction Utilities
+# =============================================================================
+
+def extract_image_url_from_cell(cell_value: str) -> Optional[str]:
+    """Extract image URL from a cell value string.
+
+    Handles various formats:
+    - Direct URL (http://... or https://...)
+    - Google Sheets IMAGE() formula: =IMAGE("url")
+    - Just the URL embedded in text
+
+    Args:
+        cell_value: The cell value string
+
+    Returns:
+        str: The extracted URL, or None if not found
+    """
+    import re
+
+    if not cell_value:
+        return None
+
+    cell_value = str(cell_value).strip()
+
+    # Direct URL
+    if cell_value.startswith('http://') or cell_value.startswith('https://'):
+        return cell_value
+
+    # IMAGE() formula: =IMAGE("url") or =IMAGE('url')
+    image_match = re.search(r'IMAGE\s*\(\s*["\']([^"\']+)["\']', cell_value, re.IGNORECASE)
+    if image_match:
+        return image_match.group(1)
+
+    # Just extract any URL from the value
+    url_match = re.search(r'(https?://[^\s"\'<>]+)', cell_value)
+    if url_match:
+        return url_match.group(1)
+
+    return None
+
+
+def get_image_url_from_raw_sheet_cell(
+    sheet_raw: Dict[str, Any],
+    row_idx: int,
+    col_idx: int
+) -> Optional[str]:
+    """Extract image URL from raw Google Sheets API response at a specific cell position.
+
+    This accesses the raw Google Sheets API response to get:
+    1. userEnteredValue.formulaValue - for =IMAGE("url") formulas
+    2. userEnteredValue.stringValue - for direct URLs
+    3. formattedValue - as fallback
+
+    Args:
+        sheet_raw: The raw Google Sheets API response from get_sheet_content()
+        row_idx: 0-based row index (including header)
+        col_idx: 0-based column index
+
+    Returns:
+        str: The extracted image URL, or None if not found
+    """
+    if not sheet_raw:
+        return None
+
+    try:
+        sheets = sheet_raw.get('sheets', [])
+        if not sheets:
+            return None
+
+        # Get the first sheet's data
+        sheet_data = sheets[0].get('data', [{}])[0]
+        rows = sheet_data.get('rowData', [])
+
+        if row_idx >= len(rows):
+            return None
+
+        row = rows[row_idx]
+        values = row.get('values', [])
+
+        if col_idx >= len(values):
+            return None
+
+        cell = values[col_idx]
+
+        # Try to get the formula (for =IMAGE("url"))
+        user_entered = cell.get('userEnteredValue', {})
+
+        # Check formulaValue first (contains =IMAGE("url"))
+        formula_value = user_entered.get('formulaValue', '')
+        if formula_value:
+            url = extract_image_url_from_cell(formula_value)
+            if url:
+                return url
+
+        # Check stringValue (might be a direct URL)
+        string_value = user_entered.get('stringValue', '')
+        if string_value:
+            url = extract_image_url_from_cell(string_value)
+            if url:
+                return url
+
+        # Fallback to formattedValue
+        formatted_value = cell.get('formattedValue', '')
+        if formatted_value:
+            url = extract_image_url_from_cell(formatted_value)
+            if url:
+                return url
+
+        return None
+
+    except Exception as e:
+        print(f"Error extracting image URL from raw cell ({row_idx}, {col_idx}): {e}")
+        return None
+
+
+def get_column_index_by_name(
+    df: pd.DataFrame,
+    col_name: str,
+    matched_columns: Dict[str, str]
+) -> int:
+    """Get the 0-based column index from a logical column name.
+
+    Args:
+        df: The pandas DataFrame
+        col_name: The logical column name (e.g., "Figure 1")
+        matched_columns: Mapping of logical names to actual column names
+
+    Returns:
+        int: 0-based column index, or -1 if not found
+    """
+    if not matched_columns or df is None:
+        return -1
+
+    actual_col_name = matched_columns.get(col_name)
+    if not actual_col_name:
+        return -1
+
+    try:
+        col_list = list(df.columns)
+        return col_list.index(actual_col_name)
+    except ValueError:
+        return -1
+
+
+def get_sheet_row_index_from_dataframe_row(df_row, header_rows: int = 1) -> int:
+    """Get the 0-based row index in raw sheet data for a DataFrame row.
+
+    The DataFrame row index corresponds to the data row position.
+    Adding header_rows accounts for header row(s) in the raw sheet data.
+
+    Args:
+        df_row: A pandas Series representing a matched row (with .name attribute)
+        header_rows: Number of header rows in the sheet (default 1)
+
+    Returns:
+        int: 0-based row index in raw sheet data, or -1 if invalid
+    """
+    try:
+        return int(df_row.name) + header_rows
+    except:
+        return -1

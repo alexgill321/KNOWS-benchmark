@@ -35,13 +35,20 @@ from src.browsergym.eval.eval_utils.google_services_helpers import get_sheet_con
 from src.browsergym.eval.eval_utils.text_utils import text_fuzzy_match_contained_long
 from src.browsergym.eval.eval_utils.image_utils import binary_compare_images
 from src.browsergym.eval.eval_utils.models import load_model
+from src.browsergym.eval.eval_utils.table_utils import (
+    extract_image_url_from_cell,
+    get_image_url_from_raw_sheet_cell,
+    get_column_index_by_name,
+    get_sheet_row_index_from_dataframe_row
+)
+import tempfile
+import requests
 
 # Local imports
 from src.browsergym.eval.tasks.sheets_10_paper_sorting_instance_1.utils import (
+    ARXIV_HEADERS,
     extract_arxiv_id_from_url,
-    validate_arxiv_url,
     extract_drive_file_id,
-    validate_drive_url,
     parse_authors_string,
     normalize_author_name,
     compare_authors_list,
@@ -79,6 +86,9 @@ GOLD_PAPERS = None
 GOLD_NEW_PAPERS = None
 AUTHOR_LOOKUP = None
 
+# Browsing history (passed from grade_checkpoints)
+BROWSING_HISTORY = None
+
 
 def load_gold_data():
     """Load preprocessed gold data from JSON files."""
@@ -113,6 +123,93 @@ def load_gold_data():
         AUTHOR_LOOKUP = {"first_authors": [], "count": 0}
 
 
+def check_figure_contained(gold_figure_path: str, user_figure_url_or_path: str, vlm_model) -> bool:
+    """Check if gold figure is contained within user's figure using VLM.
+
+    Args:
+        gold_figure_path: Relative path to gold figure (e.g., data/gold_figures/original_1_fig1.png)
+        user_figure_url_or_path: URL or path to user's figure
+        vlm_model: VLM model for comparison
+
+    Returns:
+        bool: True if gold figure is contained in user's image
+    """
+    user_path = None
+    temp_file = None
+
+    try:
+        # Try to extract URL if it's embedded in a formula
+        image_url = extract_image_url_from_cell(user_figure_url_or_path)
+
+        if not image_url:
+            print(f"Could not extract image URL from: {user_figure_url_or_path[:100]}...")
+            return False
+
+        print(f"Checking figure: {gold_figure_path} against {image_url[:80]}...")
+
+        # Download user image if it's a URL
+        if image_url.startswith('http'):
+            try:
+                # Add delay for arXiv URLs to avoid rate limiting
+                if 'arxiv.org' in image_url:
+                    time.sleep(1)
+                response = requests.get(image_url, headers=ARXIV_HEADERS, timeout=30)
+                response.raise_for_status()
+                temp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
+                temp_file.write(response.content)
+                temp_file.close()
+                user_path = temp_file.name
+            except Exception as e:
+                print(f"Failed to download user image: {e}")
+                return False
+        else:
+            user_path = image_url
+
+        # Full path to gold figure
+        gold_full_path = os.path.join(TASK_DIR, gold_figure_path)
+
+        if not os.path.exists(gold_full_path):
+            print(f"Gold figure not found: {gold_full_path}")
+            return False
+
+        if not os.path.exists(user_path):
+            print(f"User figure not found: {user_path}")
+            return False
+
+        # Use VLM to check if gold figure is contained in user's screenshot
+        messages = [
+            {
+                "role": "system",
+                "content": [{"type": "text", "text": "You compare images to verify if a reference figure appears within a screenshot."}]
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Reference Figure 1 from paper:"},
+                    {"type": "image", "image": gold_full_path},
+                    {"type": "text", "text": "Screenshot/image from spreadsheet:"},
+                    {"type": "image", "image": user_path},
+                    {"type": "text", "text": "Does the screenshot contain the reference Figure 1? The screenshot may include additional text, captions, or other content around the figure - that's acceptable. We need to verify that Figure 1 (or its key visual content) appears somewhere in the screenshot. Answer only YES or NO."}
+                ]
+            }
+        ]
+
+        response = vlm_model(messages).strip().upper()
+        result = response.startswith('YES')
+        print(f"  VLM response: {response[:50]}... -> {result}")
+        return result
+    except Exception as e:
+        print(f"VLM figure comparison error: {e}")
+        return False
+    finally:
+        # Cleanup temp file if created
+        if temp_file and os.path.exists(temp_file.name):
+            try:
+                os.unlink(temp_file.name)
+            except:
+                pass
+
+
 def setup(workspace_doc_id: str):
     """Setup function to initialize the evaluator.
 
@@ -140,7 +237,7 @@ def setup(workspace_doc_id: str):
 
 
 def grade_checkpoint_1():
-    """Checkpoint 1: Spreadsheet Structure (6 steps).
+    """Checkpoint 1: Spreadsheet Structure (7 steps).
 
     Validates that the spreadsheet has correct column headers:
     1. Title column (Column A)
@@ -149,11 +246,12 @@ def grade_checkpoint_1():
     4. arXiv Link column (Column D)
     5. Drive Link column (Column E)
     6. Figure 1 column (Column F)
+    7. New Papers column (Column G) - checkbox
     """
     print("----------------- CHECKPOINT 1 ----------------")
     global model, matched_columns, df
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=6, result=0, name="Spreadsheet Structure")
+    checkpoint = Checkpoint(total=7, result=0, name="Spreadsheet Structure")
 
     if not table_data or df is None or df.empty:
         checkpoint.add_step("Table Data Extraction", False, 1,
@@ -169,7 +267,8 @@ def grade_checkpoint_1():
         ("Abstract", ["abstract", "summary"]),
         ("arXiv Link", ["arxiv", "link", "url"]),
         ("Drive Link", ["drive", "pdf", "file", "google"]),
-        ("Figure 1", ["figure", "fig", "image", "screenshot"])
+        ("Figure 1", ["figure", "fig", "image", "screenshot"]),
+        ("New Papers", ["new", "checkbox", "added", "new paper"])
     ]
 
     column_lower = [str(col).lower() for col in df.columns]
@@ -206,23 +305,29 @@ def grade_checkpoint_1():
 
 
 def grade_checkpoint_2():
-    """Checkpoint 2: Original Papers Validation (7 steps, each X/N).
+    """Checkpoint 2: Original Papers Validation (8 steps × N papers).
 
     For each of the N original papers:
-    1. Titles match (fuzzy)
-    2. Authors match (exact after normalization)
-    3. Abstracts match (fuzzy)
-    4. arXiv Links valid
-    5. Drive Links valid
-    6. Figure 1 images match
-    7. arXiv URLs appear in browsing history
+    1. First match the row by title or arxiv ID
+    2. Then validate each column of that row:
+       - Title matches (fuzzy)
+       - Authors match (exact after normalization)
+       - Abstract matches (fuzzy)
+       - arXiv Link valid
+       - Drive Link valid
+       - Figure 1 image matches (VLM containment check)
+       - New Papers checkbox unchecked (FALSE)
+       - arXiv URL appears in browsing history
+
+    Total = 8 * N points (1 point per paper per category)
     """
     print("----------------- CHECKPOINT 2 ----------------")
-    global model, matched_columns, df
+    global model, matched_columns, df, BROWSING_HISTORY
     checkpoint_start = time.time()
 
     N = GOLD_PAPERS.get('count', 0)
-    checkpoint = Checkpoint(total=7, result=0, name="Original Papers Validation")
+    # Total = 8 categories × N papers
+    checkpoint = Checkpoint(total=8*N, result=0, name="Original Papers Validation")
 
     if N == 0:
         checkpoint.add_step("Gold Data", False, 1,
@@ -246,127 +351,234 @@ def grade_checkpoint_2():
     abstract_col = matched_columns.get('Abstract')
     arxiv_col = matched_columns.get('arXiv Link')
     drive_col = matched_columns.get('Drive Link')
+    figure_col = matched_columns.get('Figure 1')
+    checkbox_col = matched_columns.get('New Papers')
 
-    # Step 1: Titles match
-    step_start = time.time()
+    # Load VLM model for figure comparison (once, outside loop)
+    vlm_model = None
+    figures_with_gold = [p for p in gold_papers if p.get('figure_1_path')]
+    if figures_with_gold and figure_col:
+        try:
+            vlm_model = load_model(model_id)
+        except Exception as e:
+            print(f"Failed to load VLM model for figure comparison: {e}")
+
+    # Counters for each validation category
     title_matches = 0
-    for gold in gold_papers:
+    author_matches = 0
+    abstract_matches = 0
+    arxiv_valid = 0
+    drive_valid = 0
+    figure_matches = 0
+    unchecked_count = 0
+    arxiv_urls_found = 0
+
+    # Track papers that couldn't be matched
+    unmatched_papers = []
+
+    # Process each gold paper by row
+    for gold_idx, gold in enumerate(gold_papers):
         gold_title = gold.get('title', '')
+        gold_arxiv_id = gold.get('arxiv_id', '')
+
+        # Step 1: Find matching row by title or arxiv ID
+        matched_row = None
         for _, row in df.iterrows():
-            user_title = str(row.get(title_col, '')) if title_col else ''
-            is_match, score = fuzzy_match_text(gold_title, user_title, threshold=85)
-            if is_match:
-                title_matches += 1
-                break
-    step_time = time.time() - step_start
+            # Try matching by arxiv ID first (more reliable)
+            if arxiv_col and gold_arxiv_id:
+                user_arxiv_url = str(row.get(arxiv_col, ''))
+                user_arxiv_id = extract_arxiv_id_from_url(user_arxiv_url)
+                if user_arxiv_id and user_arxiv_id == gold_arxiv_id:
+                    matched_row = row
+                    break
+
+            # Fall back to title matching
+            if title_col:
+                user_title = str(row.get(title_col, ''))
+                is_match, _ = fuzzy_match_text(gold_title, user_title, threshold=85)
+                if is_match:
+                    matched_row = row
+                    break
+
+        if matched_row is None:
+            unmatched_papers.append(gold_title[:40])
+            print(f"  Paper {gold_idx + 1}: '{gold_title[:50]}...' - NO MATCH FOUND")
+            continue
+
+        print(f"  Paper {gold_idx + 1}: '{gold_title[:50]}...' - MATCHED")
+
+        # Step 2: Validate each column of the matched row
+
+        # Title validation
+        user_title = str(matched_row.get(title_col, '')) if title_col else ''
+        is_match, _ = fuzzy_match_text(gold_title, user_title, threshold=85)
+        if is_match:
+            title_matches += 1
+
+        # Authors validation
+        gold_authors = gold.get('authors', [])
+        user_authors_str = str(matched_row.get(authors_col, '')) if authors_col else ''
+        user_authors = parse_authors_string(user_authors_str)
+        auth_match, _ = compare_authors_list(user_authors, gold_authors, strict=False)
+        if auth_match:
+            author_matches += 1
+
+        # Abstract validation
+        gold_abstract = gold.get('abstract', '')
+        user_abstract = str(matched_row.get(abstract_col, '')) if abstract_col else ''
+        abs_match, _ = fuzzy_match_text(gold_abstract, user_abstract, threshold=80)
+        if abs_match:
+            abstract_matches += 1
+
+        # arXiv Link validation
+        user_arxiv_url = str(matched_row.get(arxiv_col, '')) if arxiv_col else ''
+        user_arxiv_id = extract_arxiv_id_from_url(user_arxiv_url)
+        if user_arxiv_id and user_arxiv_id == gold_arxiv_id:
+            arxiv_valid += 1
+
+        # Drive Link validation
+        user_drive_url = str(matched_row.get(drive_col, '')) if drive_col else ''
+        user_file_id = extract_drive_file_id(user_drive_url)
+        if user_file_id:
+            drive_valid += 1
+
+        # Figure 1 validation - use raw cell data to get IMAGE formula URL
+        gold_figure_path = gold.get('figure_1_path')
+        if gold_figure_path and figure_col and vlm_model:
+            # Get row and column indices for raw cell access
+            row_idx = get_sheet_row_index_from_dataframe_row(matched_row, header_rows=1)
+            col_idx = get_column_index_by_name(df, 'Figure 1', matched_columns)
+
+            # Try to get image URL from raw cell data first
+            user_figure_url = None
+            if row_idx >= 0 and col_idx >= 0:
+                user_figure_url = get_image_url_from_raw_sheet_cell(sheet_raw, row_idx, col_idx)
+
+            # Fallback to dataframe value if raw extraction failed
+            if not user_figure_url:
+                user_figure_val = str(matched_row.get(figure_col, ''))
+                if user_figure_val and user_figure_val.lower() != 'nan':
+                    user_figure_url = extract_image_url_from_cell(user_figure_val)
+
+            if user_figure_url:
+                if check_figure_contained(gold_figure_path, user_figure_url, vlm_model):
+                    figure_matches += 1
+            else:
+                print(f"    No figure URL found for paper: {gold_title[:40]}...")
+        elif not gold_figure_path:
+            # No gold figure for this paper, count as match (skipped)
+            figure_matches += 1
+
+        # Checkbox validation (should be unchecked for original papers)
+        if checkbox_col:
+            checkbox_val = str(matched_row.get(checkbox_col, '')).upper()
+            if checkbox_val in ['FALSE', '', 'NO', 'UNCHECKED', 'N', '0']:
+                unchecked_count += 1
+
+        # Browsing history validation
+        if BROWSING_HISTORY:
+            gold_arxiv_url = gold.get('arxiv_url', '')
+            for url in BROWSING_HISTORY:
+                if gold_arxiv_id and gold_arxiv_id in url:
+                    arxiv_urls_found += 1
+                    break
+                elif gold_arxiv_url and gold_arxiv_url in url:
+                    arxiv_urls_found += 1
+                    break
+
+    # Add steps with results
+    step_time = time.time() - checkpoint_start
+
+    checkpoint.result += title_matches
     checkpoint.add_step("Titles Match", title_matches == N, 1,
                       f"{title_matches}/{N} titles match",
                       execution_time=step_time)
 
-    # Step 2: Authors match
-    step_start = time.time()
-    author_matches = 0
-    for gold in gold_papers:
-        gold_authors = gold.get('authors', [])
-        for _, row in df.iterrows():
-            user_authors_str = str(row.get(authors_col, '')) if authors_col else ''
-            user_authors = parse_authors_string(user_authors_str)
-            is_match, _ = compare_authors_list(user_authors, gold_authors, strict=False)
-            if is_match:
-                author_matches += 1
-                break
-    step_time = time.time() - step_start
+    checkpoint.result += author_matches
     checkpoint.add_step("Authors Match", author_matches == N, 2,
                       f"{author_matches}/{N} author lists match",
-                      execution_time=step_time)
+                      execution_time=0)
 
-    # Step 3: Abstracts match
-    step_start = time.time()
-    abstract_matches = 0
-    for gold in gold_papers:
-        gold_abstract = gold.get('abstract', '')
-        for _, row in df.iterrows():
-            user_abstract = str(row.get(abstract_col, '')) if abstract_col else ''
-            is_match, score = fuzzy_match_text(gold_abstract, user_abstract, threshold=80)
-            if is_match:
-                abstract_matches += 1
-                break
-    step_time = time.time() - step_start
+    checkpoint.result += abstract_matches
     checkpoint.add_step("Abstracts Match", abstract_matches == N, 3,
                       f"{abstract_matches}/{N} abstracts match",
-                      execution_time=step_time)
+                      execution_time=0)
 
-    # Step 4: arXiv Links valid
-    step_start = time.time()
-    arxiv_valid = 0
-    for gold in gold_papers:
-        gold_arxiv_id = gold.get('arxiv_id', '')
-        for _, row in df.iterrows():
-            user_arxiv_url = str(row.get(arxiv_col, '')) if arxiv_col else ''
-            user_arxiv_id = extract_arxiv_id_from_url(user_arxiv_url)
-            if user_arxiv_id and user_arxiv_id == gold_arxiv_id:
-                arxiv_valid += 1
-                break
-    step_time = time.time() - step_start
+    checkpoint.result += arxiv_valid
     checkpoint.add_step("arXiv Links Valid", arxiv_valid == N, 4,
                       f"{arxiv_valid}/{N} arXiv links valid",
-                      execution_time=step_time)
+                      execution_time=0)
 
-    # Step 5: Drive Links valid
-    step_start = time.time()
-    drive_valid = 0
-    for gold in gold_papers:
-        gold_file_id = gold.get('drive_file_id', '')
-        for _, row in df.iterrows():
-            user_drive_url = str(row.get(drive_col, '')) if drive_col else ''
-            user_file_id = extract_drive_file_id(user_drive_url)
-            if user_file_id:
-                # For now, just check if it's a valid Drive URL
-                # Could add folder membership check with API call
-                drive_valid += 1
-                break
-    step_time = time.time() - step_start
+    checkpoint.result += drive_valid
     checkpoint.add_step("Drive Links Valid", drive_valid == N, 5,
                       f"{drive_valid}/{N} Drive links valid",
-                      execution_time=step_time)
+                      execution_time=0)
 
-    # Step 6: Figure 1 images (skip for now if no gold figures)
-    step_start = time.time()
-    figures_with_gold = [p for p in gold_papers if p.get('figure_1_path')]
-    if figures_with_gold:
-        # Would need VLM comparison here
-        figure_matches = 0  # Placeholder
-        checkpoint.add_step("Figure 1 Images", False, 6,
-                          f"Figure comparison not yet implemented ({len(figures_with_gold)} gold figures available)",
-                          execution_time=time.time() - step_start)
-    else:
+    # Figure 1 step
+    if figures_with_gold and figure_col:
+        if vlm_model:
+            checkpoint.result += figure_matches
+            checkpoint.add_step("Figure 1 Images", figure_matches == len(figures_with_gold), 6,
+                              f"{figure_matches}/{len(figures_with_gold)} figures contain correct Figure 1",
+                              execution_time=0)
+        else:
+            checkpoint.add_step("Figure 1 Images", False, 6,
+                              "VLM model not available for figure comparison",
+                              execution_time=0)
+    elif not figures_with_gold:
+        checkpoint.result += N
         checkpoint.add_step("Figure 1 Images", True, 6,
                           "No gold figure data to compare (skipped)",
-                          execution_time=time.time() - step_start)
+                          execution_time=0)
+    else:
+        checkpoint.add_step("Figure 1 Images", False, 6,
+                          "Figure 1 column not found in spreadsheet",
+                          execution_time=0)
 
-    # Step 7: arXiv URLs in browsing history (checked in grade_checkpoints)
-    checkpoint.add_step("arXiv URLs Visited", True, 7,
-                      "Browsing history check deferred",
-                      execution_time=0)
+    # Checkbox step
+    if checkbox_col:
+        checkpoint.result += unchecked_count
+        checkpoint.add_step("Checkbox Unchecked", unchecked_count == N, 7,
+                          f"{unchecked_count}/{N} original papers have unchecked checkbox",
+                          execution_time=0)
+    else:
+        checkpoint.add_step("Checkbox Unchecked", False, 7,
+                          "New Papers checkbox column not found",
+                          execution_time=0)
+
+    # Browsing history step
+    if BROWSING_HISTORY:
+        checkpoint.result += arxiv_urls_found
+        checkpoint.add_step("arXiv URLs Visited", arxiv_urls_found == N, 8,
+                          f"{arxiv_urls_found}/{N} arXiv URLs in browsing history",
+                          execution_time=0)
+    else:
+        checkpoint.add_step("arXiv URLs Visited", False, 8,
+                          "No browsing history provided",
+                          execution_time=0)
+
+    # Log unmatched papers
+    if unmatched_papers:
+        print(f"  WARNING: {len(unmatched_papers)} papers could not be matched: {unmatched_papers}")
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
 
 def grade_checkpoint_3():
-    """Checkpoint 3: New Papers Discovery (1 step).
+    """Checkpoint 3: New Papers Discovery (N total points).
 
     For each ORIGINAL PAPER, check if at least 3 new papers were added
     where ANY of that paper's first authors appears anywhere in the author list.
 
-    This is paper-centric, not author-centric.
+    Total = N points (1 point per original paper that has ≥3 new papers)
     """
     print("----------------- CHECKPOINT 3 ----------------")
     global matched_columns, df
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=1, result=0, name="New Papers Discovery")
 
     if not AUTHOR_LOOKUP or not AUTHOR_LOOKUP.get('original_papers'):
+        checkpoint = Checkpoint(total=1, result=0, name="New Papers Discovery")
         checkpoint.add_step("Paper Coverage", False, 1,
                           "No author lookup data available",
                           execution_time=time.time() - checkpoint_start)
@@ -374,6 +586,11 @@ def grade_checkpoint_3():
         return checkpoint
 
     original_papers_lookup = AUTHOR_LOOKUP.get('original_papers', [])
+    N = len(original_papers_lookup)
+
+    # Total = N (1 point per original paper with enough new papers)
+    checkpoint = Checkpoint(total=N, result=0, name="New Papers Discovery")
+
     authors_col = matched_columns.get('Authors')
     title_col = matched_columns.get('Title')
 
@@ -392,7 +609,6 @@ def grade_checkpoint_3():
             original_titles_normalized.add(orig_title.lower().strip())
 
     papers_with_enough_new = 0
-    total_original_papers = len(original_papers_lookup)
     details = []
 
     for paper_entry in original_papers_lookup:
@@ -437,13 +653,16 @@ def grade_checkpoint_3():
 
     step_time = time.time() - checkpoint_start
 
-    if papers_with_enough_new == total_original_papers:
+    # Set result to the number of original papers with enough new papers
+    checkpoint.result = papers_with_enough_new
+
+    if papers_with_enough_new == N:
         checkpoint.add_step("Paper Coverage", True, 1,
-                          f"All {total_original_papers} original papers have ≥3 new papers from their first authors",
+                          f"All {N} original papers have ≥3 new papers from their first authors",
                           execution_time=step_time)
     else:
         checkpoint.add_step("Paper Coverage", False, 1,
-                          f"{papers_with_enough_new}/{total_original_papers} original papers have enough new papers. {'; '.join(details[:3])}",
+                          f"{papers_with_enough_new}/{N} original papers have enough new papers. {'; '.join(details[:3])}",
                           execution_time=step_time)
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -451,98 +670,327 @@ def grade_checkpoint_3():
 
 
 def grade_checkpoint_4():
-    """Checkpoint 4: New Papers Validation (7 steps, each X/M).
+    """Checkpoint 4: New Papers Validation (8 steps × 21 points max).
 
-    Same validation as Checkpoint 2, but for newly discovered papers.
+    Validates ONLY the new papers that actually exist in the user's spreadsheet
+    (papers found via checkpoint 3 logic - new papers from first authors of original papers).
+
+    For each new paper found in the user's spreadsheet:
+    1. Match the row to gold data by arxiv ID or title
+    2. Then validate each column of that row:
+       - Title matches (fuzzy)
+       - Authors match (exact after normalization)
+       - Abstract matches (fuzzy)
+       - arXiv Link valid
+       - Drive Link valid
+       - Figure 1 image matches (VLM containment check)
+       - New Papers checkbox CHECKED (TRUE)
+       - arXiv URL appears in browsing history
+
+    Total = 8 * 21 points (best case: 7 original papers × 3 new papers each = 21 per category)
     """
     print("----------------- CHECKPOINT 4 ----------------")
-    global matched_columns, df
+    global matched_columns, df, BROWSING_HISTORY
     checkpoint_start = time.time()
 
-    M = GOLD_NEW_PAPERS.get('count', 0)
-    checkpoint = Checkpoint(total=7, result=0, name="New Papers Validation")
+    # Get column mappings
+    title_col = matched_columns.get('Title')
+    authors_col = matched_columns.get('Authors')
+    arxiv_col = matched_columns.get('arXiv Link')
+    abstract_col = matched_columns.get('Abstract')
+    drive_col = matched_columns.get('Drive Link')
+    figure_col = matched_columns.get('Figure 1')
+    checkbox_col = matched_columns.get('New Papers')
+
+    # Best case scenario: 7 original papers × 3 new papers each = 21 new papers
+    MAX_NEW_PAPERS = 21
+
+    if not AUTHOR_LOOKUP or not AUTHOR_LOOKUP.get('original_papers') or df is None or df.empty:
+        checkpoint = Checkpoint(total=8*MAX_NEW_PAPERS, result=0, name="New Papers Validation")
+        checkpoint.add_step("New Papers", False, 1,
+                          "Cannot validate - no author lookup data or spreadsheet data",
+                          execution_time=time.time() - checkpoint_start)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
+
+    original_papers_lookup = AUTHOR_LOOKUP.get('original_papers', [])
+
+    # Get original paper titles and arxiv IDs to exclude them from "new papers"
+    original_titles_normalized = set()
+    original_arxiv_ids = set()
+    for paper_entry in original_papers_lookup:
+        orig_title = paper_entry.get('original_paper_title', '')
+        orig_arxiv_id = paper_entry.get('original_paper_arxiv_id', '')
+        if orig_title:
+            original_titles_normalized.add(orig_title.lower().strip())
+        if orig_arxiv_id:
+            original_arxiv_ids.add(orig_arxiv_id)
+
+    # Build a set of all first authors from original papers (normalized)
+    all_first_authors = set()
+    for paper_entry in original_papers_lookup:
+        first_authors_normalized = paper_entry.get('normalized_first_authors', [])
+        all_first_authors.update(first_authors_normalized)
+
+    # Find new papers in user's spreadsheet:
+    # Papers where ANY first author from original papers appears in the author list
+    # excluding original papers themselves
+    user_new_papers_rows = []  # Store row indices of new papers found
+
+    for row_idx, row in df.iterrows():
+        # Skip if this is an original paper (by title)
+        if title_col:
+            user_title = str(row.get(title_col, '')).lower().strip()
+            if user_title in original_titles_normalized:
+                continue
+
+        # Also skip by arXiv ID if available
+        if arxiv_col:
+            arxiv_url = str(row.get(arxiv_col, ''))
+            arxiv_id = extract_arxiv_id_from_url(arxiv_url)
+            if arxiv_id and arxiv_id in original_arxiv_ids:
+                continue
+
+        # Parse ALL authors from the user's paper
+        user_authors_str = str(row.get(authors_col, '')) if authors_col else ''
+        user_authors = parse_authors_string(user_authors_str)
+        user_authors_normalized = [normalize_author_name(a) for a in user_authors]
+
+        # Check if ANY first author from original papers is in this paper's author list
+        if any(fa in user_authors_normalized for fa in all_first_authors):
+            user_new_papers_rows.append(row_idx)
+
+    M = len(user_new_papers_rows)
+    print(f"Found {M} new papers in user's spreadsheet to validate (max {MAX_NEW_PAPERS})")
+
+    # Total = 8 categories × 21 max new papers
+    checkpoint = Checkpoint(total=8*MAX_NEW_PAPERS, result=0, name="New Papers Validation")
 
     if M == 0:
-        # No new papers expected or no gold data
-        for i in range(1, 8):
-            checkpoint.add_step(f"Step {i}", True, i,
-                              "No new papers gold data available (skipped)",
+        # No new papers found in user's spreadsheet
+        for i, name in enumerate(["Titles Match", "Authors Match", "Abstracts Match",
+                                   "arXiv Links Valid", "Drive Links Valid", "Figure 1 Images",
+                                   "Checkbox Checked", "arXiv URLs Visited"], start=1):
+            checkpoint.add_step(name, False, i,
+                              f"0/{MAX_NEW_PAPERS} - No new papers found in spreadsheet",
                               execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    # Similar to checkpoint 2, but for new papers
-    gold_new_papers = GOLD_NEW_PAPERS.get('papers', [])
+    # Get all gold new papers for validation lookup
+    all_gold_new_papers = GOLD_NEW_PAPERS.get('papers', [])
 
-    title_col = matched_columns.get('Title')
-    authors_col = matched_columns.get('Authors')
-    abstract_col = matched_columns.get('Abstract')
-    arxiv_col = matched_columns.get('arXiv Link')
-    drive_col = matched_columns.get('Drive Link')
+    # Build a lookup map of gold papers by arxiv_id and title for quick matching
+    gold_by_arxiv_id = {}
+    gold_by_title_lower = {}
+    for gold in all_gold_new_papers:
+        arxiv_id = gold.get('arxiv_id', '')
+        title = gold.get('title', '')
+        if arxiv_id:
+            gold_by_arxiv_id[arxiv_id] = gold
+        if title:
+            gold_by_title_lower[title.lower().strip()] = gold
 
-    # Simplified validation - count matches for each field
+    # Load VLM model for figure comparison (once, outside loop)
+    vlm_model = None
+    figures_with_gold = [p for p in all_gold_new_papers if p.get('figure_1_path')]
+    if figures_with_gold and figure_col:
+        try:
+            vlm_model = load_model(model_id)
+        except Exception as e:
+            print(f"Failed to load VLM model for figure comparison: {e}")
+
+    # Counters for each validation category
     title_matches = 0
     author_matches = 0
     abstract_matches = 0
     arxiv_valid = 0
     drive_valid = 0
+    figure_matches = 0
+    checkbox_checked = 0
+    arxiv_urls_visited = 0
 
-    for gold in gold_new_papers:
+    # Track papers that couldn't be matched to gold
+    unmatched_to_gold = []
+    papers_with_gold_figures = 0
+
+    # Process each user's new paper by row
+    for paper_idx, row_idx in enumerate(user_new_papers_rows):
+        row = df.loc[row_idx]
+
+        user_title = str(row.get(title_col, '')) if title_col else ''
+        user_arxiv_url = str(row.get(arxiv_col, '')) if arxiv_col else ''
+        user_arxiv_id = extract_arxiv_id_from_url(user_arxiv_url)
+
+        # Try to find matching gold paper (by arXiv ID first, then by title)
+        gold = None
+        if user_arxiv_id and user_arxiv_id in gold_by_arxiv_id:
+            gold = gold_by_arxiv_id[user_arxiv_id]
+        else:
+            # Try fuzzy title match against all gold papers
+            for gold_title_key, gold_paper in gold_by_title_lower.items():
+                is_match, _ = fuzzy_match_text(user_title, gold_paper.get('title', ''), threshold=85)
+                if is_match:
+                    gold = gold_paper
+                    break
+
+        if gold is None:
+            unmatched_to_gold.append(user_title[:40])
+            print(f"  New Paper {paper_idx + 1}: '{user_title[:50]}...' - NO GOLD MATCH")
+            continue
+
+        print(f"  New Paper {paper_idx + 1}: '{user_title[:50]}...' - MATCHED TO GOLD")
+
+        # Validate each column of the matched row against gold data
         gold_title = gold.get('title', '')
-        gold_authors = gold.get('authors', [])
-        gold_abstract = gold.get('abstract', '')
         gold_arxiv_id = gold.get('arxiv_id', '')
 
-        for _, row in df.iterrows():
-            user_title = str(row.get(title_col, '')) if title_col else ''
-            is_match, _ = fuzzy_match_text(gold_title, user_title, threshold=85)
-            if is_match:
-                title_matches += 1
+        # Title validation
+        is_match, _ = fuzzy_match_text(gold_title, user_title, threshold=85)
+        if is_match:
+            title_matches += 1
 
-                # Check other fields for this matching row
-                user_authors_str = str(row.get(authors_col, '')) if authors_col else ''
-                user_authors = parse_authors_string(user_authors_str)
-                auth_match, _ = compare_authors_list(user_authors, gold_authors, strict=False)
-                if auth_match:
-                    author_matches += 1
+        # Authors validation
+        gold_authors = gold.get('authors', [])
+        user_authors_str = str(row.get(authors_col, '')) if authors_col else ''
+        user_authors = parse_authors_string(user_authors_str)
+        auth_match, _ = compare_authors_list(user_authors, gold_authors, strict=False)
+        if auth_match:
+            author_matches += 1
 
-                user_abstract = str(row.get(abstract_col, '')) if abstract_col else ''
-                abs_match, _ = fuzzy_match_text(gold_abstract, user_abstract, threshold=80)
-                if abs_match:
-                    abstract_matches += 1
+        # Abstract validation
+        gold_abstract = gold.get('abstract', '')
+        user_abstract = str(row.get(abstract_col, '')) if abstract_col else ''
+        abs_match, _ = fuzzy_match_text(gold_abstract, user_abstract, threshold=80)
+        if abs_match:
+            abstract_matches += 1
 
-                user_arxiv = str(row.get(arxiv_col, '')) if arxiv_col else ''
-                user_arxiv_id = extract_arxiv_id_from_url(user_arxiv)
-                if user_arxiv_id == gold_arxiv_id:
-                    arxiv_valid += 1
+        # arXiv Link validation
+        if user_arxiv_id and user_arxiv_id == gold_arxiv_id:
+            arxiv_valid += 1
 
-                user_drive = str(row.get(drive_col, '')) if drive_col else ''
-                if extract_drive_file_id(user_drive):
-                    drive_valid += 1
+        # Drive Link validation
+        user_drive_url = str(row.get(drive_col, '')) if drive_col else ''
+        user_file_id = extract_drive_file_id(user_drive_url)
+        if user_file_id:
+            drive_valid += 1
 
-                break
+        # Figure 1 validation - use raw cell data to get IMAGE formula URL
+        gold_figure_path = gold.get('figure_1_path')
+        if gold_figure_path and figure_col and vlm_model:
+            papers_with_gold_figures += 1
 
-    checkpoint.add_step("Titles Match", title_matches == M, 1,
-                      f"{title_matches}/{M} new paper titles match",
+            # Get row and column indices for raw cell access
+            # row_idx needs +1 for header row
+            raw_row_idx = row_idx + 1
+            col_idx = get_column_index_by_name(df, 'Figure 1', matched_columns)
+
+            # Try to get image URL from raw cell data first
+            user_figure_url = None
+            if raw_row_idx >= 0 and col_idx >= 0:
+                user_figure_url = get_image_url_from_raw_sheet_cell(sheet_raw, raw_row_idx, col_idx)
+
+            # Fallback to dataframe value if raw extraction failed
+            if not user_figure_url:
+                user_figure_val = str(row.get(figure_col, ''))
+                if user_figure_val and user_figure_val.lower() != 'nan':
+                    user_figure_url = extract_image_url_from_cell(user_figure_val)
+
+            if user_figure_url:
+                if check_figure_contained(gold_figure_path, user_figure_url, vlm_model):
+                    figure_matches += 1
+            else:
+                print(f"    No figure URL found for new paper: {user_title[:40]}...")
+        elif not gold_figure_path:
+            # No gold figure for this paper, count as match (skipped)
+            figure_matches += 1
+
+        # Checkbox validation (should be CHECKED for new papers)
+        if checkbox_col:
+            checkbox_val = str(row.get(checkbox_col, '')).upper()
+            if checkbox_val in ['TRUE', 'YES', 'CHECKED', 'Y', '1']:
+                checkbox_checked += 1
+
+        # Browsing history validation
+        if BROWSING_HISTORY:
+            gold_arxiv_url = gold.get('arxiv_url', '')
+            for url in BROWSING_HISTORY:
+                if gold_arxiv_id and gold_arxiv_id in url:
+                    arxiv_urls_visited += 1
+                    break
+                elif gold_arxiv_url and gold_arxiv_url in url:
+                    arxiv_urls_visited += 1
+                    break
+
+    # Add steps with results (all out of MAX_NEW_PAPERS = 21)
+    step_time = time.time() - checkpoint_start
+
+    checkpoint.result += title_matches
+    checkpoint.add_step("Titles Match", title_matches == MAX_NEW_PAPERS, 1,
+                      f"{title_matches}/{MAX_NEW_PAPERS} new paper titles match",
+                      execution_time=step_time)
+
+    checkpoint.result += author_matches
+    checkpoint.add_step("Authors Match", author_matches == MAX_NEW_PAPERS, 2,
+                      f"{author_matches}/{MAX_NEW_PAPERS} new paper authors match",
                       execution_time=0)
-    checkpoint.add_step("Authors Match", author_matches == M, 2,
-                      f"{author_matches}/{M} new paper authors match",
+
+    checkpoint.result += abstract_matches
+    checkpoint.add_step("Abstracts Match", abstract_matches == MAX_NEW_PAPERS, 3,
+                      f"{abstract_matches}/{MAX_NEW_PAPERS} new paper abstracts match",
                       execution_time=0)
-    checkpoint.add_step("Abstracts Match", abstract_matches == M, 3,
-                      f"{abstract_matches}/{M} new paper abstracts match",
+
+    checkpoint.result += arxiv_valid
+    checkpoint.add_step("arXiv Links Valid", arxiv_valid == MAX_NEW_PAPERS, 4,
+                      f"{arxiv_valid}/{MAX_NEW_PAPERS} new paper arXiv links valid",
                       execution_time=0)
-    checkpoint.add_step("arXiv Links Valid", arxiv_valid == M, 4,
-                      f"{arxiv_valid}/{M} new paper arXiv links valid",
+
+    checkpoint.result += drive_valid
+    checkpoint.add_step("Drive Links Valid", drive_valid == MAX_NEW_PAPERS, 5,
+                      f"{drive_valid}/{MAX_NEW_PAPERS} new papers have valid Drive links",
                       execution_time=0)
-    checkpoint.add_step("Drive Links Valid", drive_valid == M, 5,
-                      f"{drive_valid}/{M} new paper Drive links valid",
-                      execution_time=0)
-    checkpoint.add_step("Figure 1 Images", True, 6,
-                      "Figure comparison not yet implemented",
-                      execution_time=0)
-    checkpoint.add_step("arXiv URLs Visited", True, 7,
-                      "Browsing history check deferred",
-                      execution_time=0)
+
+    # Figure 1 step
+    if figure_col:
+        if vlm_model or not figures_with_gold:
+            checkpoint.result += figure_matches
+            checkpoint.add_step("Figure 1 Images", figure_matches == MAX_NEW_PAPERS, 6,
+                              f"{figure_matches}/{MAX_NEW_PAPERS} figures validated ({papers_with_gold_figures} with gold data)",
+                              execution_time=0)
+        else:
+            checkpoint.add_step("Figure 1 Images", False, 6,
+                              "VLM model not available for figure comparison",
+                              execution_time=0)
+    else:
+        checkpoint.add_step("Figure 1 Images", False, 6,
+                          "Figure 1 column not found in spreadsheet",
+                          execution_time=0)
+
+    # Checkbox step
+    if checkbox_col:
+        checkpoint.result += checkbox_checked
+        checkpoint.add_step("Checkbox Checked", checkbox_checked == MAX_NEW_PAPERS, 7,
+                          f"{checkbox_checked}/{MAX_NEW_PAPERS} new papers have checked checkbox",
+                          execution_time=0)
+    else:
+        checkpoint.add_step("Checkbox Checked", False, 7,
+                          "New Papers checkbox column not found",
+                          execution_time=0)
+
+    # Browsing history step
+    if BROWSING_HISTORY:
+        checkpoint.result += arxiv_urls_visited
+        checkpoint.add_step("arXiv URLs Visited", arxiv_urls_visited == MAX_NEW_PAPERS, 8,
+                          f"{arxiv_urls_visited}/{MAX_NEW_PAPERS} new paper arXiv URLs in browsing history",
+                          execution_time=0)
+    else:
+        checkpoint.add_step("arXiv URLs Visited", False, 8,
+                          "No browsing history provided",
+                          execution_time=0)
+
+    # Log unmatched papers
+    if unmatched_to_gold:
+        print(f"  WARNING: {len(unmatched_to_gold)} new papers could not be matched to gold: {unmatched_to_gold[:5]}")
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -551,9 +999,9 @@ def grade_checkpoint_4():
 def grade_checkpoint_5():
     """Checkpoint 5: Formatting & Organization (3 binary steps).
 
-    1. Yellow highlighting: All new paper rows must be yellow
-    2. Blue highlighting: All papers with "world models" in related works must be blue
-    3. Row grouping: Rows must be grouped by highlight color (not interleaved)
+    1. Yellow highlighting: All papers mentioning "chain-of-thought" in related works must be yellow
+    2. Row grouping: Yellow rows must be grouped at the top (not interleaved)
+    3. Text overflow: No text in any cell is hidden due to cell overflow issues
     """
     print("----------------- CHECKPOINT 5 ----------------")
     checkpoint_start = time.time()
@@ -577,7 +1025,9 @@ def grade_checkpoint_5():
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
-        rows = sheets[0].get('data', [{}])[0].get('rowData', [])
+        sheet_data = sheets[0].get('data', [{}])[0]
+        rows = sheet_data.get('rowData', [])
+        col_metadata = sheet_data.get('columnMetadata', [])
         num_rows = len(rows)
 
     except Exception as e:
@@ -591,7 +1041,6 @@ def grade_checkpoint_5():
     # Collect row colors
     row_colors = []
     yellow_rows = []
-    blue_rows = []
 
     for row_idx in range(1, num_rows):  # Skip header
         color = get_row_background_color(sheet_raw, row_idx)
@@ -600,56 +1049,90 @@ def grade_checkpoint_5():
 
         if color_class == 'yellow':
             yellow_rows.append(row_idx)
-        elif color_class == 'blue':
-            blue_rows.append(row_idx)
 
-    # Step 1: Check yellow highlighting for new papers
+    # Step 1: Check yellow highlighting for chain-of-thought papers
     step_start = time.time()
-    new_papers = GOLD_NEW_PAPERS.get('papers', [])
-    M = len(new_papers)
+    all_papers = GOLD_PAPERS.get('papers', []) + GOLD_NEW_PAPERS.get('papers', [])
+    cot_papers = [p for p in all_papers if p.get('has_chain_of_thought', False)]
+    expected_yellow = len(cot_papers)
 
-    if M > 0:
+    if expected_yellow > 0:
         yellow_count = len(yellow_rows)
-        if yellow_count >= M:
+        if yellow_count >= expected_yellow:
             checkpoint.add_step("Yellow Highlighting", True, 1,
-                              f"{yellow_count} yellow rows found (expected {M} new papers)",
+                              f"{yellow_count} yellow rows found (expected {expected_yellow} chain-of-thought papers)",
                               execution_time=time.time() - step_start)
         else:
             checkpoint.add_step("Yellow Highlighting", False, 1,
-                              f"Only {yellow_count} yellow rows (expected {M} for new papers)",
+                              f"Only {yellow_count} yellow rows (expected {expected_yellow} chain-of-thought papers)",
                               execution_time=time.time() - step_start)
     else:
         checkpoint.add_step("Yellow Highlighting", True, 1,
-                          "No new papers expected, yellow check skipped",
+                          "No chain-of-thought papers expected, yellow check skipped",
                           execution_time=time.time() - step_start)
 
-    # Step 2: Check blue highlighting for world models papers
-    step_start = time.time()
-    all_papers = GOLD_PAPERS.get('papers', []) + GOLD_NEW_PAPERS.get('papers', [])
-    world_models_papers = [p for p in all_papers if p.get('has_world_models', False)]
-    expected_blue = len(world_models_papers)
-
-    if expected_blue > 0:
-        blue_count = len(blue_rows)
-        if blue_count >= expected_blue:
-            checkpoint.add_step("Blue Highlighting", True, 2,
-                              f"{blue_count} blue rows found (expected {expected_blue} world models papers)",
-                              execution_time=time.time() - step_start)
-        else:
-            checkpoint.add_step("Blue Highlighting", False, 2,
-                              f"Only {blue_count} blue rows (expected {expected_blue} world models papers)",
-                              execution_time=time.time() - step_start)
-    else:
-        checkpoint.add_step("Blue Highlighting", True, 2,
-                          "No world models papers expected, blue check skipped",
-                          execution_time=time.time() - step_start)
-
-    # Step 3: Check row grouping (colors should not be interleaved)
+    # Step 2: Check row grouping (yellow rows should be at top, not interleaved)
     step_start = time.time()
     is_grouped, grouping_msg = validate_color_grouping(row_colors)
-    checkpoint.add_step("Row Grouping", is_grouped, 3,
+
+    # Additional check: yellow rows should be at the top
+    if is_grouped and yellow_rows:
+        # Check if yellow rows start at row 1 (first data row after header)
+        if yellow_rows[0] != 1:
+            is_grouped = False
+            grouping_msg = f"Yellow rows not at top (first yellow at row {yellow_rows[0] + 1})"
+
+    checkpoint.add_step("Row Grouping", is_grouped, 2,
                       grouping_msg,
                       execution_time=time.time() - step_start)
+
+    # Step 3: Check text overflow/visibility
+    step_start = time.time()
+    try:
+        from src.browsergym.eval.eval_utils.table_utils import is_text_visible_in_cell
+
+        CHAR_WIDTH = 7  # Approximate width per character in pixels
+        hidden_cells = 0
+        total_cells_checked = 0
+
+        def get_col_width(c_idx):
+            if c_idx < len(col_metadata):
+                return col_metadata[c_idx].get('pixelSize', 100)
+            return 100  # Default column width
+
+        for row_idx, row in enumerate(rows):
+            if row_idx == 0:  # Skip header row for overflow check
+                continue
+            row_values = row.get('values', [])
+            for c_idx, cell in enumerate(row_values):
+                content = cell.get('formattedValue', '')
+                if not content:
+                    continue
+                total_cells_checked += 1
+                col_width = get_col_width(c_idx)
+                fmt = cell.get('effectiveFormat', {})
+                wrap_strategy = fmt.get('wrapStrategy', 'OVERFLOW_CELL')
+
+                if not is_text_visible_in_cell(content, col_width, wrap_strategy,
+                                               row_values, c_idx, CHAR_WIDTH):
+                    hidden_cells += 1
+
+        if hidden_cells == 0:
+            checkpoint.add_step("Text Overflow", True, 3,
+                              f"All {total_cells_checked} cells have visible text",
+                              execution_time=time.time() - step_start)
+        else:
+            checkpoint.add_step("Text Overflow", False, 3,
+                              f"{hidden_cells}/{total_cells_checked} cells have hidden/clipped text",
+                              execution_time=time.time() - step_start)
+    except ImportError:
+        checkpoint.add_step("Text Overflow", False, 3,
+                          "table_utils module not available",
+                          execution_time=time.time() - step_start)
+    except Exception as e:
+        checkpoint.add_step("Text Overflow", False, 3,
+                          f"Error checking text overflow: {str(e)[:50]}",
+                          execution_time=time.time() - step_start)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -666,7 +1149,12 @@ def grade_checkpoints(workspace_doc_id: str = None,
     Returns:
         Result: Evaluation results with checkpoint scores.
     """
+    global BROWSING_HISTORY
+
     total_start_time = time.time()
+
+    # Set browsing history for use in checkpoints 2 and 4
+    BROWSING_HISTORY = browsing_history or []
 
     try:
         # Setup document processing
@@ -680,11 +1168,6 @@ def grade_checkpoints(workspace_doc_id: str = None,
         checkpoints.append(grade_checkpoint_3())
         checkpoints.append(grade_checkpoint_4())
         checkpoints.append(grade_checkpoint_5())
-
-        # Update browsing history checks if provided
-        if browsing_history:
-            # Could update checkpoint 2 and 4 step 7 here
-            pass
 
         total_execution_time = time.time() - total_start_time
         result = Result(checkpoints, total_execution_time=total_execution_time)

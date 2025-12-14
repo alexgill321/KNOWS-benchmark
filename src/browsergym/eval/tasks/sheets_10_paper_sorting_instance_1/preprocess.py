@@ -21,48 +21,39 @@ Output Files:
 - data/gold_new_papers.json - Expected new papers (from gscholar or direct links)
 - data/author_papers_lookup.json - Mapping of authors to their papers
 
+Note: Figure 1 extraction is now handled by a separate script: extract_figures.py
+Run that script after preprocessing to populate figure_1_path in the JSON files.
+
 Usage:
-    python preprocess.py [--skip-figures] [--skip-scholar]
+    python preprocess.py [--skip-scholar] [--skip-world-models]
 """
 
 import os
 import sys
-import json
 import time
 import argparse
 import re
 from typing import List, Dict, Optional, Any
 from datetime import datetime
 
-# Base path setup
-def get_base_path():
-    if os.path.exists("/app/src"):
-        return "/app"
-    elif os.path.exists("/scratch"):
-        return "/scratch/general/vast/USER/Agent-Benchmark/"
-    else:
-        return os.getcwd()
+# Local imports first (for BASE_PATH)
+from utils import (
+    get_base_path,
+    BASE_PATH,
+    DATA_DIR,
+    ensure_data_directories,
+    save_json,
+    extract_arxiv_id_from_url,
+    normalize_author_name,
+    search_arxiv_by_title,
+    search_arxiv_by_author,
+    match_gscholar_to_arxiv_papers
+)
 
-BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 from src.browsergym.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.eval.eval_utils.google_services_helpers import get_sheet_content
-
-# Local imports
-from utils import (
-    extract_arxiv_id_from_url,
-    normalize_author_name,
-    download_arxiv_source,
-    extract_figure_1_from_source,
-    search_arxiv_by_title,
-    detect_world_models_in_pdf,
-)
-
-# Constants
-TASK_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(TASK_DIR, "data")
-FIGURES_DIR = os.path.join(DATA_DIR, "gold_figures")
 
 # Gold Labels Sheet ID (the ONLY source for preprocessing)
 GOLD_LABELS_SHEET_ID = "1xQNSQBE7uw4-bPuCf1uDW4XJ-v5F_vPsXO2ooF1BdFM"
@@ -70,14 +61,6 @@ GOLD_LABELS_SHEET_ID = "1xQNSQBE7uw4-bPuCf1uDW4XJ-v5F_vPsXO2ooF1BdFM"
 # Drive folder IDs (for reference)
 SOURCE_FOLDER_ID = "1dfRMRjBHH4F1S9WMD6p6VqpYQZ-pbKWB"
 DEST_FOLDER_ID = "1vk3FB8IumyHMBuBjI8fsUSdSyOVlFZPf"
-
-
-def ensure_directories():
-    """Create necessary directories if they don't exist."""
-    os.makedirs(DATA_DIR, exist_ok=True)
-    os.makedirs(FIGURES_DIR, exist_ok=True)
-    print(f"Data directory: {DATA_DIR}")
-    print(f"Figures directory: {FIGURES_DIR}")
 
 
 def extract_gold_labels_data(sheets_service) -> List[Dict]:
@@ -243,14 +226,19 @@ def fetch_original_papers_metadata(entries: List[Dict]) -> List[Dict]:
     return original_papers
 
 
-def scrape_google_scholar(gscholar_url: str) -> List[str]:
+def scrape_google_scholar(gscholar_url: str) -> List[Dict]:
     """Scrape paper titles from a Google Scholar profile.
+
+    This function uses the scholarly library to get publication data.
+    It returns basic publication info without doing per-publication fill calls
+    (which are slow and rate-limited). The cross-referencing with arXiv
+    is done separately via match_gscholar_to_arxiv_papers().
 
     Args:
         gscholar_url: Google Scholar profile URL
 
     Returns:
-        List of paper titles from the profile
+        List of dicts with 'title', 'eprint_url', and 'pub_url' fields
     """
     try:
         from scholarly import scholarly
@@ -263,17 +251,25 @@ def scrape_google_scholar(gscholar_url: str) -> List[str]:
 
         author_id = match.group(1)
 
-        # Get author publications
+        # Get author publications (without filling each one - too slow)
         author = scholarly.search_author_id(author_id)
         author = scholarly.fill(author, sections=['publications'])
 
-        titles = []
+        papers = []
         for pub in author.get('publications', []):
             title = pub.get('bib', {}).get('title', '')
-            if title:
-                titles.append(title)
+            if not title:
+                continue
 
-        return titles
+            paper_data = {
+                'title': title,
+                'eprint_url': pub.get('eprint_url', ''),
+                'pub_url': pub.get('pub_url', ''),
+                'num_citations': pub.get('num_citations', 0),
+            }
+            papers.append(paper_data)
+
+        return papers
 
     except ImportError:
         print("      Warning: scholarly package not installed")
@@ -283,62 +279,143 @@ def scrape_google_scholar(gscholar_url: str) -> List[str]:
         return []
 
 
-def discover_new_papers_for_entry(entry: Dict, skip_scholar: bool = False) -> List[Dict]:
+def discover_new_papers_for_entry(entry: Dict, skip_scholar: bool = False, model=None) -> List[Dict]:
     """Discover new papers for a single Gold Labels entry.
 
-    Uses either:
-    1. Google Scholar scraping → arXiv cross-reference (if gscholar URLs present)
-    2. Direct arXiv URLs (if provided as fallback)
+    Uses cross-referencing approach:
+    1. Scrape Google Scholar to get paper titles (authoritative list)
+    2. Search arXiv by author name(s) to get papers with arXiv IDs
+    3. Match GScholar titles to arXiv papers using multi-stage matching:
+       - Direct URL extraction from eprint_url/pub_url
+       - Exact title match (normalized)
+       - Fuzzy title match (80% threshold)
+       - LLM semantic match (if model provided)
+
+    Falls back to direct arXiv URLs if no Google Scholar profile available.
 
     Args:
         entry: Entry from Gold Labels sheet
         skip_scholar: If True, skip Google Scholar scraping
+        model: Optional LLM model for semantic title matching
 
     Returns:
         List of new paper dicts with arXiv metadata
     """
     new_papers = []
+    seen_arxiv_ids = set()  # Deduplicate
     original_title = entry['original_paper_title']
 
-    # Path A: Google Scholar scraping
+    # Path A: Cross-reference Google Scholar with arXiv author search
     if entry['gscholar_urls'] and not skip_scholar:
-        print(f"    Using Google Scholar for: {original_title[:40]}...")
+        print(f"    Cross-referencing for: {original_title[:40]}...")
 
-        all_scholar_titles = []
+        # Step 1: Scrape Google Scholar to get paper titles
+        all_scholar_papers = []
         for gscholar_url in entry['gscholar_urls']:
-            print(f"      Scraping: {gscholar_url[:60]}...")
-            titles = scrape_google_scholar(gscholar_url)
-            all_scholar_titles.extend(titles)
+            print(f"      Scraping GScholar: {gscholar_url[:60]}...")
+            papers = scrape_google_scholar(gscholar_url)
+            all_scholar_papers.extend(papers)
             time.sleep(1)  # Rate limiting
 
-        print(f"      Found {len(all_scholar_titles)} papers on Google Scholar")
+        # Filter out the original paper
+        all_scholar_papers = [
+            p for p in all_scholar_papers
+            if p.get('title', '').lower().strip() != original_title.lower().strip()
+        ]
+        print(f"      Found {len(all_scholar_papers)} papers on Google Scholar (excluding original)")
 
-        # Cross-reference with arXiv
-        for title in all_scholar_titles[:20]:  # Limit to first 20
-            # Skip if it's the original paper
-            if title.lower().strip() == original_title.lower().strip():
+        if not all_scholar_papers:
+            print(f"      No papers found on Google Scholar")
+            return []
+
+        # Step 2: Search arXiv by author name(s)
+        all_arxiv_papers = []
+        arxiv_ids_seen = set()
+        for author_name in entry['first_authors']:
+            print(f"      Searching arXiv for author: {author_name}...")
+            arxiv_papers = search_arxiv_by_author(author_name, max_results=50)
+            # Deduplicate across authors
+            for p in arxiv_papers:
+                if p['arxiv_id'] not in arxiv_ids_seen:
+                    arxiv_ids_seen.add(p['arxiv_id'])
+                    all_arxiv_papers.append(p)
+            time.sleep(0.5)  # Rate limiting
+
+        print(f"      Found {len(all_arxiv_papers)} papers on arXiv for author(s)")
+
+        if not all_arxiv_papers:
+            print(f"      No arXiv papers found for author(s), falling back to title search...")
+            # Fallback: try title search for each GScholar paper
+            for gs_paper in all_scholar_papers:
+                gs_title = gs_paper.get('title', '')
+
+                # First try direct URL extraction
+                arxiv_id = None
+                for url in [gs_paper.get('eprint_url', ''), gs_paper.get('pub_url', '')]:
+                    arxiv_id = extract_arxiv_id_from_url(url)
+                    if arxiv_id:
+                        break
+
+                # Then try title search
+                if not arxiv_id:
+                    result = search_arxiv_by_title(gs_title)
+                    if result:
+                        arxiv_id = result['arxiv_id']
+                    time.sleep(0.3)
+
+                if arxiv_id and arxiv_id not in seen_arxiv_ids:
+                    seen_arxiv_ids.add(arxiv_id)
+                    metadata = fetch_arxiv_metadata(arxiv_id)
+                    if metadata:
+                        paper = {
+                            **metadata,
+                            'first_author_normalized': normalize_author_name(metadata['first_author']),
+                            'source': 'gscholar_title_search',
+                            'gscholar_title': gs_title,
+                            'associated_original_paper': original_title,
+                            'associated_first_authors': entry['first_authors'],
+                            'figure_1_path': None,
+                            'has_world_models': False,
+                        }
+                        new_papers.append(paper)
+                        print(f"        Added via title search: {arxiv_id}")
+                    time.sleep(0.3)
+
+            return new_papers
+
+        # Step 3: Cross-reference GScholar papers with arXiv papers
+        matched_papers = match_gscholar_to_arxiv_papers(
+            all_scholar_papers,
+            all_arxiv_papers,
+            model=model
+        )
+
+        # Step 4: Build final paper list with full metadata
+        for matched in matched_papers:
+            arxiv_id = matched['arxiv_id']
+            if arxiv_id in seen_arxiv_ids:
                 continue
+            seen_arxiv_ids.add(arxiv_id)
 
-            result = search_arxiv_by_title(title)
-            if result:
-                paper = {
-                    'title': result['title'],
-                    'authors': result['authors'],
-                    'first_author': result['authors'][0] if result['authors'] else '',
-                    'first_author_normalized': normalize_author_name(result['authors'][0]) if result['authors'] else '',
-                    'abstract': result['abstract'],
-                    'arxiv_id': result['arxiv_id'],
-                    'arxiv_url': f"https://arxiv.org/abs/{result['arxiv_id']}",
-                    'source': 'gscholar',
-                    'associated_original_paper': original_title,
-                    'associated_first_authors': entry['first_authors'],
-                    'figure_1_path': None,
-                    'has_world_models': False,
-                }
-                new_papers.append(paper)
-                print(f"        Found on arXiv: {result['arxiv_id']}")
-
-            time.sleep(0.3)  # Rate limiting
+            # Use the matched data directly (already has full metadata from arXiv)
+            paper = {
+                'arxiv_id': matched['arxiv_id'],
+                'title': matched['title'],
+                'authors': matched['authors'],
+                'first_author': matched['authors'][0] if matched['authors'] else '',
+                'first_author_normalized': normalize_author_name(matched['authors'][0]) if matched['authors'] else '',
+                'abstract': matched.get('abstract', ''),
+                'arxiv_url': f"https://arxiv.org/abs/{matched['arxiv_id']}",
+                'pdf_url': matched.get('pdf_url', ''),
+                'source': 'gscholar_crossref',
+                'gscholar_title': matched.get('gscholar_title', ''),
+                'match_method': matched.get('match_method', ''),
+                'associated_original_paper': original_title,
+                'associated_first_authors': entry['first_authors'],
+                'figure_1_path': None,
+                'has_world_models': False,
+            }
+            new_papers.append(paper)
 
     # Path B: Direct arXiv URLs (fallback or when no gscholar)
     elif entry['direct_paper_links']:
@@ -349,6 +426,10 @@ def discover_new_papers_for_entry(entry: Dict, skip_scholar: bool = False) -> Li
             if not arxiv_id:
                 print(f"      Could not extract ID from: {arxiv_url}")
                 continue
+
+            if arxiv_id in seen_arxiv_ids:
+                continue
+            seen_arxiv_ids.add(arxiv_id)
 
             metadata = fetch_arxiv_metadata(arxiv_id)
             if metadata:
@@ -383,8 +464,17 @@ def discover_all_new_papers(entries: List[Dict], skip_scholar: bool = False) -> 
 
     all_new_papers = []
 
+    model = None
+    try:
+        from src.browsergym.eval.eval_utils.models import load_model
+        model = load_model("gemini-2.5-flash-google-ai")
+        print("LLM model loaded for fallback stages")
+    except Exception as e:
+        print(f"WARNING: Could not load LLM model: {e}")
+        print("Will use automatic parsing only")
+
     for entry in entries:
-        new_papers = discover_new_papers_for_entry(entry, skip_scholar)
+        new_papers = discover_new_papers_for_entry(entry, skip_scholar, model=model)
         all_new_papers.extend(new_papers)
         print(f"    Found {len(new_papers)} new papers for {entry['original_paper_title'][:40]}...")
 
@@ -456,160 +546,8 @@ def build_author_lookup(entries: List[Dict], original_papers: List[Dict], new_pa
     return {'original_papers': original_papers_lookup}
 
 
-def download_figures_for_papers(papers: List[Dict], prefix: str, skip_figures: bool = False, use_llm: bool = True) -> List[Dict]:
-    """Download Figure 1 PNG from arXiv source for each paper.
-
-    Uses 2-stage approach:
-    1. Automatic LaTeX parsing to find Figure 1 and its image file
-    2. If Stage 1 fails and use_llm=True, use LLM to read .tex files
-
-    Only extracts PNG images. Sets figure_1_path to None if no PNG exists.
-
-    Args:
-        papers: List of paper dicts with arxiv_id
-        prefix: Prefix for output filenames ('original' or 'new')
-        skip_figures: If True, skip downloading
-        use_llm: If True, use LLM as fallback for figure identification
-
-    Returns:
-        Updated papers list with figure_1_path set
-    """
-    if skip_figures:
-        print(f"\n=== Skipping Figure 1 downloads for {prefix} papers ===")
-        return papers
-
-    print(f"\n=== Downloading Figure 1 PNG for {len(papers)} {prefix} papers ===")
-    print("Using 2-stage approach: (1) LaTeX parsing, (2) LLM fallback")
-
-    # Load model for Stage 2 if requested
-    model = None
-    if use_llm:
-        try:
-            from src.browsergym.eval.eval_utils.models import load_model
-            model = load_model("gemma-google-ai")
-            print("LLM model loaded for Stage 2 fallback")
-        except Exception as e:
-            print(f"WARNING: Could not load LLM model: {e}")
-            print("Will use Stage 1 (LaTeX parsing) only")
-
-    found_count = 0
-    not_found_count = 0
-
-    for i, paper in enumerate(papers):
-        arxiv_id = paper.get('arxiv_id')
-        if not arxiv_id:
-            paper['figure_1_path'] = None
-            continue
-
-        print(f"  [{i+1}/{len(papers)}] {paper['title'][:40]}...")
-
-        import tempfile
-        with tempfile.TemporaryDirectory() as temp_dir:
-            success, msg, files = download_arxiv_source(arxiv_id, temp_dir)
-
-            if not success:
-                print(f"    ERROR downloading source: {msg}")
-                paper['figure_1_path'] = None
-                not_found_count += 1
-                continue
-
-            source_dir = os.path.join(temp_dir, arxiv_id.replace('/', '_'))
-            success, fig_path, msg = extract_figure_1_from_source(source_dir, arxiv_id, model=model)
-
-            if success and fig_path:
-                # Verify it's a PNG
-                if not fig_path.lower().endswith('.png'):
-                    print(f"    WARNING: Found non-PNG file, skipping: {fig_path}")
-                    paper['figure_1_path'] = None
-                    not_found_count += 1
-                    continue
-
-                import shutil
-                dest_filename = f"{prefix}_{i+1}_fig1.png"
-                dest_path = os.path.join(FIGURES_DIR, dest_filename)
-
-                shutil.copy2(fig_path, dest_path)
-                paper['figure_1_path'] = f"data/gold_figures/{dest_filename}"
-                print(f"    {msg}")
-                print(f"    Saved: {dest_filename}")
-                found_count += 1
-            else:
-                print(f"    No PNG Figure 1 found: {msg}")
-                paper['figure_1_path'] = None
-                not_found_count += 1
-
-        time.sleep(1)  # Rate limiting
-
-    print(f"\nFigure extraction summary for {prefix} papers:")
-    print(f"  Found PNG: {found_count}/{len(papers)}")
-    print(f"  Not found: {not_found_count}/{len(papers)}")
-
-    return papers
-
-
-def detect_world_models_for_papers(papers: List[Dict], skip: bool = False) -> List[Dict]:
-    """Detect which papers mention 'world models' in related works.
-
-    Args:
-        papers: List of paper dicts
-        skip: If True, skip detection
-
-    Returns:
-        Updated papers list with has_world_models set
-    """
-    if skip:
-        print("\n=== Skipping world models detection ===")
-        return papers
-
-    print(f"\n=== Detecting 'world models' mentions ===")
-
-    for i, paper in enumerate(papers):
-        arxiv_id = paper.get('arxiv_id')
-        if not arxiv_id:
-            paper['has_world_models'] = False
-            continue
-
-        pdf_url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
-
-        try:
-            import tempfile
-            import requests
-
-            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
-                response = requests.get(pdf_url, timeout=30)
-                response.raise_for_status()
-                tmp.write(response.content)
-                tmp_path = tmp.name
-
-            has_world_models, _ = detect_world_models_in_pdf(tmp_path)
-            paper['has_world_models'] = has_world_models
-
-            os.unlink(tmp_path)
-
-            status = "YES" if has_world_models else "no"
-            print(f"  [{i+1}/{len(papers)}] {paper['title'][:40]}... - {status}")
-
-            time.sleep(0.5)
-
-        except Exception as e:
-            print(f"  [{i+1}/{len(papers)}] {paper['title'][:40]}... - ERROR: {e}")
-            paper['has_world_models'] = False
-
-    return papers
-
-
-def save_json(data: Any, filename: str):
-    """Save data to JSON file."""
-    filepath = os.path.join(DATA_DIR, filename)
-    with open(filepath, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=2, ensure_ascii=False, default=str)
-    print(f"Saved: {filepath}")
-
-
 def main():
     parser = argparse.ArgumentParser(description="Preprocess gold data for sheets_10 evaluator")
-    parser.add_argument('--skip-figures', action='store_true',
-                        help="Skip downloading Figure 1 images")
     parser.add_argument('--skip-scholar', action='store_true',
                         help="Skip Google Scholar scraping")
     parser.add_argument('--skip-world-models', action='store_true',
@@ -624,7 +562,7 @@ def main():
     print("(Gold Implementation sheet is for TESTING only)")
 
     # Ensure directories exist
-    ensure_directories()
+    ensure_data_directories()
 
     # Initialize Google services
     print("\n=== Initializing Google Services ===")
@@ -646,16 +584,7 @@ def main():
     # Step 4: Build author lookup table
     author_lookup = build_author_lookup(entries, original_papers, new_papers)
 
-    # Step 5: Download Figure 1 images (optional)
-    original_papers = download_figures_for_papers(original_papers, 'original', skip_figures=args.skip_figures)
-    new_papers = download_figures_for_papers(new_papers, 'new', skip_figures=args.skip_figures)
-
-    # Step 6: Detect world models mentions (optional)
-    if not args.skip_world_models:
-        all_papers = original_papers + new_papers
-        all_papers = detect_world_models_for_papers(all_papers)
-        original_papers = all_papers[:len(original_papers)]
-        new_papers = all_papers[len(original_papers):]
+    # Note: Figure 1 extraction is now done separately via extract_figures.py
 
     # Save all data
     print("\n=== Saving Preprocessed Data ===")
@@ -687,6 +616,7 @@ def main():
     print(f"Original papers: {len(original_papers)}")
     print(f"New papers: {len(new_papers)}")
     print(f"Paper-centric lookups: {len(author_lookup.get('original_papers', []))} (should be 7, one per original paper)")
+    print(f"\nNext step: Run extract_figures.py to populate figure_1_path")
     print(f"Finished at: {datetime.now().isoformat()}")
 
 
