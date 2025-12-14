@@ -145,13 +145,17 @@ def check_figure_contained(gold_figure_path: str, user_figure_url_or_path: str, 
             print(f"Could not extract image URL from: {user_figure_url_or_path[:100]}...")
             return False
 
+        # Convert arxiv.org URLs to export.arxiv.org to avoid rate limiting
+        if 'arxiv.org' in image_url and 'export.arxiv.org' not in image_url:
+            image_url = image_url.replace('://arxiv.org/', '://export.arxiv.org/')
+
         print(f"Checking figure: {gold_figure_path} against {image_url[:80]}...")
 
         # Download user image if it's a URL
         if image_url.startswith('http'):
             try:
                 # Add delay for arXiv URLs to avoid rate limiting
-                if 'arxiv.org' in image_url:
+                if 'export.arxiv.org' in image_url:
                     time.sleep(1)
                 response = requests.get(image_url, headers=ARXIV_HEADERS, timeout=30)
                 response.raise_for_status()

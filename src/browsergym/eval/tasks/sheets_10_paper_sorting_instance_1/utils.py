@@ -94,7 +94,7 @@ def fetch_arxiv_html(arxiv_id: str) -> Tuple[bool, str, str]:
     Returns:
         Tuple of (success, html_content, message).
     """
-    html_url = f"https://arxiv.org/html/{arxiv_id}"
+    html_url = f"https://export.arxiv.org/html/{arxiv_id}"
 
     try:
         response = requests.get(html_url, headers=ARXIV_HEADERS, timeout=30)
@@ -372,7 +372,7 @@ def parse_html_for_figure_1(html_content: str, arxiv_id: str) -> Tuple[bool, Opt
             img = figure.find('img')
             if img and img.get('src'):
                 img_src = img['src']
-                img_url = f"https://arxiv.org/html/{arxiv_id}/{img_src}"
+                img_url = f"https://export.arxiv.org/html/{arxiv_id}/{img_src}"
                 return True, img_url, f"Found Figure 1 by ID: {fig_id}"
 
             # Check for inline SVG (common for TikZ figures)
@@ -436,7 +436,7 @@ Return ONLY the image src value (e.g., "x1.png") for Figure 1, or "NOT_FOUND" if
         if response_clean and response_clean.upper() != "NOT_FOUND":
             # Ensure it looks like a valid image filename
             if re.search(r'\.(png|jpg|jpeg|svg)$', response_clean, re.IGNORECASE):
-                img_url = f"https://arxiv.org/html/{arxiv_id}/{response_clean}"
+                img_url = f"https://export.arxiv.org/html/{arxiv_id}/{response_clean}"
                 return True, img_url, f"LLM identified Figure 1: {response_clean}"
 
         return False, None, "LLM could not identify Figure 1"
@@ -462,7 +462,7 @@ def extract_figure_1_from_html(arxiv_id: str, model=None) -> Tuple[bool, Optiona
         Tuple of (success, image_bytes, message).
         image_bytes is the PNG data if found.
     """
-    html_url = f"https://arxiv.org/html/{arxiv_id}"
+    html_url = f"https://export.arxiv.org/html/{arxiv_id}"
 
     # Headers to avoid 403 errors from arXiv
     headers = {
@@ -538,7 +538,7 @@ def download_arxiv_source(arxiv_id: str, output_dir: str, timeout: int = 60) -> 
     Returns:
         Tuple of (success, message, list_of_extracted_files).
     """
-    url = f"https://arxiv.org/e-print/{arxiv_id}"
+    url = f"https://export.arxiv.org/e-print/{arxiv_id}"
 
     # Headers to avoid 403 errors from arXiv
     headers = {
@@ -1144,22 +1144,53 @@ def extract_section_content_from_html(html_content: str, section_text: str) -> O
 
     target_level = target_header.name  # e.g., 'h2', 'h3'
 
-    # Collect content until next header at same or higher level
+    # Strategy 1: Check if header is inside a <section> element
+    parent_section = target_header.find_parent('section')
+    if parent_section:
+        # Get all text content from this section (paragraphs, divs, spans)
+        content_parts = []
+        for elem in parent_section.find_all(['p', 'div', 'span']):
+            # Skip if this element contains another section or header
+            if elem.find(['section', 'h1', 'h2', 'h3', 'h4']):
+                continue
+            # Skip elements that are just containers (have child block elements)
+            if elem.find(['p', 'div']) and elem.name == 'div':
+                continue
+            text = elem.get_text(strip=True)
+            if text and len(text) > 20 and text not in content_parts:
+                content_parts.append(text)
+        for ul in parent_section.find_all(['ul', 'ol']):
+            for li in ul.find_all('li'):
+                text = f"- {li.get_text(strip=True)}"
+                if text not in content_parts:
+                    content_parts.append(text)
+        if content_parts:
+            return '\n\n'.join(content_parts)
+
+    # Strategy 2: Use find_all_next() to traverse all following elements
     content_parts = []
-    for sibling in target_header.find_next_siblings():
-        # Stop at next header of same or higher level (h2 <= h2, h2 < h3)
-        if sibling.name in ['h1', 'h2', 'h3', 'h4']:
-            if sibling.name <= target_level:
+    for element in target_header.find_all_next():
+        # Stop at next header of same or higher level
+        if element.name in ['h1', 'h2', 'h3', 'h4']:
+            if element.name <= target_level and element != target_header:
                 break
         # Collect paragraph content
-        if sibling.name == 'p':
-            content_parts.append(sibling.get_text(strip=True))
-        # Also collect list items
-        elif sibling.name in ['ul', 'ol']:
-            for li in sibling.find_all('li'):
-                content_parts.append(f"- {li.get_text(strip=True)}")
+        if element.name == 'p':
+            text = element.get_text(strip=True)
+            if text and len(text) > 20 and text not in content_parts:
+                content_parts.append(text)
+        # Collect div content that looks like a paragraph
+        elif element.name == 'div' and not element.find(['p', 'div', 'section']):
+            text = element.get_text(strip=True)
+            if text and len(text) > 50 and text not in content_parts:
+                content_parts.append(text)
+        # Collect list items
+        elif element.name == 'li':
+            text = f"- {element.get_text(strip=True)}"
+            if text not in content_parts:
+                content_parts.append(text)
 
-    return '\n\n'.join(content_parts)
+    return '\n\n'.join(content_parts) if content_parts else None
 
 
 def find_related_work_section(headers: List[Dict], model=None) -> Optional[str]:

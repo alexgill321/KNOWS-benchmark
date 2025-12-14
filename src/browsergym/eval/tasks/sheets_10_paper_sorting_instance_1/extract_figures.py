@@ -137,8 +137,8 @@ def process_papers(papers: List[Dict], prefix: str, model=None) -> Tuple[List[Di
             paper['figure_1_path'] = None
             not_found_count += 1
 
-        # Rate limiting
-        time.sleep(1)
+        # Rate limiting between papers (3 seconds for export.arxiv.org)
+        time.sleep(3)
 
     return papers, found_count, not_found_count
 

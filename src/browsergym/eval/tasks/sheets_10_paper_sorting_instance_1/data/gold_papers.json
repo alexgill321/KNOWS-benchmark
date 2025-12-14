@@ -185,7 +185,9 @@
         "kimi team"
       ],
       "figure_1_path": "data/gold_figures/original_1_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "title": "Transcoders Find Interpretable LLM Feature Circuits",
@@ -208,7 +210,9 @@
         "philippe chlenski"
       ],
       "figure_1_path": "data/gold_figures/original_2_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe text discusses \"Circuit analysis\" and \"Sparse autoencoders (SAEs),\" focusing on mechanistic interpretability, model internals, and feature disentanglement. There are no mentions or discussions of \"chain-of-thought,\" \"CoT reasoning,\" \"step-by-step reasoning,\" or any similar concept related to breaking down complex tasks into intermediate steps for AI models. The focus is entirely on model structure and internal components, not on reasoning processes or prompting techniques."
     },
     {
       "title": "On the Fundamental Limits of LLMs at Scale",
@@ -241,7 +245,9 @@
         "muhammad ahmed mohsin"
       ],
       "figure_1_path": "data/gold_figures/original_3_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "title": "Weight-sparse transformers have interpretable circuits",
@@ -265,7 +271,9 @@
         "leo gao"
       ],
       "figure_1_path": "data/gold_figures/original_4_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses various techniques related to model interpretability, Sparse Autoencoders (SAEs), circuit discovery in transformers, sparse training, and pruning. It focuses on the internal mechanisms and structural properties of models. There is no mention of \"chain-of-thought\" prompting, CoT reasoning, or any equivalent concept like \"step-by-step reasoning\" in the context of AI model outputs or problem-solving strategies."
     },
     {
       "title": "Verifying Chain-of-Thought Reasoning via Its Computational Graph",
@@ -288,7 +296,9 @@
         "zheng zhao"
       ],
       "figure_1_path": "data/gold_figures/original_5_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": true,
+      "chain_of_thought_note": "[HTML] YES\n\n**Reasoning:**\nThe provided text contains extensive and meaningful discussions of \"chain-of-thought\" (CoT) in the context of AI/ML.\n\nIt explicitly:\n*   Defines \"Chain-of-Thought (CoT) prompting\" and attributes its introduction.\n*   Discusses methods like \"zero-shot instruction such as “Let’s think step by step”\" which trigger \"coherent reasoning traces.\"\n*   Mentions research directions for generating \"CoT exemplars\" and extending \"reasoning chains.\"\n*   Highlights CoT as a focal point for \"model interpretability and reliability,\" discussing the faithfulness and unreliability of \"reasoning traces.\"\n*   Details ongoing research dedicated to \"verifying and improving CoT traces,\" including measuring the faithfulness of \"reasoning chains\" and improving \"reasoning steps.\"\n*   Positions the current work in relation to \"surface-level analysis of CoT traces\" and \"qualitatively analyze the faithfulness of CoT reasoning.\"\n\nThese are all direct and substantial discussions of CoT prompting, CoT reasoning, and step-by-step reasoning, not incidental mentions."
     },
     {
       "title": "From Memorization to Reasoning in the Spectrum of Loss Curvature",
@@ -312,7 +322,9 @@
         "srihita vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/original_6_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe provided text focuses exclusively on the topics of memorization, overfitting, localization of memories/facts in model weights, and the relationship between memorization and loss curvature in machine learning models. There is no discussion of reasoning processes, step-by-step derivations, or any mention of \"chain-of-thought\" prompting or reasoning, neither explicitly nor implicitly."
     },
     {
       "title": "Cognitive Foundations for Reasoning and Their Manifestation in LLMs",
@@ -344,11 +356,14 @@
         "shuyue stella li"
       ],
       "figure_1_path": "data/gold_figures/original_7_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     }
   ],
   "count": 7,
   "source_folder_id": "1dfRMRjBHH4F1S9WMD6p6VqpYQZ-pbKWB",
   "generated_at": "2025-12-14T00:44:23.213024",
-  "figure_extraction_date": "2025-12-14T01:05:23.666011"
+  "figure_extraction_date": "2025-12-14T01:05:23.666011",
+  "chain_of_thought_detection_date": "2025-12-14T02:12:30.392890"
 }

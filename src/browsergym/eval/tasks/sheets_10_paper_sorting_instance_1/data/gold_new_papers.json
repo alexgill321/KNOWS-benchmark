@@ -77,7 +77,9 @@
         "Kimi Team"
       ],
       "figure_1_path": null,
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\n**Reasoning:** The provided \"Related Work\" section focuses entirely on advancements in efficient attention mechanisms (linear attention, sparse attention, hybrid models) for processing long contexts in large language models. It delves into technical aspects of model architecture, computational complexity, memory management, and hardware optimization. There is no mention or discussion of \"chain-of-thought,\" \"CoT reasoning,\" or similar step-by-step reasoning strategies related to how LLMs generate responses or solve problems. The text's scope is confined to the underlying attention mechanism, not the prompting or reasoning paradigms employed by LLMs."
     },
     {
       "arxiv_id": "2504.07491",
@@ -191,7 +193,9 @@
         "Kimi Team"
       ],
       "figure_1_path": "data/gold_figures/new_2_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2501.12599",
@@ -306,7 +310,9 @@
         "Kimi Team"
       ],
       "figure_1_path": "data/gold_figures/new_3_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2406.11944",
@@ -330,7 +336,9 @@
         "Philippe Chlenski"
       ],
       "figure_1_path": "data/gold_figures/new_4_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses \"Circuit analysis\" and \"Sparse autoencoders (SAEs)\", focusing on techniques for model interpretability, understanding internal model components, and disentangling activations. There is no mention of \"chain-of-thought\" prompting, CoT reasoning, or any form of step-by-step reasoning related to how a model generates its outputs or is prompted. The concepts discussed are distinct from chain-of-thought."
     },
     {
       "arxiv_id": "2007.02414",
@@ -355,7 +363,9 @@
         "Philippe Chlenski"
       ],
       "figure_1_path": "data/gold_figures/new_5_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2502.18862",
@@ -378,7 +388,9 @@
         "Philippe Chlenski"
       ],
       "figure_1_path": "data/gold_figures/new_6_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text focuses on \"Steering Vectors\" (SVs), activation addition, and methods for optimizing and applying these vectors to control various model behaviors like truthfulness, refusal, sycophancy, and toxicity. While it mentions \"multi-shot prompting\" as a baseline that SV optimization sometimes fails to beat, \"multi-shot prompting\" is a general category and not a specific discussion or mention of \"chain-of-thought\" prompting or reasoning. There are no direct or indirect mentions of \"chain-of-thought,\" \"CoT,\" or similar step-by-step reasoning concepts."
     },
     {
       "arxiv_id": "2310.13841",
@@ -403,7 +415,9 @@
         "Philippe Chlenski"
       ],
       "figure_1_path": "data/gold_figures/new_7_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses hyperbolic geometry, graph embeddings, and their applications and computational challenges in machine learning. It covers topics like hierarchical data, Riemannian optimization, and different methods for handling hyperbolic data. There is no mention or discussion of \"chain-of-thought\" prompting, CoT reasoning, or any form of step-by-step reasoning in the context of AI/ML models. The text is entirely focused on geometric and optimization aspects, not reasoning processes of language models."
     },
     {
       "arxiv_id": "2507.21648",
@@ -427,7 +441,9 @@
         "Philippe Chlenski"
       ],
       "figure_1_path": "data/gold_figures/new_8_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided \"Related Work\" section focuses entirely on hyperbolic deep learning methods, their theoretical foundations, various architectures, and applications in domains like vision, natural language, and genomics. There is no mention of \"chain-of-thought,\" \"CoT reasoning,\" \"step-by-step reasoning\" in the context of AI/ML models, or any related prompting or reasoning techniques. The text discusses data structures, model representations, and specific learning architectures, not the inferential or reasoning processes typically associated with chain-of-thought."
     },
     {
       "arxiv_id": "2406.03242",
@@ -454,7 +470,9 @@
         "Philippe Chlenski"
       ],
       "figure_1_path": "data/gold_figures/new_9_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe provided Related Work section discusses various algorithmic and statistical methods (e.g., agglomerative clustering, dynamic programming, A* search, variational inference, Sequential Monte Carlo, MCMC, pseudo-marginal methods) primarily in the context of high-energy physics data analysis and Bayesian phylogenetics. It focuses on issues of scalability, exactness, and approximation in computational inference.\n\nThere is no mention of \"chain-of-thought prompting,\" \"CoT reasoning,\" or any description of step-by-step reasoning in the context of large language models or AI reasoning paradigms similar to CoT. The term \"sequential search algorithms\" appears but refers to a type of algorithmic search strategy, not the specific AI/ML concept of chain-of-thought."
     },
     {
       "arxiv_id": "2506.04360",
@@ -477,7 +495,9 @@
         "Philippe Chlenski"
       ],
       "figure_1_path": "data/gold_figures/new_10_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe provided Related Work section discusses various aspects of machine learning in non-Euclidean and hyperbolic spaces, including decision trees, classifiers, and specific models like the Beltrami-Klein model. It makes no mention of \"chain-of-thought,\" \"CoT reasoning,\" or any related concepts pertaining to step-by-step reasoning or prompting for AI/ML models. The focus is entirely on geometric aspects of machine learning."
     },
     {
       "arxiv_id": "2503.09576",
@@ -503,7 +523,9 @@
         "Philippe Chlenski"
       ],
       "figure_1_path": "data/gold_figures/new_11_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe provided Related Work section discusses Python packages and libraries for non-Euclidean machine learning, Riemannian optimization, hyperbolic space, and various classification algorithms (Decision Trees, Perceptrons, Support Vector Machines). It does not contain any mention or discussion of \"chain-of-thought\" prompting, CoT reasoning, or similar step-by-step reasoning techniques in the context of AI/ML."
     },
     {
       "arxiv_id": "2406.05227",
@@ -527,7 +549,9 @@
         "Philippe Chlenski"
       ],
       "figure_1_path": null,
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] Could not download source: Failed to download: 404 Client Error: Not Found for url: https://export.arxiv.org/e-print/2406.05227"
     },
     {
       "arxiv_id": "2312.16291",
@@ -550,7 +574,9 @@
         "Philippe Chlenski"
       ],
       "figure_1_path": "data/gold_figures/new_13_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe related work section focuses on various interpretability methods, including saliency-based methods, circuit-based mechanistic interpretability, finding and analyzing feature vectors (both supervised and unsupervised), decomposing weight matrices, causal interventions, and using differentiation for linear approximations of model computations.\n\nWhile the text mentions \"all the intermediate information used by models in their computation\" in the context of analyzing \"relevant feature vectors,\" this refers to the *internal representations* and computational steps within the model, not the *explicit, human-readable, step-by-step reasoning* output by a model that characterizes chain-of-thought (CoT) prompting or reasoning. There are no direct mentions of \"chain-of-thought,\" \"CoT,\" or discussions of models generating sequential reasoning steps in their output. The focus is entirely on understanding the internal workings of models through various interpretability lenses."
     },
     {
       "arxiv_id": "2410.13879",
@@ -577,7 +603,9 @@
         "Philippe Chlenski"
       ],
       "figure_1_path": "data/gold_figures/new_14_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2501.06482",
@@ -605,7 +633,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_15_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2503.07670",
@@ -629,7 +659,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_16_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2501.09405",
@@ -654,7 +686,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_17_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2501.09212",
@@ -680,7 +714,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_18_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe provided text discusses interference management, spectrum sharing, and various Deep Reinforcement Learning (DRL) approaches for spectrum management in satellite-terrestrial networks. It mentions specific DRL techniques like DQN variants and multi-agent RL, and touches upon network architecture considerations (e.g., \"hierarchical decision-making\" across network layers, which refers to system-level organization, not AI reasoning steps). There are no mentions or discussions of \"chain-of-thought prompting,\" \"CoT reasoning,\" or similar step-by-step reasoning processes within an AI/ML context."
     },
     {
       "arxiv_id": "2412.18957",
@@ -706,7 +742,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_19_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2503.17275",
@@ -732,7 +770,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_20_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2503.06720",
@@ -757,7 +797,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_21_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe provided text discusses spectrum sharing, dynamic spectrum access, cognitive radio, and related telecommunications concepts. It does not contain any mentions, direct or indirect, of \"chain-of-thought\" prompting, CoT reasoning, or any form of step-by-step reasoning within the context of AI/ML."
     },
     {
       "arxiv_id": "2411.01338",
@@ -784,7 +826,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_22_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2501.11230",
@@ -808,7 +852,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_23_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2504.14520",
@@ -833,7 +879,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_24_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe text extensively discusses \"meta-thinking,\" \"meta-learning,\" \"meta-cognition,\" \"self-reflection,\" \"adaptive reasoning,\" and \"error correction\" in LLMs. These concepts relate to an LLM's ability to monitor and improve its own processes. While Chain-of-Thought (CoT) prompting is a technique that can facilitate some of these higher-level reasoning capabilities by eliciting explicit, step-by-step reasoning, the provided text **does not explicitly mention \"chain-of-thought,\" \"CoT reasoning,\" or any specific \"step-by-step reasoning\" methodology that directly refers to the CoT paradigm**. The discussion remains at a higher, conceptual level of meta-cognition and self-awareness, without delving into the specific prompting or reasoning techniques like CoT that enable them."
     },
     {
       "arxiv_id": "2502.15903",
@@ -858,7 +906,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_25_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:** The provided \"Related Work\" section focuses entirely on Mobile Edge Computing (MEC), Integrated Terrestrial-Non-Terrestrial Networks (IT-NTNs), computation offloading, and network architecture. It discusses reducing latency and enhancing efficiency for resource-constrained devices by moving computation closer to the user or offloading it to powerful edge servers. There is no mention of \"chain-of-thought,\" \"CoT reasoning,\" \"step-by-step reasoning\" in the context of AI/ML, or any related concepts pertaining to AI model reasoning or prompting."
     },
     {
       "arxiv_id": "2501.11229",
@@ -882,7 +932,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_26_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2501.11266",
@@ -907,7 +959,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_27_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2410.21782",
@@ -932,7 +986,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_28_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO.\n\nThe provided text discusses concepts related to wireless communication, signal processing, and information theory, specifically focusing on the uplink multiple access channel (MAC), successive interference cancellation (SIC), and decoding orders. It details channel matrices, noise, signal reception, and data rates. There are no mentions of \"chain-of-thought,\" \"CoT reasoning,\" \"step-by-step reasoning\" in the context of AI/ML, large language models, or any related AI/ML concepts. The \"decoding order\" mentioned is a procedural sequence for signal processing, not an AI reasoning process."
     },
     {
       "arxiv_id": "2504.00975",
@@ -956,7 +1012,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_29_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text is entirely focused on wireless communication technologies, specifically Non-Orthogonal Multiple Access (NOMA), Coordinated Multi-Point (CoMP), and Reconfigurable Intelligent Surfaces (RIS), including STAR-RIS. It discusses their principles, challenges, benefits, and applications in improving data rates, spectral efficiency, and coverage. There is no mention of \"chain-of-thought\" prompting, CoT reasoning, or any related AI/ML reasoning paradigms. The concepts discussed are unrelated to the field where chain-of-thought is relevant."
     },
     {
       "arxiv_id": "2508.11668",
@@ -980,7 +1038,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_30_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:** The provided \"Related Work\" section focuses entirely on NeRF-based and 3DGS-based approaches for channel estimation in wireless communication. It discusses their methodologies, performance, and limitations (e.g., data requirements, computational cost, applicability to MIMO, representation fidelity). There is no mention or discussion of \"chain-of-thought,\" \"CoT prompting,\" \"step-by-step reasoning,\" or any related concepts pertaining to AI/ML model reasoning capabilities, particularly in the context of large language models. The content is purely technical within the domain of wireless signal processing and computer graphics adaptations."
     },
     {
       "arxiv_id": "2506.22471",
@@ -1005,7 +1065,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_31_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2501.17879",
@@ -1029,7 +1091,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_32_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:** The provided Related Work section focuses on topics such as wireless communication, rate adaptation, neural joint source-channel coding, reinforcement learning for video transmission, and various source coding techniques for speech data (e.g., autoencoders, distributed source coding). There are no mentions of \"chain-of-thought,\" \"CoT reasoning,\" \"step-by-step reasoning,\" or any related concepts pertaining to AI/ML model reasoning or prompting. The discussion is entirely within the domain of signal processing, wireless communications, and data compression."
     },
     {
       "arxiv_id": "2508.01911",
@@ -1054,7 +1118,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_33_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2507.19124",
@@ -1079,7 +1145,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_34_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2509.18735",
@@ -1105,7 +1173,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_35_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nWhile the text mentions \"large language models\" and \"Generative pretrained transformer (GPT-2)\" in the context of channel prediction, it does so only to list them as types of models being explored for this task and to note their limitations (e.g., \"language-to-CSI gap\"). There is no discussion whatsoever about \"chain-of-thought\" prompting, CoT reasoning, or any form of step-by-step reasoning mechanism employed by these models. The mentions are purely incidental to their application in channel prediction, not a discussion of their internal reasoning processes or prompting techniques."
     },
     {
       "arxiv_id": "2509.15192",
@@ -1132,7 +1202,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_36_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2509.15182",
@@ -1159,7 +1231,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_37_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2508.05130",
@@ -1186,7 +1260,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_38_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2506.17189",
@@ -1213,7 +1289,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_39_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2511.20836",
@@ -1251,7 +1329,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_40_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": true,
+      "chain_of_thought_note": "[HTML] YES\n\n**Reasoning:**\n\nThe text contains multiple meaningful mentions of \"chain-of-thought\" (CoT) prompting:\n\n1.  In the \"Prompting methods\" section, it explicitly states: \"...and the breakthrough of **chain-of-thought (CoT) prompting**(wei2022chainofthought) established the important role of prompt design in model performance.\" This clearly highlights CoT's significance and impact.\n2.  Immediately following, it discusses strategies like Medprompt: \"...which combine few-shot selection, **CoT**, and ensembling, demonstrate that a LM’s performance ceiling often lies higher than with the use of static prompts.\" Here, CoT is presented as a crucial component of advanced, high-performing prompting methods.\n3.  Even in the first paragraph, the citation `suzgun2022challengingbigbenchtaskschainofthought` hints at CoT's relevance in challenging benchmarks and overcoming the underestimation of LM capabilities, implicitly recognizing its role.\n\nThese mentions go beyond incidental references, actively discussing CoT's role as a breakthrough, its importance in prompt design, and its integration into complex prompting strategies for enhanced model performance."
     },
     {
       "arxiv_id": "2511.01333",
@@ -1278,7 +1358,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_41_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2510.00678",
@@ -1305,7 +1387,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_42_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\n**Reasoning:**\nThe provided text discusses topics related to 6G, network integration (Terrestrial and Non-Terrestrial Networks), energy efficiency, and sustainability. While it mentions \"intelligent automation,\" \"ML-driven orchestration,\" and \"AI\" as enabling technologies, these are broad terms. There are no specific mentions or discussions of \"chain-of-thought\" prompting, CoT reasoning, or any equivalent step-by-step reasoning methodology in the context of AI/ML models. The focus is on network infrastructure and operational improvements, not on the specific reasoning paradigms of AI systems."
     },
     {
       "arxiv_id": "2509.08770",
@@ -1332,7 +1416,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_43_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO.\n\nThe provided \"Related Work\" section focuses entirely on wireless communication technologies for 6G, including Reconfigurable Holographic Surfaces (RHS), Near Field Communication (NFC), and Non-Terrestrial Networks (NTN). It discusses technical details of these systems, their propagation characteristics, and integration strategies.\n\nThere are no mentions of \"chain-of-thought\" prompting, CoT reasoning, or any discussion of AI/ML models' step-by-step reasoning processes or cognitive abilities. The term \"intelligent\" appears in contexts like \"intelligent radio environments\" or \"intelligent connectivity,\" referring to the capabilities of the communication network itself, not to AI/ML reasoning techniques."
     },
     {
       "arxiv_id": "2508.19495",
@@ -1356,7 +1442,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_44_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO.\n\nThe provided text discusses various concepts related to Ambient Intelligence, 6G, Edge AI, Wireless Big AI Models (wBAIMs), and Generative AI (GenAI). It covers topics like adaptive network management, few-shot adaptability, proactive planning, digital twins, security applications, privacy-preserving techniques, and model optimization.\n\nHowever, there is no mention of \"chain-of-thought,\" \"CoT reasoning,\" \"chain-of-thought prompting,\" or any description of step-by-step reasoning processes similar to what chain-of-thought entails in the context of AI/ML models. The discussion focuses on the capabilities and applications of various AI/ML paradigms rather than their internal reasoning processes or explainability through explicit reasoning steps."
     },
     {
       "arxiv_id": "2507.10619",
@@ -1381,7 +1469,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_45_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2506.15753",
@@ -1405,7 +1495,9 @@
         "Muhammad Ahmed Mohsin"
       ],
       "figure_1_path": "data/gold_figures/new_46_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2303.08774",
@@ -1706,7 +1798,9 @@
         "Leo Gao"
       ],
       "figure_1_path": "data/gold_figures/new_47_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2101.00027",
@@ -1738,7 +1832,9 @@
         "Leo Gao"
       ],
       "figure_1_path": "data/gold_figures/new_48_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\nThe provided \"Related Work\" section focuses exclusively on the datasets used for training large language models (e.g., Common Crawl, The Pile, C4, Wikipedia, BookCorpus). It discusses self-supervised training, data sources, data quality, and the challenges of dataset preprocessing. There is no mention or discussion of reasoning processes, prompting techniques, or \"chain-of-thought\" reasoning in the context of model behavior or output generation."
     },
     {
       "arxiv_id": "2110.08207",
@@ -1799,7 +1895,9 @@
         "Leo Gao"
       ],
       "figure_1_path": "data/gold_figures/new_49_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\n**Reasoning:**\nThe provided text extensively discusses natural language prompting, multitask learning, few-shot, and zero-shot generalization. It describes various prompt formats and the general use of prompts as task instructions. However, it does not contain any mention of \"chain-of-thought,\" \"CoT reasoning,\" or the concept of step-by-step reasoning *within* the prompt or as a specific reasoning strategy. The discussion focuses on the formatting of tasks and the use of prompts for generalization, not the explicit elicitation of intermediate reasoning steps."
     },
     {
       "arxiv_id": "2211.05100",
@@ -2213,7 +2311,9 @@
         "Leo Gao"
       ],
       "figure_1_path": "data/gold_figures/new_50_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe text describes the evolution of large language models, autoregressive modeling, transfer learning, and the rise of in-context learning through prompting and few-shot examples, citing Brown et al. (2020). While this section lays the groundwork for techniques like Chain-of-Thought (CoT) prompting, it does not specifically mention or discuss \"chain-of-thought,\" \"CoT reasoning,\" or the concept of providing \"step-by-step reasoning\" within the prompts or demonstrations. It only refers to \"inputting a few demonstrations of input-output behavior,\" which is standard few-shot prompting, not necessarily CoT. Chain-of-thought prompting, as a distinct technique, involves explicitly showing the model intermediate reasoning steps, which is not mentioned here."
     },
     {
       "arxiv_id": "2206.04615",
@@ -2684,7 +2784,9 @@
         "Leo Gao"
       ],
       "figure_1_path": "data/gold_figures/new_51_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided \"Related Work\" section discusses various benchmarks and platforms for evaluating language models (e.g., BIG-bench, Masakhane, EleutherAI Harness, GEM, NL-Augmenter, Natural Instructions, DynaBench, SyntaxGym, MMLU). The focus is on their construction, organization, and the types of tasks and evaluations they offer. There is no mention or discussion of \"chain-of-thought,\" CoT reasoning, step-by-step reasoning, or any other related concept concerning how models derive their answers or intermediate reasoning processes. The text is solely about the benchmarking infrastructure."
     },
     {
       "arxiv_id": "2204.06745",
@@ -2721,7 +2823,9 @@
         "Leo Gao"
       ],
       "figure_1_path": "data/gold_figures/new_52_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2210.10760",
@@ -2744,7 +2848,9 @@
         "Leo Gao"
       ],
       "figure_1_path": "data/gold_figures/new_53_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\n**Reasoning:**\nThe provided text discusses various concepts related to AI/ML, including Goodhart's Law, overoptimization, reward models, specification gaming, adversarial robustness, scaling laws, RLHF, and AI alignment. However, it does not contain any mention of \"chain-of-thought,\" \"CoT,\" or \"step-by-step reasoning\" in the context of AI/ML reasoning or prompting. The mentions of language models are in the context of scaling laws and RLHF, not their reasoning processes."
     },
     {
       "arxiv_id": "2312.09390",
@@ -2776,7 +2882,9 @@
         "Leo Gao"
       ],
       "figure_1_path": "data/gold_figures/new_54_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe text does not contain meaningful mentions of \"chain-of-thought\" prompting or reasoning. While the \"Scalable oversight\" section mentions \"decompose a problem into simpler sub-problems,\" this is a general strategy in oversight and problem-solving, not a direct discussion of the AI/ML concept of \"chain-of-thought\" reasoning where models explicitly generate intermediate reasoning steps to arrive at a solution. The related work discusses other concepts like weakly-supervised learning, student-teacher training, robustness, debiasing, imitation learning, and scalable oversight, but \"chain-of-thought\" is not among them."
     },
     {
       "arxiv_id": "2406.04093",
@@ -2805,7 +2913,9 @@
         "Leo Gao"
       ],
       "figure_1_path": "data/gold_figures/new_55_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe provided text focuses entirely on sparse coding, autoencoders (especially sparse autoencoders), their application to language models, and scaling laws. It discusses architectural concepts, training methods, sparsity priors, activation functions, and how these models relate to language model features and circuits. There is no mention of \"chain-of-thought,\" \"CoT reasoning,\" \"step-by-step reasoning,\" or any related concepts pertaining to how language models generate multi-step explanations or intermediate thoughts."
     },
     {
       "arxiv_id": "2503.11926",
@@ -2834,7 +2944,9 @@
         "Leo Gao"
       ],
       "figure_1_path": "data/gold_figures/new_56_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": true,
+      "chain_of_thought_note": "[HTML] YES\n\n**Reasoning:**\nThe provided Related Work section contains multiple meaningful mentions and discussions of \"chain-of-thought\" (CoT) in the context of AI/ML.\n\n1.  **Definition and Mechanism:** The first paragraph explicitly defines \"Chain-of-thought\" as a method where LLMs \"first output a reasoning trace before giving a final answer,\" highlighting its role in allowing variable test-time compute.\n2.  **Monitorability and Supervision:** The section extensively discusses \"chain-of-thought monitorability,\" its integration into RL rewards (as a form of process-based supervision), and its effects on obfuscation and interpretability. It debates the trade-offs between process-based and outcome-based supervision in relation to CoT.\n3.  **Role in AI Alignment and Safety:** CoTs are identified as crucial \"model latents\" for AI alignment and safe deployment, alongside activations. The text notes that monitoring CoTs has become standard practice for AI labs, citing examples like OpenAI's o1 and Claude 3.7 Sonnet for detecting deceptive reasoning, manipulation, and harmful intent.\n4.  **Novel Research Contribution:** The paper claims to be the first to demonstrate \"obfuscation,\" a phenomenon where models conceal reward hacking intent *within their chains-of-thought*, indicating a deep engagement with CoT as a core element of the paper's novel findings."
     },
     {
       "arxiv_id": "2405.14782",
@@ -2884,7 +2996,9 @@
         "Leo Gao"
       ],
       "figure_1_path": "data/gold_figures/new_57_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO.\n\n**Reasoning:** The provided \"Related Work\" section discusses challenges in comparing language models, primarily due to issues like models not being released, API changes, deprecation, and the use of closed systems with proprietary features. It focuses on practical barriers to research and reproducibility in the field of language modeling. There is no mention or discussion of \"chain-of-thought\" prompting, CoT reasoning, or any form of step-by-step reasoning strategy employed by language models."
     },
     {
       "arxiv_id": "2201.07311",
@@ -2907,7 +3021,9 @@
         "Leo Gao"
       ],
       "figure_1_path": null,
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\n**Reasoning:**\nThe provided text is a detailed description of \"The Pile\" dataset, listing its component datasets, how it was created, and its characteristics. It focuses entirely on data collection, processing, and composition. There is no discussion of AI/ML models, their reasoning capabilities, prompting techniques, or specific concepts like \"chain-of-thought prompting\" or \"step-by-step reasoning\" in the context of how models generate outputs. The mention of \"natural language prompts\" refers to the format of problems *within* a dataset (DeepMind Mathematics), not to CoT prompting strategies for large language models."
     },
     {
       "arxiv_id": "2011.10208",
@@ -2930,7 +3046,9 @@
         "Leo Gao"
       ],
       "figure_1_path": "data/gold_figures/new_59_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2210.06413",
@@ -2955,7 +3073,9 @@
         "Leo Gao"
       ],
       "figure_1_path": null,
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\nThe provided text discusses the history, organization, models (GPT-Neo, GPT-J, GPT-NeoX), resources (The Pile, LM-Eval-Harness), and research areas of EleutherAI. It mentions evaluating \"zero- and few-shot performance\" which is related to the context where chain-of-thought often appears, but it does not contain any actual discussion or mention of \"chain-of-thought,\" \"CoT reasoning,\" or similar step-by-step reasoning concepts. The focus is on the models themselves, data, evaluation tools, and broader research directions like AI safety and interpretability, not on specific prompting or reasoning techniques."
     },
     {
       "arxiv_id": "2110.03111",
@@ -2982,7 +3102,9 @@
         "Leo Gao"
       ],
       "figure_1_path": "data/gold_figures/new_61_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2109.00698",
@@ -3003,7 +3125,9 @@
         "Leo Gao"
       ],
       "figure_1_path": "data/gold_figures/new_62_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\n**Reasoning:** The provided text discusses issues related to training data quality for large language models, including data sources (Common Crawl), filtering methods (classifiers, heuristics, perplexity), and the impact of filtered data on model performance. It does not mention \"chain-of-thought,\" \"CoT reasoning,\" \"step-by-step reasoning,\" or any related concepts concerning how models generate explanations or intermediate steps to solve problems. The focus is entirely on data preparation, not reasoning techniques."
     },
     {
       "arxiv_id": "2405.02750",
@@ -3027,7 +3151,9 @@
         "Zheng Zhao"
       ],
       "figure_1_path": "data/gold_figures/new_63_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe Related Work section discusses several relevant topics in LLM research:\n1.  **Retrieval-Augmented Generation (RAG):** Enhancing LLMs with non-parametric memories to overcome limitations like outdated knowledge and limited memorization.\n2.  **Context Fidelity:** How LLMs use or overlook provided contexts, especially when conflicting with parametric knowledge.\n3.  **Decoding Strategies:** Particularly contrastive decoding methods, which modify output probabilities to achieve desired generation characteristics (e.g., diversity, toxicity mitigation, overriding parametric knowledge).\n\nWhile the text mentions \"prompting-based method\" and \"intermediate states\" (in the context of integrating retrieved information), it *does not* discuss or even explicitly mention \"chain-of-thought,\" \"CoT reasoning,\" \"step-by-step reasoning,\" or any method that involves guiding an LLM to produce explicit intermediate reasoning steps. The focus is on *what knowledge* is used and *how the final output is generated/steered* through decoding or retrieval, rather than the internal, multi-step thought process of the model itself."
     },
     {
       "arxiv_id": "2405.09719",
@@ -3053,7 +3179,9 @@
         "Zheng Zhao"
       ],
       "figure_1_path": "data/gold_figures/new_64_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe \"Related Work\" section primarily discusses methods for \"activation editing\" in Large Language Models (LLMs) to control their generation, improve truthfulness, and reduce bias. It describes various techniques such as probing attention heads, extracting latent vectors, optimal transport, and contrasting activations. The paper introduces its own method, SEA (Spectral Editing of Activations).\n\nThere are no mentions of \"chain-of-thought,\" \"CoT reasoning,\" or \"step-by-step reasoning\" in the context of prompting or improving model reasoning. While some references are related to areas where CoT is often applied (e.g., math word problems, in-context learning), the text itself does not discuss or refer to these concepts. The focus remains on internal model modifications (activation editing) rather than input prompting strategies."
     },
     {
       "arxiv_id": "2311.08398",
@@ -3079,7 +3207,9 @@
         "Zheng Zhao"
       ],
       "figure_1_path": "data/gold_figures/new_65_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\nThe text discusses how language models are grounded with respect to various properties, the grounding of lexical representations, and improving how language models reason about the physical world using a physics engine. While it mentions \"reasoning,\" it does not discuss \"chain-of-thought prompting,\" \"CoT reasoning,\" or any form of explicit step-by-step reasoning methodology related to CoT. The focus is on grounding and reasoning about the physical world, not the specific reasoning process itself in a CoT context."
     },
     {
       "arxiv_id": "2410.20008",
@@ -3102,7 +3232,9 @@
         "Zheng Zhao"
       ],
       "figure_1_path": "data/gold_figures/new_66_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2205.04602",
@@ -3124,7 +3256,9 @@
         "Zheng Zhao"
       ],
       "figure_1_path": "data/gold_figures/new_67_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\n**Reasoning:**\nThe provided text discusses various neural network architectures and techniques for tasks like reverse dictionary, word embedding, definition generation, and retrieval. It mentions RNNs, bag-of-words models, word vectors, super-sense integration, multi-channel networks, autoencodings, attention mechanisms, and context encoding. However, it does not contain any discussion of \"chain-of-thought\" prompting, CoT reasoning, or any form of explicit step-by-step reasoning process within an AI/ML model. The focus is on model components and data representations, not on the model's internal reasoning transparency or multi-step inferential capabilities in the CoT sense."
     },
     {
       "arxiv_id": "2305.08828",
@@ -3150,7 +3284,9 @@
         "Zheng Zhao"
       ],
       "figure_1_path": "data/gold_figures/new_68_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:** The provided \"Related Work\" section focuses entirely on the creation, characteristics, and limitations of various summarization datasets, particularly concerning multilingual and cross-lingual summarization for Indian languages. It discusses data sources, language coverage, and availability. There is no mention or discussion of AI model reasoning processes, prompting techniques, \"chain-of-thought\" prompting, \"CoT reasoning,\" or any similar step-by-step reasoning concepts for AI/ML models."
     },
     {
       "arxiv_id": "2208.14559",
@@ -3172,7 +3308,9 @@
         "Zheng Zhao"
       ],
       "figure_1_path": "data/gold_figures/new_69_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\n**Reasoning:**\nThe provided text focuses entirely on fine-tuning Pre-trained Language Models (PLMs) and the use of \"adapters\" for efficient and specialized learning, particularly in summarization tasks. It discusses architectural modifications, training strategies (few-shot, meta-transfer), and performance metrics related to model adaptation and knowledge transfer. There is no mention or discussion of \"chain-of-thought\" prompting, CoT reasoning, or any other form of explicit step-by-step reasoning mechanisms used by the models themselves to generate outputs. The text is concerned with *how* models are trained and adapted, not *how* they arrive at their conclusions or generate their text in a multi-step thought process."
     },
     {
       "arxiv_id": "2506.09902",
@@ -3198,7 +3336,9 @@
         "Zheng Zhao"
       ],
       "figure_1_path": "data/gold_figures/new_70_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses various aspects of personalization in dialogue systems, including prompt engineering, RAG, fine-tuning, benchmarks, and evaluation methods like \"LLM-as-a-Judge.\" However, it does not contain any meaningful mentions of \"chain-of-thought\" prompting, CoT reasoning, or descriptions of step-by-step reasoning processes related to how LLMs generate their outputs. The focus is on strategies for personalization and evaluation, not on the internal reasoning mechanisms of the LLMs themselves in a CoT context."
     },
     {
       "arxiv_id": "2210.12553",
@@ -3221,7 +3361,9 @@
         "Zheng Zhao"
       ],
       "figure_1_path": "data/gold_figures/new_71_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\n**Reasoning:** The provided text focuses on methods for analyzing neural representations (like SVCCA and Diagnostic Classifiers) and their findings regarding the properties and learning dynamics of language model representations. It does not discuss how AI models generate responses, perform reasoning, or produce intermediate steps, which are the core concepts of \"chain-of-thought\" prompting or reasoning. There are no mentions of \"chain-of-thought,\" \"CoT,\" or similar step-by-step reasoning processes."
     },
     {
       "arxiv_id": "2502.08279",
@@ -3250,7 +3392,9 @@
         "Zheng Zhao"
       ],
       "figure_1_path": "data/gold_figures/new_72_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe provided text discusses various aspects of summarization, including multimodal summarization, scholarly content summarization, and methods employing structured representations and planning. While the last section mentions \"text-based planning\" and \"blueprint-based frameworks\" that utilize \"intermediate plans,\" these refer to strategies for structuring the summary generation process or incorporating external knowledge. They do not describe or discuss \"chain-of-thought\" prompting, CoT reasoning, or a sequential, explicit step-by-step reasoning process within an AI model, which is the core concept of CoT. The terms \"chain-of-thought\" or \"CoT\" are not present, nor are there any equivalent descriptions of its methodology."
     },
     {
       "arxiv_id": "2310.15513",
@@ -3274,7 +3418,9 @@
         "Zheng Zhao"
       ],
       "figure_1_path": null,
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO.\n\n**Reasoning:**\nThe provided Related Work section focuses entirely on methods for analyzing and understanding the internal representations of multilingual NLP models (like mBERT and XLM-R). It discusses techniques such as Canonical Correlation Analysis (CCA), SVCCA, probing, and matrix factorization, aiming to discern language-specific versus language-neutral components, and how linguistic information is encoded. There is no mention or discussion of \"chain-of-thought\" prompting, CoT reasoning, or any form of step-by-step reasoning generation by models within the text."
     },
     {
       "arxiv_id": "2508.21787",
@@ -3304,7 +3450,9 @@
         "Zheng Zhao"
       ],
       "figure_1_path": "data/gold_figures/new_74_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": true,
+      "chain_of_thought_note": "[HTML] YES\n\n**Reasoning:** The first paragraph explicitly states: \"While CoT reasoning improves performance(Wei et al.,2022; Leang et al.,2024)...\". This is a direct and meaningful mention of \"CoT reasoning\" in the context of enhancing LLM reasoning abilities, along with references to key papers on the topic. It discusses CoT reasoning as a foundational technique upon which subsequent work has built."
     },
     {
       "arxiv_id": "2506.11244",
@@ -3330,7 +3478,9 @@
         "Zheng Zhao"
       ],
       "figure_1_path": "data/gold_figures/new_75_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\n**Reasoning:** The provided text discusses debiasing in multilingual representations, focusing on topics like grammatical vs. biological gender bias, cross-lingual transfer, and different debiasing techniques (e.g., semantic shifts, equalizing distances). There are no mentions of \"chain-of-thought,\" \"CoT reasoning,\" \"step-by-step reasoning,\" or any related concepts pertaining to AI/ML model reasoning processes. The content is entirely unrelated to chain-of-thought."
     },
     {
       "arxiv_id": "2209.15162",
@@ -3355,7 +3505,9 @@
         "Srihita Vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/new_76_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\n**Reasoning:**\nThe provided text discusses various aspects of adapting language models for multimodal (vision-language) tasks, including architectural approaches (fine-tuning, projection networks, model stitching), representational similarities between modalities, and whether LMs can process non-text data directly.\n\nIt does not mention \"chain-of-thought\" prompting, \"CoT reasoning,\" or any similar concept related to generating explicit intermediate steps for reasoning or problem-solving within the language model. The focus is on *interfacing* and *representation*, not on the *reasoning process* itself in the manner of chain-of-thought."
     },
     {
       "arxiv_id": "2310.08744",
@@ -3379,7 +3531,9 @@
         "Srihita Vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/new_77_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe provided text discusses various aspects of transformer language models, including component reuse, in-context learning, specialized conceptual features, and circuit analysis techniques (attention heads, causal interventions, path patching). However, it does not contain any direct mentions of \"chain-of-thought,\" \"CoT reasoning,\" or any discussion that explicitly describes or refers to step-by-step reasoning similar to chain-of-thought prompting. While \"in-context learning\" is mentioned, the discussion does not elaborate on specific prompting techniques like CoT."
     },
     {
       "arxiv_id": "2212.10537",
@@ -3407,7 +3561,9 @@
         "Srihita Vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/new_78_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe provided text discusses \"compositionality and language\" and \"compositionality and vision,\" mentioning various models of composition and approaches to general \"reasoning\" (e.g., \"approaches to reasoning,\" \"compositional visual reasoning\"). However, it does not contain any specific mentions of \"chain-of-thought\" prompting, \"CoT reasoning,\" or any detailed discussion of step-by-step reasoning processes in the context of AI/ML that would qualify as a meaningful mention of CoT. The term \"reasoning\" is used broadly without specifying the methodology that CoT refers to."
     },
     {
       "arxiv_id": "2305.16130",
@@ -3431,7 +3587,9 @@
         "Srihita Vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/new_79_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe text discusses various aspects of language model interpretability, such as attributing roles to attention and FFN layers, knowledge storage, and mechanistic interpretability (reverse engineering how LMs perform behaviors, information flow, discrete processing stages, interpreting individual updates). However, it does not mention \"chain-of-thought\" prompting, CoT reasoning, or any equivalent concept where the model explicitly generates or is prompted to generate intermediate, step-by-step reasoning steps. The focus is on understanding the internal workings and components of LMs, not on their ability to produce human-readable reasoning traces."
     },
     {
       "arxiv_id": "2310.15910",
@@ -3455,7 +3613,9 @@
         "Srihita Vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/new_80_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\nThe provided Related Work section does not contain any meaningful mentions of \"chain-of-thought\" or related concepts like CoT reasoning or step-by-step reasoning. The text focuses on topics such as pretraining data, model size, memorization vs. in-context learning, counterfactuals, mechanistic interpretability, and the roles of MLP sublayers and attention heads in knowledge storage and retrieval. It does not discuss any form of sequential, explicit reasoning processes within LMs."
     },
     {
       "arxiv_id": "1909.03343",
@@ -3482,7 +3642,9 @@
         "Srihita Vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/new_81_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\nThe text discusses social science studies using manual coding, computational approaches to analyze bias in sports broadcasts, and various types of bias in NLP tools. It does not mention \"chain-of-thought,\" CoT reasoning, or any form of step-by-step AI/ML reasoning. The \"fine-grained analysis\" mentioned refers to human coding, not an AI reasoning technique."
     },
     {
       "arxiv_id": "2406.09519",
@@ -3506,7 +3668,9 @@
         "Srihita Vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/new_82_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text is a highly technical discussion focused on the internal mechanisms of decoder-only transformer language models, specifically GPT2-Small. It delves into attention mechanisms (QKV, OV matrices), inter-layer communication, and circuit analysis (e.g., Indirect Object Identification circuit, mover heads, inhibition heads). The goal of the work described is to understand *how* different model components interact and process information.\n\nThere is no mention of \"chain-of-thought,\" \"CoT,\" or any concepts related to multi-step reasoning processes or prompting techniques designed to elicit such reasoning from an AI model. The text is entirely concerned with mechanistic interpretability rather than the *output generation strategy* or *reasoning paradigm* of the model, which is the context in which chain-of-thought is relevant."
     },
     {
       "arxiv_id": "2405.02503",
@@ -3530,7 +3694,9 @@
         "Srihita Vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/new_83_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe provided text does not contain any meaningful mentions of \"chain-of-thought\" in the context of AI/ML. The discussion revolves around retrieval axioms, explainable IR (XIR), probing methods, and mechanistic interpretability using causal interventions to understand the internal mechanisms of neural retrieval models. There is no mention of step-by-step reasoning generated by models, CoT prompting, or CoT reasoning."
     },
     {
       "arxiv_id": "2402.08211",
@@ -3555,7 +3721,9 @@
         "Srihita Vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/new_84_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\n\nThe provided \"Related Work\" section discusses human working memory, cognitive neuroscience tasks, the mechanics of Transformer models (attention, query/key/value mechanisms), and analysis tools like path-patching. While it touches upon how Transformers process information and can be viewed as a \"read/write mechanism\" analogous to human gating, it does not discuss explicit step-by-step reasoning generated by AI models, chain-of-thought prompting, or CoT reasoning as an AI/ML concept. The focus is on the internal computational mechanisms of Transformers and their relation to human working memory and neural circuits, not on generating interpretable reasoning traces."
     },
     {
       "arxiv_id": "2406.00053",
@@ -3580,7 +3748,9 @@
         "Srihita Vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/new_85_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:** The provided \"Related Work\" section discusses the trade-offs between in-context and in-weights learning, and extensively covers the topic of \"forgetting\" in neural networks. It does not contain any explicit mentions of \"chain-of-thought,\" \"CoT reasoning,\" \"step-by-step reasoning,\" or any discussions that implicitly describe or relate to chain-of-thought prompting or reasoning in the context of AI/ML."
     },
     {
       "arxiv_id": "2504.12459",
@@ -3605,7 +3775,9 @@
         "Srihita Vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/new_86_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\n\nThe provided text primarily discusses:\n1.  The history and properties of vector space models and linear structure in language embeddings.\n2.  The concept and application of Linear Relational Embeddings (LREs) to approximate how LMs predict factual subject-relation-object triplets.\n3.  The relationship between linear representations and training data statistics.\n\nThere are no mentions of \"chain-of-thought,\" \"CoT reasoning,\" \"step-by-step reasoning,\" or any similar concepts related to prompting AI models to articulate their intermediate reasoning steps. The discussion revolves around internal representations and computational approximations within LMs, not their output generation strategy for complex tasks requiring explicit reasoning paths. While the text mentions \"few-shot setup,\" this is in the context of providing examples for LRE estimation, not for eliciting step-by-step reasoning from the model's output."
     },
     {
       "arxiv_id": "2210.07188",
@@ -3634,7 +3806,9 @@
         "Srihita Vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/new_87_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO.\n\nThe text does not contain any meaningful mentions of \"chain-of-thought\" in the context of AI/ML. It discusses coreference datasets, annotation tools, and methods for crowdsourcing linguistic annotations, including strategies for teaching complex guidelines to *human annotators* (like \"learning by progression\"). However, this is distinct from chain-of-thought prompting or reasoning in AI/ML models."
     },
     {
       "arxiv_id": "2410.23261",
@@ -3662,7 +3836,9 @@
         "Srihita Vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/new_88_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe provided Related Work section discusses compute resources, training efficiency, automatic search for optimal settings, training time estimation via simulation versus empirical measurement, and pre-training \"recipes\" for various models. The focus is entirely on the infrastructure, optimization, and methodology for *training* deep learning models and managing compute resources.\n\nThere are no mentions of \"chain-of-thought,\" \"CoT reasoning,\" \"step-by-step reasoning,\" or any related concepts pertaining to the explicit, multi-step reasoning processes of AI models themselves."
     },
     {
       "arxiv_id": "2207.02272",
@@ -3687,7 +3863,9 @@
         "Srihita Vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/new_89_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\n**Reasoning:**\nThe provided text discusses lexical semantics, affordances, cognitive science, robotics, and physical commonsense reasoning. It covers topics like mental simulation, object-action-effect tuples, unsupervised learning, 3D simulations, and grounding representations to physical phenomena. However, there are no mentions of \"chain-of-thought,\" \"CoT reasoning,\" \"step-by-step reasoning\" in the context of AI/ML models generating intermediate steps or thoughts to solve problems. The focus is on different types of representations and learning paradigms, not on the explicit reasoning process akin to CoT."
     },
     {
       "arxiv_id": "2506.06609",
@@ -3712,7 +3890,9 @@
         "Srihita Vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/new_90_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses various topics related to language models, including:\n*   Learning vector representations of concepts (e.g., function application, truthfulness).\n*   Model editing, steering, and concept erasure using linear directions.\n*   Sparse Autoencoders (SAEs) for decomposing residual streams, their applications, training, and limitations.\n*   The nature of features (linearity vs. nonlinearity).\n*   Model universality and representation similarity.\n*   Transfer of steering vectors.\n\nWhile these topics relate to how language models represent and process information, there is no mention or discussion of \"chain-of-thought,\" \"CoT reasoning,\" \"step-by-step reasoning,\" or any prompting strategies designed to elicit multi-step reasoning processes from language models. The text's focus is on internal representations, architectural components (SAEs), and model-level properties, not on the reasoning process itself in the context of CoT."
     },
     {
       "arxiv_id": "2508.02527",
@@ -3736,7 +3916,9 @@
         "Srihita Vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/new_91_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2510.24256",
@@ -3761,7 +3943,9 @@
         "Srihita Vatsavaya"
       ],
       "figure_1_path": "data/gold_figures/new_92_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided Related Work section focuses entirely on topics such as memorization in large models, localization of memories in model weights, the use of techniques like SVD, and the connection between memorization and loss curvature. It does not mention \"chain-of-thought,\" \"CoT reasoning,\" or any concept related to step-by-step reasoning or prompting strategies for complex tasks."
     },
     {
       "arxiv_id": "2505.15117",
@@ -3787,7 +3971,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_93_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": true,
+      "chain_of_thought_note": "[LaTeX] YES\n\nThe text explicitly mentions \"IRCoT\" and \"ReAct\" as \"prompt-based methods\" that \"enable interleaved reasoning and retrieval.\"\n\n*   **IRCoT** (Iterative Reasoning with Chain-of-Thought) directly incorporates \"CoT\" in its name, indicating a clear connection to chain-of-thought reasoning.\n*   **ReAct** (Reasoning and Acting) is a well-known framework that combines chain-of-thought-like reasoning with task-specific actions.\n\nThese mentions are not incidental but refer to specific methodologies that leverage or are directly inspired by chain-of-thought prompting for complex reasoning and search tasks."
     },
     {
       "arxiv_id": "2406.11709",
@@ -3812,7 +3998,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_94_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": true,
+      "chain_of_thought_note": "[HTML] YES\n\n**Reasoning:**\nThe third paragraph explicitly mentions \"Chain-of-Thought (CoT)\" in the context of \"prompting-based methods\" for Socratic Reasoning in education. It discusses its performance (\"poor performance... even with Chain-of-Thought (CoT)\") and its shortcomings (giving away answers, unrelated questions). This is a direct and meaningful discussion of CoT's application and limitations in the AI/ML domain being addressed by the paper."
     },
     {
       "arxiv_id": "2304.01969",
@@ -3838,7 +4026,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_95_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\n**Reasoning:**\nThe provided text discusses various methods for weakly supervised text classification, focusing on techniques like keyword discovery, pseudo-label generation, leveraging pre-trained language models (PLMs) for contextual understanding, and exploiting different text granularities. While it mentions \"prompts\" (cloize-style, zero-shot) in the context of using PLMs, these are used to obtain summary words or pseudo-labels, not to elicit or analyze step-by-step reasoning or an explicit \"chain-of-thought\" from the model itself. There are no direct mentions of \"chain-of-thought,\" \"CoT reasoning,\" or conceptual descriptions of AI models generating intermediate, explicit reasoning steps."
     },
     {
       "arxiv_id": "2505.22327",
@@ -3891,7 +4081,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_96_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2506.10737",
@@ -3918,7 +4110,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_97_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided \"Related Work\" section discusses various approaches to taxonomy construction, including LLM-based methods and general \"prompting\" techniques, such as \"iterative prompting approaches.\" However, it does not explicitly mention \"chain-of-thought prompting,\" \"CoT reasoning,\" or any similar phrase describing the process of generating intermediate, step-by-step reasoning from an LLM. The terms used are too general to be considered a meaningful mention of chain-of-thought."
     },
     {
       "arxiv_id": "2502.14767",
@@ -3943,7 +4137,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_98_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": true,
+      "chain_of_thought_note": "[HTML] YES\n\n**Reasoning:**\nThe first paragraph contains a meaningful mention of a technique that aligns with the concept of chain-of-thought reasoning, even without using the exact term. It states: \"Other studies have also leveraged persona-driven debate by assigning multiple personas– such as affirmative and negative debaters along with a judge— to synthesize diverse reasoning steps for tasks like commonsense generation and arithmetic\".\n\nHere's why this is a meaningful mention:\n1.  **\"Synthesize diverse reasoning steps\"**: This directly refers to the generation of sequential, intermediate steps in a reasoning process, which is the core mechanism of chain-of-thought.\n2.  **\"for tasks like commonsense generation and arithmetic\"**: These are precisely the types of complex reasoning tasks (e.g., math word problems, logical deductions) where Chain-of-Thought (CoT) prompting has demonstrated significant benefits by enabling LLMs to break down problems into manageable steps.\n\nAlthough the context is \"persona-driven debate,\" the *outcome* and *purpose* described (generating reasoning steps for specific analytical tasks) are highly analogous to CoT reasoning. It describes a method for achieving step-by-step reasoning, fulfilling the criteria of \"step-by-step reasoning similar to chain-of-thought.\""
     },
     {
       "arxiv_id": "2506.10728",
@@ -3967,7 +4163,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_99_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe provided Related Work section discusses methods for fact-checking, LLM-based taxonomy generation, and stance detection. While these tasks involve analyzing nuanced information and often breaking down claims into sub-aspects or hierarchies, the text does not mention \"chain-of-thought\" prompting, CoT reasoning, or similar step-by-step reasoning *as a technique employed by AI/ML models*. The discussions focus on the output structure (e.g., hierarchies of aspects) and the ability to handle nuance, rather than the explicit internal reasoning process of the models in a CoT style."
     },
     {
       "arxiv_id": "2408.04873",
@@ -3993,7 +4191,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_100_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\n\nThe text mentions that \"large language models have demonstrated powerful general and event extraction-specific reasoning abilities.\" While this acknowledges the general concept of \"reasoning\" in LLMs, it does not specifically mention \"chain-of-thought,\" \"CoT prompting,\" \"CoT reasoning,\" or any form of explicit step-by-step reasoning similar to CoT. The passage focuses on the *existence* of reasoning abilities and the limitations of LLM-driven methods (e.g., focus on phrase/sentence-level events, reliance on ontologies), rather than discussing the *mechanism* or *technique* of reasoning like chain-of-thought."
     },
     {
       "arxiv_id": "2503.05777",
@@ -4041,7 +4241,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_101_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2406.00922",
@@ -4069,7 +4271,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_102_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": true,
+      "chain_of_thought_note": "[HTML] YES\n\n**Reasoning:**\nThe text explicitly mentions: \"Wu et al. (2023b) attempts to evaluate general-purpose LLMs and **chain-of-thought reasoning** on DDXPlus...\". This is a direct and meaningful mention of \"chain-of-thought reasoning\" in the context of evaluating LLMs in the medical domain, indicating that CoT was a subject of study in prior work."
     },
     {
       "arxiv_id": "2506.10947",
@@ -4104,7 +4308,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_103_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\nThe text discusses various reinforcement learning approaches for language models, including methods for improving performance on \"mathematical reasoning tasks\" and using \"internal model consistency\" as a proxy for correctness. However, it does not contain any meaningful mentions or discussions of \"chain-of-thought\" prompting, CoT reasoning, or the generation of explicit step-by-step reasoning processes by the models themselves. The focus is on training methodologies and reward signals, not on the nature of the model's internal reasoning process output."
     },
     {
       "arxiv_id": "2502.14860",
@@ -4135,7 +4341,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_104_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses LLMs in medicine, their knowledge, and their weaknesses, including \"multi-hop reasoning.\" It also touches on interactive information-seeking and specific models like CoAD and Alfa. However, it does not contain any explicit mentions of \"chain-of-thought,\" \"CoT reasoning,\" or \"step-by-step reasoning\" as a *methodology* or *prompting technique*. While \"multi-hop reasoning\" is a concept that CoT often addresses, its mere mention here does not constitute a discussion of CoT itself. The text focuses on the *challenge* of multi-hop reasoning, not the *solution* or *technique* of chain-of-thought."
     },
     {
       "arxiv_id": "2407.02472",
@@ -4163,7 +4371,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_105_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided \"Related Work\" section discusses social science literature on social norms and values, particularly in online communities, and computational methods for analyzing them. It mentions concepts like linguistic practices, Return Potential Model, Schwartz’s Theory of Human Values, and implicit norms. There is no mention of \"chain-of-thought\" prompting, CoT reasoning, or any similar step-by-step reasoning concepts in the context of AI/ML. The discussion is entirely within the domain of social sciences and computational social science."
     },
     {
       "arxiv_id": "2504.21035",
@@ -4193,7 +4403,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_106_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided \"Related Work\" section discusses various methods for privacy evaluation and data sanitization, often involving Large Language Models (LLMs). While it mentions \"iterative prompting methods\" and \"two-step approaches\" when discussing LLM applications, these descriptions do not explicitly refer to or imply \"chain-of-thought\" (CoT) prompting or reasoning.\n\n*   \"Iterative prompting method\" (Staab et al., 2024) describes a way of interacting with an LLM, but it doesn't specify that the LLM itself is performing step-by-step *reasoning* in a CoT manner. It could simply mean repeated prompting or refinement of prompts.\n*   \"Two-step approach\" (Dou et al., 2024) refers to combining a detection model with an abstraction technique, which is about the overall system design rather than the LLM's internal reasoning process.\n\nThere are no direct mentions of \"chain-of-thought,\" \"CoT reasoning,\" or phrases that clearly describe an LLM generating explicit intermediate steps of reasoning as part of its output, which is the hallmark of CoT. The mentions of LLMs are in the context of their use as tools for specific tasks, not an analysis of their reasoning capabilities in a CoT style."
     },
     {
       "arxiv_id": "2406.15948",
@@ -4223,7 +4435,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_107_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe text discusses \"AbstainQA,\" \"robust abstention strategies,\" and \"multilingual feedback\" for LLMs. It focuses on when an LLM should abstain from answering and how multilingual feedback can help identify blind spots. There is no mention or discussion of \"chain-of-thought,\" \"CoT reasoning,\" \"step-by-step reasoning,\" or any similar concept related to the LLM's internal reasoning process or prompting techniques to elicit such a process."
     },
     {
       "arxiv_id": "2210.11658",
@@ -4251,7 +4465,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_108_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\nThe provided text discusses various signal processing methods for Fetal Electrocardiogram (FECG) extraction, including denoising techniques (like matched filtering, adaptive filtering, RLS-based ANC, LMS filters) and signal separation methods (like BSS, ICA, SVD). It also mentions convex and affine combinations of adaptive filters. There is no mention, discussion, or implication of \"chain-of-thought,\" \"CoT reasoning,\" \"step-by-step reasoning\" in the context of AI/ML, or any related AI reasoning concepts. The entire section is focused on signal processing algorithms and their applications."
     },
     {
       "arxiv_id": "2211.07628",
@@ -4274,7 +4490,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_109_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\nThe provided text does not contain any meaningful mentions of \"chain-of-thought\" in the context of AI/ML. The discussion focuses entirely on code-mixing, NLP challenges related to it, data augmentation, sentiment analysis, and multilingual pre-trained models. There are no mentions of CoT prompting, CoT reasoning, or step-by-step reasoning strategies employed by AI models."
     },
     {
       "arxiv_id": "2201.13305",
@@ -4301,7 +4519,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_110_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\n**Reasoning:**\n\nThe text discusses \"linear sequences of instructions\" and \"compiler optimization sequences\" in the context of Genetic Programming (GP) and Evolutionary Algorithms. While these involve steps and sequences, they are referring to:\n\n1.  The structure of programs evolved by GP (LGP's linear sequences).\n2.  The ordered application of compiler passes.\n\nThis is fundamentally different from \"chain-of-thought\" (CoT) in the AI/ML context, which refers to a technique where an AI model (typically an LLM) generates a series of intermediate natural language reasoning steps to arrive at a final answer. The paper focuses on evolutionary computation for compiler optimization, not on an AI model exhibiting explicit step-by-step reasoning or thought processes in a CoT manner."
     },
     {
       "arxiv_id": "2204.13261",
@@ -4327,7 +4547,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_111_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2305.13993",
@@ -4355,7 +4577,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_112_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\nThe text discusses language-specific modules and lightweight fine-tuning techniques (like prefix tuning, prompt tuning, LoRA) for multilingual models, primarily focusing on parameter efficiency and cross-lingual adaptation. While \"prompt tuning\" is mentioned, it refers to a method for efficient model fine-tuning using learned prompts, not to the chain-of-thought reasoning strategy where a model generates intermediate step-by-step reasoning. There are no mentions of \"chain-of-thought,\" \"CoT reasoning,\" or similar concepts related to explicit step-by-step problem-solving or reasoning."
     },
     {
       "arxiv_id": "2507.13541",
@@ -4386,7 +4610,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_113_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\n\nThe provided \"Related Work\" section focuses heavily on personalized preference modeling, reinforcement learning from human feedback (RLHF), and learning from community norms. It discusses various approaches to capture and model user preferences, such as factorizing preferences into dimensions, variational preference learning, and modeling cognitive attribute structures for interpretability.\n\nHowever, there are no mentions of \"chain-of-thought,\" \"CoT reasoning,\" \"step-by-step reasoning\" as a prompting strategy or a model's internal process for generating answers, or any similar concepts related to breaking down complex problems into intermediate reasoning steps. While \"interpretable value decomposition\" is mentioned, it refers to making the *preference structures* transparent, not the step-by-step *reasoning process* of a language model in solving a task. The text consistently discusses the *nature of preferences* and methods for *learning and representing them*, rather than the *mechanisms of model reasoning*."
     },
     {
       "arxiv_id": "2311.02310",
@@ -4415,7 +4641,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_114_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2305.19759",
@@ -4440,7 +4668,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_115_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\n**Reasoning:**\nI have thoroughly reviewed the provided \"Related Work\" section. There are no explicit mentions of \"chain-of-thought,\" \"CoT reasoning,\" \"CoT prompting,\" or any descriptions of step-by-step reasoning or prompting techniques similar to chain-of-thought in the context of AI/ML. The text focuses on challenges in code-switching language processing, various models (CNN, DNN, HMM, SVM), data augmentation, and multilingual pre-trained models, none of which discuss chain-of-thought as a reasoning paradigm. The phrase \"crucial step for downstream tasks\" refers to a sequence of processing steps, not the AI reasoning concept of chain-of-thought."
     },
     {
       "arxiv_id": "2311.15954",
@@ -4467,7 +4697,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_116_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided \"Related Work\" section discusses self-supervised learning, audio feature extraction, ASR, and cross-lingual transfer learning in the context of speech processing. It mentions various models, techniques, and challenges within these domains. However, there is no mention of \"chain-of-thought\" prompting, CoT reasoning, or any equivalent concept describing step-by-step reasoning processes generated by AI/ML models. The text focuses on model architectures, features, and their performance/generalization, not on their internal reasoning or explanation capabilities in a CoT sense."
     },
     {
       "arxiv_id": "2505.03054",
@@ -4504,7 +4736,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_117_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe provided text discusses various types of audio and text benchmarks, focusing on task-specific evaluations, instruction following, and handling long-form inputs. While it mentions \"compositional audio reasoning\" and \"synthetic long-range reasoning\" as types of tasks, it does not discuss \"chain-of-thought\" prompting, CoT reasoning, or similar step-by-step reasoning strategies that AI models might employ. The focus is on the *benchmarks themselves* and the *capabilities being evaluated* (e.g., long-context understanding), not the specific reasoning methodologies."
     },
     {
       "arxiv_id": "2505.21757",
@@ -4539,7 +4773,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_118_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\n**Reasoning:**\n\nThe text discusses various aspects of AI in healthcare, including proactive behaviors, suggesting \"next steps,\" information-seeking, dialogue models (like a \"two-stage dialogue model\"), and methods for controlling LLM behavior (e.g., instruction fine-tuning, prompt design).\n\nWhile terms like \"next steps\" might superficially sound related to sequential processing, they refer to the *actions* or *output* of the AI (e.g., suggesting a treatment plan, asking a clarifying question) rather than the AI's *internal reasoning process* being explicitly broken down into sequential, verifiable steps, which is the core characteristic of chain-of-thought.\n\nThere is no mention of \"chain-of-thought prompting,\" \"CoT reasoning,\" or any explicit discussion of models generating intermediate reasoning steps or explaining their thought process in a step-by-step manner to arrive at a conclusion or action. The focus is on the *behavior* and *interaction patterns* of the AI, not its underlying CoT-style reasoning mechanism."
     },
     {
       "arxiv_id": "2506.06589",
@@ -4570,7 +4806,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_119_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses various aspects of hallucination in LLMs, including its definition, detection, evaluation, and mitigation strategies. It mentions general \"prompting\" as a means to improve context-faithfulness, but it does not elaborate on the *type* of prompting. While \"claim decomposition\" and \"granular per-claim verification\" are mentioned in the context of evaluation, this refers to how the *evaluation* is structured, not how the LM *reasons* or is *prompted* to perform step-by-step reasoning. There are no explicit or implicit discussions of \"chain-of-thought prompting,\" \"CoT reasoning,\" or similar step-by-step reasoning techniques for AI generation."
     },
     {
       "arxiv_id": "2512.05145",
@@ -4599,7 +4837,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_120_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text mentions \"reasoning\" multiple times (e.g., \"reasoning tasks,\" \"automatic evaluators for tasks including... reasoning\"). However, these are general mentions of a capability or task category. There is no actual discussion of \"chain-of-thought prompting,\" \"CoT reasoning,\" or any explicit description of \"step-by-step reasoning\" as a specific technique or mechanism used by the models or in the research being discussed. The text focuses on LLM-as-a-judge, synthetic data, and self-improvement, but it does not delve into the specific reasoning process like CoT. The mentions of \"reasoning\" are incidental and do not meet the criteria for a meaningful discussion of chain-of-thought."
     },
     {
       "arxiv_id": "2511.07317",
@@ -4637,7 +4877,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_121_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses training game agents and Language Models (LMs) using Reinforcement Learning on procedurally generated data, curriculum learning, and adaptive difficulty environments. While it mentions \"developing generalizable reasoning capabilities,\" this refers to the overall ability of the model to solve problems, not the specific \"chain-of-thought\" (CoT) methodology where models generate explicit intermediate steps or reasoning paths to arrive at an answer. There are no mentions of \"chain-of-thought,\" \"CoT,\" or any descriptions of step-by-step or explicit reasoning processes employed by the LMs themselves. The focus is entirely on environment design, training methodologies, and problem difficulty."
     },
     {
       "arxiv_id": "2510.00177",
@@ -4665,7 +4907,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_122_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\nThe provided text discusses \"personalization,\" \"user preference modeling,\" \"interactive preference elicitation,\" and \"reasoning tasks\" in the context of language models. However, it does not contain any meaningful mentions or discussions of \"chain-of-thought\" prompting, CoT reasoning, or step-by-step reasoning as a specific AI/ML technique. The term \"cognitive approaches\" is used once, but it is too general to be interpreted as referring to chain-of-thought."
     },
     {
       "arxiv_id": "2410.02677",
@@ -4697,7 +4941,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_123_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO.\n\nThe provided \"Related Work\" section focuses on comparing various cultural knowledge benchmarks for Language Models, discussing aspects like data collection, quality checks, topic diversity, and the sources of knowledge. It also highlights the limitations of existing benchmarks and the challenging nature of the authors' proposed benchmark.\n\nThere are no mentions of \"chain-of-thought\" prompting, \"CoT reasoning,\" or any similar \"step-by-step reasoning\" in the context of AI/ML models. The discussion does not touch upon the reasoning processes of the LMs themselves, but rather the characteristics and quality of the benchmarks used to evaluate them."
     },
     {
       "arxiv_id": "2404.06664",
@@ -4728,7 +4974,9 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_124_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses various topics related to AI and LLMs, including AI-augmented data collection, red teaming, adversarial datasets, and cultural bias. However, it does not contain any explicit mentions of \"chain-of-thought,\" \"CoT reasoning,\" or descriptions of step-by-step reasoning processes used by LLMs that would align with the concept of chain-of-thought. The focus is on data generation, evaluation, and bias detection, not the internal reasoning mechanisms of the models in the context of CoT."
     },
     {
       "arxiv_id": "2210.03221",
@@ -4756,11 +5004,14 @@
         "Shuyue Stella Li"
       ],
       "figure_1_path": "data/gold_figures/new_125_fig1.png",
-      "has_world_models": false
+      "has_world_models": false,
+      "has_chain_of_thought": false,
+      "chain_of_thought_note": "[LaTeX] NO\n\nThe provided Related Work section discusses Differential Privacy, Federated Learning, Quantum ML with Variational Quantum Circuits (VQCs), and Decentralized Quantum Learning Applications. It focuses on data privacy, quantum computing architectures, and their applications. There is no mention of \"chain-of-thought\" prompting, CoT reasoning, or any form of step-by-step reasoning in the context of AI/ML models (especially large language models), which is what \"chain-of-thought\" typically refers to. The mention of \"three parts in the vqc architecture\" refers to components of a quantum circuit, not a reasoning process."
     }
   ],
   "count": 125,
   "dest_folder_id": "1vk3FB8IumyHMBuBjI8fsUSdSyOVlFZPf",
   "generated_at": "2025-12-14T00:44:23.220667",
-  "figure_extraction_date": "2025-12-14T01:11:32.146124"
+  "figure_extraction_date": "2025-12-14T01:11:32.146124",
+  "chain_of_thought_detection_date": "2025-12-14T02:33:33.555085"
 }
