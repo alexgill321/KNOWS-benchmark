@@ -17,6 +17,7 @@ import difflib
 GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID") # e.g., your-project-id
 SECRET_ID = os.environ.get("DRIVE_SA_SECRET_ID")   # e.g., doc-eval-service-account-key
 SECRET_VERSION_ID = os.environ.get("DRIVE_SA_SECRET_VERSION_ID", "latest")
+SERVICE_ACCOUNT_PATH = os.environ.get("SERVICE_ACCOUNT_PATH", os.path.join(os.getcwd(), "auth-data", "service-account.json"))
 
 # Global variable to hold initialized Google API services
 # (Initialize them once, not on every request)
@@ -24,6 +25,47 @@ DRIVE_SERVICE = None
 DOCS_SERVICE = None
 SLIDES_SERVICE = None
 SHEETS_SERVICE = None
+
+
+def _get_scopes_for_service_type(service_type):
+    """Returns the appropriate scopes for a given service type."""
+    if service_type == 'sheets':
+        return [
+            'https://www.googleapis.com/auth/drive',
+            'https://www.googleapis.com/auth/spreadsheets'
+        ]
+    elif service_type == 'docs':
+        return [
+            'https://www.googleapis.com/auth/drive',
+            'https://www.googleapis.com/auth/documents'
+        ]
+    elif service_type == 'slides':
+        return [
+            'https://www.googleapis.com/auth/drive',
+            'https://www.googleapis.com/auth/presentations'
+        ]
+    else:
+        return ['https://www.googleapis.com/auth/drive']
+
+
+def _build_services_from_credentials(credentials, service_type):
+    """Builds Google API services from credentials based on service type."""
+    global DRIVE_SERVICE, DOCS_SERVICE, SLIDES_SERVICE, SHEETS_SERVICE
+
+    DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
+
+    if service_type == 'sheets':
+        SHEETS_SERVICE = build('sheets', 'v4', credentials=credentials)
+        return DRIVE_SERVICE, SHEETS_SERVICE
+    elif service_type == 'docs':
+        DOCS_SERVICE = build('docs', 'v1', credentials=credentials)
+        return DRIVE_SERVICE, DOCS_SERVICE
+    elif service_type == 'slides':
+        SLIDES_SERVICE = build('slides', 'v1', credentials=credentials)
+        return DRIVE_SERVICE, SLIDES_SERVICE
+    else:
+        return DRIVE_SERVICE, None
+
 
 def initialize_google_services(service_type=None):
     global DRIVE_SERVICE, DOCS_SERVICE, SLIDES_SERVICE, SHEETS_SERVICE
@@ -42,102 +84,62 @@ def initialize_google_services(service_type=None):
         else:
             service_type = 'docs'  # Default to docs for most common case
 
-    if not GCP_PROJECT_ID or not SECRET_ID:
-        print("Error: GCP_PROJECT_ID or DRIVE_SA_SECRET_ID environment variables not set.")
-        print("Attempting local initialization...")
-
-        # Attempt to initialize without Secret Manager (for local development)
-        
+    # Priority 1: Local service account JSON file
+    if os.path.exists(SERVICE_ACCOUNT_PATH):
         try:
-            if service_type == 'sheets':
-                credentials = authenticate(['DRIVE','SHEETS'])
-                DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
-                SHEETS_SERVICE = build('sheets', 'v4', credentials=credentials)
-                return DRIVE_SERVICE, SHEETS_SERVICE
-            if service_type == 'docs':
-                credentials = authenticate(['DRIVE', 'DOCS'])
-                DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
-                DOCS_SERVICE = build('docs', 'v1', credentials=credentials)
-                return DRIVE_SERVICE, DOCS_SERVICE
-            if service_type == 'slides':
-                credentials = authenticate(['DRIVE', 'SLIDES'])
-                DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
-                SLIDES_SERVICE = build('slides', 'v1', credentials=credentials)
-                return DRIVE_SERVICE, SLIDES_SERVICE
-            else:
-                credentials = authenticate(['DRIVE'])
-                DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
-                return DRIVE_SERVICE, None
+            print(f"Using local service account file: {SERVICE_ACCOUNT_PATH}")
+            scopes = _get_scopes_for_service_type(service_type)
+            credentials = Credentials.from_service_account_file(SERVICE_ACCOUNT_PATH, scopes=scopes)
+            return _build_services_from_credentials(credentials, service_type)
         except Exception as e:
-            print(f"Error initializing Google API services locally: {e}")
-            return None, None        
+            print(f"Error loading service account from file: {e}")
+            # Fall through to try other methods
 
+    # Priority 2: Secret Manager (for Cloud Run)
+    if GCP_PROJECT_ID and SECRET_ID:
+        try:
+            return _initialize_from_secret_manager(service_type)
+        except Exception as e:
+            print(f"Error initializing from Secret Manager: {e}")
+            # Fall through to try OAuth
+
+    # Priority 3: OAuth token (requires initial login)
+    print("No service account found. Attempting OAuth initialization...")
     try:
-        # Create the Secret Manager client
-        client = secretmanager.SecretManagerServiceClient()
-
-        # Build the resource name of the secret version
-        name = f"projects/{GCP_PROJECT_ID}/secrets/{SECRET_ID}/versions/{SECRET_VERSION_ID}"
-
-        # Access the secret version
-        response = client.access_secret_version(request={"name": name})
-        payload = response.payload.data.decode("UTF-8")
-        
-        # The payload is the JSON string of your service account key
-        service_account_info = json.loads(payload)
-
-        # Define the scopes your application needs
         if service_type == 'sheets':
-            SCOPES = [
-                'https://www.googleapis.com/auth/drive',
-                'https://www.googleapis.com/auth/spreadsheets'
-            ]
+            credentials = authenticate(['DRIVE','SHEETS'])
         elif service_type == 'docs':
-            SCOPES = [
-                'https://www.googleapis.com/auth/drive',
-                'https://www.googleapis.com/auth/documents'
-            ]
+            credentials = authenticate(['DRIVE', 'DOCS'])
         elif service_type == 'slides':
-            SCOPES = [
-                'https://www.googleapis.com/auth/drive',
-                'https://www.googleapis.com/auth/presentations'
-            ]
+            credentials = authenticate(['DRIVE', 'SLIDES'])
         else:
-            # Default to drive access if service_type is None or unrecognized
-            SCOPES = [
-                'https://www.googleapis.com/auth/drive'
-            ]
-
-        # Create credentials from the service account info
-        credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
-
-        if service_type == 'sheets':
-            # Build the service objects
-            DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
-            SHEETS_SERVICE = build('sheets', 'v4', credentials=credentials)
-            print("Successfully initialized Google API services using Service Account from Secret Manager.")
-            return DRIVE_SERVICE, SHEETS_SERVICE
-        elif service_type == 'slides':
-            # Build the service objects
-            DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
-            SLIDES_SERVICE = build('slides', 'v1', credentials=credentials)
-            print("Successfully initialized Google API services using Service Account from Secret Manager.")
-            return DRIVE_SERVICE, SLIDES_SERVICE
-        elif service_type == 'docs':
-            # Build the service objects
-            DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
-            DOCS_SERVICE = build('docs', 'v1', credentials=credentials)
-            print("Successfully initialized Google API services using Service Account from Secret Manager.")
-            return DRIVE_SERVICE, DOCS_SERVICE
-        else:
-            # Default case - just return drive service
-            DRIVE_SERVICE = build('drive', 'v3', credentials=credentials)
-            print("Successfully initialized Google Drive API service using Service Manager.")
-            return DRIVE_SERVICE, None
+            credentials = authenticate(['DRIVE'])
+        return _build_services_from_credentials(credentials, service_type)
     except Exception as e:
-        print(f"Error initializing Google API services: {e}")
-        # Handle the error appropriately (e.g., log it, raise an exception, etc.)
+        print(f"Error initializing Google API services via OAuth: {e}")
         return None, None
+
+
+def _initialize_from_secret_manager(service_type):
+    """Initialize services using a service account key from Secret Manager."""
+    # Create the Secret Manager client
+    client = secretmanager.SecretManagerServiceClient()
+
+    # Build the resource name of the secret version
+    name = f"projects/{GCP_PROJECT_ID}/secrets/{SECRET_ID}/versions/{SECRET_VERSION_ID}"
+
+    # Access the secret version
+    response = client.access_secret_version(request={"name": name})
+    payload = response.payload.data.decode("UTF-8")
+
+    # The payload is the JSON string of your service account key
+    service_account_info = json.loads(payload)
+
+    scopes = _get_scopes_for_service_type(service_type)
+    credentials = Credentials.from_service_account_info(service_account_info, scopes=scopes)
+
+    print("Successfully initialized Google API services using Service Account from Secret Manager.")
+    return _build_services_from_credentials(credentials, service_type)
 
 
 def search_doc(filename, service, folder_id=None):
