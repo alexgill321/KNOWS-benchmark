@@ -514,7 +514,7 @@ def grade_checkpoint_2():
             messages = [
                 {
                     "role": "system",
-                    "content": [{"type": "text", "text": "You are comparing two image descriptions to see if they refer to the same subject. Be lenient - answer 'Yes' if they describe similar content, the same main subject, or could plausibly be describing the same image even with different wording. Minor differences in details or phrasing should still count as a match. Only answer 'No' if they clearly describe completely different subjects."}]
+                    "content": [{"type": "text", "text": "You are comparing two image descriptions to see if they refer to the same subject. Be lenient—answer 'Yes' if they describe similar content, the same main subject, or could plausibly be describing the same image, unless they contain a direct factual contradiction like a different color."}]
                 },
                 {
                     "role": "user",
