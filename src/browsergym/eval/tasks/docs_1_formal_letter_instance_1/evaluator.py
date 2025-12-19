@@ -150,7 +150,7 @@ def grade_checkpoint_1(gold_text, text_ocr):
     name = "Ethan Ashby"
     email = "eashby@uw.edu"
     title = ["PhD Student",
-             "Biostatics PhD Student"]
+             "Biostatistics PhD Student"]
     
     # Name evaluation
     step_start = time.time()
