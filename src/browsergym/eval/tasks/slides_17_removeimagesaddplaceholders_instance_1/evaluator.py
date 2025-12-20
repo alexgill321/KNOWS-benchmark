@@ -952,7 +952,7 @@ def grade_checkpoint_4():
             "Images Amount in Slides is Equal",
             False,
             1,
-            f"An extra {new_total_images_of_new_slides - total_images_of_original_slides} were added",
+            f"An extra {new_total_images_of_new_slides - total_images_of_original_slides} slides were added",
             score = 0,
             max_score=10,
             execution_time= time.time() - step_start
