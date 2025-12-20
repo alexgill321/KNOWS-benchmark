@@ -148,22 +148,42 @@ def grade_checkpoint_1(gold_text, text_ocr):
     checkpoint = Checkpoint(total=6, result=0, name="Contact Information")
     
     name = "Ethan Ashby"
+    HEADER_CHARS = 180
+    header_text = (gold_text or "")[:HEADER_CHARS]
     email = "eashby@uw.edu"
     title = ["PhD Student",
              "Biostatistics PhD Student"]
     
-    # Name evaluation
-    step_start = time.time()
-    name_found = text_exact_match_contained(name, gold_text)
-    step_time = time.time() - step_start
     
+    #Name evaluation (header-only, strict, order-safe)
+    step_start = time.time()
+
+    #To match with exact name (avoids passing: Ex) hello ethan ashby)
+    def name_is_exact(name: str, text: str) -> bool:
+        target = " ".join(name.lower().split())
+        for line in text.splitlines():
+            s = " ".join(line.strip().lower().split()).strip(" ,.")
+            if s == target:
+                return True
+        return False
+
+    # Use HEADER text ONLY (prevents sign-off "Ethan Ashby" from passing)
+    name_found = name_is_exact(name, header_text)
+
+    step_time = time.time() - step_start
+
     if name_found:
-        print("Name match successful")
-        checkpoint.add_step("Name Text Match", True, 1, f"Found '{name}' in document", execution_time=step_time)
+        print("Name match successful (header exact)")
+        checkpoint.add_step("Name Text Match", True, 1, f"Found header name '{name}'", execution_time=step_time)
 
         step_start = time.time()
         location = extract_text_location(text_ocr, name)
         step_time = time.time() - step_start
+
+        # Reject matches that are clearly too low to match with header exact
+        if location and location.y > 450:
+            print(f"Rejecting name location: too low on page at y={location.y}")
+            location = None
 
         if location.is_upper_left():
             checkpoint.add_step("Name Location", True, 2, f"Name correctly positioned in upper left at {location}", execution_time=step_time)
@@ -171,9 +191,10 @@ def grade_checkpoint_1(gold_text, text_ocr):
             print("Name location failed")
             checkpoint.add_step("Name Location", False, 2, f"Name not in upper left, found at {location}", execution_time=step_time)
     else:
-        print("Name match failed")
-        checkpoint.add_step("Name Text Match", False, 1, f"'{name}' not found in document", execution_time=step_time)
-        checkpoint.add_step("Name Location", False, 2, "Cannot check location - name not found")
+        print("Name match failed (header exact)")
+        checkpoint.add_step("Name Text Match", False, 1, f"Header name '{name}' not found as standalone line", execution_time=step_time)
+        checkpoint.add_step("Name Location", False, 2, "Cannot check location - header name not found")
+
 
     # Email evaluation
     step_start = time.time()
