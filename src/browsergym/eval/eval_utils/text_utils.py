@@ -286,12 +286,12 @@ def extract_text_location(ocr_result, text_to_find):
             line_text = line.get('text', '').strip()
             
             # Check for exact line match
-            if line_text.lower() == text_lower:
+            if preprocess_text(line_text.lower()) == preprocess_text(text_lower):
                 print(f"Found exact line match on page {page_num}: '{line_text}'")
                 return line['location']
             
             # Check if text is within a line
-            if text_lower in line_text.lower():
+            if preprocess_text(text_lower) in preprocess_text(line_text.lower()):
                 # Calculate approximate position within the line
                 # Based on character position in the line
                 char_width = line['location'].width / len(line_text)
