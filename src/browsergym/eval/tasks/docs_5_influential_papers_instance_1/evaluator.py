@@ -5,6 +5,17 @@ import time
 import arxiv
 import argparse
 
+# Load .env file FIRST, before any other imports that might need environment variables
+try:
+    from dotenv import load_dotenv
+    # Try loading from current directory first
+    if os.path.exists('.env'):
+        load_dotenv('.env', override=True)
+        print("✅ Loaded environment variables from .env file")
+    # Also try from base path (will be determined below)
+except ImportError:
+    # python-dotenv not installed, skip loading .env
+    pass
 
 # Base path setup (same pattern as other evaluators)
 def get_base_path():
@@ -17,6 +28,16 @@ def get_base_path():
 
 BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
+
+# Try loading .env from BASE_PATH if not already loaded
+try:
+    from dotenv import load_dotenv
+    env_path = os.path.join(BASE_PATH, '.env')
+    if os.path.exists(env_path) and not os.getenv('GOOGLE_AI_API_KEY'):
+        load_dotenv(env_path, override=True)
+        print(f"✅ Loaded environment variables from {env_path}")
+except ImportError:
+    pass
 
 # Imports
 from src.browsergym.eval.eval_scripts.test.test_doc_to_images import convert_pdf_to_pngs
@@ -105,6 +126,10 @@ def grade_checkpoint_1(browsing_history):
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=2, result=0, name="Paper Research and Documentation")
 
+    # Handle None browsing_history
+    if browsing_history is None:
+        browsing_history = []
+
     # Step 1: Check if paper websites were accessed (analyze browsing history)
     step_start = time.time()
     arxiv_visits = [url for url in browsing_history if 'arxiv.org' in url]
@@ -170,11 +195,25 @@ def grade_checkpoint_2():
     # papers_info = arxiv.Search(id_list=arxiv_ids).results()
     import requests
     try:
-        papers_info = requests.post(
+        response = requests.post(
             "https://api.semanticscholar.org/graph/v1/paper/batch",
             params={'fields': 'citationCount,title,publicationDate,externalIds'},
             json={"ids": [f"ARXIV:{arxiv_id}" for arxiv_id in arxiv_ids]}
-        ).json()
+        )
+        papers_info = response.json()
+        
+        # Validate response structure - should be a list
+        # Reason: Semantic Scholar API may return error messages as strings or dicts instead of a list
+        # This prevents 'str' object has no attribute 'get' errors
+        if not isinstance(papers_info, list):
+            error_msg = f"Unexpected API response format: {type(papers_info).__name__}"
+            if isinstance(papers_info, dict):
+                error_msg += f" - {papers_info.get('message', 'Unknown error')}"
+            elif isinstance(papers_info, str):
+                error_msg += f" - {papers_info}"
+            print(f"Error: {error_msg}")
+            checkpoint.add_step("Semantic Scholar API", False, 0, f"API Error: {error_msg}", score=0, max_score=10)
+            return checkpoint
     except Exception as e:
         print(f"Error fetching data from Semantic Scholar: {e}")
         checkpoint.add_step("Semantic Scholar API", False, 0, f"API Error: {e}", score=0, max_score=10)
@@ -182,7 +221,9 @@ def grade_checkpoint_2():
 
     for i, paper in enumerate(papers_info):
         paper_step_start = time.time()
-        if paper is not None:
+        # Check if paper is a dictionary before calling .get()
+        # Reason: API may return None or non-dict objects in the list, causing 'str' object has no attribute 'get' errors
+        if paper is not None and isinstance(paper, dict):
             title = paper.get('title', 'Unknown')
             total_citations = paper.get("citationCount", 0)
             publication_date = paper.get("publicationDate", "1900-01-01")
@@ -207,13 +248,18 @@ def grade_checkpoint_2():
                                 f"Paper '{title}' published on {publication_date} is older than 3 years",
                                 execution_time=time.time() - paper_step_start)
         else:
-            # Paper not found in Semantic Scholar
+            # Paper not found in Semantic Scholar or invalid format
             arxiv_id = arxiv_ids[i] if i < len(arxiv_ids) else "Unknown"
+            if paper is not None and not isinstance(paper, dict):
+                error_type = type(paper).__name__
+                error_msg = f"Paper with arXiv ID {arxiv_id} returned invalid format ({error_type})"
+            else:
+                error_msg = f"Paper with arXiv ID {arxiv_id} not found in Semantic Scholar"
             checkpoint.add_step(f"Citation Check {i+1}", False, 1,
-                            f"Paper with arXiv ID {arxiv_id} not found in Semantic Scholar",
+                            error_msg,
                             execution_time=time.time() - paper_step_start)
             checkpoint.add_step(f"Recency Check {i+1}", False, 1,
-                            f"Paper with arXiv ID {arxiv_id} not found in Semantic Scholar",
+                            error_msg,
                             execution_time=time.time() - paper_step_start)
             
     # Handle missing papers if fewer than 5
@@ -428,6 +474,24 @@ def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history=Non
     total_start_time = time.time()
 
     try:
+        # Load browsing history from test_browsing_history.txt if not provided
+        # Reason: When running evaluator directly (not via API server), browsing_history is None.
+        # The test_browsing_history.txt file contains sample URLs for testing checkpoint 1.
+        # This ensures the evaluator can work both standalone and via API server.
+        if browsing_history is None:
+            browsing_history_path = os.path.join(TASK_DIR, "test_browsing_history.txt")
+            if os.path.exists(browsing_history_path):
+                try:
+                    with open(browsing_history_path, 'r', encoding='utf-8') as f:
+                        # Read lines, strip quotes and whitespace, filter empty lines
+                        browsing_history = [line.strip().strip('"').strip("'") for line in f if line.strip()]
+                    print(f"✅ Loaded {len(browsing_history)} URLs from test_browsing_history.txt")
+                except Exception as e:
+                    print(f"⚠️  Warning: Failed to load test_browsing_history.txt: {e}")
+                    browsing_history = []
+            else:
+                browsing_history = []
+        
         # Setup document processing
         setup_document(workspace_doc_id)
 
