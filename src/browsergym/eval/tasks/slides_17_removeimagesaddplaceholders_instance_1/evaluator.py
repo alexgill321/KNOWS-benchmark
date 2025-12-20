@@ -915,6 +915,53 @@ def grade_checkpoint_3():
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
+def grade_checkpoint_4():
+    """
+    Checkpoint 4 (20pt): Formatting
+
+    Steps (10pt each, percentage-based):
+    1. Extra Images (Checks for any extra images that were added to the slides)
+    2. Extra Check Boxes (Checks for any extra check boxes that were added to the slides.)
+
+    Higher Scores mean that the agent did not add extra images or text boxes
+    """
+
+    print("----------------- CHECKPOINT 4 ----------------")
+
+    checkpoint_start = time.time()
+    checkpoint = Checkpoint(total = 10, result = 0, name="Formatting Check")
+
+    slides = presentation_data.get('slides',[])
+    total_images_of_original_slides= len(original_locations) 
+    new_total_images_of_new_slides = sum(len(imgs) for imgs in cached_slide_images.values())
+    step_start = time.time()
+
+    #currentley an all or nothing way of scoring, needs to be changed to check every slide
+    if(total_images_of_original_slides == new_total_images_of_new_slides):
+        checkpoint.add_step(
+            "Images Amount in Slides is Equal",
+            True,
+            1,
+            "No extra images were added",
+            score = 10,
+            max_score=10,
+            execution_time= time.time() - step_start
+        )
+    else:
+        checkpoint.add_step(
+            "Images Amount in Slides is Equal",
+            False,
+            1,
+            f"An extra {new_total_images_of_new_slides - total_images_of_original_slides} were added",
+            score = 0,
+            max_score=10,
+            execution_time= time.time() - step_start
+        )
+        
+    checkpoint.execution_time = time.time() - checkpoint_start
+    return checkpoint
+        
+
 
 def grade_checkpoints(workspace_doc_id, cached_models=None):
     """
@@ -956,15 +1003,18 @@ def grade_checkpoints(workspace_doc_id, cached_models=None):
                 # Phase 2: Run CP2 and CP3 in parallel (both only read from cache)
                 cp2_future = executor.submit(grade_checkpoint_2)
                 cp3_future = executor.submit(grade_checkpoint_3)
+                cp4_future = executor.submit(grade_checkpoint_4)
 
                 # Collect results in order
                 cp1 = cp1_future.result()
                 cp2 = cp2_future.result()
                 cp3 = cp3_future.result()
+                cp4 = cp4_future.result()
 
                 checkpoints.append(cp1)
                 checkpoints.append(cp2)
                 checkpoints.append(cp3)
+                checkpoints.append(cp4)
 
         total_execution_time = time.time() - total_start_time
         result = Result(checkpoints, total_execution_time=total_execution_time)
