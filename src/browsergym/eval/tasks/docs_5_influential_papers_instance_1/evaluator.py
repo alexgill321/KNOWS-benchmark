@@ -5,7 +5,6 @@ import time
 import arxiv
 import argparse
 
-
 # Base path setup (same pattern as other evaluators)
 def get_base_path():
     if os.path.exists("/app/src"):
@@ -17,6 +16,16 @@ def get_base_path():
 
 BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
+
+# Load .env file for environment variables (e.g., GOOGLE_AI_API_KEY)
+try:
+    from dotenv import load_dotenv
+    for env_path in ['.env', os.path.join(BASE_PATH, '.env')]:
+        if os.path.exists(env_path) and not os.getenv('GOOGLE_AI_API_KEY'):
+            load_dotenv(env_path, override=True)
+            break
+except ImportError:
+    pass
 
 # Imports
 from src.browsergym.eval.eval_scripts.test.test_doc_to_images import convert_pdf_to_pngs
@@ -105,6 +114,10 @@ def grade_checkpoint_1(browsing_history):
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=2, result=0, name="Paper Research and Documentation")
 
+    # Handle None browsing_history
+    if browsing_history is None:
+        browsing_history = []
+
     # Step 1: Check if paper websites were accessed (analyze browsing history)
     step_start = time.time()
     arxiv_visits = [url for url in browsing_history if 'arxiv.org' in url]
@@ -170,11 +183,25 @@ def grade_checkpoint_2():
     # papers_info = arxiv.Search(id_list=arxiv_ids).results()
     import requests
     try:
-        papers_info = requests.post(
+        response = requests.post(
             "https://api.semanticscholar.org/graph/v1/paper/batch",
             params={'fields': 'citationCount,title,publicationDate,externalIds'},
             json={"ids": [f"ARXIV:{arxiv_id}" for arxiv_id in arxiv_ids]}
-        ).json()
+        )
+        papers_info = response.json()
+        
+        # Validate response structure - should be a list
+        # Reason: Semantic Scholar API may return error messages as strings or dicts instead of a list
+        # This prevents 'str' object has no attribute 'get' errors
+        if not isinstance(papers_info, list):
+            error_msg = f"Unexpected API response format: {type(papers_info).__name__}"
+            if isinstance(papers_info, dict):
+                error_msg += f" - {papers_info.get('message', 'Unknown error')}"
+            elif isinstance(papers_info, str):
+                error_msg += f" - {papers_info}"
+            print(f"Error: {error_msg}")
+            checkpoint.add_step("Semantic Scholar API", False, 0, f"API Error: {error_msg}", score=0, max_score=10)
+            return checkpoint
     except Exception as e:
         print(f"Error fetching data from Semantic Scholar: {e}")
         checkpoint.add_step("Semantic Scholar API", False, 0, f"API Error: {e}", score=0, max_score=10)
@@ -182,7 +209,9 @@ def grade_checkpoint_2():
 
     for i, paper in enumerate(papers_info):
         paper_step_start = time.time()
-        if paper is not None:
+        # Check if paper is a dictionary before calling .get()
+        # Reason: API may return None or non-dict objects in the list, causing 'str' object has no attribute 'get' errors
+        if paper is not None and isinstance(paper, dict):
             title = paper.get('title', 'Unknown')
             total_citations = paper.get("citationCount", 0)
             publication_date = paper.get("publicationDate", "1900-01-01")
@@ -207,13 +236,18 @@ def grade_checkpoint_2():
                                 f"Paper '{title}' published on {publication_date} is older than 3 years",
                                 execution_time=time.time() - paper_step_start)
         else:
-            # Paper not found in Semantic Scholar
+            # Paper not found in Semantic Scholar or invalid format
             arxiv_id = arxiv_ids[i] if i < len(arxiv_ids) else "Unknown"
+            if paper is not None and not isinstance(paper, dict):
+                error_type = type(paper).__name__
+                error_msg = f"Paper with arXiv ID {arxiv_id} returned invalid format ({error_type})"
+            else:
+                error_msg = f"Paper with arXiv ID {arxiv_id} not found in Semantic Scholar"
             checkpoint.add_step(f"Citation Check {i+1}", False, 1,
-                            f"Paper with arXiv ID {arxiv_id} not found in Semantic Scholar",
+                            error_msg,
                             execution_time=time.time() - paper_step_start)
             checkpoint.add_step(f"Recency Check {i+1}", False, 1,
-                            f"Paper with arXiv ID {arxiv_id} not found in Semantic Scholar",
+                            error_msg,
                             execution_time=time.time() - paper_step_start)
             
     # Handle missing papers if fewer than 5
