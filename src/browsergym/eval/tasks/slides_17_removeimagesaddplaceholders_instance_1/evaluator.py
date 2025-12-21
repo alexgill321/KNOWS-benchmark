@@ -929,17 +929,18 @@ def grade_checkpoint_4():
     print("----------------- CHECKPOINT 4 ----------------")
 
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total = 20, result = 0, name="Formatting Check")
+    checkpoint = Checkpoint(total = 10, result = 0, name="Formatting Check")
 
     slides = presentation_data.get('slides',[])
     total_images_of_original_slides= len(original_locations) 
     new_total_images_of_new_slides = sum(len(imgs) for imgs in cached_slide_images.values())
     step_start = time.time()
 
-    #Get the amount of images and text boxes in each slide in the new slides.
+    #Get the amount of images in each slide in the new slides.
     img_box_count = {}
     slide_text_box_count = {}
-    original_text_box_count = {}
+    original_image_count = {}
+    
     with tempfile.TemporaryDirectory() as temp_dir:
         for gold_filename,loc_info in original_locations.items():
             slide_index = loc_info.get('slide_index',0)
@@ -947,28 +948,22 @@ def grade_checkpoint_4():
             if(slide_index >= len(slides)):
                 continue
 
-            text_boxes = cached_text_boxes.get(slide_index,[])
             images = cached_slide_images.get(slide_index,[])
-            tb_count = 0
             img_count = 0
             
-            for tb in text_boxes:
-                tb_count +=1
-
             for img in images:
                 img_count +=1
 
-            slide_text_box_count[slide_index] =  tb_count
             img_box_count[slide_index] = img_count  
 
-    #get the amount of images and text boxes in original slides
+    #get the amount of images in original slides
     for info in original_locations.values():
         slide = info.get('slide_index',0)
 
-        if(slide in original_text_box_count):
-            original_text_box_count[slide] +=1
+        if(slide in original_image_count):
+            original_image_count[slide] +=1
         else:
-            original_text_box_count[slide] = 1
+            original_image_count[slide] = 1
     
     #if slide count matches, max points assigned, otherwise the amount of slides with extra images deduct  points from the score
     extra_img_slides = []
@@ -983,49 +978,22 @@ def grade_checkpoint_4():
             execution_time= time.time() - step_start
         )
     else:
-        for slide_number in original_text_box_count:
-            if original_text_box_count[slide_number] != img_box_count[slide_number]:
+        for slide_number in original_image_count:
+            if original_image_count[slide_number] != img_box_count[slide_number]:
                 extra_img_slides.append(slide_number)
-        total_slides = len(original_text_box_count.keys())
+        total_slides = len(original_image_count.keys())
         
         step_1_percentage_score = ((total_slides - len(extra_img_slides))/total_slides) * 10
         checkpoint.add_step(
             "Images Amount in Slides is Equal",
             False,
             1,
-            "Extra images",
+            "Extra images were added",
             score = step_1_percentage_score,
             max_score=10,
             execution_time= time.time() - step_start
         )
 
-    #check for same amount of textboxes, if they are mismatching the textbox score will be dedecuted.
-    extra_textbox_slides = []
-    if(len(slide_text_box_count) == len(original_text_box_count)):
-        checkpoint.add_step(
-            "Textbox amount is equal",
-            True,
-            2,
-            "No extra textboxes were added",
-            score = 10,
-            max_score=10,
-            execution_time= time.time() - step_start
-        )
-    else:
-        for slide_number in original_text_box_count:
-            if original_text_box_count[slide_number] != slide_text_box_count[slide_number]:
-                extra_textbox_slides.append(slide_number)
-        total_slides = len(original_text_box_count.keys)
-        step_2_percentage_score = calculate_percentage_score(len(extra_textbox_slides,total_slides,10))
-        checkpoint.add_step(
-            "Textbox amount is equal",
-            True,
-            2,
-            "Extra Textboxes were added",
-            score = 10,
-            max_score=step_2_percentage_score,
-            execution_time= time.time() - step_start
-        )
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
         
