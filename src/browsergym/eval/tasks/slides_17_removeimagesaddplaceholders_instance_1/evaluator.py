@@ -936,11 +936,10 @@ def grade_checkpoint_4():
     new_total_images_of_new_slides = sum(len(imgs) for imgs in cached_slide_images.values())
     step_start = time.time()
 
-    #Get the amount of images in each slide in the new slides.
     img_box_count = {}
-    slide_text_box_count = {}
     original_image_count = {}
-    
+
+    #Get the amount of images in each slide in the new slide
     with tempfile.TemporaryDirectory() as temp_dir:
         for gold_filename,loc_info in original_locations.items():
             slide_index = loc_info.get('slide_index',0)
@@ -978,12 +977,16 @@ def grade_checkpoint_4():
             execution_time= time.time() - step_start
         )
     else:
+        #Comapare the amount of images in each slide
         for slide_number in original_image_count:
             if original_image_count[slide_number] != img_box_count[slide_number]:
                 extra_img_slides.append(slide_number)
+        
         total_slides = len(original_image_count.keys())
         
+        #This score will be higher if there are less slides with extra images
         step_1_percentage_score = ((total_slides - len(extra_img_slides))/total_slides) * 10
+
         checkpoint.add_step(
             "Images Amount in Slides is Equal",
             False,
