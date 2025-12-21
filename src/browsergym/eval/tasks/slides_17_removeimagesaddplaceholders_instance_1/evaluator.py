@@ -936,9 +936,7 @@ def grade_checkpoint_4():
     new_total_images_of_new_slides = sum(len(imgs) for imgs in cached_slide_images.values())
     step_start = time.time()
 
-
-    #=========== Step 2 ===============
-    #Get the amount of images in each slide
+    #Get the amount of images and text boxes in each slide in the new slides.
     img_box_count = {}
     slide_text_box_count = {}
     original_text_box_count = {}
@@ -949,29 +947,30 @@ def grade_checkpoint_4():
             if(slide_index >= len(slides)):
                 continue
 
-            slide = slides[slide_index]
-
             text_boxes = cached_text_boxes.get(slide_index,[])
             images = cached_slide_images.get(slide_index,[])
-            count = 0
+            tb_count = 0
             img_count = 0
+            
             for tb in text_boxes:
-                count +=1
+                tb_count +=1
+
             for img in images:
                 img_count +=1
-            slide_text_box_count[slide_index] =  count
-            img_box_count[slide_index] = img_count    
-    #get the amount of text boxes in original slides
-    for info in original_locations.values():
-        idx = info.get('slide_index',0)
 
-        if(idx in original_text_box_count):
-            original_text_box_count[idx] +=1
+            slide_text_box_count[slide_index] =  tb_count
+            img_box_count[slide_index] = img_count  
+
+    #get the amount of images and text boxes in original slides
+    for info in original_locations.values():
+        slide = info.get('slide_index',0)
+
+        if(slide in original_text_box_count):
+            original_text_box_count[slide] +=1
         else:
-            original_text_box_count[idx] = 1
+            original_text_box_count[slide] = 1
     
-#=============== Step 1 ===============
-    #currentley an all or nothing way of scoring, needs to be changed to check every slide
+    #if slide count matches, max points assigned, otherwise the amount of slides with extra images deduct  points from the score
     extra_img_slides = []
     if(total_images_of_original_slides == new_total_images_of_new_slides):
         checkpoint.add_step(
@@ -990,7 +989,6 @@ def grade_checkpoint_4():
         total_slides = len(original_text_box_count.keys())
         
         step_1_percentage_score = ((total_slides - len(extra_img_slides))/total_slides) * 10
-        #step_1_percentage_score = calculate_percentage_score(len(extra_img_slides),total_slides,10)
         checkpoint.add_step(
             "Images Amount in Slides is Equal",
             False,
@@ -1001,6 +999,7 @@ def grade_checkpoint_4():
             execution_time= time.time() - step_start
         )
 
+    #check for same amount of textboxes, if they are mismatching the textbox score will be dedecuted.
     extra_textbox_slides = []
     if(len(slide_text_box_count) == len(original_text_box_count)):
         checkpoint.add_step(
