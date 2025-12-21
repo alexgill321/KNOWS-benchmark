@@ -96,7 +96,7 @@ def validate_bullet_in_content(bullet_text, markdown_content, model):
     # This catches near-exact quotes with minor formatting differences
     fuzzy_result = text_fuzzy_match_contained_long(bullet_text, markdown_content)
 
-    if fuzzy_result:
+    if fuzzy_result[0]:
         print(f"Fuzzy match found for: {bullet_text[:50]}...")
         return True
 
