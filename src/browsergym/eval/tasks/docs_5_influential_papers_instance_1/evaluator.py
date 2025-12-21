@@ -5,18 +5,6 @@ import time
 import arxiv
 import argparse
 
-# Load .env file FIRST, before any other imports that might need environment variables
-try:
-    from dotenv import load_dotenv
-    # Try loading from current directory first
-    if os.path.exists('.env'):
-        load_dotenv('.env', override=True)
-        print("✅ Loaded environment variables from .env file")
-    # Also try from base path (will be determined below)
-except ImportError:
-    # python-dotenv not installed, skip loading .env
-    pass
-
 # Base path setup (same pattern as other evaluators)
 def get_base_path():
     if os.path.exists("/app/src"):
@@ -29,13 +17,13 @@ def get_base_path():
 BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
-# Try loading .env from BASE_PATH if not already loaded
+# Load .env file for environment variables (e.g., GOOGLE_AI_API_KEY)
 try:
     from dotenv import load_dotenv
-    env_path = os.path.join(BASE_PATH, '.env')
-    if os.path.exists(env_path) and not os.getenv('GOOGLE_AI_API_KEY'):
-        load_dotenv(env_path, override=True)
-        print(f"✅ Loaded environment variables from {env_path}")
+    for env_path in ['.env', os.path.join(BASE_PATH, '.env')]:
+        if os.path.exists(env_path) and not os.getenv('GOOGLE_AI_API_KEY'):
+            load_dotenv(env_path, override=True)
+            break
 except ImportError:
     pass
 
@@ -474,24 +462,6 @@ def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history=Non
     total_start_time = time.time()
 
     try:
-        # Load browsing history from test_browsing_history.txt if not provided
-        # Reason: When running evaluator directly (not via API server), browsing_history is None.
-        # The test_browsing_history.txt file contains sample URLs for testing checkpoint 1.
-        # This ensures the evaluator can work both standalone and via API server.
-        if browsing_history is None:
-            browsing_history_path = os.path.join(TASK_DIR, "test_browsing_history.txt")
-            if os.path.exists(browsing_history_path):
-                try:
-                    with open(browsing_history_path, 'r', encoding='utf-8') as f:
-                        # Read lines, strip quotes and whitespace, filter empty lines
-                        browsing_history = [line.strip().strip('"').strip("'") for line in f if line.strip()]
-                    print(f"✅ Loaded {len(browsing_history)} URLs from test_browsing_history.txt")
-                except Exception as e:
-                    print(f"⚠️  Warning: Failed to load test_browsing_history.txt: {e}")
-                    browsing_history = []
-            else:
-                browsing_history = []
-        
         # Setup document processing
         setup_document(workspace_doc_id)
 
