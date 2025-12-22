@@ -979,7 +979,7 @@ def grade_checkpoint_4():
     else:
         #Comapare the amount of images in each slide
         for slide_number in original_image_count:
-            if original_image_count[slide_number] != img_box_count[slide_number]:
+            if original_image_count.get(slide_number, 0) != img_box_count.get(slide_number, 0):
                 extra_img_slides.append(slide_number)
         
         total_slides = len(original_image_count.keys())
