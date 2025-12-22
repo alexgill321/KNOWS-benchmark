@@ -447,3 +447,30 @@ def numerical_match_with_error(value1, value2, error_percent=5.0):
 
     # Mismatched types (one is list, one is not)
     raise TypeError("Both values must be either single numbers or lists of numbers")
+
+
+def fuzzy_match_text(text1: str, text2: str, threshold: int = 80) -> tuple:
+    """Perform fuzzy matching between two texts.
+
+    Uses token_sort_ratio for better matching of reordered text.
+    Normalizes texts by lowercasing and collapsing whitespace.
+
+    Args:
+        text1: First text.
+        text2: Second text.
+        threshold: Minimum similarity score (0-100).
+
+    Returns:
+        Tuple of (is_match, similarity_score).
+    """
+    if not text1 or not text2:
+        return False, 0
+
+    # Normalize texts
+    text1 = ' '.join(text1.lower().split())
+    text2 = ' '.join(text2.lower().split())
+
+    # Use token_sort_ratio for better matching of reordered text
+    score = fuzz.token_sort_ratio(text1, text2)
+
+    return score >= threshold, score
