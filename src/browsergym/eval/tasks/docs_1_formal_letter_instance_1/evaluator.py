@@ -48,6 +48,7 @@ doc_id = None
 gold_text = None
 text_ocr = None
 doc_structure = None
+pdf_page_count = None
 
 def cleanup_generated_files():
     """
@@ -108,7 +109,7 @@ def setup_document(workspace_doc_id):
     Args:
         workspace_doc_id (str): The Google Docs document ID (gold instance ID) to use
     """
-    global doc_id, gold_text, text_ocr, doc_structure
+    global doc_id, gold_text, text_ocr, doc_structure, pdf_page_count
 
     if not workspace_doc_id:
         raise ValueError("workspace_doc_id is required")
@@ -120,6 +121,10 @@ def setup_document(workspace_doc_id):
     pdf_path = os.path.join(TASK_DIR, "data/ethan_ashby_formal_letter.pdf")
     download_doc_as_pdf(doc_id, pdf_path, DRIVE_SERVICE)
     convert_pdf_to_pngs(pdf_path, PDF_IMAGES_DIR, dpi=PDF_DPI)
+
+    # Determine how many PDF pages exist after conversion (detect page breaks)
+    page_images = retrieve_validate_doc_path(PDF_IMAGES_DIR)
+    pdf_page_count = len(page_images) if page_images else 0
 
     # Phase 2: Run OCR and Google API calls in parallel
     # OCR doesn't depend on Google APIs, so we can run them concurrently
@@ -140,6 +145,12 @@ def setup_document(workspace_doc_id):
 
         text_ocr = ocr_future.result()
         gold_text, doc_structure = api_future.result()
+
+def is_first_page_text(loc) -> bool:
+    return loc is not None and getattr(loc, "page_number", None) == 0
+
+def is_first_page_img(loc) -> bool:
+    return loc is not None and getattr(loc, "page_number", None) == 1
 
 ### Checkpoint 1 ###
 def grade_checkpoint_1(gold_text, text_ocr):
@@ -180,12 +191,15 @@ def grade_checkpoint_1(gold_text, text_ocr):
         location = extract_text_location(text_ocr, name)
         step_time = time.time() - step_start
 
+        if location and not is_first_page_text(location):
+            print(f"Rejecting name location: wrong page_number={location.page_number}")
+            location = None
         # Reject matches that are clearly too low to match with header exact
         if location and location.y > 450:
             print(f"Rejecting name location: too low on page at y={location.y}")
             location = None
 
-        if location.is_upper_left():
+        if location and location.is_upper_left():
             checkpoint.add_step("Name Location", True, 2, f"Name correctly positioned in upper left at {location}", execution_time=step_time)
         else:
             print("Name location failed")
@@ -210,7 +224,10 @@ def grade_checkpoint_1(gold_text, text_ocr):
         step_time = time.time() - step_start
 
         if location is not None:
-            if location.is_upper_left():
+            if location and not is_first_page_text(location):
+                print(f"Rejecting email location: wrong page number at {location.page_number}")
+                location = None
+            if location and location.is_upper_left():
                 checkpoint.add_step("Email Location", True, 4, f"Email correctly positioned in upper left at {location}", execution_time=step_time)
             else:
                 print("Email location failed")
@@ -235,7 +252,11 @@ def grade_checkpoint_1(gold_text, text_ocr):
         location = extract_text_location(text_ocr, title_match[0])
         step_time = time.time() - step_start
 
-        if location.is_upper_left():
+        if location and not is_first_page_text(location):
+            print(f"Rejecting title location: wrong page_number={location.page_number}")
+            location = None
+
+        if location and location.is_upper_left():
             checkpoint.add_step("Title Location", True, 6, f"Title correctly positioned in upper left at {location}", execution_time=step_time)
         else:
             print("Title location failed")
@@ -268,9 +289,12 @@ def grade_checkpoint_2():
         step_start = time.time()
         exact_size_location = extract_image_location_size_feature_based(cropped_logo_path, logo_size, PDF_IMAGES_DIR, True, dpi=PDF_DPI)
         step_time = time.time() - step_start
-        print(f"Location is {exact_size_location}")
+        
+        if exact_size_location and not is_first_page_img(exact_size_location):
+            print(f"Rejecting logo location: wrong page_number={exact_size_location.page_number}")
+            exact_size_location = None
 
-        if exact_size_location.is_upper_left():
+        if exact_size_location and exact_size_location.is_upper_left():
             print("Image location match successful")
             checkpoint.add_step("Logo Location", True, 8, f"Logo correctly positioned in upper left at {exact_size_location}", execution_time=step_time)
         else:
@@ -299,7 +323,10 @@ def grade_checkpoint_2():
             step_time = time.time() - step_start
             print(f"Location is {exact_size_location}")
             if exact_size_location:
-                if exact_size_location.is_upper_left():
+                if exact_size_location and not is_first_page_img(exact_size_location):
+                    print(f"Rejecting logo location: wrong page_number={exact_size_location.page_number}")
+                    exact_size_location = None
+                if exact_size_location and exact_size_location.is_upper_left():
                     print("Image location match successful")
                     checkpoint.add_step("Logo Location", True, 8, f"Logo correctly positioned in upper left at {exact_size_location}", execution_time=step_time)
                 else:
@@ -320,6 +347,12 @@ def grade_checkpoint_3(doc_structure):
     print("----------------- CHECKPOINT 3 ----------------")
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=2, result=0, name="Signature Image")
+
+    if pdf_page_count is not None and pdf_page_count > 1:
+        checkpoint.add_step("Signature Image Match", False, 9, f"Document has {pdf_page_count} pages (page break detected); signature must be on the same page", execution_time=0.0)
+        checkpoint.add_step("Signature Location", False, 10, "Cannot check location - page break detected", execution_time=0.0)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
     
     step_start = time.time()
     signature_path = image_exact_match(DOC_IMAGES_DIR, GOLD_IMAGES_DIR + "gold_signature.png")
@@ -340,7 +373,7 @@ def grade_checkpoint_3(doc_structure):
         location_success = False
         location_details = ""
 
-        if location.is_lower(mostly=True):
+        if location and location.is_lower(mostly=True):
             location_success = True
             location_details = f"Signature correctly positioned in lower section at {location}"
         else:
