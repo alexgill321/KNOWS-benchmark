@@ -950,10 +950,7 @@ def grade_checkpoint_4():
             images = cached_slide_images.get(slide_index,[])
             img_count = 0
             
-            for img in images:
-                img_count +=1
-
-            img_box_count[slide_index] = img_count  
+            img_box_count[slide_index] = len(images)  
 
     #get the amount of images in original slides
     for info in original_locations.values():
