@@ -917,7 +917,7 @@ def grade_checkpoint_3():
 
 def grade_checkpoint_4():
     """
-    Checkpoint 4 (20pt): Formatting
+    Checkpoint 4 (10pt): Formatting
 
     Steps (10pt each, percentage-based):
     1. Extra Images (Checks for any extra images that were added to the slides)
