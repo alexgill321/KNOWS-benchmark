@@ -89,6 +89,10 @@ AUTHOR_LOOKUP = None
 # Browsing history (passed from grade_checkpoints)
 BROWSING_HISTORY = None
 
+# Track matched papers with their CoT status for yellow highlighting validation
+# Populated by checkpoints 2 and 4, used by checkpoint 5
+MATCHED_PAPERS_COT_STATUS = []
+
 
 def load_gold_data():
     """Load preprocessed gold data from JSON files."""
@@ -326,7 +330,7 @@ def grade_checkpoint_2():
     Total = 8 * N points (1 point per paper per category)
     """
     print("----------------- CHECKPOINT 2 ----------------")
-    global model, matched_columns, df, BROWSING_HISTORY
+    global model, matched_columns, df, BROWSING_HISTORY, MATCHED_PAPERS_COT_STATUS
     checkpoint_start = time.time()
 
     N = GOLD_PAPERS.get('count', 0)
@@ -410,6 +414,14 @@ def grade_checkpoint_2():
             continue
 
         print(f"  Paper {gold_idx + 1}: '{gold_title[:50]}...' - MATCHED")
+
+        # Track this matched paper's CoT status for checkpoint 5
+        MATCHED_PAPERS_COT_STATUS.append({
+            'title': gold_title,
+            'arxiv_id': gold_arxiv_id,
+            'has_chain_of_thought': gold.get('has_chain_of_thought', False),
+            'is_new_paper': False  # Original paper
+        })
 
         # Step 2: Validate each column of the matched row
 
@@ -666,7 +678,7 @@ def grade_checkpoint_3():
                           execution_time=step_time)
     else:
         checkpoint.add_step("Paper Coverage", False, 1,
-                          f"{papers_with_enough_new}/{N} original papers have enough new papers. {'; '.join(details[:3])}",
+                          f"{papers_with_enough_new}/{N} original papers have enough new papers.",
                           execution_time=step_time)
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -694,7 +706,7 @@ def grade_checkpoint_4():
     Total = 8 * 21 points (best case: 7 original papers × 3 new papers each = 21 per category)
     """
     print("----------------- CHECKPOINT 4 ----------------")
-    global matched_columns, df, BROWSING_HISTORY
+    global matched_columns, df, BROWSING_HISTORY, MATCHED_PAPERS_COT_STATUS
     checkpoint_start = time.time()
 
     # Get column mappings
@@ -844,6 +856,14 @@ def grade_checkpoint_4():
             continue
 
         print(f"  New Paper {paper_idx + 1}: '{user_title[:50]}...' - MATCHED TO GOLD")
+
+        # Track this matched paper's CoT status for checkpoint 5
+        MATCHED_PAPERS_COT_STATUS.append({
+            'title': gold.get('title', ''),
+            'arxiv_id': gold.get('arxiv_id', ''),
+            'has_chain_of_thought': gold.get('has_chain_of_thought', False),
+            'is_new_paper': True  # New paper
+        })
 
         # Validate each column of the matched row against gold data
         gold_title = gold.get('title', '')
@@ -1055,24 +1075,25 @@ def grade_checkpoint_5():
             yellow_rows.append(row_idx)
 
     # Step 1: Check yellow highlighting for chain-of-thought papers
+    # Use MATCHED_PAPERS_COT_STATUS (populated by checkpoints 2 and 4) to count
+    # only papers that are actually in the user's spreadsheet
     step_start = time.time()
-    all_papers = GOLD_PAPERS.get('papers', []) + GOLD_NEW_PAPERS.get('papers', [])
-    cot_papers = [p for p in all_papers if p.get('has_chain_of_thought', False)]
-    expected_yellow = len(cot_papers)
+    matched_cot_papers = [p for p in MATCHED_PAPERS_COT_STATUS if p.get('has_chain_of_thought', False)]
+    expected_yellow = len(matched_cot_papers)
 
     if expected_yellow > 0:
         yellow_count = len(yellow_rows)
         if yellow_count >= expected_yellow:
             checkpoint.add_step("Yellow Highlighting", True, 1,
-                              f"{yellow_count} yellow rows found (expected {expected_yellow} chain-of-thought papers)",
+                              f"{yellow_count} yellow rows found (expected {expected_yellow} chain-of-thought papers from matched papers)",
                               execution_time=time.time() - step_start)
         else:
             checkpoint.add_step("Yellow Highlighting", False, 1,
-                              f"Only {yellow_count} yellow rows (expected {expected_yellow} chain-of-thought papers)",
+                              f"Only {yellow_count} yellow rows (expected {expected_yellow} chain-of-thought papers from {len(MATCHED_PAPERS_COT_STATUS)} matched papers)",
                               execution_time=time.time() - step_start)
     else:
         checkpoint.add_step("Yellow Highlighting", True, 1,
-                          "No chain-of-thought papers expected, yellow check skipped",
+                          f"No chain-of-thought papers found among {len(MATCHED_PAPERS_COT_STATUS)} matched papers, yellow check skipped",
                           execution_time=time.time() - step_start)
 
     # Step 2: Check row grouping (yellow rows should be at top, not interleaved)
@@ -1153,12 +1174,15 @@ def grade_checkpoints(workspace_doc_id: str = None,
     Returns:
         Result: Evaluation results with checkpoint scores.
     """
-    global BROWSING_HISTORY
+    global BROWSING_HISTORY, MATCHED_PAPERS_COT_STATUS
 
     total_start_time = time.time()
 
     # Set browsing history for use in checkpoints 2 and 4
     BROWSING_HISTORY = browsing_history or []
+
+    # Reset matched papers tracking for this evaluation run
+    MATCHED_PAPERS_COT_STATUS = []
 
     try:
         # Setup document processing
