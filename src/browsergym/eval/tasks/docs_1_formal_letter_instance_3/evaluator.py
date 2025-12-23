@@ -218,6 +218,32 @@ def grade_checkpoint_1(gold_text, text_ocr):
       checkpoint.add_step("Institution Text Match", False, 5, f"Institution not found in document", execution_time=step_time)
       checkpoint.add_step("Institution Location", False, 6, "Cannot check location - Institution not found")  
 
+  # Email evaluation
+  step_start = time.time()
+  email_found = text_exact_match_contained(email, gold_text)
+  step_time = time.time() - step_start
+  
+  if email_found:
+      print("Email match successful")
+      checkpoint.add_step("Email Text Match", True, 7, f"Found '{email}' in document", execution_time=step_time)
+
+      step_start = time.time()
+      location = extract_text_location(text_ocr, email)
+      step_time = time.time() - step_start
+
+      if location is not None:
+          if location.is_upper_left():
+              checkpoint.add_step("Email Location", True, 8, f"Email correctly positioned in upper left at {location}", execution_time=step_time)
+          else:
+              print("Email location failed")
+              checkpoint.add_step("Email Location", False, 8, f"Email not in upper left, found at {location}", execution_time=step_time)
+      else:
+          print("Email location extraction failed")
+          checkpoint.add_step("Email Location", False, 7, "Could not extract email location from OCR text", execution_time=step_time)
+  else:
+      print("Email match failed")
+      checkpoint.add_step("Email Text Match", False, 7, f"'{email}' not found in document", execution_time=step_time)
+      checkpoint.add_step("Email Location", False, 8, "Cannot check location - email not found")
+
   checkpoint.execution_time = time.time() - checkpoint_start
   return checkpoint
-  
