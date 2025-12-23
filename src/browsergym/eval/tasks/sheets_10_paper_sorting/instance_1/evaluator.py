@@ -52,7 +52,7 @@ import tempfile
 import requests
 
 # Local imports
-from src.browsergym.eval.tasks.sheets_10_paper_sorting_instance_1.utils import (
+from src.browsergym.eval.tasks.sheets_10_paper_sorting.utils import (
     ARXIV_HEADERS,
     extract_arxiv_id_from_url,
     extract_drive_file_id,
@@ -62,7 +62,7 @@ from src.browsergym.eval.tasks.sheets_10_paper_sorting_instance_1.utils import (
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_10_paper_sorting_instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_10_paper_sorting/instance_1/")
 DATA_DIR = os.path.join(TASK_DIR, "data")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 

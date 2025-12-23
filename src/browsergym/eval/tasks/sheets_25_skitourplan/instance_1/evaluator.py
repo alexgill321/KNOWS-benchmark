@@ -45,7 +45,7 @@ import tempfile
 import requests
 
 # Local imports
-from src.browsergym.eval.tasks.sheets_25_skitourplan_instance_1.utils import (
+from src.browsergym.eval.tasks.sheets_25_skitourplan.utils import (
     parse_slope_angle,
     parse_gps_coordinates,
     parse_typical_vertical,
@@ -60,7 +60,7 @@ from src.browsergym.eval.tasks.sheets_25_skitourplan_instance_1.utils import (
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_25_skitourplan_instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_25_skitourplan/instance_1/")
 DATA_DIR = os.path.join(TASK_DIR, "data")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 

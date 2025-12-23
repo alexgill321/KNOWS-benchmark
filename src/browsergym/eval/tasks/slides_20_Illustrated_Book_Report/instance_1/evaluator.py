@@ -39,10 +39,10 @@ from src.browsergym.eval.eval_utils.slides_utils import (
     colors_are_different,
     _extract_text_from_text_element
 )
-from src.browsergym.eval.tasks.slides_20_Illustrated_Book_Report_instance_1.utils import *
+from src.browsergym.eval.tasks.slides_20_Illustrated_Book_Report.utils import *
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/slides_20_Illustrated_Book_Report_instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/slides_20_Illustrated_Book_Report/instance_1/")
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 

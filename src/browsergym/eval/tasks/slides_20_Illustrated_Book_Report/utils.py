@@ -5,18 +5,16 @@ This module provides helper functions for fetching and validating URL content
 to verify that bullet point characteristics are direct quotes from sources.
 """
 
-import requests
 import html2text
 from src.browsergym.eval.eval_utils.text_utils import text_fuzzy_match_contained_long
 
 
 def fetch_url_content(url):
     """
-    Fetch and convert URL to markdown text.
+    Fetch and convert URL to markdown text using Playwright for JavaScript rendering.
 
-    Fetches the HTML content from a URL and converts it to markdown format
-    for easier text matching. Truncates the content to prevent excessive
-    token usage in LLM validation.
+    Uses Playwright to render JavaScript-heavy pages (like Fandom wikis) before
+    extracting content. Falls back to requests for simpler pages.
 
     Args:
         url (str): The URL to fetch content from.
@@ -30,18 +28,25 @@ def fetch_url_content(url):
         ...     print(f"Fetched {len(content)} characters of content")
     """
     try:
-        # Fetch URL with timeout and User-Agent header
-        response = requests.get(
-            url,
-            timeout=10,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        )
+        from playwright.sync_api import sync_playwright
 
-        if response.status_code != 200:
-            print(f"Failed to fetch {url}: HTTP {response.status_code}")
-            return None
+        with sync_playwright() as p:
+            # Launch headless browser
+            browser = p.chromium.launch(headless=True)
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            )
+            page = context.new_page()
 
-        html_content = response.text
+            # Navigate and wait for content to load
+            page.goto(url, timeout=30000)
+            # Wait for the main content to be rendered
+            page.wait_for_load_state("networkidle", timeout=15000)
+
+            # Get the rendered HTML
+            html_content = page.content()
+
+            browser.close()
 
         # Convert HTML to Markdown
         h = html2text.HTML2Text()
@@ -56,14 +61,8 @@ def fetch_url_content(url):
 
         return markdown
 
-    except requests.Timeout:
-        print(f"Timeout fetching {url}")
-        return None
-    except requests.RequestException as e:
-        print(f"Error fetching {url}: {e}")
-        return None
     except Exception as e:
-        print(f"Unexpected error fetching {url}: {e}")
+        print(f"Error fetching {url} with Playwright: {e}")
         return None
 
 

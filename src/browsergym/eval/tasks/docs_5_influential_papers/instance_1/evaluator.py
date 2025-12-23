@@ -34,10 +34,10 @@ from src.browsergym.eval.eval_utils.google_services_utils import *
 from src.browsergym.eval.eval_utils.text_utils import text_fuzzy_match_contained_short, text_fuzzy_match_contained_long
 from src.browsergym.eval.eval_utils.models import load_model
 from src.browsergym.eval.eval_utils.parallel_utils import fast_parallel_vlm_calls
-from src.browsergym.eval.tasks.docs_5_influential_papers_instance_1.utils import *
+from src.browsergym.eval.tasks.docs_5_influential_papers.utils import *
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/docs_5_influential_papers_instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/docs_5_influential_papers/instance_1/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 CLEANUP_ENABLED = os.environ.get("CLEANUP", "True").lower() == "true"
 PDF_IMAGES_DIR = os.path.join(TASK_DIR, "data/pdf_images/")

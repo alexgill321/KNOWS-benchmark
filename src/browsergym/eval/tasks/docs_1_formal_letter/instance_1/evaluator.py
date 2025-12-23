@@ -29,7 +29,7 @@ from src.browsergym.eval.eval_utils.utils import layout, image_id_from_path # ty
 from src.browsergym.eval.eval_utils.models import load_model # type: ignore
 
 # FOLDER_ID = "1UcssqmcyrYCXBDpxp-mircdolZjcTIQb"
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/docs_1_formal_letter_instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/docs_1_formal_letter/instance_1/")
 DOC_IMAGES_DIR = os.path.join(TASK_DIR, "data/images/")
 DOC_IMAGES_CROPPED_DIR = os.path.join(TASK_DIR, "data/cropped_images/")
 PDF_IMAGES_DIR = os.path.join(TASK_DIR, "data/pdf_images/")

@@ -13,8 +13,10 @@ import json
 from typing import Dict, List, Optional, Tuple, Any
 
 # Task-level constants
+# Note: TASK_DIR points to the template level. Instance-specific data is in instance_X/data/
 TASK_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(TASK_DIR, "data")
+# Default DATA_DIR for backwards compatibility (instance_1)
+DATA_DIR = os.path.join(TASK_DIR, "instance_1", "data")
 
 # ============================================================================
 # Danger Rating Color Mapping
@@ -283,13 +285,19 @@ def danger_level_to_color(level: str) -> str:
 # Gold Data Functions
 # ============================================================================
 
-def load_gold_runs() -> Optional[Dict]:
+def load_gold_runs(data_dir: str = None) -> Optional[Dict]:
     """Load gold run data from JSON file.
+
+    Args:
+        data_dir: Optional path to data directory. If not provided, uses default DATA_DIR.
 
     Returns:
         Dict with gold run data, or None if file doesn't exist.
     """
-    gold_path = os.path.join(DATA_DIR, "gold_runs.json")
+    if data_dir is None:
+        data_dir = DATA_DIR
+
+    gold_path = os.path.join(data_dir, "gold_runs.json")
 
     if not os.path.exists(gold_path):
         return None
