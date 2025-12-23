@@ -33,7 +33,7 @@ from src.browsergym.eval.eval_utils.models import load_model
 from src.browsergym.eval.eval_utils.parallel_utils import parallel_download, parallel_execute
 
 # Local utils
-from src.browsergym.eval.tasks.sheets_38_apartment_finder_instance_1.utils import (
+from src.browsergym.eval.tasks.sheets_38_apartment_finder.utils import (
     fetch_craigslist_page,
     extract_craigslist_data_with_llm,
     normalize_boolean_value,
@@ -42,7 +42,7 @@ from src.browsergym.eval.tasks.sheets_38_apartment_finder_instance_1.utils impor
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_38_apartment_finder_instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_38_apartment_finder/instance_1/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 model = None

@@ -35,8 +35,10 @@ sys.path.append(BASE_PATH)
 from rapidfuzz import fuzz
 
 # Task-level constants
+# Note: TASK_DIR points to the template level. Instance-specific data is in instance_X/data/
 TASK_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(TASK_DIR, "data")
+# Default DATA_DIR for backwards compatibility (instance_1)
+DATA_DIR = os.path.join(TASK_DIR, "instance_1", "data")
 FIGURES_DIR = os.path.join(DATA_DIR, "gold_figures")
 
 # HTTP headers for arXiv requests (avoid 403 errors)

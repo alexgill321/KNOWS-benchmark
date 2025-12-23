@@ -114,3 +114,69 @@ def get_slide_content(slide_id):
     except Exception as e:
         print(f"Error fetching slide content: {e}")
         return None, None
+
+
+def detect_header_row(rows: list, max_rows_to_check: int = 10) -> int:
+    """Detect which row contains the table headers in Google Sheets data.
+
+    Uses heuristics to find the header row:
+    1. Row with the most non-empty cells
+    2. Row where values look like headers (text, not numbers)
+    3. Prefers rows early in the sheet
+
+    Args:
+        rows: List of row data from Google Sheets API (rowData from get_sheet_content).
+        max_rows_to_check: Maximum number of rows to scan for headers.
+
+    Returns:
+        0-indexed row number most likely to be the header row.
+    """
+    if not rows:
+        return 0
+
+    best_row = 0
+    best_score = -1
+
+    for row_idx in range(min(len(rows), max_rows_to_check)):
+        row = rows[row_idx]
+        values = row.get('values', [])
+
+        if not values:
+            continue
+
+        # Count non-empty cells
+        non_empty_count = 0
+        text_count = 0
+        total_cells = len(values)
+
+        for cell in values:
+            formatted = cell.get('formattedValue', '')
+            if formatted:
+                non_empty_count += 1
+                # Check if it looks like text (not purely numeric)
+                try:
+                    float(formatted.replace(',', '').replace('$', '').replace('%', ''))
+                except ValueError:
+                    text_count += 1
+
+        if non_empty_count == 0:
+            continue
+
+        # Score: prioritize rows with many non-empty text cells
+        # Penalize rows that are too early (row 0 often has titles)
+        text_ratio = text_count / non_empty_count if non_empty_count > 0 else 0
+        density = non_empty_count / max(total_cells, 1)
+
+        # Score combines: text ratio (headers are text), density (headers fill row),
+        # non-empty count (more columns = more likely header)
+        score = (text_ratio * 0.4) + (density * 0.3) + (non_empty_count * 0.02)
+
+        # Small bonus for rows 1-3 (common header positions)
+        if 1 <= row_idx <= 3:
+            score += 0.1
+
+        if score > best_score:
+            best_score = score
+            best_row = row_idx
+
+    return best_row
