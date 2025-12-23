@@ -316,3 +316,52 @@ def grade_checkpoint_2():
   checkpoint.execution_time = time.time() - checkpoint_start
   return checkpoint
 
+def grade_checkpoint_3(doc_structure):
+    print("----------------- CHECKPOINT 3 ----------------")
+    checkpoint_start = time.time()
+    checkpoint = Checkpoint(total=2, result=0, name="Signature Image")
+    
+    step_start = time.time()
+    signature_path = image_exact_match(DOC_IMAGES_DIR, GOLD_IMAGES_DIR + "gold_signature.png")
+    step_time = time.time() - step_start
+    
+    if signature_path:
+        cropped_signature_path = signature_path.replace("images", "cropped_images")
+        signature_uri = signature_path.split("_")[-1].replace(".png", "")
+        signature_size = get_image_dimensions_from_doc(doc_id, signature_uri, DOCS_SERVICE)
+        print("Image match successful")
+        checkpoint.add_step("Signature Image Match", True, 9, f"Signature found at {signature_path}", execution_time=step_time)
+
+        print("Locating Signature Image")
+        step_start = time.time()
+        location = extract_image_location_size_feature_based(cropped_signature_path, signature_size, PDF_IMAGES_DIR, DEBUG, dpi=PDF_DPI)
+        print(f"Signature Location: {location}")
+
+        location_success = False
+        location_details = ""
+
+        if location.is_lower(mostly=True):
+            location_success = True
+            location_details = f"Signature correctly positioned in lower section at {location}"
+        else:
+            print("Signature location exact match failed")
+            # Try structural location as fallback
+            image_id = image_id_from_path(cropped_signature_path)
+            image_layout = layout(image_id, "image", doc_structure)
+            if image_layout.at_end():
+                print("Signature structured location successful")
+                location_success = True
+                location_details = f"Signature found at end of document structure (fallback from pixel location at {location})"
+            else:
+                print("Signature location failed")
+                location_details = f"Signature not in lower section at {location} and not at end of document structure"
+
+        step_time = time.time() - step_start
+        checkpoint.add_step("Signature Location", location_success, 10, location_details, execution_time=step_time)
+    else:
+        print("Image match failed")
+        checkpoint.add_step("Signature Image Match", False, 9, "No signature image found", execution_time=step_time)
+        checkpoint.add_step("Signature Location", False, 10, "Cannot check location - signature not found")
+    
+    checkpoint.execution_time = time.time() - checkpoint_start
+    return checkpoint
