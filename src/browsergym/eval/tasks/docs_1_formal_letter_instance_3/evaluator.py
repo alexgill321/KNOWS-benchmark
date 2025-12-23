@@ -247,3 +247,72 @@ def grade_checkpoint_1(gold_text, text_ocr):
 
   checkpoint.execution_time = time.time() - checkpoint_start
   return checkpoint
+
+def grade_checkpoint_2():
+  print("---------------- CHECKPOINT 2 ----------------")
+  checkpoint_start = time.time()
+  checkpoint = Checkpoint(total=2, result=0, name="Logo Image")
+
+  step_start = time.time()
+  logo_path = image_exact_match(DOC_IMAGES_DIR, GOLD_IMAGES_DIR + "logos/")
+  step_time = time.time() - step_start
+
+  if logo_path:
+    cropped_logo_path = logo_path.replace("images", "cropped_images")
+    logo_uri = logo_path.split("_")[-1].replace(".png", "")
+    logo_size = get_image_dimensions_from_doc(doc_id, logo_uri, DOCS_SERVICE)
+    print("Image match successful\n")
+    checkpoint.add_step("Logo Image Match", True, 9, f"Exact logo match found at {logo_path}", execution_time=step_time)
+
+    print("Locating Logo Image")
+    step_start = time.time()
+    exact_size_location = extract_image_location_size_feature_based(cropped_logo_path, logo_size, PDF_IMAGES_DIR, True, dpi=PDF_DPI)
+    step_time = time.time() - step_start
+    print(f"Location is {exact_size_location}")
+
+    if exact_size_location.is_upper_left():
+       print("Image location match successful")
+       checkpoint.add_step("Logo Location", True, 10, f"Logo correctly positioned in upper left at {exact_size_location}", execution_time=step_time)
+    else:
+       print("Image location exact match failed")
+       checkpoint.add_step("Logo Location", False, 10, f"Logo not in upper left, found at {exact_size_location}", execution_time=step_time)
+  else:
+    # Try AI-based detection as fallbac
+    global model
+    if model is None:
+        model = load_model(model_id)
+
+    step_start = time.time()
+    logo_path = binary_judge_image(model, DOC_IMAGES_DIR, "Is this an image of ONLY one of these institutions' logos: Coalas Lab, Communication at UCLA", GOLD_IMAGES_DIR + "logos/")
+    step_time = time.time() - step_start
+    
+    if logo_path:
+      cropped_logo_path = logo_path.replace("images", "cropped_images")
+      cropped_logo_uri = cropped_logo_path.split("_")[-1].replace(".png", "")
+      logo_size = get_image_dimensions_from_doc(doc_id, cropped_logo_uri, DOCS_SERVICE)
+      print("Image match successful\n")
+      checkpoint.add_step("Logo Image Match", True, 9, f"Exact logo match found at {logo_path}", execution_time=step_time)
+
+      print("Locating Logo Image")
+      step_start = time.time()
+      exact_size_location = extract_image_location_size_feature_based(cropped_logo_path, logo_size, PDF_IMAGES_DIR, True, dpi=PDF_DPI)
+      step_time = time.time() - step_start
+      print(f"Location is {exact_size_location}")
+      if exact_size_location:
+          if exact_size_location.is_upper_left():
+              print("Image location match successful")
+              checkpoint.add_step("Logo Location", True, 10, f"Logo correctly positioned in upper left at {exact_size_location}", execution_time=step_time)
+          else:
+              print("Image location exact match failed")
+              checkpoint.add_step("Logo Location", False, 10, f"Logo not in upper left, found at {exact_size_location}", execution_time=step_time)
+      else:
+          print("Image location extraction failed")
+          checkpoint.add_step("Logo Location", False, 10, "Could not extract logo location from PDF images", execution_time=step_time)
+    else:
+        print("Image match failed")
+        checkpoint.add_step("Logo Image Match", False, 9, "No logo found via exact match or AI detection", execution_time=step_time)
+        checkpoint.add_step("Logo Location", False, 10, "Cannot check location - logo not found")
+
+  checkpoint.execution_time = time.time() - checkpoint_start
+  return checkpoint
+
