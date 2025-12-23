@@ -1,8 +1,8 @@
 # Checkpoints
 
-This task has 10 points in total.
+This task has 12 points in total.
 
-## Checkpoint 1 (6pt):
+## Checkpoint 1 (8pt):
 
 Check that common information about the letter writer is placed at a reasonable location in the document letter.
 
