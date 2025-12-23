@@ -172,4 +172,30 @@ def grade_checkpoint_1(gold_text, text_ocr):
     checkpoint.add_step("Name Text Match", False, 1, f"'{name}' not found in document", execution_time=step_time)
     checkpoint.add_step("Name Location", False, 2, "Cannot check location - name not found")
 
+  # Title evaluation
+  step_start = time.time()
+  institution_found = any(text_exact_match_contained(t, gold_text) for t in titles)
+  institution_match = [t for t in titles if text_exact_match_contained(t, gold_text)]
+  step_time = time.time() - step_start
+  if institution_found:
+      print("Title match successful")
+      checkpoint.add_step("Title Text Match", True, 3, f"Found title in document", execution_time=step_time)
+
+      step_start = time.time()
+      location = extract_text_location(text_ocr, institution_match[0])
+      step_time = time.time() - step_start
+
+      if location.is_upper_left():
+          checkpoint.add_step("Title Location", True, 4, f"Title correctly positioned in upper left at {location}", execution_time=step_time)
+      else:
+          print("Title location failed")
+          checkpoint.add_step("Title Location", False, 4, f"Title not in upper left, found at {location}", execution_time=step_time)
+  else:
+      print("Title match failed")
+      checkpoint.add_step("Title Text Match", False, 3, f"Title not found in document", execution_time=step_time)
+      checkpoint.add_step("Title Location", False, 4, "Cannot check location - title not found")  
+
+  checkpoint.execution_time = time.time() - checkpoint_start
+  return checkpoint
+
   
