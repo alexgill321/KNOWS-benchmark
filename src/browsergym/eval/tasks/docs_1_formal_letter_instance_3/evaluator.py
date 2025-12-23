@@ -365,3 +365,72 @@ def grade_checkpoint_3(doc_structure):
     
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
+
+def grade_checkpoints(workspace_doc_id, cached_models=None):
+    """
+    Grade all checkpoints for the document.
+
+    Args:
+        workspace_doc_id (str): The Google Docs document ID (gold instance ID) to use
+        cached_models (dict, optional): Dictionary of preloaded models by model_id
+
+    Returns:
+        Result: Evaluation results with checkpoint scores
+    """
+    total_start_time = time.time()
+
+    try:
+        # Setup document processing
+        setup_document(workspace_doc_id)
+
+        # Use cached model if available
+        global model
+        if cached_models and model_id in cached_models:
+            model = cached_models[model_id]
+            print(f"Using preloaded model {model_id}")
+
+        checkpoints: List[Checkpoint] = []
+
+        checkpoints.append(grade_checkpoint_1(gold_text, text_ocr))
+        checkpoints.append(grade_checkpoint_2())
+        checkpoints.append(grade_checkpoint_3(doc_structure))
+
+        total_execution_time = time.time() - total_start_time
+        result = Result(checkpoints, total_execution_time=total_execution_time)
+
+        return result
+
+    finally:
+        # Always attempt cleanup, even if evaluation failed
+        try:
+            cleanup_generated_files()
+        except Exception as cleanup_error:
+            print(f"Warning: Cleanup failed with error: {cleanup_error}")
+      
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Evaluate formal letter document")
+    parser.add_argument("--workspace_doc_id", type=str, help="Google Docs document ID to evaluate")
+    parser.add_argument("--cached_models", type=dict, default=None, help="Dictionary of preloaded models")
+    args = parser.parse_args()
+
+    start_time = time.time()
+
+    # Add environment variable info for debugging
+    print(f"DEBUG mode: {DEBUG}")
+    print(f"CLEANUP enabled: {CLEANUP_ENABLED}")
+
+    result = grade_checkpoints(workspace_doc_id=args.workspace_doc_id, cached_models=args.cached_models)
+    print("=== EVALUATION RESULTS ===")
+    print(f"Final Score: {result.final_score}")
+    print("\n=== DETAILED REPORT ===")
+    detailed_report = result.get_detailed_report()
+    for checkpoint in detailed_report["checkpoints"]:
+        print(f"\n{checkpoint['name']}: {checkpoint['score']}")
+        for step in checkpoint["steps"]:
+            status = "✓" if step["success"] else "✗"
+            print(f"  {status} {step['name']}: {step['details'] or 'No details'}")
+    end_time = time.time()
+    print(f"\nTotal time taken: {end_time - start_time:.2f} seconds")
+    
