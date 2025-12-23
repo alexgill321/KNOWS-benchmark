@@ -110,11 +110,15 @@ def match_document_links_with_browsing_history(gold_text, browsing_history):
 
     Args:
         gold_text (str): Document text content
-        browsing_history (list): List of URLs visited during task
+        browsing_history (list): List of URLs visited during task (can be None)
 
     Returns:
         tuple: (links_match: bool, doc_links: list, visited_links: list, matched_count: int)
     """
+    # Handle None browsing_history
+    if browsing_history is None:
+        browsing_history = []
+    
     # Extract arxiv links from document
     doc_arxiv_links = extract_arxiv_links_from_text(gold_text)
 

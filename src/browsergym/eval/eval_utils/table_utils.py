@@ -457,3 +457,120 @@ def get_sheet_row_index_from_dataframe_row(df_row, header_rows: int = 1) -> int:
         return int(df_row.name) + header_rows
     except:
         return -1
+
+
+# =============================================================================
+# Google Sheets Row Color/Formatting Utilities
+# =============================================================================
+
+def get_row_background_color(sheet_raw: Dict, row_idx: int) -> Optional[Dict]:
+    """Extract background color from a specific row in raw sheet data.
+
+    Args:
+        sheet_raw: Raw sheet data from Google Sheets API.
+        row_idx: 0-indexed row number.
+
+    Returns:
+        Color dict with 'red', 'green', 'blue' keys (0-1 values), or None.
+    """
+    try:
+        sheets = sheet_raw.get('sheets', [])
+        if not sheets:
+            return None
+
+        rows = sheets[0].get('data', [{}])[0].get('rowData', [])
+        if row_idx >= len(rows):
+            return None
+
+        row = rows[row_idx]
+        cells = row.get('values', [])
+
+        if not cells:
+            return None
+
+        # Get color from first cell in the row
+        cell = cells[0]
+        effective_format = cell.get('effectiveFormat', {})
+        bg_color = effective_format.get('backgroundColor', {})
+
+        return bg_color if bg_color else None
+
+    except Exception:
+        return None
+
+
+def classify_row_color(color_dict: Optional[Dict]) -> str:
+    """Classify a row color as yellow, blue, or none.
+
+    Args:
+        color_dict: Color dictionary with 'red', 'green', 'blue' keys.
+
+    Returns:
+        'yellow', 'blue', or 'none'.
+    """
+    if not color_dict:
+        return 'none'
+
+    red = color_dict.get('red', 1)
+    green = color_dict.get('green', 1)
+    blue = color_dict.get('blue', 1)
+
+    # Yellow: high red, high green, low blue
+    if red > 0.8 and green > 0.8 and blue < 0.5:
+        return 'yellow'
+
+    # Light yellow (Google Sheets default yellow)
+    if red > 0.9 and green > 0.9 and blue > 0.6 and blue < 0.9:
+        return 'yellow'
+
+    # Blue: low red, low green, high blue
+    if red < 0.5 and green < 0.7 and blue > 0.7:
+        return 'blue'
+
+    # Light blue
+    if red > 0.6 and red < 0.9 and green > 0.8 and blue > 0.9:
+        return 'blue'
+
+    # White or near-white
+    if red > 0.95 and green > 0.95 and blue > 0.95:
+        return 'none'
+
+    return 'none'
+
+
+def validate_color_grouping(row_colors: List[str]) -> Tuple[bool, str]:
+    """Check if same colors are grouped together (not interleaved).
+
+    Args:
+        row_colors: List of color classifications for each row.
+
+    Returns:
+        Tuple of (is_valid, message).
+    """
+    if not row_colors:
+        return True, "No rows to check"
+
+    # Track which colors we've seen and finished with
+    seen_colors = set()
+    finished_colors = set()
+    current_color = None
+
+    for i, color in enumerate(row_colors):
+        if color == 'none':
+            continue
+
+        if current_color is None:
+            current_color = color
+            seen_colors.add(color)
+        elif color != current_color:
+            # Color changed
+            finished_colors.add(current_color)
+
+            if color in finished_colors:
+                # We're seeing a color we already finished - interleaving!
+                return False, f"Color '{color}' appears in non-contiguous rows (interleaved at row {i+1})"
+
+            current_color = color
+            seen_colors.add(color)
+
+    return True, f"Colors are properly grouped: {seen_colors}"
