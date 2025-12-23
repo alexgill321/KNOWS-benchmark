@@ -1,32 +1,45 @@
+
 from rapidfuzz import fuzz, process
 
 # Global cache for DocTR OCR model to avoid reloading
 _ocr_model_cache = None
 import sys
 import os
+import re
 sys.path.append(os.getcwd())
 from src.browsergym.eval.eval_utils.utils import retrieve_validate_doc_path, bbox_ratio_to_location, location
 from src.browsergym.eval.eval_utils.text_helpers import *
 
-def text_exact_match_contained(src_text, ref_text):
-    """
-    Check if any text in text_options is contained as an exact match in text2.
+def text_exact_match_contained(src_text: str, ref_text: str, *, standalone_line: bool = False) -> bool:
+    """Return True if *target* is found in *text* with an 'exact' notion.
 
-    Args:
-        src_text (Union[str, List[str]]): A string or a list of strings to be checked.
-        ref_text (str): The reference text.
-
-    Returns:
-        string: The matched text if found, otherwise None.
+    - If standalone_line=False: simple containment check (target in text).
+    - If standalone_line=True: require an exact full-line match after normalization
+      (case-insensitive, whitespace-collapsed, and tolerant to common surrounding punctuation).
+      This is useful for header fields like a name.
     """
-    if isinstance(src_text, str):
-        if preprocess_text(src_text) in preprocess_text(ref_text):
-            return src_text
-    elif isinstance(src_text, list):
-        for text in src_text:
-            if preprocess_text(text) in preprocess_text(ref_text):
-                return text
-        return None
+    if not src_text or not ref_text:
+        return False
+
+    if not standalone_line:
+        return src_text in ref_text
+
+    def _norm_line(s: str) -> str:
+        s = s.replace("\u00a0", " ")
+        s = s.strip().lower()
+        s = re.sub(r"\s+", " ", s)  # collapse whitespace
+        # strip leading/trailing punctuation
+        s = s.strip(" \t\r\n,.;:()[]{}<>\"'`“”‘’")
+        return s
+
+    target_norm = _norm_line(src_text)
+    if not target_norm:
+        return False
+
+    for line in ref_text.splitlines():
+        if _norm_line(line) == target_norm:
+            return True
+    return False
     
 def text_fuzzy_match_contained_long(target, full_text, threshold=85):
     """
@@ -447,3 +460,30 @@ def numerical_match_with_error(value1, value2, error_percent=5.0):
 
     # Mismatched types (one is list, one is not)
     raise TypeError("Both values must be either single numbers or lists of numbers")
+
+
+def fuzzy_match_text(text1: str, text2: str, threshold: int = 80) -> tuple:
+    """Perform fuzzy matching between two texts.
+
+    Uses token_sort_ratio for better matching of reordered text.
+    Normalizes texts by lowercasing and collapsing whitespace.
+
+    Args:
+        text1: First text.
+        text2: Second text.
+        threshold: Minimum similarity score (0-100).
+
+    Returns:
+        Tuple of (is_match, similarity_score).
+    """
+    if not text1 or not text2:
+        return False, 0
+
+    # Normalize texts
+    text1 = ' '.join(text1.lower().split())
+    text2 = ' '.join(text2.lower().split())
+
+    # Use token_sort_ratio for better matching of reordered text
+    score = fuzz.token_sort_ratio(text1, text2)
+
+    return score >= threshold, score
