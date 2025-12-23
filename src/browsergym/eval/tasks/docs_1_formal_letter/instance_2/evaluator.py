@@ -5,6 +5,8 @@ from pathlib import Path
 import time
 import shutil
 import glob
+from concurrent.futures import ThreadPoolExecutor
+
 # Get the base path that works in both Docker and local environments
 def get_base_path():
     # First check if we're in a Docker container at /app
@@ -34,6 +36,7 @@ PDF_IMAGES_DIR = os.path.join(TASK_DIR, "data/pdf_images/")
 GOLD_IMAGES_DIR = os.path.join(TASK_DIR, "data/gold_images/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 CLEANUP_ENABLED = os.environ.get("CLEANUP", "True").lower() == "true"
+PDF_DPI = 150  # Lower DPI for faster OCR while maintaining text recognition quality
 
 model = None
 model_id = "gemma-google-ai"
@@ -112,92 +115,131 @@ def setup_document(workspace_doc_id):
 
     print(f"Using workspace document ID: {workspace_doc_id}")
     doc_id = workspace_doc_id
-    
-    # Download and process the document
-    pdf_path = os.path.join(TASK_DIR, "data/ethan_ashby_formal_letter.pdf")
+
+    # Phase 1: Download and convert PDF (sequential, required order)
+    pdf_path = os.path.join(TASK_DIR, "data/formal_letter.pdf")
     download_doc_as_pdf(doc_id, pdf_path, DRIVE_SERVICE)
-    convert_pdf_to_pngs(pdf_path, PDF_IMAGES_DIR)
-    
-    # Extract document content and structure
-    extract_images_from_doc_with_cropping(doc_id, DOCS_SERVICE, DOC_IMAGES_CROPPED_DIR)
-    extract_images_from_doc(doc_id, DOCS_SERVICE, DOC_IMAGES_DIR)
-    gold_text = extract_text_from_doc(doc_id, DOCS_SERVICE)
-    text_ocr = extract_text_from_pdf(PDF_IMAGES_DIR)
-    doc_structure = extract_structure_from_doc(doc_id, DOCS_SERVICE)
+    convert_pdf_to_pngs(pdf_path, PDF_IMAGES_DIR, dpi=PDF_DPI)
+
+    # Phase 2: Run OCR and Google API calls in parallel
+    # OCR doesn't depend on Google APIs, so we can run them concurrently
+    def run_ocr():
+        return extract_text_from_pdf(PDF_IMAGES_DIR)
+
+    def run_google_api_calls():
+        # Keep Google API calls sequential to avoid rate limits
+        extract_images_from_doc_with_cropping(doc_id, DOCS_SERVICE, DOC_IMAGES_CROPPED_DIR)
+        extract_images_from_doc(doc_id, DOCS_SERVICE, DOC_IMAGES_DIR)
+        text = extract_text_from_doc(doc_id, DOCS_SERVICE)
+        structure = extract_structure_from_doc(doc_id, DOCS_SERVICE)
+        return text, structure
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        ocr_future = executor.submit(run_ocr)
+        api_future = executor.submit(run_google_api_calls)
+
+        text_ocr = ocr_future.result()
+        gold_text, doc_structure = api_future.result()
+
+def is_first_page_text(loc) -> bool:
+    return loc is not None and getattr(loc, "page_number", None) == 0
+
+def is_first_page_img(loc) -> bool:
+    return loc is not None and getattr(loc, "page_number", None) == 0
 
 ### Checkpoint 1 ###
 def grade_checkpoint_1(gold_text, text_ocr):
     print("----------------- CHECKPOINT 1 ----------------")
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=6, result=0, name="Contact Information")
-    
+
     name = "Andrew Reischling"
     email = "andyreischling601@gmail.com"
     title = ["Writer", "Strategist"]
-    
-    # Name evaluation
+
+    # Name evaluation (header-only, strict, order-safe)
     step_start = time.time()
-    name_found = text_exact_match_contained(name, gold_text)
+    name_found = False
+    for item in (text_ocr or {}).get(0, []):
+        loc = item.get("location", None)
+        if loc and getattr(loc, "y", 10**9) <= 450 and text_exact_match_contained(name, item.get("text", ""), standalone_line=True):
+            name_found = True
+            break
+
+    location = extract_text_location(text_ocr, name) if name_found else None
     step_time = time.time() - step_start
-    
-    if name_found:
+
+    if location and not is_first_page_text(location):
+        print(f"Rejecting name location: wrong page_number={location.page_number}")
+        location = None
+    if location and location.y > 450:
+        print(f"Rejecting name location: too low on page at y={location.y}")
+        location = None
+
+    if name_found and location and location.is_upper_left():
         print("Name match successful")
         checkpoint.add_step("Name Text Match", True, 1, f"Found '{name}' in document", execution_time=step_time)
-
-        step_start = time.time()
-        location = extract_text_location(text_ocr, name)
-        step_time = time.time() - step_start
-
-        if location.is_upper_left():
-            checkpoint.add_step("Name Location", True, 2, f"Name correctly positioned in upper left at {location}", execution_time=step_time)
-        else:
-            print("Name location failed")
-            checkpoint.add_step("Name Location", False, 2, f"Name not in upper left, found at {location}", execution_time=step_time)
+        checkpoint.add_step("Name Location", True, 2, f"Name correctly positioned in upper left at {location}", execution_time=step_time)
     else:
-        print("Name match failed")
-        checkpoint.add_step("Name Text Match", False, 1, f"'{name}' not found in document", execution_time=step_time)
-        checkpoint.add_step("Name Location", False, 2, "Cannot check location - name not found")
+        print("Name match failed (header exact)")
+        checkpoint.add_step("Name Text Match", False, 1, f"Header name '{name}' not found as standalone line", execution_time=step_time)
+        checkpoint.add_step("Name Location", False, 2, f"Name not in upper left, found at {location}", execution_time=step_time)
 
     # Email evaluation
     step_start = time.time()
-    email_found = text_exact_match_contained(email, gold_text)
+    email_found = False
+    for item in (text_ocr or {}).get(0, []):
+        loc = item.get("location", None)
+        if loc and getattr(loc, "y", 10**9) <= 450 and text_exact_match_contained(email, item.get("text", ""), standalone_line=True):
+            email_found = True
+            break
+
+    location = extract_text_location(text_ocr, email) if email_found else None
     step_time = time.time() - step_start
-    
-    if email_found:
+
+    if email_found and location is not None:
         print("Email match successful")
         checkpoint.add_step("Email Text Match", True, 3, f"Found '{email}' in document", execution_time=step_time)
 
-        step_start = time.time()
-        location = extract_text_location(text_ocr, email)
-        step_time = time.time() - step_start
-
-        if location is not None:
-            if location.is_upper_left():
-                checkpoint.add_step("Email Location", True, 4, f"Email correctly positioned in upper left at {location}", execution_time=step_time)
-            else:
-                print("Email location failed")
-                checkpoint.add_step("Email Location", False, 4, f"Email not in upper left, found at {location}", execution_time=step_time)
+        if location and location.y > 450:
+            print(f"Rejecting email location: too low on page at y={location.y}")
+            location = None
+        if location and not is_first_page_text(location):
+            print(f"Rejecting email location: wrong page number at {location.page_number}")
+            location = None
+        if location and location.is_upper_left():
+            checkpoint.add_step("Email Location", True, 4, f"Email correctly positioned in upper left at {location}", execution_time=step_time)
         else:
-            print("Email location extraction failed")
-            checkpoint.add_step("Email Location", False, 4, "Could not extract email location from OCR text", execution_time=step_time)
+            print("Email location failed")
+            checkpoint.add_step("Email Location", False, 4, f"Email not in upper left, found at {location}", execution_time=step_time)
     else:
         print("Email match failed")
         checkpoint.add_step("Email Text Match", False, 3, f"'{email}' not found in document", execution_time=step_time)
         checkpoint.add_step("Email Location", False, 4, "Cannot check location - email not found")
-    
+
     step_start = time.time()
-    title_found = any(text_exact_match_contained(t, gold_text) for t in title)
-    title_match = [t for t in title if text_exact_match_contained(t, gold_text)]
+    title_match = None
+    for t in title:
+        if text_exact_match_contained(t, gold_text, standalone_line=True):
+            title_match = t
+            break
     step_time = time.time() - step_start
-    if title_found:
+
+    if title_match is not None:
         print("Title match successful")
         checkpoint.add_step("Title Text Match", True, 5, f"Found title in document", execution_time=step_time)
 
         step_start = time.time()
-        location = extract_text_location(text_ocr, title_match[0])
+        location = extract_text_location(text_ocr, title_match)
         step_time = time.time() - step_start
 
-        if location.is_upper_left():
+        if location and location.y > 450:
+            print(f"Rejecting title location: too low on page at y={location.y}")
+            location = None
+        if location and not is_first_page_text(location):
+            print(f"Rejecting title location: wrong page_number={location.page_number}")
+            location = None
+        if location and location.is_upper_left():
             checkpoint.add_step("Title Location", True, 6, f"Title correctly positioned in upper left at {location}", execution_time=step_time)
         else:
             print("Title location failed")
@@ -228,24 +270,37 @@ def grade_checkpoint_2():
 
         print("Locating Logo Image")
         step_start = time.time()
-        exact_size_location = extract_image_location_size_feature_based(cropped_logo_path, logo_size, PDF_IMAGES_DIR, True)
+        exact_size_location = extract_image_location_size_feature_based(cropped_logo_path, logo_size, PDF_IMAGES_DIR, True, dpi=PDF_DPI)
         step_time = time.time() - step_start
-        print(f"Location is {exact_size_location}")
 
-        if exact_size_location.is_upper_left():
+        if exact_size_location and getattr(exact_size_location, "y", None) is not None and exact_size_location.y > 450:
+            print(f"Rejecting logo location: too low on page at y={exact_size_location.y}")
+            exact_size_location = None
+        if exact_size_location and not is_first_page_img(exact_size_location):
+            print(f"Rejecting logo location: wrong page_number={exact_size_location.page_number}")
+            exact_size_location = None
+        if exact_size_location and exact_size_location.is_upper_left():
             print("Image location match successful")
             checkpoint.add_step("Logo Location", True, 8, f"Logo correctly positioned in upper left at {exact_size_location}", execution_time=step_time)
         else:
             print("Image location exact match failed")
-            checkpoint.add_step("Logo Location", False, 8, f"Logo not in upper left, found at {exact_size_location}", execution_time=step_time)
+
+            # Fallback: structural location check (similar to signature fallback)
+            image_id = image_id_from_path(cropped_logo_path)
+            image_layout = layout(image_id, "image", doc_structure)
+            if hasattr(image_layout, "at_start") and image_layout.at_start():
+                print("Logo structured location successful")
+                checkpoint.add_step("Logo Location", True, 8, "Logo found at start of document structure (fallback from pixel location)", execution_time=step_time)
+            else:
+                checkpoint.add_step("Logo Location", False, 8, f"Logo not in upper left, found at {exact_size_location}", execution_time=step_time)
     else:
         # Try AI-based detection as fallback
         global model
         if model is None:
             model = load_model(model_id)
-        
+
         step_start = time.time()
-        logo_path = binary_judge_image(model, DOC_IMAGES_DIR, "Is this an image of ONLY the IDEO company logo?")
+        logo_path = binary_judge_image(model, DOC_IMAGES_DIR, "Is this an image of ONLY the IDEO company logo?", GOLD_IMAGES_DIR + "logos/")
         step_time = time.time() - step_start
 
         if logo_path:
@@ -257,24 +312,46 @@ def grade_checkpoint_2():
 
             print("Locating Logo Image")
             step_start = time.time()
-            exact_size_location = extract_image_location_size_feature_based(cropped_logo_path, logo_size, PDF_IMAGES_DIR, True)
+            exact_size_location = extract_image_location_size_feature_based(cropped_logo_path, logo_size, PDF_IMAGES_DIR, True, dpi=PDF_DPI)
             step_time = time.time() - step_start
             print(f"Location is {exact_size_location}")
             if exact_size_location:
-                if exact_size_location.is_upper_left():
+                if exact_size_location and getattr(exact_size_location, "y", None) is not None and exact_size_location.y > 450:
+                    print(f"Rejecting logo location: too low on page at y={exact_size_location.y}")
+                    exact_size_location = None
+                if exact_size_location and not is_first_page_img(exact_size_location):
+                    print(f"Rejecting logo location: wrong page_number={exact_size_location.page_number}")
+                    exact_size_location = None
+                if exact_size_location and exact_size_location.is_upper_left():
                     print("Image location match successful")
                     checkpoint.add_step("Logo Location", True, 8, f"Logo correctly positioned in upper left at {exact_size_location}", execution_time=step_time)
                 else:
                     print("Image location exact match failed")
-                    checkpoint.add_step("Logo Location", False, 8, f"Logo not in upper left, found at {exact_size_location}", execution_time=step_time)
+
+                    # Fallback: structural location check (similar to signature fallback)
+                    image_id = image_id_from_path(cropped_logo_path)
+                    image_layout = layout(image_id, "image", doc_structure)
+                    if hasattr(image_layout, "at_start") and image_layout.at_start():
+                        print("Logo structured location successful")
+                        checkpoint.add_step("Logo Location", True, 8, "Logo found at start of document structure (fallback from pixel location)", execution_time=step_time)
+                    else:
+                        checkpoint.add_step("Logo Location", False, 8, f"Logo not in upper left, found at {exact_size_location}", execution_time=step_time)
             else:
                 print("Image location extraction failed")
-                checkpoint.add_step("Logo Location", False, 8, "Could not extract logo location from PDF images", execution_time=step_time)
+
+                # Fallback: structural location check (similar to signature fallback)
+                image_id = image_id_from_path(cropped_logo_path)
+                image_layout = layout(image_id, "image", doc_structure)
+                if hasattr(image_layout, "at_start") and image_layout.at_start():
+                    print("Logo structured location successful")
+                    checkpoint.add_step("Logo Location", True, 8, "Logo found at start of document structure (fallback from pixel extraction failure)", execution_time=step_time)
+                else:
+                    checkpoint.add_step("Logo Location", False, 8, "Could not extract logo location from PDF images", execution_time=step_time)
         else:
             print("Image match failed")
             checkpoint.add_step("Logo Image Match", False, 7, "No logo found via exact match or AI detection", execution_time=step_time)
             checkpoint.add_step("Logo Location", False, 8, "Cannot check location - logo not found")
-    
+
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
@@ -282,11 +359,11 @@ def grade_checkpoint_3(doc_structure):
     print("----------------- CHECKPOINT 3 ----------------")
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=2, result=0, name="Signature Image")
-    
+
     step_start = time.time()
     signature_path = image_exact_match(DOC_IMAGES_DIR, GOLD_IMAGES_DIR + "gold_signature.png")
     step_time = time.time() - step_start
-    
+
     if signature_path:
         cropped_signature_path = signature_path.replace("images", "cropped_images")
         signature_uri = signature_path.split("_")[-1].replace(".png", "")
@@ -296,13 +373,13 @@ def grade_checkpoint_3(doc_structure):
 
         print("Locating Signature Image")
         step_start = time.time()
-        location = extract_image_location_size_feature_based(cropped_signature_path, signature_size, PDF_IMAGES_DIR, DEBUG)
+        location = extract_image_location_size_feature_based(cropped_signature_path, signature_size, PDF_IMAGES_DIR, DEBUG, dpi=PDF_DPI)
         print(f"Signature Location: {location}")
 
         location_success = False
         location_details = ""
 
-        if location.is_lower(mostly=True):
+        if location and location.is_lower(mostly=True):
             location_success = True
             location_details = f"Signature correctly positioned in lower section at {location}"
         else:
@@ -324,7 +401,7 @@ def grade_checkpoint_3(doc_structure):
         print("Image match failed")
         checkpoint.add_step("Signature Image Match", False, 9, "No signature image found", execution_time=step_time)
         checkpoint.add_step("Signature Location", False, 10, "Cannot check location - signature not found")
-    
+
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 

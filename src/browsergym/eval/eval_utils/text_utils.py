@@ -15,7 +15,9 @@ def text_exact_match_contained(src_text: str, ref_text: str, *, standalone_line:
 
     - If standalone_line=False: simple containment check (target in text).
     - If standalone_line=True: require an exact full-line match after normalization
-      (case-insensitive, whitespace-collapsed, and tolerant to common surrounding punctuation).
+      (case-insensitive, whitespace-collapsed). Only trailing punctuation that typically
+      ends a standalone item (period, comma, colon, semicolon) is tolerated.
+      Opening brackets/parens attached to the text indicate concatenation and are rejected.
       This is useful for header fields like a name.
     """
     if not src_text or not ref_text:
@@ -24,20 +26,48 @@ def text_exact_match_contained(src_text: str, ref_text: str, *, standalone_line:
     if not standalone_line:
         return src_text in ref_text
 
-    def _norm_line(s: str) -> str:
+    def _norm_core(s: str) -> str:
+        """Normalize the core text: lowercase, collapse whitespace, replace non-breaking spaces."""
         s = s.replace("\u00a0", " ")
         s = s.strip().lower()
         s = re.sub(r"\s+", " ", s)  # collapse whitespace
-        # strip leading/trailing punctuation
-        s = s.strip(" \t\r\n,.;:()[]{}<>\"'`“”‘’")
         return s
 
-    target_norm = _norm_line(src_text)
+    def _is_valid_standalone(line: str, target: str) -> bool:
+        """Check if line matches target as a standalone item.
+
+        Allows only trailing punctuation that typically ends a standalone item
+        (period, comma, colon, semicolon). Rejects lines where the target is
+        followed by opening brackets, parens, or other text that suggests concatenation.
+        """
+        line_norm = _norm_core(line)
+        target_norm = _norm_core(target)
+
+        if not target_norm:
+            return False
+
+        # Exact match
+        if line_norm == target_norm:
+            return True
+
+        # Check if line starts with target followed only by allowed trailing punctuation
+        # Allowed: . , : ; (these commonly end standalone items)
+        # NOT allowed: ( [ { < or any other characters (suggests concatenation)
+        if line_norm.startswith(target_norm):
+            remainder = line_norm[len(target_norm):]
+            # Only allow empty remainder or trailing punctuation that ends an item
+            allowed_trailing = set(".,;:")
+            if all(c in allowed_trailing for c in remainder):
+                return True
+
+        return False
+
+    target_norm = _norm_core(src_text)
     if not target_norm:
         return False
 
     for line in ref_text.splitlines():
-        if _norm_line(line) == target_norm:
+        if _is_valid_standalone(line, src_text):
             return True
     return False
     
