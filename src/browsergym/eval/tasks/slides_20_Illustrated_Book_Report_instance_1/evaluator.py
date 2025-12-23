@@ -47,7 +47,7 @@ DATA_DIR = os.path.join(TASK_DIR, "data/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 model = None
-model_id = "gemma-google-ai"
+model_id = "gemini-2.5-flash-google-ai"
 
 DRIVE_SERVICE, SLIDES_SERVICE = initialize_google_services(service_type="slides")
 
