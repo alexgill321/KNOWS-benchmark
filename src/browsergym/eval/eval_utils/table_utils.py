@@ -574,3 +574,104 @@ def validate_color_grouping(row_colors: List[str]) -> Tuple[bool, str]:
             seen_colors.add(color)
 
     return True, f"Colors are properly grouped: {seen_colors}"
+
+
+def get_cell_value(sheet_raw: Dict, row_idx: int, col_idx: int) -> str:
+    """Get formatted cell value from raw sheet data.
+
+    Args:
+        sheet_raw: Raw sheet data from Google Sheets API (get_sheet_content).
+        row_idx: 0-indexed row number.
+        col_idx: 0-indexed column number.
+
+    Returns:
+        Cell value as string, or empty string if not found.
+    """
+    try:
+        sheets = sheet_raw.get('sheets', [])
+        if not sheets:
+            return ""
+
+        sheet_data = sheets[0].get('data', [{}])[0]
+        rows = sheet_data.get('rowData', [])
+
+        if row_idx < len(rows):
+            values = rows[row_idx].get('values', [])
+            if col_idx < len(values):
+                return values[col_idx].get('formattedValue', '')
+        return ""
+    except Exception:
+        return ""
+
+
+def get_cell_background_color(sheet_raw: Dict, row_idx: int, col_idx: int) -> Dict:
+    """Get background color of a specific cell.
+
+    Unlike get_row_background_color which gets the first cell's color,
+    this function gets the color of a specific cell by column index.
+
+    Args:
+        sheet_raw: Raw sheet data from Google Sheets API.
+        row_idx: 0-indexed row number.
+        col_idx: 0-indexed column number.
+
+    Returns:
+        Dict with 'red', 'green', 'blue' keys (0-1 scale), or empty dict.
+    """
+    try:
+        sheets = sheet_raw.get('sheets', [])
+        if not sheets:
+            return {}
+
+        sheet_data = sheets[0].get('data', [{}])[0]
+        rows = sheet_data.get('rowData', [])
+
+        if row_idx < len(rows):
+            values = rows[row_idx].get('values', [])
+            if col_idx < len(values):
+                effective_format = values[col_idx].get('effectiveFormat', {})
+                return effective_format.get('backgroundColor', {})
+        return {}
+    except Exception:
+        return {}
+
+
+def check_merged_cells(sheet_raw: Dict, expected_cols: List[int], row_start: int, row_end: int) -> bool:
+    """Check if specified columns are merged vertically across rows.
+
+    Useful for validating that certain columns (like shared forecast data)
+    are properly merged across multiple data rows.
+
+    Args:
+        sheet_raw: Raw sheet data from Google Sheets API.
+        expected_cols: List of column indices to check for merges.
+        row_start: Start row index (inclusive, 0-indexed).
+        row_end: End row index (inclusive, 0-indexed).
+
+    Returns:
+        True if all expected columns are merged across the specified rows.
+    """
+    try:
+        sheets = sheet_raw.get('sheets', [])
+        if not sheets:
+            return False
+
+        merges = sheets[0].get('merges', [])
+
+        for col_idx in expected_cols:
+            found_merge = False
+            for merge in merges:
+                # Check if this merge covers the column and row range
+                if (merge.get('startColumnIndex') == col_idx and
+                    merge.get('endColumnIndex') == col_idx + 1 and
+                    merge.get('startRowIndex') <= row_start and
+                    merge.get('endRowIndex') >= row_end + 1):  # endRowIndex is exclusive
+                    found_merge = True
+                    break
+
+            if not found_merge:
+                return False
+
+        return True
+    except Exception:
+        return False

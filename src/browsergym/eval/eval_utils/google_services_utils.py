@@ -1367,3 +1367,73 @@ def download_drive_image_threadsafe(file_id, access_token):
     except Exception as e:
         print(f"Exception downloading {file_id}: {e}")
     return None
+
+
+def parse_sheet_to_dataframe(sheet_raw: dict, header_row: int = None) -> pd.DataFrame:
+    """Parse raw Google Sheets API response into a pandas DataFrame.
+
+    Takes the raw sheet data from get_sheet_content() and extracts table data
+    starting from the specified header row. Useful when extract_tables_from_sheet()
+    doesn't detect a formal table structure.
+
+    If header_row is not specified, the function will attempt to automatically
+    detect which row contains the column headers using heuristics.
+
+    Args:
+        sheet_raw: Raw sheet data from get_sheet_content() or similar API call.
+        header_row: 0-indexed row number containing column headers.
+            If None, will auto-detect the header row.
+
+    Returns:
+        pandas DataFrame with the extracted data, or None if parsing fails.
+    """
+    try:
+        sheets = sheet_raw.get('sheets', [])
+        if not sheets:
+            return None
+
+        sheet_data = sheets[0].get('data', [{}])[0]
+        rows = sheet_data.get('rowData', [])
+
+        if not rows:
+            return None
+
+        # Auto-detect header row if not specified
+        if header_row is None:
+            from src.browsergym.eval.eval_utils.google_services_helpers import detect_header_row
+            header_row = detect_header_row(rows)
+            print(f"Auto-detected header row: {header_row}")
+
+        if len(rows) <= header_row + 1:
+            return None
+
+        # Get headers from header_row
+        header_values = rows[header_row].get('values', [])
+        headers = [v.get('formattedValue', f'col_{i}') for i, v in enumerate(header_values)]
+
+        # Get data rows (after header row)
+        data_rows = []
+        for row_idx in range(header_row + 1, len(rows)):
+            row = rows[row_idx]
+            values = row.get('values', [])
+
+            # Extract formatted values
+            row_data = []
+            for i in range(len(headers)):
+                if i < len(values):
+                    row_data.append(values[i].get('formattedValue', ''))
+                else:
+                    row_data.append('')
+
+            # Skip empty rows
+            if any(v for v in row_data):
+                data_rows.append(row_data)
+
+        if not data_rows:
+            return None
+
+        return pd.DataFrame(data_rows, columns=headers)
+
+    except Exception as e:
+        print(f"Error parsing sheet to DataFrame: {e}")
+        return None
