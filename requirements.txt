@@ -8,6 +8,7 @@ google-cloud-secret-manager
 requests
 beautifulsoup4
 html2text
+playwright
 
 # Data Processing
 pandas
@@ -37,6 +38,5 @@ gunicorn
 
 # Optional: Task-specific dependencies (uncomment if needed)
 # oxylabs        # sheets_38 task
-# playwright     # sheets_38 task, browsergym
 # llama-cpp-python  # Local Llama models
 # qwen-vl-utils     # Qwen VL models

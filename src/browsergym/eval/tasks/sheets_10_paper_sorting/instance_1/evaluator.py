@@ -32,34 +32,37 @@ from src.browsergym.eval.eval_utils.google_services_utils import (
     extract_tables_from_sheet
 )
 from src.browsergym.eval.eval_utils.google_services_helpers import get_sheet_content
-from src.browsergym.eval.eval_utils.text_utils import text_fuzzy_match_contained_long
+from src.browsergym.eval.eval_utils.text_utils import text_fuzzy_match_contained_long, fuzzy_match_text
 from src.browsergym.eval.eval_utils.image_utils import binary_compare_images
 from src.browsergym.eval.eval_utils.models import load_model
 from src.browsergym.eval.eval_utils.table_utils import (
     extract_image_url_from_cell,
     get_image_url_from_raw_sheet_cell,
     get_column_index_by_name,
-    get_sheet_row_index_from_dataframe_row
+    get_sheet_row_index_from_dataframe_row,
+    get_row_background_color,
+    classify_row_color,
+    validate_color_grouping
+)
+from src.browsergym.eval.eval_utils.parallel_utils import (
+    parallel_download,
+    fast_parallel_vlm_calls
 )
 import tempfile
 import requests
 
 # Local imports
-from src.browsergym.eval.tasks.sheets_10_paper_sorting_instance_1.utils import (
+from src.browsergym.eval.tasks.sheets_10_paper_sorting.utils import (
     ARXIV_HEADERS,
     extract_arxiv_id_from_url,
     extract_drive_file_id,
     parse_authors_string,
     normalize_author_name,
-    compare_authors_list,
-    fuzzy_match_text,
-    get_row_background_color,
-    classify_row_color,
-    validate_color_grouping
+    compare_authors_list
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_10_paper_sorting_instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_10_paper_sorting/instance_1/")
 DATA_DIR = os.path.join(TASK_DIR, "data")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
@@ -88,6 +91,10 @@ AUTHOR_LOOKUP = None
 
 # Browsing history (passed from grade_checkpoints)
 BROWSING_HISTORY = None
+
+# Track matched papers with their CoT status for yellow highlighting validation
+# Populated by checkpoints 2 and 4, used by checkpoint 5
+MATCHED_PAPERS_COT_STATUS = []
 
 
 def load_gold_data():
@@ -121,6 +128,144 @@ def load_gold_data():
     else:
         print(f"WARNING: Author lookup file not found: {author_lookup_path}")
         AUTHOR_LOOKUP = {"first_authors": [], "count": 0}
+
+
+def download_image_from_url(url: str) -> Optional[str]:
+    """Download an image from URL and return the temp file path.
+
+    Args:
+        url: URL to download from
+
+    Returns:
+        Path to downloaded temp file, or None if failed
+    """
+    try:
+        # Convert arxiv.org URLs to export.arxiv.org to avoid rate limiting
+        if 'arxiv.org' in url and 'export.arxiv.org' not in url:
+            url = url.replace('://arxiv.org/', '://export.arxiv.org/')
+
+        response = requests.get(url, headers=ARXIV_HEADERS, timeout=30)
+        response.raise_for_status()
+        temp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
+        temp_file.write(response.content)
+        temp_file.close()
+        return temp_file.name
+    except Exception as e:
+        print(f"  Failed to download image from {url[:60]}...: {e}")
+        return None
+
+
+def parallel_validate_figures(
+    figure_tasks: List[Dict[str, Any]],
+    vlm_model
+) -> Dict[str, bool]:
+    """Download images and validate figures in parallel.
+
+    Args:
+        figure_tasks: List of dicts with keys:
+            - 'id': Unique identifier for this paper
+            - 'gold_path': Relative path to gold figure
+            - 'user_url': URL to user's figure image
+        vlm_model: VLM model for comparison
+
+    Returns:
+        Dict mapping paper 'id' to validation result (True if figure matches)
+    """
+    if not figure_tasks:
+        return {}
+
+    results = {}
+    temp_files = []  # Track temp files for cleanup
+
+    try:
+        # Step 1: Download all user images in parallel
+        print(f"  Downloading {len(figure_tasks)} figure images in parallel...")
+        download_tasks = []
+        for task in figure_tasks:
+            user_url = task.get('user_url', '')
+            if user_url and user_url.startswith('http'):
+                # Extract URL if embedded in formula
+                image_url = extract_image_url_from_cell(user_url)
+                if image_url:
+                    download_tasks.append({
+                        'id': task['id'],
+                        'func': download_image_from_url,
+                        'args': (image_url,)
+                    })
+
+        downloaded = {}
+        if download_tasks:
+            downloaded = parallel_download(download_tasks, max_workers=5, use_rate_limit=False)
+
+        # Track downloaded temp files for cleanup
+        for path in downloaded.values():
+            if path:
+                temp_files.append(path)
+
+        # Step 2: Build VLM tasks for figure comparison
+        vlm_tasks = []
+        for task in figure_tasks:
+            paper_id = task['id']
+            gold_path = task.get('gold_path', '')
+            user_url = task.get('user_url', '')
+
+            # Get downloaded user image path
+            user_path = downloaded.get(paper_id)
+            if not user_path:
+                # If download failed or not a URL, check if it's a local path
+                if user_url and not user_url.startswith('http'):
+                    user_path = user_url
+
+            if not user_path or not os.path.exists(user_path):
+                results[paper_id] = False
+                continue
+
+            # Full path to gold figure
+            gold_full_path = os.path.join(TASK_DIR, gold_path)
+            if not os.path.exists(gold_full_path):
+                print(f"  Gold figure not found: {gold_full_path}")
+                results[paper_id] = False
+                continue
+
+            # Build VLM message for this comparison
+            messages = [
+                {
+                    "role": "system",
+                    "content": [{"type": "text", "text": "You compare images to verify if a reference figure appears within a screenshot."}]
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Reference Figure 1 from paper:"},
+                        {"type": "image", "image": gold_full_path},
+                        {"type": "text", "text": "Screenshot/image from spreadsheet:"},
+                        {"type": "image", "image": user_path},
+                        {"type": "text", "text": "Does the screenshot contain the reference Figure 1? The screenshot may include additional text, captions, or other content around the figure - that's acceptable. We need to verify that Figure 1 (or its key visual content) appears somewhere in the screenshot. Answer only YES or NO."}
+                    ]
+                }
+            ]
+
+            vlm_tasks.append({
+                'id': paper_id,
+                'messages': messages
+            })
+
+        # Step 3: Run VLM comparisons in parallel
+        if vlm_tasks:
+            print(f"  Running {len(vlm_tasks)} VLM figure comparisons in parallel...")
+            vlm_results = fast_parallel_vlm_calls(vlm_tasks, vlm_model, max_workers=5)
+            results.update(vlm_results)
+
+        return results
+
+    finally:
+        # Cleanup temp files
+        for temp_path in temp_files:
+            try:
+                if temp_path and os.path.exists(temp_path):
+                    os.unlink(temp_path)
+            except:
+                pass
 
 
 def check_figure_contained(gold_figure_path: str, user_figure_url_or_path: str, vlm_model) -> bool:
@@ -326,7 +471,7 @@ def grade_checkpoint_2():
     Total = 8 * N points (1 point per paper per category)
     """
     print("----------------- CHECKPOINT 2 ----------------")
-    global model, matched_columns, df, BROWSING_HISTORY
+    global model, matched_columns, df, BROWSING_HISTORY, MATCHED_PAPERS_COT_STATUS
     checkpoint_start = time.time()
 
     N = GOLD_PAPERS.get('count', 0)
@@ -380,7 +525,12 @@ def grade_checkpoint_2():
     # Track papers that couldn't be matched
     unmatched_papers = []
 
-    # Process each gold paper by row
+    # Collect figure validation tasks for parallel processing
+    figure_tasks = []
+
+    # =========================================================================
+    # PHASE 1: Match papers and validate non-figure fields (fast, CPU-bound)
+    # =========================================================================
     for gold_idx, gold in enumerate(gold_papers):
         gold_title = gold.get('title', '')
         gold_arxiv_id = gold.get('arxiv_id', '')
@@ -410,6 +560,14 @@ def grade_checkpoint_2():
             continue
 
         print(f"  Paper {gold_idx + 1}: '{gold_title[:50]}...' - MATCHED")
+
+        # Track this matched paper's CoT status for checkpoint 5
+        MATCHED_PAPERS_COT_STATUS.append({
+            'title': gold_title,
+            'arxiv_id': gold_arxiv_id,
+            'has_chain_of_thought': gold.get('has_chain_of_thought', False),
+            'is_new_paper': False  # Original paper
+        })
 
         # Step 2: Validate each column of the matched row
 
@@ -446,7 +604,7 @@ def grade_checkpoint_2():
         if user_file_id:
             drive_valid += 1
 
-        # Figure 1 validation - use raw cell data to get IMAGE formula URL
+        # Figure 1 validation - collect task for parallel processing
         gold_figure_path = gold.get('figure_1_path')
         if gold_figure_path and figure_col and vlm_model:
             # Get row and column indices for raw cell access
@@ -465,8 +623,11 @@ def grade_checkpoint_2():
                     user_figure_url = extract_image_url_from_cell(user_figure_val)
 
             if user_figure_url:
-                if check_figure_contained(gold_figure_path, user_figure_url, vlm_model):
-                    figure_matches += 1
+                figure_tasks.append({
+                    'id': f'original_{gold_idx}',
+                    'gold_path': gold_figure_path,
+                    'user_url': user_figure_url
+                })
             else:
                 print(f"    No figure URL found for paper: {gold_title[:40]}...")
         elif not gold_figure_path:
@@ -489,6 +650,13 @@ def grade_checkpoint_2():
                 elif gold_arxiv_url and gold_arxiv_url in url:
                     arxiv_urls_found += 1
                     break
+
+    # =========================================================================
+    # PHASE 2: Parallel figure validation (I/O-bound: download + VLM)
+    # =========================================================================
+    if figure_tasks and vlm_model:
+        figure_results = parallel_validate_figures(figure_tasks, vlm_model)
+        figure_matches += sum(1 for v in figure_results.values() if v)
 
     # Add steps with results
     step_time = time.time() - checkpoint_start
@@ -666,7 +834,7 @@ def grade_checkpoint_3():
                           execution_time=step_time)
     else:
         checkpoint.add_step("Paper Coverage", False, 1,
-                          f"{papers_with_enough_new}/{N} original papers have enough new papers. {'; '.join(details[:3])}",
+                          f"{papers_with_enough_new}/{N} original papers have enough new papers.",
                           execution_time=step_time)
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -694,7 +862,7 @@ def grade_checkpoint_4():
     Total = 8 * 21 points (best case: 7 original papers × 3 new papers each = 21 per category)
     """
     print("----------------- CHECKPOINT 4 ----------------")
-    global matched_columns, df, BROWSING_HISTORY
+    global matched_columns, df, BROWSING_HISTORY, MATCHED_PAPERS_COT_STATUS
     checkpoint_start = time.time()
 
     # Get column mappings
@@ -818,7 +986,12 @@ def grade_checkpoint_4():
     unmatched_to_gold = []
     papers_with_gold_figures = 0
 
-    # Process each user's new paper by row
+    # Collect figure validation tasks for parallel processing
+    figure_tasks = []
+
+    # =========================================================================
+    # PHASE 1: Match papers and validate non-figure fields (fast, CPU-bound)
+    # =========================================================================
     for paper_idx, row_idx in enumerate(user_new_papers_rows):
         row = df.loc[row_idx]
 
@@ -844,6 +1017,14 @@ def grade_checkpoint_4():
             continue
 
         print(f"  New Paper {paper_idx + 1}: '{user_title[:50]}...' - MATCHED TO GOLD")
+
+        # Track this matched paper's CoT status for checkpoint 5
+        MATCHED_PAPERS_COT_STATUS.append({
+            'title': gold.get('title', ''),
+            'arxiv_id': gold.get('arxiv_id', ''),
+            'has_chain_of_thought': gold.get('has_chain_of_thought', False),
+            'is_new_paper': True  # New paper
+        })
 
         # Validate each column of the matched row against gold data
         gold_title = gold.get('title', '')
@@ -879,7 +1060,7 @@ def grade_checkpoint_4():
         if user_file_id:
             drive_valid += 1
 
-        # Figure 1 validation - use raw cell data to get IMAGE formula URL
+        # Figure 1 validation - collect task for parallel processing
         gold_figure_path = gold.get('figure_1_path')
         if gold_figure_path and figure_col and vlm_model:
             papers_with_gold_figures += 1
@@ -901,8 +1082,11 @@ def grade_checkpoint_4():
                     user_figure_url = extract_image_url_from_cell(user_figure_val)
 
             if user_figure_url:
-                if check_figure_contained(gold_figure_path, user_figure_url, vlm_model):
-                    figure_matches += 1
+                figure_tasks.append({
+                    'id': f'new_{paper_idx}',
+                    'gold_path': gold_figure_path,
+                    'user_url': user_figure_url
+                })
             else:
                 print(f"    No figure URL found for new paper: {user_title[:40]}...")
         elif not gold_figure_path:
@@ -925,6 +1109,13 @@ def grade_checkpoint_4():
                 elif gold_arxiv_url and gold_arxiv_url in url:
                     arxiv_urls_visited += 1
                     break
+
+    # =========================================================================
+    # PHASE 2: Parallel figure validation (I/O-bound: download + VLM)
+    # =========================================================================
+    if figure_tasks and vlm_model:
+        figure_results = parallel_validate_figures(figure_tasks, vlm_model)
+        figure_matches += sum(1 for v in figure_results.values() if v)
 
     # Add steps with results (all out of MAX_NEW_PAPERS = 21)
     step_time = time.time() - checkpoint_start
@@ -1055,24 +1246,25 @@ def grade_checkpoint_5():
             yellow_rows.append(row_idx)
 
     # Step 1: Check yellow highlighting for chain-of-thought papers
+    # Use MATCHED_PAPERS_COT_STATUS (populated by checkpoints 2 and 4) to count
+    # only papers that are actually in the user's spreadsheet
     step_start = time.time()
-    all_papers = GOLD_PAPERS.get('papers', []) + GOLD_NEW_PAPERS.get('papers', [])
-    cot_papers = [p for p in all_papers if p.get('has_chain_of_thought', False)]
-    expected_yellow = len(cot_papers)
+    matched_cot_papers = [p for p in MATCHED_PAPERS_COT_STATUS if p.get('has_chain_of_thought', False)]
+    expected_yellow = len(matched_cot_papers)
 
     if expected_yellow > 0:
         yellow_count = len(yellow_rows)
         if yellow_count >= expected_yellow:
             checkpoint.add_step("Yellow Highlighting", True, 1,
-                              f"{yellow_count} yellow rows found (expected {expected_yellow} chain-of-thought papers)",
+                              f"{yellow_count} yellow rows found (expected {expected_yellow} chain-of-thought papers from matched papers)",
                               execution_time=time.time() - step_start)
         else:
             checkpoint.add_step("Yellow Highlighting", False, 1,
-                              f"Only {yellow_count} yellow rows (expected {expected_yellow} chain-of-thought papers)",
+                              f"Only {yellow_count} yellow rows (expected {expected_yellow} chain-of-thought papers from {len(MATCHED_PAPERS_COT_STATUS)} matched papers)",
                               execution_time=time.time() - step_start)
     else:
         checkpoint.add_step("Yellow Highlighting", True, 1,
-                          "No chain-of-thought papers expected, yellow check skipped",
+                          f"No chain-of-thought papers found among {len(MATCHED_PAPERS_COT_STATUS)} matched papers, yellow check skipped",
                           execution_time=time.time() - step_start)
 
     # Step 2: Check row grouping (yellow rows should be at top, not interleaved)
@@ -1153,12 +1345,15 @@ def grade_checkpoints(workspace_doc_id: str = None,
     Returns:
         Result: Evaluation results with checkpoint scores.
     """
-    global BROWSING_HISTORY
+    global BROWSING_HISTORY, MATCHED_PAPERS_COT_STATUS
 
     total_start_time = time.time()
 
     # Set browsing history for use in checkpoints 2 and 4
     BROWSING_HISTORY = browsing_history or []
+
+    # Reset matched papers tracking for this evaluation run
+    MATCHED_PAPERS_COT_STATUS = []
 
     try:
         # Setup document processing

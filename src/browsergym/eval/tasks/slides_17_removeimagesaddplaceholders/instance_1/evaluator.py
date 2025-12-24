@@ -63,7 +63,7 @@ from src.browsergym.eval.eval_utils.parallel_utils import (
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/slides_17_removeimagesaddplaceholders_instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/slides_17_removeimagesaddplaceholders/instance_1/")
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 GOLD_IMAGES_DIR = os.path.join(DATA_DIR, "gold_images/")
 GOLD_DESCRIPTIONS_CSV = os.path.join(DATA_DIR, "gold_descriptions.csv")
