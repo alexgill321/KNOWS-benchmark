@@ -938,18 +938,12 @@ def grade_checkpoint_4():
     img_box_count = {}
     original_image_count = {}
 
-    #Get the amount of images in each slide in the new slide
-    with tempfile.TemporaryDirectory() as temp_dir:
-        for gold_filename,loc_info in original_locations.items():
-            slide_index = loc_info.get('slide_index',0)
+    # Get the amount of images in each slide in the new presentation
+    for slide_index in range(len(slides)):
+        images = cached_slide_images.get(slide_index, [])
+        img_box_count[slide_index] = len(images)
 
-            if(slide_index >= len(slides)):
-                continue
-
-            images = cached_slide_images.get(slide_index,[])
-            img_box_count[slide_index] = len(images)  
-
-    #get the amount of images in original slides
+    # Get the amount of images in original slides
     for info in original_locations.values():
         slide = info.get('slide_index',0)
 
@@ -971,7 +965,7 @@ def grade_checkpoint_4():
             execution_time= time.time() - step_start
         )
     else:
-        #Comapare the amount of images in each slide
+        # Compare the amount of images in each slide
         for slide_number in original_image_count:
             if original_image_count.get(slide_number, 0) != img_box_count.get(slide_number, 0):
                 extra_img_slides.append(slide_number)
