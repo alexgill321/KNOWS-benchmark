@@ -516,4 +516,5 @@ def fuzzy_match_text(text1: str, text2: str, threshold: int = 80) -> tuple:
     # Use token_sort_ratio for better matching of reordered text
     score = fuzz.token_sort_ratio(text1, text2)
 
+    return score >= threshold, score
 
