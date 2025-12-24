@@ -921,9 +921,8 @@ def grade_checkpoint_4():
 
     Steps (10pt each, percentage-based):
     1. Extra Images (Checks for any extra images that were added to the slides)
-    2. Extra Check Boxes (Checks for any extra check boxes that were added to the slides.)
 
-    Higher Scores mean that the agent did not add extra images or text boxes
+    Higher Scores mean that the agent did not add extra images
     """
 
     print("----------------- CHECKPOINT 4 ----------------")
@@ -948,8 +947,6 @@ def grade_checkpoint_4():
                 continue
 
             images = cached_slide_images.get(slide_index,[])
-            img_count = 0
-            
             img_box_count[slide_index] = len(images)  
 
     #get the amount of images in original slides
