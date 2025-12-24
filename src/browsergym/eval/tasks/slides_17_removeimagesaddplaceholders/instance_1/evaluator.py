@@ -915,6 +915,80 @@ def grade_checkpoint_3():
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
+def grade_checkpoint_4():
+    """
+    Checkpoint 4 (10pt): Formatting
+
+    Steps (10pt each, percentage-based):
+    1. Extra Images (Checks for any extra images that were added to the slides)
+
+    Higher Scores mean that the agent did not add extra images
+    """
+
+    print("----------------- CHECKPOINT 4 ----------------")
+
+    checkpoint_start = time.time()
+    checkpoint = Checkpoint(total = 10, result = 0, name="Formatting Check")
+
+    slides = presentation_data.get('slides',[])
+    total_images_of_original_slides= len(original_locations) 
+    new_total_images_of_new_slides = sum(len(imgs) for imgs in cached_slide_images.values())
+    step_start = time.time()
+
+    img_box_count = {}
+    original_image_count = {}
+
+    # Get the amount of images in each slide in the new presentation
+    for slide_index in range(len(slides)):
+        images = cached_slide_images.get(slide_index, [])
+        img_box_count[slide_index] = len(images)
+
+    # Get the amount of images in original slides
+    for info in original_locations.values():
+        slide = info.get('slide_index',0)
+
+        if(slide in original_image_count):
+            original_image_count[slide] +=1
+        else:
+            original_image_count[slide] = 1
+    
+    #if slide count matches, max points assigned, otherwise the amount of slides with extra images deduct  points from the score
+    extra_img_slides = []
+    if(total_images_of_original_slides == new_total_images_of_new_slides):
+        checkpoint.add_step(
+            "Images Amount in Slides is Equal",
+            True,
+            1,
+            "No extra images were added",
+            score = 10,
+            max_score=10,
+            execution_time= time.time() - step_start
+        )
+    else:
+        # Compare the amount of images in each slide
+        for slide_number in original_image_count:
+            if original_image_count.get(slide_number, 0) != img_box_count.get(slide_number, 0):
+                extra_img_slides.append(slide_number)
+        
+        total_slides = len(original_image_count.keys())
+        
+        #This score will be higher if there are less slides with extra images
+        step_1_percentage_score = ((total_slides - len(extra_img_slides))/total_slides) * 10
+
+        checkpoint.add_step(
+            "Images Amount in Slides is Equal",
+            False,
+            1,
+            "Extra images were added",
+            score = step_1_percentage_score,
+            max_score=10,
+            execution_time= time.time() - step_start
+        )
+
+    checkpoint.execution_time = time.time() - checkpoint_start
+    return checkpoint
+        
+    
 
 def grade_checkpoints(workspace_doc_id, cached_models=None):
     """
@@ -956,15 +1030,18 @@ def grade_checkpoints(workspace_doc_id, cached_models=None):
                 # Phase 2: Run CP2 and CP3 in parallel (both only read from cache)
                 cp2_future = executor.submit(grade_checkpoint_2)
                 cp3_future = executor.submit(grade_checkpoint_3)
+                cp4_future = executor.submit(grade_checkpoint_4)
 
                 # Collect results in order
                 cp1 = cp1_future.result()
                 cp2 = cp2_future.result()
                 cp3 = cp3_future.result()
+                cp4 = cp4_future.result()
 
                 checkpoints.append(cp1)
                 checkpoints.append(cp2)
                 checkpoints.append(cp3)
+                checkpoints.append(cp4)
 
         total_execution_time = time.time() - total_start_time
         result = Result(checkpoints, total_execution_time=total_execution_time)

@@ -1,5 +1,5 @@
 # Checkpoints
-This task has 100 points in total.
+This task has 110 points in total.
 
 ## Checkpoint 1 (10 pt):
 All original images from the presentation are saved to the specified Drive folder.
@@ -25,3 +25,9 @@ Original images are replaced with similar images found online, with proper URL a
 - The URL below the image is a valid link to the image address online.
 - VLM check confirms the replacement image is a reasonable substitute for the original image by comparing both images directly, with description-based fallback if image comparison fails (10pt).
 - The replacement image fully covers the text placeholder so no red text is visible - 90% coverage required (10pt).
+
+## Checkpoint 4 (10 pt):
+No extra images were added to the presentation beyond the replacements.
+
+### Outcome Evaluation:
+- The total number of images in the presentation matches the original count - no extra images were added (10pt). Points are assigned proportionally based on the percentage of slides that have the correct image count.
