@@ -812,6 +812,32 @@ def grade_checkpoint_4():
                               execution_time=0)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
+        
+        # Check for duplicate stocks in table data
+        stock_unique = set(expected_stocks)
+        if len(stock_unique) != len(expected_stocks):
+            step_time = time.time() - step_start
+            checkpoint.add_step("Chart Contains Stocks", False, 2,
+                              f"Duplicate stocks detected in table. Expected {len(expected_stocks)} unique stocks but found {len(stock_unique)} unique.",
+                              execution_time=step_time)
+            checkpoint.add_step("Chart Shows Percentages", False, 3,
+                              "Cannot validate - duplicate stocks in table.",
+                              execution_time=0)
+            checkpoint.execution_time = time.time() - checkpoint_start
+            return checkpoint
+
+        # Check for duplicate labels in chart domain
+        chart_unique = set(chart_categories)
+        if len(chart_unique) != len(chart_categories):
+            step_time = time.time() - step_start
+            checkpoint.add_step("Chart Contains Stocks", False, 2,
+                              "Duplicate labels detected in chart domain. Chart should show each stock exactly once.",
+                              execution_time=step_time)
+            checkpoint.add_step("Chart Shows Percentages", False, 3,
+                              "Cannot validate - duplicate stocks in chart.",
+                              execution_time=0)
+            checkpoint.execution_time = time.time() - checkpoint_start
+            return checkpoint
 
         # Validate categories match expected stocks (use fuzzy matching)
         match_count, total_expected, missing = validate_chart_categories_match(
