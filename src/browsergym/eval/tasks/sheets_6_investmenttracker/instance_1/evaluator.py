@@ -813,28 +813,29 @@ def grade_checkpoint_4():
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
         
-        #Create a set because set avoids duplicates automatically
-        expected_stock = [str(x).strip() for x in expected_stocks if str(x).strip()]
-        stock_unique = set(expected_stock)
-
-        if len(stock_unique) != len(expected_stock):
+        # Check for duplicate stocks in table data
+        stock_unique = set(expected_stocks)
+        if len(stock_unique) != len(expected_stocks):
             step_time = time.time() - step_start
-            checkpoint.add_step("Chart contains stocks", False, 2, f"Duplicate stocks detected in table. Expected 10 unique stocks but found {len(stock_unique)} unique.", 
-            execution_time = step_time)
-            checkpoint.add_step("Chart shows percentages", False, 3, f"Cannot validate - duplicate stocks in table.", execution_time = 0)
-
+            checkpoint.add_step("Chart Contains Stocks", False, 2,
+                              f"Duplicate stocks detected in table. Expected {len(expected_stocks)} unique stocks but found {len(stock_unique)} unique.",
+                              execution_time=step_time)
+            checkpoint.add_step("Chart Shows Percentages", False, 3,
+                              "Cannot validate - duplicate stocks in table.",
+                              execution_time=0)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
-        
-        expected_chart = [str(x).strip() for x in chart_categories if str(x).strip()]
-        chart_unique = set(expected_chart)
 
-        if len(chart_unique) != len(expected_chart):
+        # Check for duplicate labels in chart domain
+        chart_unique = set(chart_categories)
+        if len(chart_unique) != len(chart_categories):
             step_time = time.time() - step_start
-            checkpoint.add_step("Chart contains stocks", False, 2, f"Duplicate labels detected in chart domain. Chart should show each stock exactly once.",  
-            execution_time = step_time)
-            checkpoint.add_step("Chart shows percentages", False, 3, f"Cannot validate - duplicate stocks in chart.", execution_time = 0)
-
+            checkpoint.add_step("Chart Contains Stocks", False, 2,
+                              "Duplicate labels detected in chart domain. Chart should show each stock exactly once.",
+                              execution_time=step_time)
+            checkpoint.add_step("Chart Shows Percentages", False, 3,
+                              "Cannot validate - duplicate stocks in chart.",
+                              execution_time=0)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
