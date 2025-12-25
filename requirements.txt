@@ -1,8 +1,9 @@
 # Google Services
-google-api-python-client
-google-auth-oauthlib
-google-genai
-google-cloud-secret-manager
+google-auth>=2.23.0,<3.0.0
+google-api-python-client>=2.100.0
+google-auth-oauthlib>=1.0.0
+google-genai>=1.0.0
+google-cloud-secret-manager>=2.16.0
 
 # HTTP & Web
 requests
