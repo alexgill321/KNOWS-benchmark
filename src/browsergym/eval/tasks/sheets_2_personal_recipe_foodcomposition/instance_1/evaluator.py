@@ -6,6 +6,7 @@ from typing import List, Dict, Optional, Any
 import time
 import pandas as pd
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Base path setup
 def get_base_path():
@@ -25,30 +26,33 @@ from src.browsergym.eval.eval_utils.google_services_utils import (
     initialize_google_services,
     extract_tables_from_sheet
 )
-from src.browsergym.eval.eval_utils.google_services_helpers import get_sheet_content
+from src.browsergym.eval.eval_utils.google_services_helpers import get_sheet_content, detect_header_row
 from src.browsergym.eval.eval_utils.text_utils import numerical_match_with_error
 from src.browsergym.eval.eval_utils.table_utils import (
-    find_matching_column_or_row,
-    get_cell_background_color
-)
-from src.browsergym.eval.eval_utils.models import load_model
-
-# Local utils
-from src.browsergym.eval.tasks.sheets_2_personal_recipe_foodcomposition.utils import (
-    is_valid_usda_url,
-    fetch_usda_page_title,
-    ingredient_matches_usda_page,
-    normalize_nutrient_name,
-    get_nutrient_columns_mapping,
+    get_cell_background_color,
     colors_are_similar,
     colors_are_distinct,
+    matches_keywords,
     find_column_by_keywords,
-    find_ingredient_row,
+    find_merged_cell_by_text,
+    get_merge_column_span,
+    is_cell_centered,
+    is_cell_italic,
+    is_cell_bold,
+    row_has_bottom_border,
+    row_has_top_border,
+    count_bold_cells_in_row,
+)
+from src.browsergym.eval.eval_utils.models import load_model
+from src.browsergym.eval.eval_utils.parallel_utils import (
+    parallel_download,
+    fast_parallel_vlm_calls,
+)
+
+# Local utils (template-specific functions and constants)
+from src.browsergym.eval.tasks.sheets_2_personal_recipe_foodcomposition.utils import (
+    fetch_usda_page_title,
     COLUMN_KEYWORDS,
-    INGREDIENT_KEYWORDS,
-    EXCLUDED_KEYWORDS,
-    EXPECTED_INGREDIENTS,
-    EXCLUDED_INGREDIENT,
     MACRO_NUTRIENTS,
     MINERAL_NUTRIENTS,
     VITAMIN_NUTRIENTS,
@@ -56,6 +60,34 @@ from src.browsergym.eval.tasks.sheets_2_personal_recipe_foodcomposition.utils im
     FDA_DAILY_VALUES,
     VALUE_TOLERANCE,
 )
+from src.browsergym.eval.eval_utils.web_utils import is_url_from_domain
+
+# Instance-specific constants (specific to cashew cream recipe)
+EXPECTED_INGREDIENTS = [
+    "Raw Cashews",
+    "Water",
+    "Garlic",
+    "Sea Salt",
+    "Nutritional Yeast",
+    "Lemon Juice",
+    "Onion Powder"
+]
+
+EXCLUDED_INGREDIENT = "Black Pepper"
+
+# Keyword mappings for ingredient detection (instance-specific)
+INGREDIENT_KEYWORDS = {
+    "Raw Cashews": ["cashew", "raw cashew"],
+    "Water": ["water"],
+    "Garlic": ["garlic"],
+    "Sea Salt": ["sea salt", "salt"],
+    "Nutritional Yeast": ["nutritional yeast", "yeast"],
+    "Lemon Juice": ["lemon juice", "lemon"],
+    "Onion Powder": ["onion powder", "onion"],
+}
+
+# Keywords to detect excluded ingredient
+EXCLUDED_KEYWORDS = ["black pepper", "pepper"]
 
 # Constants
 TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_2_personal_recipe_foodcomposition/instance_1/")
@@ -72,16 +104,27 @@ sheet_id = None
 sheet_raw = None
 df = None
 gold_data = None
+gold_by_ingredient = {}  # Pre-built lookup: ingredient_lower -> gold row data
 matched_columns = {}
+matched_ingredients = {}  # Maps ingredient name -> row index in df (from checkpoint 4)
+header_row_idx = None  # Detected header row index
 
 
 def load_gold_data():
-    """Load gold label data from CSV file."""
-    global gold_data
+    """Load gold label data from CSV file and build lookup dict."""
+    global gold_data, gold_by_ingredient
     gold_path = os.path.join(TASK_DIR, "data", "gold_nutrients.csv")
     try:
         gold_data = pd.read_csv(gold_path)
         print(f"Loaded gold data with {len(gold_data)} ingredients")
+
+        # Pre-build lookup dict for O(1) access in checkpoint 6
+        gold_by_ingredient = {}
+        for _, row in gold_data.iterrows():
+            ingredient_key = str(row['Ingredient']).lower().strip()
+            gold_by_ingredient[ingredient_key] = row
+        print(f"  Built gold lookup dict with {len(gold_by_ingredient)} entries")
+
         return gold_data
     except Exception as e:
         print(f"Error loading gold data: {e}")
@@ -95,7 +138,7 @@ def setup(workspace_doc_id: str):
     Args:
         workspace_doc_id: Google Sheets document ID to evaluate.
     """
-    global sheet_id, sheet_raw, df, gold_data
+    global sheet_id, sheet_raw, df, gold_data, header_row_idx
 
     if workspace_doc_id:
         print(f"Using workspace document ID: {workspace_doc_id}")
@@ -116,22 +159,9 @@ def setup(workspace_doc_id: str):
                 rows = grid_data.get('rowData', [])
 
                 if rows:
-                    # Find the row with actual column headers (contains "Ingredients")
-                    header_row_idx = None
-                    for idx, row in enumerate(rows):
-                        values = row.get('values', [])
-                        if values:
-                            for cell in values:
-                                cell_val = cell.get('formattedValue', '')
-                                if cell_val and 'ingredient' in cell_val.lower():
-                                    header_row_idx = idx
-                                    break
-                            if header_row_idx is not None:
-                                break
-
-                    if header_row_idx is None:
-                        # Default to row 1 (after merged header row)
-                        header_row_idx = 1
+                    # Use detect_header_row to find the header row
+                    header_row_idx = detect_header_row(rows)
+                    print(f"Detected header row at index: {header_row_idx}")
 
                     header_row = rows[header_row_idx].get('values', [])
                     headers = [cell.get('formattedValue', f'Column{i}') for i, cell in enumerate(header_row)]
@@ -179,23 +209,91 @@ def grade_checkpoint_1():
         return checkpoint
 
     columns = list(df.columns)
-    columns_lower = [c.lower() for c in columns]
 
+    # Phase 1: Fast keyword matching for all columns
+    all_columns_to_find = ["Ingredients", "Link"] + ALL_NUTRIENTS
+    column_descriptions = {
+        "Ingredients": "A column for ingredient names",
+        "Link": "A column for links or URLs",
+    }
+    for nutrient in ALL_NUTRIENTS:
+        column_descriptions[nutrient] = f"A column for {nutrient}"
+
+    keyword_matches = {}  # col_name -> matched_column
+    llm_needed = []  # col_names that need LLM fallback
+
+    for col_name in all_columns_to_find:
+        keywords = COLUMN_KEYWORDS.get(col_name, [])
+        matched_col = find_column_by_keywords(columns, keywords, strict=True)
+        if matched_col:
+            keyword_matches[col_name] = matched_col
+            print(f"  [DEBUG] {col_name} column '{matched_col}' matched via KEYWORD")
+        else:
+            llm_needed.append(col_name)
+
+    # Phase 2: Parallel LLM fallback for unmatched columns
+    llm_matches = {}  # col_name -> matched_column
+    if llm_needed:
+        if model is None:
+            model = load_model(model_id)
+
+        # Build VLM tasks for LLM column matching
+        headers_text = "\n".join([f"{i+1}. {header}" for i, header in enumerate(columns)])
+
+        vlm_tasks = []
+        for col_name in llm_needed:
+            keywords = COLUMN_KEYWORDS.get(col_name, [])
+            keywords_section = f"\nExample keywords that might match: {', '.join(keywords)}" if keywords else ""
+            prompt = f"""You are analyzing Google Sheets column headers to find one that best matches specific criteria.
+
+Criteria: {column_descriptions[col_name]}{keywords_section}
+
+Available column headers:
+{headers_text}
+
+Respond with ONLY the number (1, 2, 3, etc.) of the best matching header, or "NONE" if no header matches."""
+            messages = [
+                {"role": "user", "content": [{"type": "text", "text": prompt}]}
+            ]
+            vlm_tasks.append({'id': col_name, 'messages': messages})
+
+        print(f"  [PARALLEL] Running {len(vlm_tasks)} LLM column matches...")
+        llm_start = time.time()
+
+        # Use ThreadPoolExecutor for more control over response parsing
+        def call_llm_for_column(task):
+            try:
+                response = model(task['messages']).strip().upper()
+                if response == "NONE":
+                    return task['id'], None
+                header_index = int(response) - 1
+                if 0 <= header_index < len(columns):
+                    return task['id'], columns[header_index]
+            except (ValueError, Exception):
+                pass
+            return task['id'], None
+
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = [executor.submit(call_llm_for_column, task) for task in vlm_tasks]
+            for future in as_completed(futures):
+                col_name, matched_col = future.result()
+                if matched_col:
+                    llm_matches[col_name] = matched_col
+                    print(f"  [DEBUG] {col_name} column '{matched_col}' matched via LLM")
+
+        print(f"  [PARALLEL] LLM column matching completed in {time.time() - llm_start:.2f}s")
+
+    # Combine results
+    all_matches = {**keyword_matches, **llm_matches}
+
+    # Phase 3: Process results and add checkpoint steps
     step_num = 0
 
     # Step 1: Ingredients column exists and is first
     step_num += 1
     step_start = time.time()
-    ingredients_col = find_column_by_keywords(columns, COLUMN_KEYWORDS["Ingredients"])
-
-    if not ingredients_col:
-        # LLM fallback
-        if model is None:
-            model = load_model(model_id)
-        result = find_matching_column_or_row(df, "A column for ingredient names", model,
-                                             search_type="column", example_keywords=COLUMN_KEYWORDS["Ingredients"])
-        if result:
-            _, ingredients_col = result
+    ingredients_col = all_matches.get("Ingredients")
+    match_method = "KEYWORD" if "Ingredients" in keyword_matches else ("LLM" if "Ingredients" in llm_matches else None)
 
     if ingredients_col and columns.index(ingredients_col) == 0:
         matched_columns["Ingredients"] = ingredients_col
@@ -210,16 +308,8 @@ def grade_checkpoint_1():
     # Step 2: Link column exists and is second
     step_num += 1
     step_start = time.time()
-    link_col = find_column_by_keywords(columns, COLUMN_KEYWORDS["Link"])
-
-    if not link_col:
-        # LLM fallback
-        if model is None:
-            model = load_model(model_id)
-        result = find_matching_column_or_row(df, "A column for links or URLs", model,
-                                             search_type="column", example_keywords=COLUMN_KEYWORDS["Link"])
-        if result:
-            _, link_col = result
+    link_col = all_matches.get("Link")
+    match_method = "KEYWORD" if "Link" in keyword_matches else ("LLM" if "Link" in llm_matches else None)
 
     if link_col and columns.index(link_col) == 1:
         matched_columns["Link"] = link_col
@@ -231,88 +321,24 @@ def grade_checkpoint_1():
                           f"Link column not found or not second. Second column: '{columns[1] if len(columns) > 1 else 'N/A'}'",
                           execution_time=time.time() - step_start)
 
-    # Steps 3-7: Macro nutrient columns present
-    nutrient_mapping = get_nutrient_columns_mapping(columns)
-
-    for nutrient in MACRO_NUTRIENTS:
+    # Steps 3-13: All nutrient columns present (Macros, Minerals, Vitamins)
+    for nutrient in ALL_NUTRIENTS:
         step_num += 1
         step_start = time.time()
 
-        if nutrient in nutrient_mapping:
-            matched_columns[nutrient] = nutrient_mapping[nutrient]
+        nutrient_col = all_matches.get(nutrient)
+        match_method = "KEYWORD" if nutrient in keyword_matches else ("LLM" if nutrient in llm_matches else None)
+
+        if nutrient_col:
+            matched_columns[nutrient] = nutrient_col
             checkpoint.add_step(f"{nutrient} Column Present", True, step_num,
-                              f"Found column '{nutrient_mapping[nutrient]}'",
+                              f"Found column '{nutrient_col}'" + (" (LLM match)" if match_method == "LLM" else ""),
                               execution_time=time.time() - step_start)
         else:
-            # LLM fallback
-            if model is None:
-                model = load_model(model_id)
-            result = find_matching_column_or_row(df, f"A column for {nutrient}", model,
-                                                 search_type="column", example_keywords=COLUMN_KEYWORDS.get(nutrient, []))
-            if result:
-                _, col = result
-                matched_columns[nutrient] = col
-                checkpoint.add_step(f"{nutrient} Column Present", True, step_num,
-                                  f"Found column '{col}' (LLM match)",
-                                  execution_time=time.time() - step_start)
-            else:
-                checkpoint.add_step(f"{nutrient} Column Present", False, step_num,
-                                  f"No column found for {nutrient}",
-                                  execution_time=time.time() - step_start)
-
-    # Steps 8-11: Mineral nutrient columns present
-    for nutrient in MINERAL_NUTRIENTS:
-        step_num += 1
-        step_start = time.time()
-
-        if nutrient in nutrient_mapping:
-            matched_columns[nutrient] = nutrient_mapping[nutrient]
-            checkpoint.add_step(f"{nutrient} Column Present", True, step_num,
-                              f"Found column '{nutrient_mapping[nutrient]}'",
+            print(f"  [DEBUG] {nutrient} column NOT FOUND")
+            checkpoint.add_step(f"{nutrient} Column Present", False, step_num,
+                              f"No column found for {nutrient}",
                               execution_time=time.time() - step_start)
-        else:
-            # LLM fallback
-            if model is None:
-                model = load_model(model_id)
-            result = find_matching_column_or_row(df, f"A column for {nutrient}", model,
-                                                 search_type="column", example_keywords=COLUMN_KEYWORDS.get(nutrient, []))
-            if result:
-                _, col = result
-                matched_columns[nutrient] = col
-                checkpoint.add_step(f"{nutrient} Column Present", True, step_num,
-                                  f"Found column '{col}' (LLM match)",
-                                  execution_time=time.time() - step_start)
-            else:
-                checkpoint.add_step(f"{nutrient} Column Present", False, step_num,
-                                  f"No column found for {nutrient}",
-                                  execution_time=time.time() - step_start)
-
-    # Steps 12-13: Vitamin nutrient columns present
-    for nutrient in VITAMIN_NUTRIENTS:
-        step_num += 1
-        step_start = time.time()
-
-        if nutrient in nutrient_mapping:
-            matched_columns[nutrient] = nutrient_mapping[nutrient]
-            checkpoint.add_step(f"{nutrient} Column Present", True, step_num,
-                              f"Found column '{nutrient_mapping[nutrient]}'",
-                              execution_time=time.time() - step_start)
-        else:
-            # LLM fallback
-            if model is None:
-                model = load_model(model_id)
-            result = find_matching_column_or_row(df, f"A column for {nutrient}", model,
-                                                 search_type="column", example_keywords=COLUMN_KEYWORDS.get(nutrient, []))
-            if result:
-                _, col = result
-                matched_columns[nutrient] = col
-                checkpoint.add_step(f"{nutrient} Column Present", True, step_num,
-                                  f"Found column '{col}' (LLM match)",
-                                  execution_time=time.time() - step_start)
-            else:
-                checkpoint.add_step(f"{nutrient} Column Present", False, step_num,
-                                  f"No column found for {nutrient}",
-                                  execution_time=time.time() - step_start)
 
     # Step 14: Macros columns are in alphabetical order
     step_num += 1
@@ -402,61 +428,33 @@ def grade_checkpoint_2():
 
         step_num = 0
 
-        # Helper to check if a merge contains specific text
-        def find_merge_with_text(text_pattern: str):
-            for merge in merges:
-                start_row = merge.get('startRowIndex', 0)
-                start_col = merge.get('startColumnIndex', 0)
+        # Group headers to check: (step_name, text_pattern, display_name)
+        group_headers = [
+            ("Macros Merged Header", "macro", "Macros"),
+            ("Minerals Merged Header", "mineral", "Minerals"),
+            ("Vitamins Merged Header", "vitamin", "Vitamins"),
+        ]
 
-                if start_row < len(rows):
-                    row = rows[start_row].get('values', [])
-                    if start_col < len(row):
-                        cell_value = row[start_col].get('formattedValue', '')
-                        if text_pattern.lower() in cell_value.lower():
-                            return merge, row[start_col]
-            return None, None
+        # Store found cells for formatting check
+        header_cells = {}
 
-        # Step 1: Macros merged header exists
-        step_num += 1
-        step_start = time.time()
-        macro_merge, macro_cell = find_merge_with_text("macro")
-        if macro_merge:
-            span = macro_merge.get('endColumnIndex', 0) - macro_merge.get('startColumnIndex', 0)
-            checkpoint.add_step("Macros Merged Header", True, step_num,
-                              f"Found 'Macros' header spanning {span} columns",
-                              execution_time=time.time() - step_start)
-        else:
-            checkpoint.add_step("Macros Merged Header", False, step_num,
-                              "No merged header found containing 'Macros'",
-                              execution_time=time.time() - step_start)
+        # Steps 1-3: Check each merged header exists
+        for step_name, text_pattern, display_name in group_headers:
+            step_num += 1
+            step_start = time.time()
 
-        # Step 2: Minerals merged header exists
-        step_num += 1
-        step_start = time.time()
-        mineral_merge, mineral_cell = find_merge_with_text("mineral")
-        if mineral_merge:
-            span = mineral_merge.get('endColumnIndex', 0) - mineral_merge.get('startColumnIndex', 0)
-            checkpoint.add_step("Minerals Merged Header", True, step_num,
-                              f"Found 'Minerals' header spanning {span} columns",
-                              execution_time=time.time() - step_start)
-        else:
-            checkpoint.add_step("Minerals Merged Header", False, step_num,
-                              "No merged header found containing 'Minerals'",
-                              execution_time=time.time() - step_start)
+            merge, cell = find_merged_cell_by_text(merges, rows, text_pattern)
+            header_cells[display_name] = cell
 
-        # Step 3: Vitamins merged header exists
-        step_num += 1
-        step_start = time.time()
-        vitamin_merge, vitamin_cell = find_merge_with_text("vitamin")
-        if vitamin_merge:
-            span = vitamin_merge.get('endColumnIndex', 0) - vitamin_merge.get('startColumnIndex', 0)
-            checkpoint.add_step("Vitamins Merged Header", True, step_num,
-                              f"Found 'Vitamins' header spanning {span} columns",
-                              execution_time=time.time() - step_start)
-        else:
-            checkpoint.add_step("Vitamins Merged Header", False, step_num,
-                              "No merged header found containing 'Vitamins'",
-                              execution_time=time.time() - step_start)
+            if merge:
+                span = get_merge_column_span(merge)
+                checkpoint.add_step(step_name, True, step_num,
+                                  f"Found '{display_name}' header spanning {span} columns",
+                                  execution_time=time.time() - step_start)
+            else:
+                checkpoint.add_step(step_name, False, step_num,
+                                  f"No merged header found containing '{display_name}'",
+                                  execution_time=time.time() - step_start)
 
         # Step 4: Group headers are centered and italicized
         step_num += 1
@@ -464,16 +462,14 @@ def grade_checkpoint_2():
         headers_formatted = True
         format_details = []
 
-        for name, cell in [("Macros", macro_cell), ("Minerals", mineral_cell), ("Vitamins", vitamin_cell)]:
+        for name, cell in header_cells.items():
             if cell:
-                fmt = cell.get('effectiveFormat', {}).get('textFormat', {})
-                h_align = cell.get('effectiveFormat', {}).get('horizontalAlignment', '')
-                is_italic = fmt.get('italic', False)
-                is_centered = h_align == 'CENTER'
+                italic = is_cell_italic(cell)
+                centered = is_cell_centered(cell)
 
-                if not is_italic or not is_centered:
+                if not italic or not centered:
                     headers_formatted = False
-                    format_details.append(f"{name}: italic={is_italic}, centered={is_centered}")
+                    format_details.append(f"{name}: italic={italic}, centered={centered}")
             else:
                 headers_formatted = False
                 format_details.append(f"{name}: not found")
@@ -491,31 +487,9 @@ def grade_checkpoint_2():
         step_num += 1
         step_start = time.time()
 
-        # Find the row with column titles (typically row after merged headers)
-        title_row_idx = 1  # Default assumption
-        for idx, row in enumerate(rows):
-            values = row.get('values', [])
-            if values:
-                for cell in values:
-                    cell_val = cell.get('formattedValue', '')
-                    if cell_val and 'ingredient' in cell_val.lower():
-                        title_row_idx = idx
-                        break
-                if title_row_idx != 1:
-                    break
-
-        if title_row_idx < len(rows):
-            title_row = rows[title_row_idx].get('values', [])
-            bold_count = 0
-            total_titles = 0
-
-            for cell in title_row:
-                value = cell.get('formattedValue', '')
-                if value:
-                    total_titles += 1
-                    fmt = cell.get('effectiveFormat', {}).get('textFormat', {})
-                    if fmt.get('bold', False):
-                        bold_count += 1
+        if header_row_idx is not None and header_row_idx < len(rows):
+            title_row = rows[header_row_idx]
+            bold_count, total_titles = count_bold_cells_in_row(title_row)
 
             if bold_count == total_titles and total_titles > 0:
                 checkpoint.add_step("Column Titles Bolded", True, step_num,
@@ -531,26 +505,42 @@ def grade_checkpoint_2():
                               execution_time=time.time() - step_start)
 
         # Step 6: Horizontal line under column titles
+        # Check for:
+        # 1. Bottom border on header row
+        # 2. Top border on the row below (data row)
+        # 3. Frozen rows that include the header row (creates visual line)
         step_num += 1
         step_start = time.time()
 
-        has_border = False
-        if title_row_idx < len(rows):
-            title_row = rows[title_row_idx].get('values', [])
-            for cell in title_row:
-                borders = cell.get('effectiveFormat', {}).get('borders', {})
-                bottom = borders.get('bottom', {})
-                if bottom.get('style') and bottom.get('style') != 'NONE':
-                    has_border = True
-                    break
+        if header_row_idx is not None and header_row_idx < len(rows):
+            has_bottom = row_has_bottom_border(rows[header_row_idx])
+            has_top_below = False
+            if header_row_idx + 1 < len(rows):
+                has_top_below = row_has_top_border(rows[header_row_idx + 1])
 
-        if has_border:
-            checkpoint.add_step("Horizontal Line Under Titles", True, step_num,
-                              "Found horizontal line (border) under column titles",
-                              execution_time=time.time() - step_start)
+            # Check for frozen rows - frozen boundary creates a visual line
+            frozen_rows = sheets[0].get('properties', {}).get('gridProperties', {}).get('frozenRowCount', 0)
+            has_frozen_line = frozen_rows > header_row_idx
+
+            has_line = has_bottom or has_top_below or has_frozen_line
+
+            if has_line:
+                if has_bottom:
+                    line_type = "bottom border on header"
+                elif has_top_below:
+                    line_type = "top border on data row"
+                else:
+                    line_type = "frozen row boundary"
+                checkpoint.add_step("Horizontal Line Under Titles", True, step_num,
+                                  f"Found horizontal line ({line_type}) under column titles",
+                                  execution_time=time.time() - step_start)
+            else:
+                checkpoint.add_step("Horizontal Line Under Titles", False, step_num,
+                                  "No horizontal line found under column titles",
+                                  execution_time=time.time() - step_start)
         else:
             checkpoint.add_step("Horizontal Line Under Titles", False, step_num,
-                              "No horizontal line found under column titles",
+                              "Could not find column title row",
                               execution_time=time.time() - step_start)
 
     except Exception as e:
@@ -718,7 +708,7 @@ def grade_checkpoint_4():
     - Black Pepper row NOT present (excluded - no specified amount).
     """
     print("----------------- CHECKPOINT 4 ----------------")
-    global model
+    global model, matched_ingredients
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=8, result=0, name="Ingredients Present")
 
@@ -729,7 +719,7 @@ def grade_checkpoint_4():
         return checkpoint
 
     columns = list(df.columns)
-    ingredient_col = matched_columns.get("Ingredients") or find_column_by_keywords(columns, COLUMN_KEYWORDS["Ingredients"])
+    ingredient_col = matched_columns.get("Ingredients") or find_column_by_keywords(columns, COLUMN_KEYWORDS["Ingredients"], strict=True)
 
     if not ingredient_col:
         for i, ingredient in enumerate(EXPECTED_INGREDIENTS + [EXCLUDED_INGREDIENT], 1):
@@ -737,53 +727,96 @@ def grade_checkpoint_4():
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    ingredients_in_sheet = df[ingredient_col].astype(str).str.lower().str.strip().tolist()
+    # Phase 1: Fast keyword matching for all ingredients
+    keyword_matches = {}  # ingredient -> (row_idx, cell_value)
+    llm_needed = []  # ingredients that need LLM fallback
 
+    for ingredient in EXPECTED_INGREDIENTS:
+        keywords = INGREDIENT_KEYWORDS.get(ingredient, [ingredient.lower()])
+        matched_row_idx = None
+
+        for idx, row in df.iterrows():
+            cell_value = str(row[ingredient_col]).lower().strip()
+            if matches_keywords(cell_value, keywords):
+                matched_row_idx = idx
+                keyword_matches[ingredient] = (idx, cell_value)
+                print(f"  [DEBUG] Ingredient '{ingredient}' matched via KEYWORD (row {idx})")
+                break
+
+        if matched_row_idx is None:
+            llm_needed.append(ingredient)
+
+    # Phase 2: Parallel LLM fallback for unmatched ingredients
+    llm_matches = {}  # ingredient -> row_idx
+    if llm_needed:
+        if model is None:
+            model = load_model(model_id)
+
+        # Get all candidate cells from DataFrame (cells that haven't been matched yet)
+        matched_rows = set(m[0] for m in keyword_matches.values())
+        candidate_cells = []  # (row_idx, cell_value)
+        for idx, row in df.iterrows():
+            if idx not in matched_rows:
+                cell_value = str(row[ingredient_col]).lower().strip()
+                if cell_value and len(cell_value) > 1:
+                    candidate_cells.append((idx, cell_value))
+
+        # Build VLM tasks: for each unmatched ingredient, check against each candidate cell
+        vlm_tasks = []
+        for ingredient in llm_needed:
+            for row_idx, cell_value in candidate_cells:
+                prompt_text = f"Does '{cell_value}' refer to the same ingredient as '{ingredient}'? Answer only Yes or No."
+                messages = [
+                    {"role": "system", "content": [{"type": "text", "text": "You are a helpful assistant that answers Yes or No."}]},
+                    {"role": "user", "content": [{"type": "text", "text": prompt_text}]}
+                ]
+                vlm_tasks.append({
+                    'id': f"{ingredient}|{row_idx}",
+                    'messages': messages,
+                    'ingredient': ingredient,
+                    'row_idx': row_idx
+                })
+
+        if vlm_tasks:
+            print(f"  [PARALLEL] Running {len(vlm_tasks)} LLM ingredient matches...")
+            llm_start = time.time()
+            vlm_results = fast_parallel_vlm_calls(vlm_tasks, model, max_workers=10)
+            print(f"  [PARALLEL] LLM ingredient matching completed in {time.time() - llm_start:.2f}s")
+
+            # Process results - find first match for each ingredient
+            for task in vlm_tasks:
+                task_id = task['id']
+                ingredient = task['ingredient']
+                row_idx = task['row_idx']
+
+                # Skip if this ingredient already matched
+                if ingredient in llm_matches:
+                    continue
+
+                if vlm_results.get(task_id, False):
+                    llm_matches[ingredient] = row_idx
+                    print(f"  [DEBUG] Ingredient '{ingredient}' matched via LLM (row {row_idx})")
+
+    # Phase 3: Process results and add checkpoint steps
     step_num = 0
-
-    # Check each expected ingredient is present
     for ingredient in EXPECTED_INGREDIENTS:
         step_num += 1
         step_start = time.time()
 
-        keywords = INGREDIENT_KEYWORDS.get(ingredient, [ingredient.lower()])
-        found = False
-
-        # Keyword-based matching first
-        for ing in ingredients_in_sheet:
-            for keyword in keywords:
-                if keyword.lower() in ing:
-                    found = True
-                    break
-            if found:
-                break
-
-        # LLM fallback if keyword matching fails
-        if not found:
-            if model is None:
-                model = load_model(model_id)
-            # Simple LLM check
-            for idx, ing in enumerate(ingredients_in_sheet):
-                if ing and len(ing) > 1:
-                    # Check semantic similarity
-                    prompt_text = f"Does '{ing}' refer to the same ingredient as '{ingredient}'? Answer only Yes or No."
-                    messages = [
-                        {"role": "system", "content": [{"type": "text", "text": "You are a helpful assistant that answers Yes or No."}]},
-                        {"role": "user", "content": [{"type": "text", "text": prompt_text}]}
-                    ]
-                    try:
-                        response = model(messages)
-                        if response and 'yes' in response.lower():
-                            found = True
-                            break
-                    except Exception as e:
-                        print(f"LLM error for ingredient matching: {e}")
-
-        if found:
+        if ingredient in keyword_matches:
+            row_idx, _ = keyword_matches[ingredient]
+            matched_ingredients[ingredient] = row_idx
             checkpoint.add_step(f"{ingredient} Present", True, step_num,
                               f"Found '{ingredient}' in spreadsheet",
                               execution_time=time.time() - step_start)
+        elif ingredient in llm_matches:
+            row_idx = llm_matches[ingredient]
+            matched_ingredients[ingredient] = row_idx
+            checkpoint.add_step(f"{ingredient} Present", True, step_num,
+                              f"Found '{ingredient}' in spreadsheet (LLM match)",
+                              execution_time=time.time() - step_start)
         else:
+            print(f"  [DEBUG] Ingredient '{ingredient}' NOT FOUND")
             checkpoint.add_step(f"{ingredient} Present", False, step_num,
                               f"'{ingredient}' not found in spreadsheet",
                               execution_time=time.time() - step_start)
@@ -792,20 +825,21 @@ def grade_checkpoint_4():
     step_num += 1
     step_start = time.time()
 
+    # Use matches_keywords for excluded ingredient check
     excluded_found = False
-    for ing in ingredients_in_sheet:
-        for keyword in EXCLUDED_KEYWORDS:
-            if keyword.lower() in ing:
-                excluded_found = True
-                break
-        if excluded_found:
+    for _, row in df.iterrows():
+        cell_value = str(row[ingredient_col]).lower().strip()
+        if matches_keywords(cell_value, EXCLUDED_KEYWORDS):
+            excluded_found = True
             break
 
     if not excluded_found:
+        print(f"  [DEBUG] Excluded ingredient '{EXCLUDED_INGREDIENT}' correctly NOT found")
         checkpoint.add_step(f"{EXCLUDED_INGREDIENT} Not Present", True, step_num,
                           f"'{EXCLUDED_INGREDIENT}' correctly excluded (no specified amount)",
                           execution_time=time.time() - step_start)
     else:
+        print(f"  [DEBUG] Excluded ingredient '{EXCLUDED_INGREDIENT}' FOUND (should not be present)")
         checkpoint.add_step(f"{EXCLUDED_INGREDIENT} Not Present", False, step_num,
                           f"'{EXCLUDED_INGREDIENT}' should not be present (no specified amount in recipe)",
                           execution_time=time.time() - step_start)
@@ -829,6 +863,7 @@ def grade_checkpoint_5():
     - Onion Powder link valid and matches ingredient (via HTML parsing).
     """
     print("----------------- CHECKPOINT 5 ----------------")
+    global model
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=7, result=0, name="USDA Links Validation")
 
@@ -839,8 +874,8 @@ def grade_checkpoint_5():
         return checkpoint
 
     columns = list(df.columns)
-    ingredient_col = matched_columns.get("Ingredients") or find_column_by_keywords(columns, COLUMN_KEYWORDS["Ingredients"])
-    link_col = matched_columns.get("Link") or find_column_by_keywords(columns, COLUMN_KEYWORDS["Link"])
+    ingredient_col = matched_columns.get("Ingredients") or find_column_by_keywords(columns, COLUMN_KEYWORDS["Ingredients"], strict=True)
+    link_col = matched_columns.get("Link") or find_column_by_keywords(columns, COLUMN_KEYWORDS["Link"], strict=True)
 
     if not ingredient_col or not link_col:
         for i, ingredient in enumerate(EXPECTED_INGREDIENTS, 1):
@@ -848,56 +883,105 @@ def grade_checkpoint_5():
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    step_num = 0
+    # Phase 1: Collect all valid links for parallel fetching
+    ingredient_links = {}  # ingredient -> link
+    invalid_ingredients = {}  # ingredient -> error message
 
     for ingredient in EXPECTED_INGREDIENTS:
-        step_num += 1
-        step_start = time.time()
-
-        # Find the row for this ingredient
-        row_match = None
-        keywords = INGREDIENT_KEYWORDS.get(ingredient, [ingredient.lower()])
-
-        for _, row in df.iterrows():
-            cell_value = str(row[ingredient_col]).lower().strip()
-            for keyword in keywords:
-                if keyword.lower() in cell_value:
-                    row_match = row
-                    break
-            if row_match is not None:
-                break
-
-        if row_match is None:
-            checkpoint.add_step(f"{ingredient} Link Valid", False, step_num,
-                              f"Ingredient '{ingredient}' not found in spreadsheet",
-                              execution_time=time.time() - step_start)
+        if ingredient not in matched_ingredients:
+            invalid_ingredients[ingredient] = f"Ingredient '{ingredient}' not found in spreadsheet"
             continue
 
+        row_idx = matched_ingredients[ingredient]
+        row_match = df.loc[row_idx]
         link = str(row_match[link_col]).strip()
 
-        # Check if it's a valid USDA FoodData Central URL
-        if not link or not is_valid_usda_url(link):
-            checkpoint.add_step(f"{ingredient} Link Valid", False, step_num,
-                              f"Invalid or non-USDA link: {link[:50] if link else 'empty'}...",
-                              execution_time=time.time() - step_start)
-            continue
-
-        # Fetch the page and verify it matches the ingredient
-        page_title = fetch_usda_page_title(link)
-
-        if page_title and ingredient_matches_usda_page(ingredient, page_title):
-            checkpoint.add_step(f"{ingredient} Link Valid", True, step_num,
-                              f"USDA link verified for '{ingredient}'",
-                              execution_time=time.time() - step_start)
-        elif page_title:
-            # Page fetched but may not match - partial credit
-            checkpoint.add_step(f"{ingredient} Link Valid", True, step_num,
-                              f"Valid USDA link (page: '{page_title[:30]}...')",
-                              execution_time=time.time() - step_start)
+        if not link or not is_url_from_domain(link, 'fdc.nal.usda.gov'):
+            invalid_ingredients[ingredient] = f"Invalid or non-USDA link: {link[:50] if link else 'empty'}..."
         else:
-            # Could not fetch page, but URL format is correct
-            checkpoint.add_step(f"{ingredient} Link Valid", True, step_num,
-                              f"Valid USDA URL format (could not verify page content)",
+            ingredient_links[ingredient] = link
+            print(f"  [DEBUG] Ingredient '{ingredient}' link: {link[:60]}...")
+
+    # Phase 2: Parallel fetch all USDA page titles
+    fetch_tasks = [
+        {'id': ingredient, 'func': fetch_usda_page_title, 'args': (link,)}
+        for ingredient, link in ingredient_links.items()
+    ]
+
+    print(f"  [PARALLEL] Fetching {len(fetch_tasks)} USDA page titles...")
+    fetch_start = time.time()
+    fetch_results = parallel_download(fetch_tasks, max_workers=5, use_rate_limit=False)
+    print(f"  [PARALLEL] Fetched in {time.time() - fetch_start:.2f}s")
+
+    # Phase 3: Keyword matching first (fast), collect LLM fallback tasks
+    keyword_matches = {}  # ingredient -> True/False
+    llm_needed = {}  # ingredient -> page_title (needs LLM validation)
+
+    for ingredient, page_title in fetch_results.items():
+        if page_title:
+            # Try keyword matching first (from INGREDIENT_KEYWORDS)
+            keywords = INGREDIENT_KEYWORDS.get(ingredient, [ingredient.lower()])
+            if matches_keywords(page_title, keywords):
+                keyword_matches[ingredient] = True
+                print(f"  [DEBUG] USDA page '{page_title}' matched '{ingredient}' via KEYWORD")
+            else:
+                llm_needed[ingredient] = page_title
+        else:
+            # Could not fetch - mark as valid URL format
+            keyword_matches[ingredient] = True  # Pass with warning
+
+    # Phase 4: Parallel LLM validation for unmatched
+    llm_results = {}
+    if llm_needed:
+        if model is None:
+            model = load_model(model_id)
+
+        vlm_tasks = []
+        for ingredient, page_title in llm_needed.items():
+            prompt_text = f"Is '{page_title}' a valid USDA database entry for the ingredient '{ingredient}'? For example, 'Nuts, almonds, raw' is valid for 'Almonds', and 'Spices, garlic powder' is valid for 'Garlic Powder'. Answer only Yes or No."
+            messages = [
+                {"role": "system", "content": [{"type": "text", "text": "You are a helpful assistant that determines if USDA food database entries match recipe ingredients. Be lenient - USDA entries often have prefixes like 'Nuts,', 'Spices,', 'Beverages,' and suffixes like ', raw', ', dried', etc. Answer Yes or No."}]},
+                {"role": "user", "content": [{"type": "text", "text": prompt_text}]}
+            ]
+            vlm_tasks.append({'id': ingredient, 'messages': messages})
+
+        print(f"  [PARALLEL] Running {len(vlm_tasks)} LLM validations...")
+        llm_start = time.time()
+        llm_results = fast_parallel_vlm_calls(vlm_tasks, model, max_workers=5)
+        print(f"  [PARALLEL] LLM validation completed in {time.time() - llm_start:.2f}s")
+
+    # Phase 5: Add checkpoint steps for all ingredients
+    for step_num, ingredient in enumerate(EXPECTED_INGREDIENTS, 1):
+        step_start = time.time()
+
+        if ingredient in invalid_ingredients:
+            checkpoint.add_step(f"{ingredient} Link Valid", False, step_num,
+                              invalid_ingredients[ingredient],
+                              execution_time=time.time() - step_start)
+        elif ingredient in keyword_matches:
+            page_title = fetch_results.get(ingredient)
+            if page_title:
+                checkpoint.add_step(f"{ingredient} Link Valid", True, step_num,
+                                  f"USDA link verified for '{ingredient}'",
+                                  execution_time=time.time() - step_start)
+            else:
+                checkpoint.add_step(f"{ingredient} Link Valid", True, step_num,
+                                  f"Valid USDA URL format (could not verify page content)",
+                                  execution_time=time.time() - step_start)
+        elif ingredient in llm_results:
+            if llm_results[ingredient]:
+                print(f"  [DEBUG] USDA page matched '{ingredient}' via LLM")
+                checkpoint.add_step(f"{ingredient} Link Valid", True, step_num,
+                                  f"USDA link verified for '{ingredient}'",
+                                  execution_time=time.time() - step_start)
+            else:
+                page_title = llm_needed.get(ingredient, "unknown")
+                checkpoint.add_step(f"{ingredient} Link Valid", False, step_num,
+                                  f"USDA page '{page_title[:30]}...' does not match '{ingredient}'",
+                                  execution_time=time.time() - step_start)
+        else:
+            checkpoint.add_step(f"{ingredient} Link Valid", False, step_num,
+                              f"Could not validate link for '{ingredient}'",
                               execution_time=time.time() - step_start)
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -935,7 +1019,7 @@ def grade_checkpoint_6():
         return checkpoint
 
     columns = list(df.columns)
-    ingredient_col = matched_columns.get("Ingredients") or find_column_by_keywords(columns, COLUMN_KEYWORDS["Ingredients"])
+    ingredient_col = matched_columns.get("Ingredients") or find_column_by_keywords(columns, COLUMN_KEYWORDS["Ingredients"], strict=True)
 
     if not ingredient_col:
         for i, nutrient in enumerate(ALL_NUTRIENTS, 1):
@@ -974,31 +1058,30 @@ def grade_checkpoint_6():
         mismatches = []
 
         for ingredient in EXPECTED_INGREDIENTS:
-            # Find in sheet
+            # Use cached row index from checkpoint 4
             sheet_value = None
-            keywords = INGREDIENT_KEYWORDS.get(ingredient, [ingredient.lower()])
+            if ingredient in matched_ingredients:
+                row_idx = matched_ingredients[ingredient]
+                row = df.loc[row_idx]
+                try:
+                    sheet_value = float(str(row[sheet_col]).replace(',', ''))
+                    print(f"    [DEBUG] {ingredient} -> {nutrient}: sheet_value={sheet_value}")
+                except (ValueError, TypeError):
+                    sheet_value = None
+                    print(f"    [DEBUG] {ingredient} -> {nutrient}: sheet_value=None (parse error)")
+            else:
+                print(f"    [DEBUG] {ingredient} -> {nutrient}: not matched in checkpoint 4")
 
-            for _, row in df.iterrows():
-                cell_value = str(row[ingredient_col]).lower().strip()
-                for keyword in keywords:
-                    if keyword.lower() in cell_value:
-                        try:
-                            sheet_value = float(str(row[sheet_col]).replace(',', ''))
-                        except (ValueError, TypeError):
-                            sheet_value = None
-                        break
-                if sheet_value is not None:
-                    break
-
-            # Find in gold data
+            # Use pre-built gold_by_ingredient lookup (O(1) instead of O(n))
             gold_value = None
-            for _, row in gold_data.iterrows():
-                if ingredient.lower() in str(row['Ingredient']).lower():
-                    try:
-                        gold_value = float(row[gold_col])
-                    except (ValueError, TypeError):
-                        gold_value = None
-                    break
+            gold_row = gold_by_ingredient.get(ingredient.lower())
+            if gold_row is not None:
+                try:
+                    gold_value = float(gold_row[gold_col])
+                    print(f"    [DEBUG] {ingredient} -> {nutrient}: gold_value={gold_value}")
+                except (ValueError, TypeError):
+                    gold_value = None
+                    print(f"    [DEBUG] {ingredient} -> {nutrient}: gold_value=None (parse error)")
 
             # Compare values
             if sheet_value is not None and gold_value is not None:
@@ -1023,11 +1106,13 @@ def grade_checkpoint_6():
         success = matches == len(EXPECTED_INGREDIENTS)
 
         if success:
+            print(f"  [DEBUG] {nutrient}: {matches}/{len(EXPECTED_INGREDIENTS)} values match")
             checkpoint.add_step(f"{nutrient} Values", True, step_num,
                               f"All {matches}/{len(EXPECTED_INGREDIENTS)} values match within {tolerance_percent}% tolerance",
                               score=matches, max_score=7,
                               execution_time=time.time() - step_start)
         else:
+            print(f"  [DEBUG] {nutrient}: {matches}/{len(EXPECTED_INGREDIENTS)} values match. Mismatches: {mismatches}")
             detail = f"{matches}/{len(EXPECTED_INGREDIENTS)} match"
             if mismatches:
                 detail += f". Mismatches: {'; '.join(mismatches[:2])}"
@@ -1070,16 +1155,11 @@ def grade_checkpoint_7():
 
         columns = list(df.columns)
 
-        # Find header row index
-        header_row_idx = 1
-        for idx, row in enumerate(rows):
-            values = row.get('values', [])
-            if values:
-                for cell in values:
-                    cell_val = cell.get('formattedValue', '')
-                    if cell_val and 'ingredient' in cell_val.lower():
-                        header_row_idx = idx
-                        break
+        # Use global header_row_idx detected in setup()
+        if header_row_idx is None:
+            checkpoint.add_step("Bold Formatting", False, 1, "Header row not detected")
+            checkpoint.execution_time = time.time() - checkpoint_start
+            return checkpoint
 
         correct_bold = 0
         total_checks = 0
@@ -1122,18 +1202,17 @@ def grade_checkpoint_7():
                 if should_be_bold == is_bold:
                     correct_bold += 1
 
-        # Calculate success
+        # Calculate success - ALL cells must be correctly formatted
         if total_checks > 0:
-            accuracy = (correct_bold / total_checks) * 100
-            success = accuracy >= 80  # Allow some tolerance
+            success = correct_bold == total_checks
 
             if success:
                 checkpoint.add_step("Bold Formatting", True, 1,
-                                  f"{correct_bold}/{total_checks} cells correctly formatted ({accuracy:.1f}%)",
+                                  f"All {total_checks} cells correctly formatted",
                                   execution_time=time.time() - checkpoint_start)
             else:
                 checkpoint.add_step("Bold Formatting", False, 1,
-                                  f"Only {correct_bold}/{total_checks} cells correctly formatted ({accuracy:.1f}%)",
+                                  f"Only {correct_bold}/{total_checks} cells correctly formatted",
                                   execution_time=time.time() - checkpoint_start)
         else:
             checkpoint.add_step("Bold Formatting", False, 1,

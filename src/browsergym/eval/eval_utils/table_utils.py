@@ -675,3 +675,375 @@ def check_merged_cells(sheet_raw: Dict, expected_cols: List[int], row_start: int
         return True
     except Exception:
         return False
+
+
+# =============================================================================
+# Color Comparison Utilities
+# =============================================================================
+
+def colors_are_similar(c1: Dict, c2: Dict, tolerance: float = 0.05) -> bool:
+    """Check if two RGB colors are similar within tolerance.
+
+    Compares two color dictionaries with 'red', 'green', 'blue' keys
+    on a 0-1 scale (as returned by Google Sheets API).
+
+    Args:
+        c1: First color dict with 'red', 'green', 'blue' keys (0-1 scale).
+        c2: Second color dict with 'red', 'green', 'blue' keys (0-1 scale).
+        tolerance: Maximum allowed difference per channel (default 0.05).
+
+    Returns:
+        True if colors are similar within tolerance.
+    """
+    if not c1 or not c2:
+        return False
+
+    for channel in ['red', 'green', 'blue']:
+        v1 = c1.get(channel, 1.0)
+        v2 = c2.get(channel, 1.0)
+        if abs(v1 - v2) > tolerance:
+            return False
+
+    return True
+
+
+def colors_are_distinct(colors: List[Dict], tolerance: float = 0.1) -> bool:
+    """Check if a list of colors are all distinct from each other.
+
+    Uses colors_are_similar() to compare each pair of colors.
+
+    Args:
+        colors: List of color dicts with 'red', 'green', 'blue' keys (0-1 scale).
+        tolerance: Minimum required difference to be considered distinct.
+
+    Returns:
+        True if all colors are distinct from each other.
+    """
+    if len(colors) < 2:
+        return True
+
+    for i in range(len(colors)):
+        for j in range(i + 1, len(colors)):
+            if colors_are_similar(colors[i], colors[j], tolerance):
+                return False
+
+    return True
+
+
+# =============================================================================
+# Keyword-Based Search Utilities
+# =============================================================================
+
+def matches_keywords(
+    value: str,
+    keywords: List[str],
+    case_sensitive: bool = False,
+    strict: bool = True
+) -> bool:
+    """Check if a value matches any of the given keywords.
+
+    This is the core matching function used by find_column_by_keywords,
+    find_row_by_keywords, and can be used directly for ingredient matching.
+
+    Args:
+        value: The string value to check.
+        keywords: List of keyword strings to match against.
+        case_sensitive: Whether to perform case-sensitive matching.
+        strict: If True, requires exact match (value equals keyword after stripping).
+                If False, uses substring matching (keyword in value).
+
+    Returns:
+        True if the value matches any keyword, False otherwise.
+    """
+    if not value or not keywords:
+        return False
+
+    value_check = value.strip() if case_sensitive else value.lower().strip()
+
+    for keyword in keywords:
+        keyword_check = keyword.strip() if case_sensitive else keyword.lower().strip()
+        if strict:
+            if value_check == keyword_check:
+                return True
+        else:
+            if keyword_check in value_check:
+                return True
+
+    return False
+
+
+def find_match_in_list(
+    values: List[str],
+    keywords: List[str],
+    case_sensitive: bool = False,
+    strict: bool = False
+) -> Optional[str]:
+    """Find the first value in a list that matches any of the given keywords.
+
+    Args:
+        values: List of string values to search through.
+        keywords: List of keyword strings to match against.
+        case_sensitive: Whether to perform case-sensitive matching.
+        strict: If True, requires exact match. If False, uses substring matching.
+
+    Returns:
+        The first matching value, or None if not found.
+    """
+    for value in values:
+        if matches_keywords(value, keywords, case_sensitive, strict):
+            return value
+    return None
+
+
+def find_column_by_keywords(
+    columns: List[str],
+    keywords: List[str],
+    case_sensitive: bool = False,
+    strict: bool = False
+) -> Optional[str]:
+    """Find a column that matches any of the given keywords.
+
+    This is a fast keyword-based search that can be used as a pre-check
+    before falling back to the more expensive LLM-based find_matching_column_or_row().
+
+    Args:
+        columns: List of column names.
+        keywords: List of keyword strings to match.
+        case_sensitive: Whether to perform case-sensitive matching.
+        strict: If True, requires exact match or column name equals keyword
+                (after stripping whitespace). If False, uses substring matching.
+
+    Returns:
+        The matching column name, or None if not found.
+    """
+    return find_match_in_list(columns, keywords, case_sensitive, strict)
+
+
+def find_row_by_keywords(
+    df: pd.DataFrame,
+    search_column: str,
+    keywords: List[str],
+    case_sensitive: bool = False,
+    strict: bool = False
+) -> Optional[int]:
+    """Find the row index using keyword matching in a specific column.
+
+    This is a fast keyword-based search that can be used as a pre-check
+    before falling back to the more expensive LLM-based find_matching_column_or_row().
+
+    Args:
+        df: DataFrame containing the data.
+        search_column: Name of the column to search in.
+        keywords: List of keywords to match.
+        case_sensitive: Whether to perform case-sensitive matching.
+        strict: If True, requires exact match (cell value equals keyword).
+                If False, uses substring matching.
+
+    Returns:
+        Row index if found, None otherwise.
+    """
+    if search_column not in df.columns:
+        return None
+
+    for idx, row in df.iterrows():
+        cell_value = str(row[search_column])
+        if matches_keywords(cell_value, keywords, case_sensitive, strict):
+            return idx
+
+    return None
+
+
+# =============================================================================
+# Google Sheets Merged Cell Utilities
+# =============================================================================
+
+def find_merged_cell_by_text(
+    merges: List[Dict],
+    rows: List[Dict],
+    text_pattern: str,
+    case_sensitive: bool = False
+) -> tuple:
+    """Find a merged cell that contains the given text pattern.
+
+    Searches through merged cell regions and returns the merge info and cell data
+    for the first merge whose cell value contains the text pattern.
+
+    Args:
+        merges: List of merge dictionaries from Google Sheets API (sheet.get('merges', [])).
+        rows: List of row data from Google Sheets API (gridData.get('rowData', [])).
+        text_pattern: Text pattern to search for in merged cells.
+        case_sensitive: Whether to perform case-sensitive matching.
+
+    Returns:
+        Tuple of (merge_info, cell_data) where:
+        - merge_info: The merge dictionary with startRowIndex, endRowIndex, etc.
+        - cell_data: The cell dictionary with formattedValue, effectiveFormat, etc.
+        Returns (None, None) if no matching merge is found.
+    """
+    for merge in merges:
+        start_row = merge.get('startRowIndex', 0)
+        start_col = merge.get('startColumnIndex', 0)
+
+        if start_row < len(rows):
+            row = rows[start_row].get('values', [])
+            if start_col < len(row):
+                cell_value = row[start_col].get('formattedValue', '')
+                pattern = text_pattern if case_sensitive else text_pattern.lower()
+                value = cell_value if case_sensitive else cell_value.lower()
+                if pattern in value:
+                    return merge, row[start_col]
+
+    return None, None
+
+
+def get_merge_column_span(merge: Dict) -> int:
+    """Get the number of columns spanned by a merged cell.
+
+    Args:
+        merge: Merge dictionary from Google Sheets API.
+
+    Returns:
+        Number of columns the merge spans.
+    """
+    if not merge:
+        return 0
+    return merge.get('endColumnIndex', 0) - merge.get('startColumnIndex', 0)
+
+
+# =============================================================================
+# Google Sheets Cell Formatting Utilities
+# =============================================================================
+
+def is_cell_centered(cell: Dict) -> bool:
+    """Check if a cell has centered horizontal alignment.
+
+    Args:
+        cell: Cell dictionary from Google Sheets API.
+
+    Returns:
+        True if cell is horizontally centered.
+    """
+    if not cell:
+        return False
+    h_align = cell.get('effectiveFormat', {}).get('horizontalAlignment', '')
+    return h_align == 'CENTER'
+
+
+def is_cell_italic(cell: Dict) -> bool:
+    """Check if a cell has italic text formatting.
+
+    Args:
+        cell: Cell dictionary from Google Sheets API.
+
+    Returns:
+        True if cell text is italic.
+    """
+    if not cell:
+        return False
+    fmt = cell.get('effectiveFormat', {}).get('textFormat', {})
+    return fmt.get('italic', False)
+
+
+def is_cell_bold(cell: Dict) -> bool:
+    """Check if a cell has bold text formatting.
+
+    Args:
+        cell: Cell dictionary from Google Sheets API.
+
+    Returns:
+        True if cell text is bold.
+    """
+    if not cell:
+        return False
+    fmt = cell.get('effectiveFormat', {}).get('textFormat', {})
+    return fmt.get('bold', False)
+
+
+def has_bottom_border(cell: Dict) -> bool:
+    """Check if a cell has a bottom border.
+
+    Args:
+        cell: Cell dictionary from Google Sheets API.
+
+    Returns:
+        True if cell has a visible bottom border.
+    """
+    if not cell:
+        return False
+    borders = cell.get('effectiveFormat', {}).get('borders', {})
+    bottom = borders.get('bottom', {})
+    style = bottom.get('style', '')
+    return style and style != 'NONE'
+
+
+def has_top_border(cell: Dict) -> bool:
+    """Check if a cell has a top border.
+
+    Args:
+        cell: Cell dictionary from Google Sheets API.
+
+    Returns:
+        True if cell has a visible top border.
+    """
+    if not cell:
+        return False
+    borders = cell.get('effectiveFormat', {}).get('borders', {})
+    top = borders.get('top', {})
+    style = top.get('style', '')
+    return style and style != 'NONE'
+
+
+def row_has_top_border(row: Dict) -> bool:
+    """Check if any cell in a row has a top border.
+
+    Args:
+        row: Row dictionary from Google Sheets API (rowData entry).
+
+    Returns:
+        True if any cell in the row has a visible top border.
+    """
+    if not row:
+        return False
+    values = row.get('values', [])
+    return any(has_top_border(cell) for cell in values)
+
+
+def row_has_bottom_border(row: Dict) -> bool:
+    """Check if any cell in a row has a bottom border.
+
+    Args:
+        row: Row dictionary from Google Sheets API (rowData entry).
+
+    Returns:
+        True if any cell in the row has a visible bottom border.
+    """
+    if not row:
+        return False
+    values = row.get('values', [])
+    return any(has_bottom_border(cell) for cell in values)
+
+
+def count_bold_cells_in_row(row: Dict) -> tuple:
+    """Count bold and total non-empty cells in a row.
+
+    Args:
+        row: Row dictionary from Google Sheets API (rowData entry).
+
+    Returns:
+        Tuple of (bold_count, total_count) for non-empty cells.
+    """
+    if not row:
+        return 0, 0
+
+    values = row.get('values', [])
+    bold_count = 0
+    total_count = 0
+
+    for cell in values:
+        value = cell.get('formattedValue', '')
+        if value:
+            total_count += 1
+            if is_cell_bold(cell):
+                bold_count += 1
+
+    return bold_count, total_count
