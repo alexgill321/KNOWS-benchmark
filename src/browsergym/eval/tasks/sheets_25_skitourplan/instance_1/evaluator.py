@@ -38,6 +38,7 @@ from src.browsergym.eval.eval_utils.table_utils import (
     get_cell_value,
     get_cell_background_color,
     check_merged_cells,
+    match_columns,
 )
 from src.browsergym.eval.eval_utils.models import load_model
 from src.browsergym.eval.eval_utils.image_utils import match_image_tiered
@@ -127,52 +128,6 @@ def setup(workspace_doc_id: str):
         print(f"Columns: {list(df.columns)}")
 
 
-def _vlm_match_column(col_name: str, actual_headers: List[str], vlm_model) -> int:
-    """Use VLM to find which column header matches the required column name.
-
-    Args:
-        col_name: The required column name (e.g., "Run Name", "GPS Coordinates").
-        actual_headers: List of actual column headers from the spreadsheet.
-        vlm_model: The loaded VLM model to use for matching.
-
-    Returns:
-        Index of the matching column, or -1 if no match found.
-    """
-    if not vlm_model or not actual_headers:
-        return -1
-
-    try:
-        # Create prompt for VLM
-        headers_list = "\n".join([f"{i}: {h}" for i, h in enumerate(actual_headers)])
-
-        messages = [
-            {
-                "role": "system",
-                "content": [{"type": "text", "text": "You are a helpful assistant that matches column headers. Given a required column name and a list of actual column headers, determine which header (if any) represents the same concept. Respond with ONLY the index number of the matching column, or -1 if no match exists."}]
-            },
-            {
-                "role": "user",
-                "content": [{"type": "text", "text": f"Required column: '{col_name}'\n\nAvailable columns:\n{headers_list}\n\nWhich column index matches the required column? Respond with only the number (0-{len(actual_headers)-1}) or -1 if no match."}]
-            }
-        ]
-
-        response = vlm_model(messages)
-
-        # Parse response - expect just a number
-        response_text = response.strip()
-        # Extract first number from response
-        match = re.search(r'-?\d+', response_text)
-        if match:
-            idx = int(match.group())
-            if -1 <= idx < len(actual_headers):
-                return idx
-
-    except Exception as e:
-        print(f"VLM column matching error: {e}")
-
-    return -1
-
-
 def grade_checkpoint_1():
     """Checkpoint 1: Spreadsheet Structure (10 pts).
 
@@ -217,45 +172,20 @@ def grade_checkpoint_1():
         ("Forecast Link", ["forecast link"]),
     ]
 
-    column_lower = [str(col).lower() for col in df.columns]
     original_columns = [str(col) for col in df.columns]
 
-    # Track columns that need VLM fallback
-    columns_needing_vlm = []
+    # Use standardized match_columns() - keyword matching first, then LLM fallback
+    vlm_model = load_model(model_id)
+    name_matches = match_columns(df, required_columns, model=vlm_model, parallel=True)
 
-    # First pass: keyword matching
-    for step_num, (col_name, keywords) in enumerate(required_columns, start=1):
-        found = False
-        matched_column = None
-
-        # Try keyword-based matching
-        for i, col in enumerate(column_lower):
-            if any(keyword in col for keyword in keywords):
-                found = True
-                matched_column = original_columns[i]
-                matched_columns[col_name] = i  # Store column index
-                break
-
-        if not found:
-            columns_needing_vlm.append((step_num, col_name, keywords))
-
-    # Second pass: VLM fallback for unmatched columns
-    vlm_model = None
-    if columns_needing_vlm:
+    # Convert column names to indices (this evaluator uses indices for .iloc access)
+    for col_name, matched_col_name in name_matches.items():
         try:
-            vlm_model = load_model(model_id)
-            print(f"Using VLM fallback for {len(columns_needing_vlm)} unmatched columns")
-        except Exception as e:
-            print(f"Could not load VLM model for fallback: {e}")
+            matched_columns[col_name] = original_columns.index(matched_col_name)
+        except ValueError:
+            pass  # Column name not found
 
-    for step_num, col_name, keywords in columns_needing_vlm:
-        if vlm_model:
-            vlm_idx = _vlm_match_column(col_name, original_columns, vlm_model)
-            if vlm_idx >= 0:
-                matched_columns[col_name] = vlm_idx
-                print(f"VLM matched '{col_name}' to column {vlm_idx}: '{original_columns[vlm_idx]}'")
-
-    # Now record results for all columns
+    # Record results for all columns
     for step_num, (col_name, keywords) in enumerate(required_columns, start=1):
         step_start = time.time()
 

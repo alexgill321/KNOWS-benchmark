@@ -42,7 +42,8 @@ from src.browsergym.eval.eval_utils.table_utils import (
     get_sheet_row_index_from_dataframe_row,
     get_row_background_color,
     classify_row_color,
-    validate_color_grouping
+    validate_color_grouping,
+    match_columns
 )
 from src.browsergym.eval.eval_utils.parallel_utils import (
     parallel_download,
@@ -420,34 +421,25 @@ def grade_checkpoint_1():
         ("New Papers", ["new", "checkbox", "added", "new paper"])
     ]
 
-    column_lower = [str(col).lower() for col in df.columns]
     original_columns = [str(col) for col in df.columns]
 
+    # Use standardized match_columns() - keyword matching first, then LLM fallback
+    if model is None:
+        model = load_model(model_id)
+    matched_columns = match_columns(df, required_columns, model=model, parallel=True)
+
+    # Add checkpoint steps for each required column
     for step_num, (col_name, keywords) in enumerate(required_columns, start=1):
         step_start = time.time()
-        found = False
-        matched_column = None
-
-        # Try keyword-based matching (fast path)
-        for i, col in enumerate(column_lower):
-            if any(keyword in col for keyword in keywords):
-                found = True
-                matched_column = original_columns[i]
-                matched_columns[col_name] = matched_column
-                break
-
-        step_time = time.time() - step_start
-
-        if found:
+        if col_name in matched_columns:
+            matched_column = matched_columns[col_name]
             checkpoint.add_step(f"{col_name} Column", True, step_num,
                               f"Found column: '{matched_column}'",
-                              execution_time=step_time)
+                              execution_time=time.time() - step_start)
         else:
-            # For simplicity, just fail if keyword match doesn't work
-            # Could add LLM fallback here if needed
             checkpoint.add_step(f"{col_name} Column", False, step_num,
                               f"No column found for '{col_name}'. Available: {', '.join(original_columns[:5])}...",
-                              execution_time=step_time)
+                              execution_time=time.time() - step_start)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint

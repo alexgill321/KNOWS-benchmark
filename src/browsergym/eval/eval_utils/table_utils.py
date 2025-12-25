@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 from dataclasses import dataclass, field
 from typing import Optional, Tuple, Union, Any, List, Dict
 
@@ -82,141 +81,6 @@ def table_exact_match(df1: pd.DataFrame, df2: pd.DataFrame, ignore_case: bool = 
 
 def table_column_check(df: pd.DataFrame, required_columns: list) -> bool:
     return all(col in df.columns for col in required_columns)
-
-def table_number_tolerance(df: pd.DataFrame, gold_dict: dict, nutrient_cols: list, rel_tol: float = 0.05) -> bool:
-    for _, row in df.iterrows():
-        ingredient = str(row["Ingredient"]).lower().strip()
-
-        if ingredient not in gold_dict:
-            print(f"Ingredient '{ingredient}' not in gold data.")
-            return False
-
-        for nutrient in nutrient_cols:
-            if nutrient not in row or nutrient not in gold_dict[ingredient]:
-                print(f"Missing {nutrient} for {ingredient}")
-                return False
-
-            try:
-                actual = float(row[nutrient])
-                expected = float(gold_dict[ingredient][nutrient])
-                if not np.isclose(actual, expected, rtol=rel_tol):
-                    print(f"{ingredient} → {nutrient} mismatch: got {actual}, expected {expected}")
-                    return False
-            except Exception as e:
-                print(f"Error comparing {ingredient} → {nutrient}: {e}")
-                return False
-
-    return True
-
-def table_partial_match(df: pd.DataFrame, gold_df: pd.DataFrame, key_column: str = "Ingredient") -> bool:
-    df_keys = set(df[key_column].str.lower().str.strip())
-    gold_keys = set(gold_df[key_column].str.lower().str.strip())
-
-    missing = gold_keys - df_keys
-    if missing:
-        print(f"Missing values: {missing}")
-        return False
-    return True
-
-
-def find_matching_column_or_row(
-    df: pd.DataFrame,
-    criteria: str,
-    model: Any,
-    search_type: str = "column",
-    example_keywords: Optional[list] = None,
-) -> Optional[Tuple[str, Union[int, str]]]:
-    """
-    Find a column or row in a DataFrame that best matches natural language criteria using an LLM.
-
-    Args:
-        df (pd.DataFrame): The DataFrame to search.
-        criteria (str): Natural language description of what to look for.
-        model (Any): LLM model that takes (prompt) and returns a response.
-        search_type (str): Either "column" or "row" to specify search direction.
-        example_keywords (Optional[list]): Optional list of example keywords/terms that might match
-            the criteria. Helps the LLM better understand what to look for.
-
-    Returns:
-        Optional[Tuple[str, Union[int, str]]]: Tuple of (title, location) where location is
-        column name for columns or row index for rows, or None if no match found.
-
-    Raises:
-        ValueError: If search_type is not "column" or "row".
-    """
-    if search_type not in ["column", "row"]:
-        raise ValueError("search_type must be either 'column' or 'row'")
-
-    if search_type == "column":
-        headers = df.columns.tolist()
-    else:
-        # For rows, use the first column as row identifiers if it contains strings,
-        # otherwise use row indices
-        if len(df) > 0 and df.iloc[:, 0].dtype == 'object':
-            headers = df.iloc[:, 0].tolist()
-        else:
-            headers = [f"Row {i}" for i in range(len(df))]
-
-    if not headers:
-        return None
-
-    # Create prompt for LLM
-    headers_text = "\n".join([f"{i+1}. {header}" for i, header in enumerate(headers)])
-
-    # Add example keywords to the prompt if provided
-    keywords_section = ""
-    if example_keywords:
-        keywords_section = f"\nExample keywords that might match the criteria: {', '.join(example_keywords)}"
-
-    prompt = f"""You are analyzing a Google Sheets {search_type} headers to find the one that best matches specific criteria.
-
-Criteria: {criteria}{keywords_section}
-
-Available {search_type} headers:
-{headers_text}
-
-Please analyze each header and determine which one best matches the criteria. Consider:
-- Exact matches
-- Synonyms and semantically similar terms
-- Common abbreviations
-- Spreadsheet naming conventions
-
-Respond with ONLY the number (1, 2, 3, etc.) of the best matching header, or "NONE" if no header adequately matches the criteria.
-
-Your response should be just the number or "NONE", nothing else."""
-
-    try:
-        messages = [
-            {"role": "user", "content": [{"type": "text", "text": prompt}]}
-        ]
-        response = model(messages)
-        response = response.strip().upper()
-
-        if response == "NONE":
-            return None
-
-        # Try to parse the response as a number
-        try:
-            header_index = int(response) - 1
-            if 0 <= header_index < len(headers):
-                header_title = headers[header_index]
-                if search_type == "column":
-                    location = header_title  # Column name
-                else:
-                    if df.iloc[:, 0].dtype == 'object':
-                        location = header_title  # Row identifier from first column
-                    else:
-                        location = header_index  # Row index
-                return (header_title, location)
-        except ValueError:
-            pass
-
-        return None
-
-    except Exception as e:
-        print(f"Error calling LLM: {e}")
-        return None
-
 
 # =============================================================================
 # Google Sheets Text Visibility Utilities
@@ -463,40 +327,43 @@ def get_sheet_row_index_from_dataframe_row(df_row, header_rows: int = 1) -> int:
 # Google Sheets Row Color/Formatting Utilities
 # =============================================================================
 
-def get_row_background_color(sheet_raw: Dict, row_idx: int) -> Optional[Dict]:
-    """Extract background color from a specific row in raw sheet data.
+def get_background_color(sheet_raw: Dict, row_idx: int, col_idx: int = 0) -> Dict:
+    """Get background color of a cell in raw sheet data.
+
+    This is the unified function for getting cell background colors.
+    Use col_idx=0 (default) to get the first cell's color in a row.
 
     Args:
         sheet_raw: Raw sheet data from Google Sheets API.
         row_idx: 0-indexed row number.
+        col_idx: 0-indexed column number (default 0 for row's first cell).
 
     Returns:
-        Color dict with 'red', 'green', 'blue' keys (0-1 values), or None.
+        Dict with 'red', 'green', 'blue' keys (0-1 scale), or empty dict.
     """
     try:
         sheets = sheet_raw.get('sheets', [])
         if not sheets:
-            return None
+            return {}
 
-        rows = sheets[0].get('data', [{}])[0].get('rowData', [])
-        if row_idx >= len(rows):
-            return None
+        sheet_data = sheets[0].get('data', [{}])[0]
+        rows = sheet_data.get('rowData', [])
 
-        row = rows[row_idx]
-        cells = row.get('values', [])
-
-        if not cells:
-            return None
-
-        # Get color from first cell in the row
-        cell = cells[0]
-        effective_format = cell.get('effectiveFormat', {})
-        bg_color = effective_format.get('backgroundColor', {})
-
-        return bg_color if bg_color else None
-
+        if row_idx < len(rows):
+            values = rows[row_idx].get('values', [])
+            if col_idx < len(values):
+                effective_format = values[col_idx].get('effectiveFormat', {})
+                return effective_format.get('backgroundColor', {})
+        return {}
     except Exception:
-        return None
+        return {}
+
+
+# Backwards-compatible alias
+def get_row_background_color(sheet_raw: Dict, row_idx: int) -> Optional[Dict]:
+    """Get background color of first cell in a row. Alias for get_background_color(sheet_raw, row_idx, 0)."""
+    result = get_background_color(sheet_raw, row_idx, 0)
+    return result if result else None
 
 
 def classify_row_color(color_dict: Optional[Dict]) -> str:
@@ -604,36 +471,10 @@ def get_cell_value(sheet_raw: Dict, row_idx: int, col_idx: int) -> str:
         return ""
 
 
+# Backwards-compatible alias
 def get_cell_background_color(sheet_raw: Dict, row_idx: int, col_idx: int) -> Dict:
-    """Get background color of a specific cell.
-
-    Unlike get_row_background_color which gets the first cell's color,
-    this function gets the color of a specific cell by column index.
-
-    Args:
-        sheet_raw: Raw sheet data from Google Sheets API.
-        row_idx: 0-indexed row number.
-        col_idx: 0-indexed column number.
-
-    Returns:
-        Dict with 'red', 'green', 'blue' keys (0-1 scale), or empty dict.
-    """
-    try:
-        sheets = sheet_raw.get('sheets', [])
-        if not sheets:
-            return {}
-
-        sheet_data = sheets[0].get('data', [{}])[0]
-        rows = sheet_data.get('rowData', [])
-
-        if row_idx < len(rows):
-            values = rows[row_idx].get('values', [])
-            if col_idx < len(values):
-                effective_format = values[col_idx].get('effectiveFormat', {})
-                return effective_format.get('backgroundColor', {})
-        return {}
-    except Exception:
-        return {}
+    """Get background color of a specific cell. Alias for get_background_color()."""
+    return get_background_color(sheet_raw, row_idx, col_idx)
 
 
 def check_merged_cells(sheet_raw: Dict, expected_cols: List[int], row_start: int, row_end: int) -> bool:
@@ -772,29 +613,6 @@ def matches_keywords(
     return False
 
 
-def find_match_in_list(
-    values: List[str],
-    keywords: List[str],
-    case_sensitive: bool = False,
-    strict: bool = False
-) -> Optional[str]:
-    """Find the first value in a list that matches any of the given keywords.
-
-    Args:
-        values: List of string values to search through.
-        keywords: List of keyword strings to match against.
-        case_sensitive: Whether to perform case-sensitive matching.
-        strict: If True, requires exact match. If False, uses substring matching.
-
-    Returns:
-        The first matching value, or None if not found.
-    """
-    for value in values:
-        if matches_keywords(value, keywords, case_sensitive, strict):
-            return value
-    return None
-
-
 def find_column_by_keywords(
     columns: List[str],
     keywords: List[str],
@@ -816,39 +634,136 @@ def find_column_by_keywords(
     Returns:
         The matching column name, or None if not found.
     """
-    return find_match_in_list(columns, keywords, case_sensitive, strict)
+    # Inline the logic from find_match_in_list for clarity
+    for col in columns:
+        if matches_keywords(col, keywords, case_sensitive, strict):
+            return col
+    return None
 
 
-def find_row_by_keywords(
+def match_columns(
     df: pd.DataFrame,
-    search_column: str,
-    keywords: List[str],
-    case_sensitive: bool = False,
-    strict: bool = False
-) -> Optional[int]:
-    """Find the row index using keyword matching in a specific column.
+    required_columns: List[Tuple[str, List[str]]],
+    model: Optional[Any] = None,
+    strict: bool = True,
+    parallel: bool = False,
+    max_workers: int = 5,
+) -> Dict[str, str]:
+    """Match required columns using keyword matching with optional LLM fallback.
 
-    This is a fast keyword-based search that can be used as a pre-check
-    before falling back to the more expensive LLM-based find_matching_column_or_row().
+    This is the standard column matching function for all sheets evaluators.
+    It provides consistent 2-phase matching:
+
+    Phase 1: Try keyword matching for all columns (fast)
+    Phase 2: For unmatched columns, try LLM semantic matching (if model provided)
 
     Args:
-        df: DataFrame containing the data.
-        search_column: Name of the column to search in.
-        keywords: List of keywords to match.
-        case_sensitive: Whether to perform case-sensitive matching.
-        strict: If True, requires exact match (cell value equals keyword).
-                If False, uses substring matching.
+        df: DataFrame to search columns in.
+        required_columns: List of (col_name, keywords) tuples.
+            Example: [("Stock Symbol", ["symbol", "ticker"]), ("Price", ["price", "cost"])]
+        model: Optional LLM model for semantic fallback. If None, keyword-only matching.
+        strict: If True, requires exact keyword match. If False, uses substring matching.
+        parallel: If True, run LLM fallback calls in parallel using ThreadPoolExecutor.
+        max_workers: Maximum number of parallel LLM calls (only used if parallel=True).
 
     Returns:
-        Row index if found, None otherwise.
+        Dict mapping col_name -> matched_column_name for all matched columns.
+        Columns that couldn't be matched are not included in the dict.
     """
-    if search_column not in df.columns:
+    columns = [str(col) for col in df.columns]
+    matched = {}
+    unmatched = []
+
+    # Phase 1: Keyword matching (fast)
+    for col_name, keywords in required_columns:
+        result = find_column_by_keywords(columns, keywords, strict=strict)
+        if result:
+            matched[col_name] = result
+        else:
+            unmatched.append((col_name, keywords))
+
+    # Phase 2: LLM fallback for unmatched (if model provided)
+    if unmatched and model is not None:
+        if parallel:
+            # Parallel LLM matching using ThreadPoolExecutor
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+
+            def call_llm_for_column(col_name: str, keywords: List[str]) -> Tuple[str, Optional[str]]:
+                result = _llm_match_column(col_name, columns, keywords, model)
+                return col_name, result
+
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {
+                    executor.submit(call_llm_for_column, col_name, keywords): col_name
+                    for col_name, keywords in unmatched
+                }
+                for future in as_completed(futures):
+                    try:
+                        col_name, result = future.result()
+                        if result:
+                            matched[col_name] = result
+                    except Exception as e:
+                        print(f"Error in parallel LLM column matching: {e}")
+        else:
+            # Sequential LLM matching
+            for col_name, keywords in unmatched:
+                result = _llm_match_column(col_name, columns, keywords, model)
+                if result:
+                    matched[col_name] = result
+
+    return matched
+
+
+def _llm_match_column(
+    col_name: str,
+    columns: List[str],
+    keywords: List[str],
+    model: Any
+) -> Optional[str]:
+    """Use LLM to find matching column (internal helper).
+
+    Args:
+        col_name: Logical column name (e.g., "Stock Symbol").
+        columns: List of actual column names from DataFrame.
+        keywords: Example keywords that might match.
+        model: LLM model callable that accepts messages list.
+
+    Returns:
+        Matched column name, or None if no match.
+    """
+    if not columns:
         return None
 
-    for idx, row in df.iterrows():
-        cell_value = str(row[search_column])
-        if matches_keywords(cell_value, keywords, case_sensitive, strict):
-            return idx
+    headers_text = "\n".join([f"{i+1}. {col}" for i, col in enumerate(columns)])
+    keywords_hint = f"\nExample keywords that might match: {', '.join(keywords)}" if keywords else ""
+
+    prompt = f"""You are analyzing Google Sheets column headers to find one that best matches specific criteria.
+
+Criteria: Find the column that represents '{col_name}'.{keywords_hint}
+
+Available columns:
+{headers_text}
+
+Please analyze each header and determine which one best matches the criteria. Consider:
+- Exact matches
+- Synonyms and semantically similar terms
+- Common abbreviations
+- Spreadsheet naming conventions
+
+Respond with ONLY the number (1, 2, 3, etc.) of the best matching column, or "NONE" if no column adequately matches."""
+
+    try:
+        messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
+        response = model(messages).strip().upper()
+
+        if response == "NONE":
+            return None
+
+        idx = int(response) - 1
+        if 0 <= idx < len(columns):
+            return columns[idx]
+    except Exception as e:
+        print(f"Error in LLM column matching for '{col_name}': {e}")
 
     return None
 
@@ -959,68 +874,54 @@ def is_cell_bold(cell: Dict) -> bool:
     return fmt.get('bold', False)
 
 
-def has_bottom_border(cell: Dict) -> bool:
-    """Check if a cell has a bottom border.
+def has_border(cell: Dict, edge: str = "bottom") -> bool:
+    """Check if a cell has a border on the specified edge.
 
     Args:
         cell: Cell dictionary from Google Sheets API.
+        edge: Border edge to check - 'top', 'bottom', 'left', or 'right'.
 
     Returns:
-        True if cell has a visible bottom border.
+        True if cell has a visible border on the specified edge.
     """
     if not cell:
         return False
     borders = cell.get('effectiveFormat', {}).get('borders', {})
-    bottom = borders.get('bottom', {})
-    style = bottom.get('style', '')
+    edge_data = borders.get(edge, {})
+    style = edge_data.get('style', '')
     return style and style != 'NONE'
+
+
+def row_has_border(row: Dict, edge: str = "bottom") -> bool:
+    """Check if any cell in a row has a border on the specified edge.
+
+    Args:
+        row: Row dictionary from Google Sheets API (rowData entry).
+        edge: Border edge to check - 'top', 'bottom', 'left', or 'right'.
+
+    Returns:
+        True if any cell in the row has a visible border on the specified edge.
+    """
+    if not row:
+        return False
+    values = row.get('values', [])
+    return any(has_border(cell, edge) for cell in values)
+
+
+# Backwards-compatible aliases
+def has_bottom_border(cell: Dict) -> bool:
+    """Check if a cell has a bottom border. Alias for has_border(cell, 'bottom')."""
+    return has_border(cell, "bottom")
 
 
 def has_top_border(cell: Dict) -> bool:
-    """Check if a cell has a top border.
-
-    Args:
-        cell: Cell dictionary from Google Sheets API.
-
-    Returns:
-        True if cell has a visible top border.
-    """
-    if not cell:
-        return False
-    borders = cell.get('effectiveFormat', {}).get('borders', {})
-    top = borders.get('top', {})
-    style = top.get('style', '')
-    return style and style != 'NONE'
-
-
-def row_has_top_border(row: Dict) -> bool:
-    """Check if any cell in a row has a top border.
-
-    Args:
-        row: Row dictionary from Google Sheets API (rowData entry).
-
-    Returns:
-        True if any cell in the row has a visible top border.
-    """
-    if not row:
-        return False
-    values = row.get('values', [])
-    return any(has_top_border(cell) for cell in values)
+    """Check if a cell has a top border. Alias for has_border(cell, 'top')."""
+    return has_border(cell, "top")
 
 
 def row_has_bottom_border(row: Dict) -> bool:
-    """Check if any cell in a row has a bottom border.
-
-    Args:
-        row: Row dictionary from Google Sheets API (rowData entry).
-
-    Returns:
-        True if any cell in the row has a visible bottom border.
-    """
-    if not row:
-        return False
-    values = row.get('values', [])
-    return any(has_bottom_border(cell) for cell in values)
+    """Check if any cell in a row has a bottom border. Alias for row_has_border(row, 'bottom')."""
+    return row_has_border(row, "bottom")
 
 
 def count_bold_cells_in_row(row: Dict) -> tuple:

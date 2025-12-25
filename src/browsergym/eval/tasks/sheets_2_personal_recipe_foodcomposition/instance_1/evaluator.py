@@ -6,7 +6,6 @@ from typing import List, Dict, Optional, Any
 import time
 import pandas as pd
 import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Base path setup
 def get_base_path():
@@ -34,13 +33,13 @@ from src.browsergym.eval.eval_utils.table_utils import (
     colors_are_distinct,
     matches_keywords,
     find_column_by_keywords,
+    match_columns,
     find_merged_cell_by_text,
     get_merge_column_span,
     is_cell_centered,
     is_cell_italic,
     is_cell_bold,
     row_has_bottom_border,
-    row_has_top_border,
     count_bold_cells_in_row,
 )
 from src.browsergym.eval.eval_utils.models import load_model
@@ -210,81 +209,22 @@ def grade_checkpoint_1():
 
     columns = list(df.columns)
 
-    # Phase 1: Fast keyword matching for all columns
+    # Use standardized match_columns() - keyword matching first, then parallel LLM fallback
     all_columns_to_find = ["Ingredients", "Link"] + ALL_NUTRIENTS
-    column_descriptions = {
-        "Ingredients": "A column for ingredient names",
-        "Link": "A column for links or URLs",
-    }
-    for nutrient in ALL_NUTRIENTS:
-        column_descriptions[nutrient] = f"A column for {nutrient}"
+    required_columns = [(col_name, COLUMN_KEYWORDS.get(col_name, [])) for col_name in all_columns_to_find]
 
-    keyword_matches = {}  # col_name -> matched_column
-    llm_needed = []  # col_names that need LLM fallback
+    if model is None:
+        model = load_model(model_id)
 
+    print(f"  [PARALLEL] Matching {len(required_columns)} columns with keyword + LLM fallback...")
+    match_start = time.time()
+    all_matches = match_columns(df, required_columns, model=model, strict=True, parallel=True, max_workers=5)
+    print(f"  [PARALLEL] Column matching completed in {time.time() - match_start:.2f}s")
+
+    # Log matches for debugging
     for col_name in all_columns_to_find:
-        keywords = COLUMN_KEYWORDS.get(col_name, [])
-        matched_col = find_column_by_keywords(columns, keywords, strict=True)
-        if matched_col:
-            keyword_matches[col_name] = matched_col
-            print(f"  [DEBUG] {col_name} column '{matched_col}' matched via KEYWORD")
-        else:
-            llm_needed.append(col_name)
-
-    # Phase 2: Parallel LLM fallback for unmatched columns
-    llm_matches = {}  # col_name -> matched_column
-    if llm_needed:
-        if model is None:
-            model = load_model(model_id)
-
-        # Build VLM tasks for LLM column matching
-        headers_text = "\n".join([f"{i+1}. {header}" for i, header in enumerate(columns)])
-
-        vlm_tasks = []
-        for col_name in llm_needed:
-            keywords = COLUMN_KEYWORDS.get(col_name, [])
-            keywords_section = f"\nExample keywords that might match: {', '.join(keywords)}" if keywords else ""
-            prompt = f"""You are analyzing Google Sheets column headers to find one that best matches specific criteria.
-
-Criteria: {column_descriptions[col_name]}{keywords_section}
-
-Available column headers:
-{headers_text}
-
-Respond with ONLY the number (1, 2, 3, etc.) of the best matching header, or "NONE" if no header matches."""
-            messages = [
-                {"role": "user", "content": [{"type": "text", "text": prompt}]}
-            ]
-            vlm_tasks.append({'id': col_name, 'messages': messages})
-
-        print(f"  [PARALLEL] Running {len(vlm_tasks)} LLM column matches...")
-        llm_start = time.time()
-
-        # Use ThreadPoolExecutor for more control over response parsing
-        def call_llm_for_column(task):
-            try:
-                response = model(task['messages']).strip().upper()
-                if response == "NONE":
-                    return task['id'], None
-                header_index = int(response) - 1
-                if 0 <= header_index < len(columns):
-                    return task['id'], columns[header_index]
-            except (ValueError, Exception):
-                pass
-            return task['id'], None
-
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            futures = [executor.submit(call_llm_for_column, task) for task in vlm_tasks]
-            for future in as_completed(futures):
-                col_name, matched_col = future.result()
-                if matched_col:
-                    llm_matches[col_name] = matched_col
-                    print(f"  [DEBUG] {col_name} column '{matched_col}' matched via LLM")
-
-        print(f"  [PARALLEL] LLM column matching completed in {time.time() - llm_start:.2f}s")
-
-    # Combine results
-    all_matches = {**keyword_matches, **llm_matches}
+        if col_name in all_matches:
+            print(f"  [DEBUG] {col_name} column '{all_matches[col_name]}' matched")
 
     # Phase 3: Process results and add checkpoint steps
     step_num = 0
@@ -293,7 +233,6 @@ Respond with ONLY the number (1, 2, 3, etc.) of the best matching header, or "NO
     step_num += 1
     step_start = time.time()
     ingredients_col = all_matches.get("Ingredients")
-    match_method = "KEYWORD" if "Ingredients" in keyword_matches else ("LLM" if "Ingredients" in llm_matches else None)
 
     if ingredients_col and columns.index(ingredients_col) == 0:
         matched_columns["Ingredients"] = ingredients_col
@@ -309,7 +248,6 @@ Respond with ONLY the number (1, 2, 3, etc.) of the best matching header, or "NO
     step_num += 1
     step_start = time.time()
     link_col = all_matches.get("Link")
-    match_method = "KEYWORD" if "Link" in keyword_matches else ("LLM" if "Link" in llm_matches else None)
 
     if link_col and columns.index(link_col) == 1:
         matched_columns["Link"] = link_col
@@ -327,12 +265,11 @@ Respond with ONLY the number (1, 2, 3, etc.) of the best matching header, or "NO
         step_start = time.time()
 
         nutrient_col = all_matches.get(nutrient)
-        match_method = "KEYWORD" if nutrient in keyword_matches else ("LLM" if nutrient in llm_matches else None)
 
         if nutrient_col:
             matched_columns[nutrient] = nutrient_col
             checkpoint.add_step(f"{nutrient} Column Present", True, step_num,
-                              f"Found column '{nutrient_col}'" + (" (LLM match)" if match_method == "LLM" else ""),
+                              f"Found column '{nutrient_col}'",
                               execution_time=time.time() - step_start)
         else:
             print(f"  [DEBUG] {nutrient} column NOT FOUND")

@@ -153,59 +153,25 @@ def grade_checkpoint_1_and_2():
         ("Total value of each stock", ["total", "value", "total value", "position"])
     ]
 
-    column_lower = [str(col).lower() for col in df.columns]
     original_columns = [str(col) for col in df.columns]
-    matched_columns = {}
 
+    # Use standardized match_columns() - keyword matching first, then LLM fallback
+    if model is None:
+        model = load_model(model_id)
+    matched_columns = match_columns(df, required_columns, model=model, parallel=True)
+
+    # Add checkpoint steps for each required column
     for step_num, (col_name, keywords) in enumerate(required_columns, start=1):
         step_start = time.time()
-        found = False
-        matched_column = None
-
-        # First try keyword-based matching (fast path)
-        for i, col in enumerate(column_lower):
-            if any(keyword in col for keyword in keywords):
-                found = True
-                matched_column = original_columns[i]
-                matched_columns[col_name] = matched_column
-                break
-
-        step_time = time.time() - step_start
-
-        if found:
+        if col_name in matched_columns:
+            matched_column = matched_columns[col_name]
             checkpoint1.add_step(f"{col_name.title()} Column", True, step_num,
-                              f"Found column matching '{col_name}': '{matched_column}' (keyword match)",
-                              execution_time=step_time)
+                              f"Found column matching '{col_name}': '{matched_column}'",
+                              execution_time=time.time() - step_start)
         else:
-            # Try LLM-based semantic matching as backup
-            print(f"Keyword match failed for '{col_name}', trying LLM semantic matching...")
-            llm_start = time.time()
-
-            try:
-                if model is None:
-                    model = load_model(model_id)
-
-                # Use the enhanced find_matching_column_or_row with example keywords
-                criteria = f"A column representing '{col_name}'"
-                result = find_matching_column_or_row(df, criteria, model, search_type="column", example_keywords=keywords)
-
-                if result is not None:
-                    _, matched_location = result
-                    matched_columns[col_name] = matched_location
-                    llm_time = time.time() - llm_start
-                    checkpoint1.add_step(f"{col_name.title()} Column", True, step_num,
-                                      f"Found column for '{col_name}': '{matched_location}' (LLM semantic match)",
-                                      execution_time=step_time + llm_time)
-                else:
-                    llm_time = time.time() - llm_start
-                    checkpoint1.add_step(f"{col_name.title()} Column", False, step_num,
-                                      f"No column found for '{col_name}' via keyword or LLM matching. Available columns: {', '.join(original_columns)}",
-                                      execution_time=step_time + llm_time)
-            except Exception as e:
-                llm_time = time.time() - llm_start
-                checkpoint1.add_step(f"{col_name.title()} Column", False, step_num,
-                                  f"No column found for '{col_name}'. LLM backup failed: {str(e)}. Available columns: {', '.join(original_columns)}",
-                                  execution_time=step_time + llm_time)
+            checkpoint1.add_step(f"{col_name.title()} Column", False, step_num,
+                              f"No column found for '{col_name}'. Available columns: {', '.join(original_columns)}",
+                              execution_time=time.time() - step_start)
 
     # Now validate the stock names match the reference stocks
     # Create mapping from gold ticker to user ticker for price validation

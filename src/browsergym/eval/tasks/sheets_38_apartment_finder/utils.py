@@ -9,45 +9,8 @@ from typing import Dict, List, Optional, Any
 
 import requests
 from bs4 import BeautifulSoup
-from oxylabs import RealtimeClient
 from playwright.sync_api import sync_playwright
 
-
-# Oxylabs API credentials (kept for backward compatibility)
-OXYLABS_USERNAME = "agentbenchmark_Mcr7q"
-OXYLABS_PASSWORD = "Elpadro117++"
-
-
-def fetch_zillow_page(url: str, raw: bool = False) -> Optional[str]:
-    """
-    Fetch content from a Zillow listing URL using Oxylabs SDK.
-
-    Args:
-        url: The Zillow listing URL to fetch.
-        raw: If True, return raw HTML. If False (default), return cleaned HTML.
-
-    Returns:
-        Page content as string (cleaned or raw HTML), or None if fetch fails.
-    """
-    try:
-        client = RealtimeClient(OXYLABS_USERNAME, OXYLABS_PASSWORD)
-        result = client.universal.scrape_url(url)
-
-        if not result or not result.raw:
-            print(f"No content returned from Oxylabs for {url}")
-            return None
-
-        html_content = result.raw['results'][0]['content']
-
-        if raw:
-            return html_content
-
-        # Return cleaned HTML (scripts, styles removed)
-        return clean_html(html_content)
-
-    except Exception as e:
-        print(f"Error fetching Zillow page via Oxylabs {url}: {e}")
-        return None
 
 
 def clean_html(html: str) -> str:
