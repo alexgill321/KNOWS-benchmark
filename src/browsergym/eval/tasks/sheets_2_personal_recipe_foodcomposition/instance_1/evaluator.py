@@ -40,6 +40,7 @@ from src.browsergym.eval.eval_utils.table_utils import (
     is_cell_italic,
     is_cell_bold,
     row_has_bottom_border,
+    row_has_top_border,
     count_bold_cells_in_row,
 )
 from src.browsergym.eval.eval_utils.models import load_model

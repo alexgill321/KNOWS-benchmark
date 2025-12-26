@@ -924,6 +924,11 @@ def row_has_bottom_border(row: Dict) -> bool:
     return row_has_border(row, "bottom")
 
 
+def row_has_top_border(row: Dict) -> bool:
+    """Check if any cell in a row has a top border. Alias for row_has_border(row, 'top')."""
+    return row_has_border(row, "top")
+
+
 def count_bold_cells_in_row(row: Dict) -> tuple:
     """Count bold and total non-empty cells in a row.
 
