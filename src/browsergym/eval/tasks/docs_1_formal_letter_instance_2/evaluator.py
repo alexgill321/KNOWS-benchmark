@@ -21,7 +21,7 @@ sys.path.append(BASE_PATH)
 
 from src.browsergym.eval.eval_utils.scoring import Checkpoint, Result, EvaluationStep # type: ignore
 from src.browsergym.eval.eval_utils.google_services_utils import *  # type: ignore
-from src.browsergym.eval.eval_utils.text_utils import extract_text_from_pdf, text_exact_match_contained, extract_text_location # type: ignore
+from src.browsergym.eval.eval_utils.text_utils import extract_text_from_pdf, text_exact_match_contained, extract_text_location, get_smallest_x_position # type: ignore
 from src.browsergym.eval.eval_utils.image_utils import * # type: ignore
 from src.browsergym.eval.eval_utils.utils import layout, image_id_from_path # type: ignore
 from src.browsergym.eval.eval_utils.models import load_model # type: ignore
@@ -105,7 +105,7 @@ def setup_document(workspace_doc_id):
     Args:
         workspace_doc_id (str): The Google Docs document ID (gold instance ID) to use
     """
-    global doc_id, gold_text, text_ocr, doc_structure
+    global doc_id, gold_text, text_ocr, doc_structure, smallest_x
 
     if not workspace_doc_id:
         raise ValueError("workspace_doc_id is required")
@@ -124,6 +124,7 @@ def setup_document(workspace_doc_id):
     gold_text = extract_text_from_doc(doc_id, DOCS_SERVICE)
     text_ocr = extract_text_from_pdf(PDF_IMAGES_DIR)
     doc_structure = extract_structure_from_doc(doc_id, DOCS_SERVICE)
+    smallest_x = get_smallest_x_position(text_ocr)
 
 ### Checkpoint 1 ###
 def grade_checkpoint_1(gold_text, text_ocr):
@@ -147,8 +148,10 @@ def grade_checkpoint_1(gold_text, text_ocr):
         step_start = time.time()
         location = extract_text_location(text_ocr, name)
         step_time = time.time() - step_start
-
-        if location.is_upper_left():
+        #adding a space give us extra a value of 13, so if the location is not in the range the smallest + 13 will be in the correct location
+        if int(location.x) >= int(smallest_x) + 13:
+            checkpoint.add_step("Name Location", False, 2, f"Name is not in correct position, found at {location}", execution_time=step_time)
+        elif location.is_upper_left():
             checkpoint.add_step("Name Location", True, 2, f"Name correctly positioned in upper left at {location}", execution_time=step_time)
         else:
             print("Name location failed")
@@ -172,7 +175,9 @@ def grade_checkpoint_1(gold_text, text_ocr):
         step_time = time.time() - step_start
 
         if location is not None:
-            if location.is_upper_left():
+            if int(location.x) >= int(smallest_x) + 13:
+                checkpoint.add_step("Email Location", False, 4, f"Email not in correct position, found at {location}", execution_time=step_time)
+            elif location.is_upper_left():
                 checkpoint.add_step("Email Location", True, 4, f"Email correctly positioned in upper left at {location}", execution_time=step_time)
             else:
                 print("Email location failed")
@@ -196,8 +201,9 @@ def grade_checkpoint_1(gold_text, text_ocr):
         step_start = time.time()
         location = extract_text_location(text_ocr, title_match[0])
         step_time = time.time() - step_start
-
-        if location.is_upper_left():
+        if int(location.x) >= int(smallest_x) + 13:
+            checkpoint.add_step("Title Location", False, 6, f"Title not in correct location, found at {location}", execution_time=step_time)
+        elif location.is_upper_left():
             checkpoint.add_step("Title Location", True, 6, f"Title correctly positioned in upper left at {location}", execution_time=step_time)
         else:
             print("Title location failed")
@@ -261,7 +267,10 @@ def grade_checkpoint_2():
             step_time = time.time() - step_start
             print(f"Location is {exact_size_location}")
             if exact_size_location:
-                if exact_size_location.is_upper_left():
+                if int(exact_size_location.x) >= int(smallest_x) + 13:
+                    print("Image location is not align")
+                    checkpoint.add_step("Logo Location", False, 8, f"Logo not in correct position, found at {exact_size_location}", execution_time=step_time)
+                elif exact_size_location.is_upper_left():
                     print("Image location match successful")
                     checkpoint.add_step("Logo Location", True, 8, f"Logo correctly positioned in upper left at {exact_size_location}", execution_time=step_time)
                 else:
@@ -374,7 +383,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Evaluate formal letter document")
-    parser.add_argument("--workspace_doc_id", type=str, help="Google Docs document ID to evaluate")
+    parser.add_argument("--workspace_doc_id", type=str, default=None, help="Google Docs document ID to evaluate")
     parser.add_argument("--cached_models", type=dict, default=None, help="Dictionary of preloaded models")
     args = parser.parse_args()
 

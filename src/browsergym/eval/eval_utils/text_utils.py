@@ -447,3 +447,13 @@ def numerical_match_with_error(value1, value2, error_percent=5.0):
 
     # Mismatched types (one is list, one is not)
     raise TypeError("Both values must be either single numbers or lists of numbers")
+def get_smallest_x_position(text_ocr):
+    """
+    Loop through all the lines in the text and return the smallest x postion for checking alignment. 
+    """
+    smallest_x = float('inf')
+    for page_num, page_line in text_ocr.items(): 
+        for line in page_line:
+            if line['location'].x < smallest_x:
+                smallest_x = line['location'].x
+    return smallest_x
