@@ -27,12 +27,13 @@ sys.path.append(BASE_PATH)
 
 # Imports
 from src.browsergym.eval.eval_utils.scoring import Checkpoint, Result
-from src.browsergym.eval.eval_utils.google_services_utils import (
-    initialize_google_services,
+from src.browsergym.eval.eval_utils.google_services_utils import initialize_google_services
+from src.browsergym.eval.eval_utils.google_sheets_utils import (
     extract_tables_from_sheet,
+    extract_sheet_data,
     parse_sheet_to_dataframe,
+    get_sheet_content,
 )
-from src.browsergym.eval.eval_utils.google_services_helpers import get_sheet_content
 from src.browsergym.eval.eval_utils.table_utils import (
     get_image_url_from_raw_sheet_cell,
     get_cell_value,

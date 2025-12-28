@@ -492,7 +492,6 @@ def numerical_match_with_error(value1, value2, error_percent=5.0):
     # Mismatched types (one is list, one is not)
     raise TypeError("Both values must be either single numbers or lists of numbers")
 
-
 def fuzzy_match_text(text1: str, text2: str, threshold: int = 80) -> tuple:
     """Perform fuzzy matching between two texts.
 

@@ -417,3 +417,62 @@ def validate_chart_values_match(
             mismatches.append(mismatch_msg)
 
     return match_count, comparison_count, mismatches
+
+
+def identify_chart_vlm(
+    chart_image_1: str,
+    chart_image_2: str,
+    description: str,
+    model,
+) -> str:
+    """Use VLM to identify which chart matches a description.
+
+    Presents two chart images to a vision language model and asks which one
+    best matches the given description.
+
+    Args:
+        chart_image_1: Path to first chart image
+        chart_image_2: Path to second chart image
+        description: What to look for (e.g., "average running speed over time")
+        model: Loaded VLM model (from load_model())
+
+    Returns:
+        str: "1" if first chart matches, "2" if second chart matches,
+             "none" if neither matches
+    """
+    messages = [
+        {
+            "role": "system",
+            "content": [{"type": "text", "text": "You are analyzing charts from a spreadsheet. You will see two charts and must identify which one matches the given description. Answer with just '1', '2', or 'none' if neither chart matches."}]
+        },
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "Chart 1:"},
+                {"type": "image", "image": chart_image_1},
+                {"type": "text", "text": "Chart 2:"},
+                {"type": "image", "image": chart_image_2},
+                {"type": "text", "text": f"Which chart shows {description}? Answer with just '1', '2', or 'none'."}
+            ]
+        }
+    ]
+
+    try:
+        response = model(messages)
+        # Normalize response
+        response_lower = response.strip().lower()
+
+        if '1' in response_lower and '2' not in response_lower:
+            return "1"
+        elif '2' in response_lower and '1' not in response_lower:
+            return "2"
+        elif 'none' in response_lower or 'neither' in response_lower:
+            return "none"
+        else:
+            # Ambiguous response - try to parse
+            print(f"Ambiguous VLM response: '{response}', defaulting to 'none'")
+            return "none"
+
+    except Exception as e:
+        print(f"Error in identify_chart_vlm: {e}")
+        return "none"

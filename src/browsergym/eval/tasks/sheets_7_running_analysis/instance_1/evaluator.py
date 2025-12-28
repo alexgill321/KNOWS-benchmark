@@ -19,28 +19,29 @@ sys.path.append(BASE_PATH)
 
 # Imports
 from src.browsergym.eval.eval_utils.scoring import Checkpoint, Result
-from src.browsergym.eval.eval_utils.google_services_utils import (
-    initialize_google_services,
-    get_sheet_content,
+from src.browsergym.eval.eval_utils.google_services_utils import initialize_google_services
+from src.browsergym.eval.eval_utils.google_sheets_utils import (
     extract_charts_from_sheet,
+    extract_sheet_data,
 )
-from src.browsergym.eval.eval_utils.chart_utils import (
-    debug_chart_structure,
-)
-import requests
-import re
-from src.browsergym.eval.eval_utils.google_services_helpers import detect_header_row
 from src.browsergym.eval.eval_utils.table_utils import (
     match_columns,
     is_text_visible_in_cell,
 )
 from src.browsergym.eval.eval_utils.models import load_model
-from src.browsergym.eval.eval_utils.text_utils import numerical_match_with_error
 
 # Task-specific utilities
 from src.browsergym.eval.tasks.sheets_7_running_analysis.utils import (
     normalize_date,
     load_gold_run_activities,
+    check_all_content_visible,
+    get_chart_axis_labels,
+    check_chart_overlap,
+    extract_baseline_series,
+    find_urls_in_sheet,
+    validate_url_accessible,
+    check_circular_points,
+    find_speed_chart_by_metadata,
 )
 
 # Constants
@@ -60,12 +61,9 @@ DRIVE_SERVICE, SHEETS_SERVICE = initialize_google_services(service_type="sheets"
 # Global variables
 sheet_id = None
 sheet_raw = None
-df = None
-header_row_idx = None  # Index of header row in sheet
+table_data = None  # SheetTable object with position metadata
 rows = None  # Raw row data from sheet
 matched_columns = None  # Shared across checkpoints
-distance_miles_col = None  # Track converted distance column for Checkpoint 3
-speed_minmile_col = None  # Track converted speed column for Checkpoint 3
 chart_data = None  # All charts extracted from the sheet
 
 
@@ -76,122 +74,40 @@ def setup(workspace_doc_id):
     Args:
         workspace_doc_id (str): Google Sheets document ID to evaluate
     """
-    global sheet_id, sheet_raw, df, header_row_idx, rows, chart_data
+    global sheet_id, sheet_raw, df, table_data, rows, chart_data
 
     if workspace_doc_id:
         print(f"Using workspace document ID: {workspace_doc_id}")
         sheet_id = workspace_doc_id
 
-    # Fetch raw sheet data
-    sheet_raw = get_sheet_content(sheet_id, SHEETS_SERVICE)
+    # Extract table data and raw sheet data using extract_sheet_data
+    result = extract_sheet_data(sheet_id, SHEETS_SERVICE, return_raw=True)
 
-    # Extract charts from the sheet
-    chart_data = extract_charts_from_sheet(sheet_id, SHEETS_SERVICE)
-    print(f"Extracted {len(chart_data) if chart_data else 0} charts from spreadsheet")
+    if result:
+        table_data, sheet_raw = result
 
-    # Extract data as DataFrame directly from rowData
+        # Handle case where multiple tables are returned (use first one)
+        if isinstance(table_data, list):
+            table_data = table_data[0] if table_data else None
+
+        if table_data:
+            print(f"Extracted DataFrame with {len(table_data.df)} rows and columns: {list(table_data.df.columns)}")
+            print(f"Table position: rows {table_data.start_row}-{table_data.end_row}, cols {table_data.start_col}-{table_data.end_col}")
+
+    # Extract rows from raw sheet data (needed for visibility check and URL finding)
     if sheet_raw:
         try:
             sheets = sheet_raw.get('sheets', [])
             if sheets:
                 grid_data = sheets[0].get('data', [{}])[0]
                 rows = grid_data.get('rowData', [])
-
-                if rows:
-                    # Use detect_header_row to find the header row
-                    header_row_idx = detect_header_row(rows)
-                    print(f"Detected header row at index: {header_row_idx}")
-
-                    header_row = rows[header_row_idx].get('values', [])
-                    headers = [cell.get('formattedValue', f'Column{i}') for i, cell in enumerate(header_row)]
-
-                    # Extract data rows
-                    data_rows = []
-                    for row in rows[header_row_idx + 1:]:
-                        values = row.get('values', [])
-                        row_data = [cell.get('formattedValue', '') for cell in values]
-                        # Pad to match header length
-                        row_data = (row_data + [''] * len(headers))[:len(headers)]
-                        if any(row_data):  # Skip empty rows
-                            data_rows.append(row_data)
-
-                    df = pd.DataFrame(data_rows, columns=headers)
-                    print(f"Extracted DataFrame with {len(df)} rows and columns: {list(df.columns)}")
         except Exception as e:
-            print(f"Error extracting DataFrame: {e}")
-            df = None
+            print(f"Error extracting rows from sheet_raw: {e}")
+            rows = None
 
-
-def check_all_content_visible(sheet_raw_data, start_row, end_row, num_cols):
-    """
-    Check if all table content is fully visible (no truncation/clipping).
-
-    Args:
-        sheet_raw_data: Raw sheet data from get_sheet_content()
-        start_row: Starting row index of the table (header row)
-        end_row: Ending row index (exclusive)
-        num_cols: Number of columns to check
-
-    Returns:
-        tuple: (all_visible: bool, details: str)
-    """
-    if not sheet_raw_data:
-        return False, "No sheet data available"
-
-    try:
-        # Get column metadata for widths
-        sheets = sheet_raw_data.get('sheets', [])
-        if not sheets:
-            return False, "No sheets found in raw data"
-
-        sheet_data = sheets[0]
-        data_blocks = sheet_data.get('data', [])
-        if not data_blocks:
-            return False, "No data blocks found"
-
-        col_metadata = data_blocks[0].get('columnMetadata', [])
-        row_data = data_blocks[0].get('rowData', [])
-
-        truncated_cells = []
-
-        # Iterate through table cells and check visibility
-        for row_idx in range(start_row, end_row):
-            if row_idx >= len(row_data):
-                continue
-            row = row_data[row_idx]
-            row_values = row.get('values', [])
-
-            for col_idx in range(num_cols):
-                if col_idx >= len(row_values):
-                    continue
-                cell = row_values[col_idx]
-                content = cell.get('formattedValue', '')
-
-                if not content:
-                    continue
-
-                # Get column width (default 100 pixels if not specified)
-                col_width = 100
-                if col_idx < len(col_metadata):
-                    col_width = col_metadata[col_idx].get('pixelSize', 100)
-
-                # Get wrap strategy (default OVERFLOW_CELL)
-                wrap_strategy = cell.get('effectiveFormat', {}).get('wrapStrategy', 'OVERFLOW_CELL')
-
-                if not is_text_visible_in_cell(content, col_width, wrap_strategy, row_values, col_idx):
-                    # Track which cells are truncated
-                    truncated_cells.append(f"Row {row_idx + 1}, Col {col_idx + 1}: '{content[:30]}...'")
-
-        if truncated_cells:
-            # Limit to first 5 examples
-            examples = truncated_cells[:5]
-            more = f" (+{len(truncated_cells) - 5} more)" if len(truncated_cells) > 5 else ""
-            return False, f"Truncated cells: {'; '.join(examples)}{more}"
-
-        return True, "All content fully visible"
-
-    except Exception as e:
-        return False, f"Error checking visibility: {str(e)}"
+    # Extract charts from the sheet
+    chart_data = extract_charts_from_sheet(sheet_id, SHEETS_SERVICE)
+    print(f"Extracted {len(chart_data) if chart_data else 0} charts from spreadsheet")
 
 
 def grade_checkpoint_1():
@@ -210,6 +126,11 @@ def grade_checkpoint_1():
 
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=4, result=0, name="Data Table Structure")
+
+    if table_data:
+        df = table_data.df
+    else:
+        df = None
 
     # Check if data was extracted
     if df is None or df.empty:
@@ -269,11 +190,11 @@ def grade_checkpoint_1():
 
     # Step 4: Content visibility
     step_start = time.time()
-    # Calculate table bounds from header_row_idx and df length
-    start_row = header_row_idx if header_row_idx is not None else 0
-    end_row = start_row + len(df) + 1  # +1 for header row
+    # Use table bounds from SheetTable metadata
+    start_row = table_data.start_row if table_data else 0
+    end_row = table_data.end_row if table_data else start_row + len(df) + 1
     num_cols = len(df.columns)
-    all_visible, visibility_details = check_all_content_visible(sheet_raw, start_row, end_row, num_cols)
+    all_visible, visibility_details = check_all_content_visible(sheet_raw, start_row, end_row, num_cols, is_text_visible_in_cell)
     checkpoint.add_step(
         "Content Visibility",
         all_visible,
@@ -298,10 +219,18 @@ def grade_checkpoint_2():
     Also identifies which columns contain the converted values (miles, min/mile)
     for use in Checkpoint 3 (charts).
     """
-    global distance_miles_col, speed_minmile_col
-
+    global matched_columns, model
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=3, result=0, name="Data Table Content Accuracy")
+    
+    df = table_data.df if table_data else None
+
+    if df is None or df.empty:
+        checkpoint.add_step("Date Match", False, 1, "No table data available")
+        checkpoint.add_step("Distance Match", False, 2, "No table data available")
+        checkpoint.add_step("Speed Match", False, 3, "No table data available")
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
 
     # Load gold data
     gold_csv_path = os.path.join(DATA_DIR, "gold_activities.csv")
@@ -321,15 +250,6 @@ def grade_checkpoint_2():
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    # Get user data from table
-    user_df = df
-    if user_df is None or user_df.empty:
-        checkpoint.add_step("Date Match", False, 1, "No table data available")
-        checkpoint.add_step("Distance Match", False, 2, "No table data available")
-        checkpoint.add_step("Speed Match", False, 3, "No table data available")
-        checkpoint.execution_time = time.time() - checkpoint_start
-        return checkpoint
-
     # Get date column from checkpoint 1 matching
     date_col = matched_columns.get("Activity Date") if matched_columns else None
 
@@ -339,14 +259,12 @@ def grade_checkpoint_2():
         ("Distance (Miles)", ["distance (miles)", "distance (mi)", "miles", "(miles)"]),
         ("Speed (min/mile)", ["min/mile", "(min/mile)", "pace (min/mile)", "min per mile"]),
     ]
-    unit_matched = match_columns(user_df, unit_columns, model=None, strict=False)
+    unit_matches = match_columns(df, unit_columns, model=model, strict=True)
 
-    dist_col = unit_matched.get("Distance (Miles)")
-    speed_col = unit_matched.get("Speed (min/mile)")
-
-    if DEBUG:
-        print(f"Matched distance (miles) column: {dist_col}")
-        print(f"Matched speed (min/mile) column: {speed_col}")
+    if unit_matches not in [None, {}]:
+        matched_columns.update(unit_matches)
+        dist_col = matched_columns.get("Distance (Miles)")
+        speed_col = matched_columns.get("Speed (min/mile)")
 
     # Build gold data lookup by normalized date
     # Each entry: normalized_date -> {distance_km, distance_miles, distance_m, speed_ms, speed_kmh, speed_minmile}
@@ -375,9 +293,9 @@ def grade_checkpoint_2():
     failed_distance_rows = []
 
     # Validate row by row
-    for idx, user_row in user_df.iterrows():
+    for idx, user_row in df.iterrows():
         # Get user date
-        if date_col and date_col in user_df.columns:
+        if date_col and date_col in df.columns:
             user_date = normalize_date(str(user_row[date_col]))
         else:
             continue
@@ -388,7 +306,7 @@ def grade_checkpoint_2():
             gold_row = gold_lookup[user_date]
 
             # Check distance for this row - ONLY accept miles (per task.md requirements)
-            if dist_col and dist_col in user_df.columns:
+            if dist_col and dist_col in df.columns:
                 try:
                     user_dist = float(user_row[dist_col])
                     gold_miles = gold_row['distance_miles']
@@ -409,7 +327,7 @@ def grade_checkpoint_2():
                     pass
 
             # Check speed for this row - ONLY accept min/mile (per task.md requirements)
-            if speed_col and speed_col in user_df.columns:
+            if speed_col and speed_col in df.columns:
                 try:
                     user_speed = float(user_row[speed_col])
                     gold_minmile = gold_row['speed_minmile']
@@ -476,318 +394,6 @@ def grade_checkpoint_2():
     return checkpoint
 
 
-# =============================================================================
-# Checkpoint 3 Helper Functions
-# =============================================================================
-
-def find_speed_chart(charts):
-    """
-    Find the speed over time chart from all charts.
-
-    Looks for scatter/line charts with speed-related title or axis labels.
-
-    Args:
-        charts: List of chart objects from extract_charts_from_sheet()
-
-    Returns:
-        tuple: (chart, chart_type) or (None, None) if not found
-    """
-    if not charts:
-        return None, None
-
-    speed_keywords = ['speed', 'pace', 'min/mile', 'min per mile', 'running speed']
-    time_keywords = ['time', 'date', 'over time', 'progression']
-
-    for chart in charts:
-        chart_type = chart.get('chart_type', '').upper()
-        title = chart.get('title', '').lower()
-
-        # Check if it's a scatter or line chart
-        if chart_type not in ['SCATTER', 'LINE', 'COMBO', 'AREA']:
-            continue
-
-        # Check title for speed-related keywords
-        has_speed = any(kw in title for kw in speed_keywords)
-        has_time = any(kw in title for kw in time_keywords)
-
-        if has_speed or has_time:
-            return chart, chart_type
-
-        # Check axis labels if title doesn't match
-        raw_chart = chart.get('raw_chart', {})
-        spec = raw_chart.get('spec', {})
-        basic_chart = spec.get('basicChart', {})
-        axes = basic_chart.get('axis', [])
-
-        for axis in axes:
-            axis_title = axis.get('title', '').lower()
-            if any(kw in axis_title for kw in speed_keywords):
-                return chart, chart_type
-
-    # If no speed chart found by keywords, return first scatter/line chart
-    for chart in charts:
-        chart_type = chart.get('chart_type', '').upper()
-        if chart_type in ['SCATTER', 'LINE', 'COMBO']:
-            return chart, chart_type
-
-    return None, None
-
-
-def get_chart_axis_labels(chart):
-    """
-    Extract X and Y axis labels from chart spec.
-
-    Args:
-        chart: Chart object from extract_charts_from_sheet()
-
-    Returns:
-        dict: {'x_axis': str, 'y_axis': str} with axis titles
-    """
-    result = {'x_axis': '', 'y_axis': ''}
-
-    raw_chart = chart.get('raw_chart', {})
-    spec = raw_chart.get('spec', {})
-    basic_chart = spec.get('basicChart', {})
-    axes = basic_chart.get('axis', [])
-
-    for axis in axes:
-        position = axis.get('position', '').upper()
-        title = axis.get('title', '')
-
-        if position == 'BOTTOM_AXIS':
-            result['x_axis'] = title
-        elif position in ['LEFT_AXIS', 'RIGHT_AXIS']:
-            result['y_axis'] = title
-
-    return result
-
-
-def check_chart_overlap(chart, table_start_row, table_end_row, other_charts):
-    """
-    Check if chart overlaps with table or other charts.
-
-    Args:
-        chart: Chart object to check
-        table_start_row: Starting row of the data table
-        table_end_row: Ending row of the data table
-        other_charts: List of other chart objects
-
-    Returns:
-        tuple: (has_overlap: bool, overlap_details: str)
-    """
-    position = chart.get('position', {})
-    if position.get('type') != 'overlay':
-        return False, "Chart not in overlay position"
-
-    anchor_row = position.get('anchor_cell', {}).get('row', 0)
-    anchor_col = position.get('anchor_cell', {}).get('col', 0)
-    height = position.get('height', 0)
-    width = position.get('width', 0)
-
-    # Estimate chart end row (assuming ~20 pixels per row)
-    chart_end_row = anchor_row + (height // 20) if height else anchor_row + 15
-
-    # Check overlap with table
-    if anchor_row < table_end_row and chart_end_row > table_start_row:
-        return True, f"Chart overlaps with data table (chart rows {anchor_row}-{chart_end_row}, table rows {table_start_row}-{table_end_row})"
-
-    # Check overlap with other charts
-    chart_id = chart.get('chart_id')
-    for other in other_charts:
-        if other.get('chart_id') == chart_id:
-            continue
-
-        other_pos = other.get('position', {})
-        if other_pos.get('type') != 'overlay':
-            continue
-
-        other_anchor_row = other_pos.get('anchor_cell', {}).get('row', 0)
-        other_anchor_col = other_pos.get('anchor_cell', {}).get('col', 0)
-        other_height = other_pos.get('height', 0)
-        other_width = other_pos.get('width', 0)
-        other_end_row = other_anchor_row + (other_height // 20) if other_height else other_anchor_row + 15
-        other_end_col = other_anchor_col + (other_width // 100) if other_width else other_anchor_col + 6
-
-        chart_end_col = anchor_col + (width // 100) if width else anchor_col + 6
-
-        # Check row overlap
-        row_overlap = anchor_row < other_end_row and chart_end_row > other_anchor_row
-        # Check column overlap
-        col_overlap = anchor_col < other_end_col and chart_end_col > other_anchor_col
-
-        if row_overlap and col_overlap:
-            return True, f"Chart overlaps with another chart (ID: {other.get('chart_id')})"
-
-    return False, "No overlap detected"
-
-
-def extract_baseline_series(chart):
-    """
-    Extract baseline line series from chart (series beyond main data).
-
-    Baselines are typically constant-value horizontal lines.
-
-    Args:
-        chart: Chart object from extract_charts_from_sheet()
-
-    Returns:
-        list: List of baseline series info dicts
-    """
-    raw_chart = chart.get('raw_chart', {})
-    spec = raw_chart.get('spec', {})
-    basic_chart = spec.get('basicChart', {})
-    all_series = basic_chart.get('series', [])
-
-    baselines = []
-
-    # Skip the first series (main data) and look for baseline series
-    for i, series in enumerate(all_series):
-        series_info = {
-            'index': i,
-            'type': series.get('type', 'UNKNOWN'),
-            'line_style': None,
-            'color': None,
-            'target_axis': series.get('targetAxis', 'LEFT_AXIS'),
-        }
-
-        # Check for line style (dotted/dashed)
-        line_style = series.get('lineStyle', {})
-        if line_style:
-            series_info['line_style'] = line_style.get('type', 'SOLID')
-
-        # Check color
-        color = series.get('color', {})
-        if color:
-            series_info['color'] = color
-
-        # Get data source range
-        series_data = series.get('series', {})
-        source_range = series_data.get('sourceRange', {})
-        if source_range:
-            sources = source_range.get('sources', [])
-            if sources:
-                src = sources[0]
-                series_info['source_range'] = {
-                    'start_row': src.get('startRowIndex'),
-                    'end_row': src.get('endRowIndex'),
-                    'start_col': src.get('startColumnIndex'),
-                    'end_col': src.get('endColumnIndex'),
-                }
-
-        baselines.append(series_info)
-
-    return baselines
-
-
-def find_urls_in_sheet(sheet_rows, start_row, num_rows=20):
-    """
-    Find URLs in cells starting from a specific row.
-
-    Args:
-        sheet_rows: Raw rowData from sheet
-        start_row: Row index to start searching from
-        num_rows: Number of rows to search
-
-    Returns:
-        list: List of URLs found
-    """
-    urls = []
-    url_pattern = re.compile(r'https?://[^\s<>"{}|\\^`\[\]]+')
-
-    for row_idx in range(start_row, min(start_row + num_rows, len(sheet_rows))):
-        row = sheet_rows[row_idx] if row_idx < len(sheet_rows) else {}
-        values = row.get('values', [])
-
-        for cell in values:
-            # Check formatted value
-            content = cell.get('formattedValue', '')
-            if content:
-                found_urls = url_pattern.findall(content)
-                urls.extend(found_urls)
-
-            # Check hyperlink
-            hyperlink = cell.get('hyperlink', '')
-            if hyperlink and hyperlink.startswith('http'):
-                urls.append(hyperlink)
-
-    return list(set(urls))  # Remove duplicates
-
-
-def validate_url_accessible(url, timeout=10):
-    """
-    Check if URL is accessible via HTTP request.
-
-    Args:
-        url: URL to validate
-        timeout: Request timeout in seconds
-
-    Returns:
-        tuple: (is_accessible: bool, details: str)
-    """
-    try:
-        response = requests.head(url, timeout=timeout, allow_redirects=True,
-                                  headers={'User-Agent': 'Mozilla/5.0'})
-        if response.status_code < 400:
-            return True, f"URL accessible (status {response.status_code})"
-        else:
-            return False, f"URL returned status {response.status_code}"
-    except requests.exceptions.Timeout:
-        return False, "URL request timed out"
-    except requests.exceptions.RequestException as e:
-        return False, f"URL request failed: {str(e)[:50]}"
-
-
-def check_circular_points(chart, chart_type):
-    """
-    Check if chart displays data as circular points.
-
-    Args:
-        chart: Chart object
-        chart_type: Type of chart (SCATTER, LINE, etc.)
-
-    Returns:
-        tuple: (has_circular_points: bool, details: str)
-    """
-    # SCATTER charts always show points
-    if chart_type == 'SCATTER':
-        return True, "Scatter chart displays points"
-
-    # For LINE charts, check if points are visible and line is hidden
-    raw_chart = chart.get('raw_chart', {})
-    spec = raw_chart.get('spec', {})
-    basic_chart = spec.get('basicChart', {})
-    series_list = basic_chart.get('series', [])
-
-    if not series_list:
-        return False, "No series found in chart"
-
-    # Check first series (main data)
-    main_series = series_list[0]
-
-    # Check point style
-    point_style = main_series.get('pointStyle', {})
-    point_size = point_style.get('size', 0)
-
-    # Check line style
-    line_style = main_series.get('lineStyle', {})
-    line_width = line_style.get('width', 2)  # Default line width is usually 2
-
-    # For points-only: need positive point size and zero/minimal line width
-    if point_size > 0 and line_width == 0:
-        return True, f"Line chart with points (size={point_size}) and no line"
-
-    # Check if it's a combo chart type showing points
-    series_type = main_series.get('type', '')
-    if series_type == 'SCATTER':
-        return True, "Series type is SCATTER"
-
-    # If point style exists with non-zero size, likely has points
-    if point_size > 0:
-        return True, f"Chart has point markers (size={point_size})"
-
-    return False, f"Could not confirm circular points (chart_type={chart_type}, point_size={point_size})"
-
-
 def grade_checkpoint_3():
     """
     Grade Checkpoint 3: Speed Over Time Plot (15 pts, consolidated to 14 steps).
@@ -811,18 +417,25 @@ def grade_checkpoint_3():
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=14, result=0, name="Speed Over Time Plot")
 
-    # Find the speed chart
-    speed_chart, chart_type = find_speed_chart(chart_data)
-
-    if not speed_chart:
-        # No chart found - fail all steps
+    # Check if any charts exist
+    if not chart_data:
+        error_msg = "No charts found in spreadsheet"
         for i in range(1, 15):
-            checkpoint.add_step(f"Step {i}", False, i, "No speed chart found in spreadsheet")
+            checkpoint.add_step(f"Step {i}", False, i, error_msg)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    if DEBUG:
-        debug_chart_structure(speed_chart)
+    # Find speed chart by metadata (title -> axis labels -> series data)
+    speed_chart = find_speed_chart_by_metadata(chart_data, matched_columns, df)
+
+    if not speed_chart:
+        error_msg = "Could not identify speed chart by title, axis labels, or series data"
+        for i in range(1, 15):
+            checkpoint.add_step(f"Step {i}", False, i, error_msg)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
+
+    chart_type = speed_chart.get('chart_type', 'UNKNOWN')
 
     # Get axis labels
     axis_labels = get_chart_axis_labels(speed_chart)
@@ -869,8 +482,8 @@ def grade_checkpoint_3():
 
     # Step 4: Chart not placed over other charts/tables
     step_start = time.time()
-    table_start = header_row_idx if header_row_idx is not None else 0
-    table_end = table_start + len(df) + 1 if df is not None else table_start + 110
+    table_start = table_data.start_row if table_data else 0
+    table_end = table_data.end_row if table_data else (table_start + len(df) + 1 if df is not None else table_start + 110)
     has_overlap, overlap_details = check_chart_overlap(speed_chart, table_start, table_end, chart_data or [])
     checkpoint.add_step(
         "No Chart Overlap",

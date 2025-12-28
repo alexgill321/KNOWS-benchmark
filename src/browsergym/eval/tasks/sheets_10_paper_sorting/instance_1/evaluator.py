@@ -29,10 +29,13 @@ sys.path.append(BASE_PATH)
 from src.browsergym.eval.eval_utils.scoring import Checkpoint, Result
 from src.browsergym.eval.eval_utils.google_services_utils import (
     initialize_google_services,
-    extract_tables_from_sheet,
     extract_drive_file_id
 )
-from src.browsergym.eval.eval_utils.google_services_helpers import get_sheet_content
+from src.browsergym.eval.eval_utils.google_sheets_utils import (
+    extract_tables_from_sheet,
+    extract_sheet_data,
+    get_sheet_content,
+)
 from src.browsergym.eval.eval_utils.text_utils import (
     text_fuzzy_match_contained_long,
     fuzzy_match_text,
