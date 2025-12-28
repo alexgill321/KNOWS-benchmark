@@ -917,28 +917,31 @@ def grade_checkpoint_3():
 
 def grade_checkpoint_4():
     """
-    Checkpoint 4 (10pt): Formatting
+    Checkpoint 4 (20pt): Formatting
 
     Steps (10pt each, percentage-based):
     1. Extra Images (Checks for any extra images that were added to the slides)
+    2. Extra Textboxes (Checks for any extra textboxes that were addes to the slides)
 
-    Higher Scores mean that the agent did not add extra images
+    Higher Scores mean that the agent did not add extra images or textboxes
     """
 
     print("----------------- CHECKPOINT 4 ----------------")
 
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total = 10, result = 0, name="Formatting Check")
+    checkpoint = Checkpoint(total = 20, result = 0, name="Formatting Check")
 
     slides = presentation_data.get('slides',[])
     total_images_of_original_slides= len(original_locations) 
     new_total_images_of_new_slides = sum(len(imgs) for imgs in cached_slide_images.values())
+    textbox_at_location_count = 0
     step_start = time.time()
 
     img_box_count = {}
+    textbox_count = {}
     original_image_count = {}
 
-    # Get the amount of images in each slide in the new presentation
+    # Get the amount of images and textboxes in each slide in the new presentation
     for slide_index in range(len(slides)):
         images = cached_slide_images.get(slide_index, [])
         img_box_count[slide_index] = len(images)
@@ -951,6 +954,22 @@ def grade_checkpoint_4():
             original_image_count[slide] +=1
         else:
             original_image_count[slide] = 1
+        
+        slide_index = info.get('slide_index', 0)
+        original_bbox = info.get('bbox', {})
+
+        text_boxes = cached_text_boxes.get(slide_index, [])
+        matched_textbox = None
+
+
+        for tb in text_boxes:
+            tb_bbox = tb.get('bbox', {})
+            if is_bbox_mostly_inside(tb_bbox, original_bbox, threshold=0.6):
+                matched_textbox = tb
+                break
+
+        if matched_textbox:
+            textbox_at_location_count += 1
     
     #if slide count matches, max points assigned, otherwise the amount of slides with extra images deduct  points from the score
     extra_img_slides = []
@@ -984,6 +1003,41 @@ def grade_checkpoint_4():
             max_score=10,
             execution_time= time.time() - step_start
         )
+
+    #text-box check
+    #no old slide data for heck boxes, just make sure no extra textboxes were added under the image
+
+    if( total_images_of_original_slides == textbox_at_location_count):
+        checkpoint.add_step(
+        "Textbox Amount in Slides is Equal",
+        True,
+        2,
+        f"No extra textboxes were added {textbox_at_location_count}",
+        score = 10,
+        max_score=10,
+        execution_time= time.time() - step_start
+        )
+    if(total_images_of_original_slides < textbox_at_location_count):
+        checkpoint.add_step(
+        "Textbox Amount in Slides is Equal",
+        False,
+        2,
+        f"Amount of boxes were added {textbox_at_location_count}",
+        score = 0,
+        max_score=10,
+        execution_time= time.time() - step_start
+        )
+    if(total_images_of_original_slides > textbox_at_location_count):
+        checkpoint.add_step(
+        "Textbox Amount in Slides is Equal",
+        False,
+        2,
+        f"Amount of boxes are missing {textbox_at_location_count}",
+        score = 0,
+        max_score=10,
+        execution_time= time.time() - step_start
+    )
+        
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
