@@ -68,6 +68,7 @@ DATA_DIR = os.path.join(TASK_DIR, "data/")
 GOLD_IMAGES_DIR = os.path.join(DATA_DIR, "gold_images/")
 GOLD_DESCRIPTIONS_CSV = os.path.join(DATA_DIR, "gold_descriptions.csv")
 ORIGINAL_LOCATIONS_JSON = os.path.join(DATA_DIR, "original_image_locations.json")
+ORIGINAL_TEXTBOX_LOCATIONS_JSON = os.path.join(DATA_DIR,"original_textbox_locations.json")
 DRIVE_FOLDER_ID = "19hN98W-JWHjwpoRGg5tT4z75oKMM5i9G"
 
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
@@ -81,6 +82,7 @@ presentation_id = None
 presentation_data = None
 gold_descriptions = None
 original_locations = None
+original_textbox_locations = None
 
 # Cached slide data (populated by prefetch)
 cached_slide_images = {}  # slide_index -> list of (img_info, local_path)
@@ -89,7 +91,7 @@ cached_text_boxes = {}    # slide_index -> list of text boxes
 
 def load_gold_data():
     """Load gold descriptions and original image locations."""
-    global gold_descriptions, original_locations
+    global gold_descriptions, original_locations, original_textbox_locations
 
     # Load gold descriptions
     gold_descriptions = {}
@@ -110,6 +112,14 @@ def load_gold_data():
     else:
         print(f"WARNING: Original locations file not found: {ORIGINAL_LOCATIONS_JSON}")
         original_locations = {}
+    
+    if os.path.exists(ORIGINAL_TEXTBOX_LOCATIONS_JSON):
+        with open(ORIGINAL_TEXTBOX_LOCATIONS_JSON,'r',encoding='utf-8') as f:
+            original_textbox_locations = json.load(f)
+            print(f"Loaded {len(original_textbox_locations)} original textbox locations")
+    else:
+        print("Original textbox location file not found")
+        original_textbox_locations = {}
 
 
 def setup_presentation(workspace_doc_id):
@@ -933,8 +943,9 @@ def grade_checkpoint_4():
 
     slides = presentation_data.get('slides',[])
     total_images_of_original_slides= len(original_locations) 
+    total_textboxes_of_original_slides = len(original_textbox_locations)
     new_total_images_of_new_slides = sum(len(imgs) for imgs in cached_slide_images.values())
-    textbox_at_location_count = 0
+    new_total_textboxes = sum(len(txt) for txt in cached_text_boxes.values())
     step_start = time.time()
 
     img_box_count = {}
@@ -954,22 +965,16 @@ def grade_checkpoint_4():
             original_image_count[slide] +=1
         else:
             original_image_count[slide] = 1
-        
-        slide_index = info.get('slide_index', 0)
-        original_bbox = info.get('bbox', {})
+    
+    # Get the amount of original textboxes
+    for info in original_textbox_locations:
+        slide = info.get('slide_index',0)
 
-        text_boxes = cached_text_boxes.get(slide_index, [])
-        matched_textbox = None
+        if(slide in textbox_count):
+            textbox_count[slide] += 1
+        else:
+            textbox_count[slide] = 1
 
-
-        for tb in text_boxes:
-            tb_bbox = tb.get('bbox', {})
-            if is_bbox_mostly_inside(tb_bbox, original_bbox, threshold=0.6):
-                matched_textbox = tb
-                break
-
-        if matched_textbox:
-            textbox_at_location_count += 1
     
     #if slide count matches, max points assigned, otherwise the amount of slides with extra images deduct  points from the score
     extra_img_slides = []
@@ -1005,38 +1010,28 @@ def grade_checkpoint_4():
         )
 
     #text-box check
-    #no old slide data for heck boxes, just make sure no extra textboxes were added under the image
-
-    if( total_images_of_original_slides == textbox_at_location_count):
+    #expected needs the original images times 2 because it will add the  underneath textboxes and the textboxes for the link
+    expected_textboxcount = total_images_of_original_slides*2 + total_textboxes_of_original_slides
+    if(new_total_textboxes == expected_textboxcount):
         checkpoint.add_step(
-        "Textbox Amount in Slides is Equal",
-        True,
-        2,
-        f"No extra textboxes were added {textbox_at_location_count}",
-        score = 10,
-        max_score=10,
-        execution_time= time.time() - step_start
+            "Extra textbox check",
+            True,
+            2,
+            "No extra images were added",
+            score = 10,
+            max_score=10,
+            execution_time= time.time() - step_start
         )
-    if(total_images_of_original_slides < textbox_at_location_count):
+    else:
         checkpoint.add_step(
-        "Textbox Amount in Slides is Equal",
-        False,
-        2,
-        f"Amount of boxes were added {textbox_at_location_count}",
-        score = 0,
-        max_score=10,
-        execution_time= time.time() - step_start
+            "Extra textbox check",
+            False,
+            2,
+            f"expected textbox {expected_textboxcount}, actual {new_total_textboxes}",
+            score = 10,
+            max_score=10,
+            execution_time= time.time() - step_start
         )
-    if(total_images_of_original_slides > textbox_at_location_count):
-        checkpoint.add_step(
-        "Textbox Amount in Slides is Equal",
-        False,
-        2,
-        f"Amount of boxes are missing {textbox_at_location_count}",
-        score = 0,
-        max_score=10,
-        execution_time= time.time() - step_start
-    )
         
 
     checkpoint.execution_time = time.time() - checkpoint_start
