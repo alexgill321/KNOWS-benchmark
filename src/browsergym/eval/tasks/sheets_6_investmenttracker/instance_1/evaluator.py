@@ -146,8 +146,8 @@ def grade_checkpoint_1_and_2():
     required_columns = [
         ("Stock Name", ["name", "stock", "company"]),
         ("Ticker Symbol", ["ticker", "symbol", "ticker symbol"]),
-        ("Current Price", ["current", "current price", "market price"]),
-        ("Past Price", ["past", "past price", "q2 2023", "historical", "initial"]),
+        ("Current Price", ["current", "current price", "market price", "current price ($)"]),
+        ("Past Price", ["past", "past price", "q2 2023", "q2 2023 price", "q2 2023 price ($)", "historical", "initial"]),
         ("Gain/Loss", ["gain", "loss", "gain/loss", "change", "profit"]),
         ("Number of shares owned", ["shares", "quantity", "owned", "holdings"]),
         ("Total value of each stock", ["total", "value", "total value", "position"])

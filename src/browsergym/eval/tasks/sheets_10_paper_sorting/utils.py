@@ -269,6 +269,9 @@ def compare_authors_list(user_authors: List[str], gold_authors: List[str],
     Returns:
         Tuple of (is_match, details_message).
     """
+    # Import normalize_name from eval_utils
+    from src.browsergym.eval.eval_utils.text_utils import normalize_name
+
     if not user_authors and not gold_authors:
         return True, "Both author lists are empty"
 
@@ -278,9 +281,9 @@ def compare_authors_list(user_authors: List[str], gold_authors: List[str],
     if not gold_authors:
         return False, "Gold author list is empty"
 
-    # Normalize all names
-    user_normalized = [normalize_author_name(a) for a in user_authors]
-    gold_normalized = [normalize_author_name(a) for a in gold_authors]
+    # Normalize all names using eval_utils normalize_name
+    user_normalized = [normalize_name(a, remove_suffixes=True) for a in user_authors]
+    gold_normalized = [normalize_name(a, remove_suffixes=True) for a in gold_authors]
 
     if strict:
         # Exact match required

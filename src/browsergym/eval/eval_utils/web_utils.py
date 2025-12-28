@@ -1,8 +1,9 @@
 """Web utilities for fetching and downloading content from URLs."""
 
 import os
+import re
 import requests
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 from urllib.parse import urlparse
 
 # Domains known to block programmatic image downloads (anti-hotlinking, bot protection, etc.)
@@ -62,6 +63,39 @@ def download_image_from_url(url: str, temp_dir: str, timeout: int = 15) -> str:
                 return temp_path
     except Exception as e:
         print(f"Failed to download image from {url}: {e}")
+    return None
+
+
+def extract_id_from_url(url: str, patterns: List[str]) -> Optional[str]:
+    """Extract an ID from a URL using regex patterns.
+
+    Useful for extracting identifiers from URLs like arXiv IDs, YouTube video IDs,
+    or any other URL-embedded identifier.
+
+    Args:
+        url: URL to parse.
+        patterns: List of regex patterns, each with a capture group for the ID.
+            Patterns are tried in order; first match wins.
+
+    Returns:
+        Extracted ID string, or None if no pattern matched.
+
+    Examples:
+        >>> arxiv_patterns = [
+        ...     r'arxiv\\.org/(?:abs|pdf)/(\\d{4}\\.\\d{4,5})(?:v\\d+)?',
+        ...     r'(\\d{4}\\.\\d{4,5})(?:v\\d+)?\\.pdf',
+        ... ]
+        >>> extract_id_from_url('https://arxiv.org/abs/2301.12345', arxiv_patterns)
+        '2301.12345'
+    """
+    if not url or not patterns:
+        return None
+
+    for pattern in patterns:
+        match = re.search(pattern, url, re.IGNORECASE)
+        if match:
+            return match.group(1)
+
     return None
 
 

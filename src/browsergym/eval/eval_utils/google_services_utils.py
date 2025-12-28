@@ -1,9 +1,11 @@
 import sys
 import os
+import re
 sys.path.append(os.getcwd())
 from src.browsergym.eval.eval_utils.google_services_helpers import *
 import requests
 import mimetypes
+from urllib.parse import urlparse, parse_qs
 from google.oauth2.service_account import Credentials # For Service Account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
@@ -140,6 +142,39 @@ def _initialize_from_secret_manager(service_type):
 
     print("Successfully initialized Google API services using Service Account from Secret Manager.")
     return _build_services_from_credentials(credentials, service_type)
+
+
+def extract_drive_file_id(url: str) -> str:
+    """Extract Google Drive file ID from a URL.
+
+    Handles various Google Drive and Docs URL formats:
+    - https://drive.google.com/file/d/FILE_ID/view
+    - https://drive.google.com/open?id=FILE_ID
+    - https://docs.google.com/document/d/FILE_ID/edit
+    - https://docs.google.com/spreadsheets/d/FILE_ID/edit
+    - https://docs.google.com/presentation/d/FILE_ID/edit
+
+    Args:
+        url: The Google Drive URL to parse.
+
+    Returns:
+        The file ID string, or None if not found.
+    """
+    if not url:
+        return None
+
+    # Pattern 1: /d/FILE_ID/ (most common)
+    match = re.search(r'/d/([a-zA-Z0-9_-]+)', url)
+    if match:
+        return match.group(1)
+
+    # Pattern 2: ?id=FILE_ID (legacy format)
+    parsed = urlparse(url)
+    query_params = parse_qs(parsed.query)
+    if 'id' in query_params:
+        return query_params['id'][0]
+
+    return None
 
 
 def search_doc(filename, service, folder_id=None):

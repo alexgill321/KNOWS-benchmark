@@ -1,4 +1,5 @@
-
+import unicodedata
+from typing import List, Optional
 from rapidfuzz import fuzz, process
 
 # Global cache for DocTR OCR model to avoid reloading
@@ -517,4 +518,105 @@ def fuzzy_match_text(text1: str, text2: str, threshold: int = 80) -> tuple:
     score = fuzz.token_sort_ratio(text1, text2)
 
     return score >= threshold, score
+
+
+def split_delimited_text(text: str, delimiters: List[str] = None) -> List[str]:
+    """Split text by multiple delimiters.
+
+    Useful for parsing comma-separated lists, author lists, or any text
+    with multiple possible delimiters.
+
+    Args:
+        text: Text to split.
+        delimiters: List of delimiter strings to split by.
+            Default: [',', '\\n', ' and ']
+            Delimiters are applied in order; the text is first split by
+            the first delimiter, then each part by the second, etc.
+
+    Returns:
+        List of non-empty stripped strings.
+
+    Examples:
+        >>> split_delimited_text("Alice, Bob and Charlie")
+        ['Alice', 'Bob', 'Charlie']
+        >>> split_delimited_text("One\\nTwo\\nThree", delimiters=['\\n'])
+        ['One', 'Two', 'Three']
+    """
+    if not text:
+        return []
+
+    if delimiters is None:
+        delimiters = [',', '\n', ' and ']
+
+    # Start with the full text as a single item
+    parts = [text]
+
+    # Apply each delimiter in sequence
+    for delimiter in delimiters:
+        new_parts = []
+        for part in parts:
+            if delimiter == ' and ':
+                # Case-insensitive replacement for ' and '
+                import re
+                split_parts = re.split(r'\s+and\s+', part, flags=re.IGNORECASE)
+            else:
+                split_parts = part.split(delimiter)
+            new_parts.extend(split_parts)
+        parts = new_parts
+
+    # Strip whitespace and remove empty strings
+    return [p.strip() for p in parts if p.strip()]
+
+
+# Common name suffixes to remove during normalization
+_NAME_SUFFIXES = [' jr.', ' jr', ' sr.', ' sr', ' iii', ' ii', ' iv', ' phd', ' md', ' esq']
+
+
+def normalize_name(name: str, remove_suffixes: bool = True) -> str:
+    """Normalize a name for comparison.
+
+    Performs the following normalizations:
+    - Converts to lowercase
+    - Removes accents/diacritics (e.g., 'é' -> 'e')
+    - Normalizes whitespace (collapses multiple spaces)
+    - Optionally removes common suffixes (Jr., Sr., III, etc.)
+
+    Args:
+        name: The name to normalize.
+        remove_suffixes: If True, removes common name suffixes like
+            Jr., Sr., III, II, IV, PhD, MD, Esq. Default: True
+
+    Returns:
+        Normalized name string.
+
+    Examples:
+        >>> normalize_name("José García Jr.")
+        'jose garcia'
+        >>> normalize_name("André François-Xavier")
+        'andre francois-xavier'
+        >>> normalize_name("Dr. John Smith III", remove_suffixes=True)
+        'dr. john smith'
+    """
+    if not name:
+        return ""
+
+    # Convert to lowercase
+    name = name.lower().strip()
+
+    # Remove accents/diacritics using Unicode normalization
+    # NFKD decomposes characters into base + combining characters
+    # Then we filter out combining characters
+    name = unicodedata.normalize('NFKD', name)
+    name = ''.join(c for c in name if not unicodedata.combining(c))
+
+    # Remove common suffixes if requested
+    if remove_suffixes:
+        for suffix in _NAME_SUFFIXES:
+            if name.endswith(suffix):
+                name = name[:-len(suffix)]
+
+    # Normalize whitespace (collapse multiple spaces into one)
+    name = ' '.join(name.split())
+
+    return name
 
