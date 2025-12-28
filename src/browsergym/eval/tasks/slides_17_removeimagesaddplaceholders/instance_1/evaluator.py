@@ -160,6 +160,7 @@ def prefetch_slide_data(temp_dir: str):
 
     # Get unique slide indices we need to process
     slide_indices = set()
+    #possible error here, was originally only adding the indices where a image is at, it is now for textboxes, which had one in every slide. If there is no textboxes in the slide an error might arise here.
     for loc_info in original_textbox_locations:
         slide_indices.add(loc_info.get('slide_index', 0))
 
@@ -1016,7 +1017,7 @@ def grade_checkpoint_4():
             execution_time= time.time() - step_start
         )
 
-    #text-box check
+    #text-box checkpoint
     #expected needs the original images times 2 because it will add the  underneath textboxes and the textboxes for the link
     expected_textboxcount = total_images_of_original_slides*2 + total_textboxes_of_original_slides
     if(new_total_textboxes == expected_textboxcount):
@@ -1035,16 +1036,15 @@ def grade_checkpoint_4():
 
         for slide_number in textbox_count:
             if textbox_count.get(slide_number, 0) + original_image_count.get(slide_number, 0) * 2 != new_tb_count.get(slide_number, 0):
-                print(f"old slide image count{original_image_count.get(slide_number, 0)} old slide {textbox_count.get(slide_number, 0)} new slide count {new_tb_count.get(slide_number, 0)}")
                 extra_textbox_slides.append(slide_number)
-
+    
+        step_2_percentage_score = ((total_slides - len(extra_textbox_slides))/total_slides) * 10
         if(new_total_textboxes > expected_textboxcount):
-            step_2_percentage_score = ((total_slides - len(extra_textbox_slides))/total_slides) * 10
             checkpoint.add_step(
                 "Extra textbox check",
                 False,
                 2,
-                f"There is more textboxes then expected {expected_textboxcount}",
+                f"There is more textboxes then expected",
                 score = step_2_percentage_score,
                 max_score=10,
                 execution_time= time.time() - step_start
@@ -1054,8 +1054,8 @@ def grade_checkpoint_4():
                 "Extra textbox check",
                 False,
                 2,
-                f"There is less textboxes then expected {expected_textboxcount} actual {new_total_textboxes} {extra_textbox_slides}",
-                score = 0,
+                f"There is less textboxes then expected",
+                score = step_2_percentage_score,
                 max_score=10,
                 execution_time= time.time() - step_start
             )
