@@ -944,17 +944,20 @@ def grade_checkpoint_4():
 
     slides = presentation_data.get('slides',[])
 
+    #get the total of textboxes and images in the orignal slides
     total_images_of_original_slides= len(original_locations) 
     total_textboxes_of_original_slides = len(original_textbox_locations)
 
+    #get the total of textboxes and images in the new slides
     new_total_images_of_new_slides = sum(len(imgs) for imgs in cached_slide_images.values())
     new_total_textboxes = sum(len(txt) for txt in cached_text_boxes.values())
 
     step_start = time.time()
 
+    #dictionarys for slide specific totals
     new_tb_count = {}
     img_box_count = {}
-    textbox_count = {}
+    original_textbox_count = {}
     original_image_count = {}
 
     # Get the amount of images and textboxes in each slide in the new presentation
@@ -978,10 +981,10 @@ def grade_checkpoint_4():
     for info in original_textbox_locations:
         slide = info.get('slide_index',0)
 
-        if(slide in textbox_count):
-            textbox_count[slide] += 1
+        if(slide in original_textbox_count):
+            original_textbox_count[slide] += 1
         else:
-            textbox_count[slide] = 1
+            original_textbox_count[slide] = 1
 
     
     #if slide count matches, max points assigned, otherwise the amount of slides with extra images deduct  points from the score
@@ -1033,11 +1036,13 @@ def grade_checkpoint_4():
     else:
         extra_textbox_slides = []
         total_slides = len(original_image_count.keys())
-
-        for slide_number in textbox_count:
-            if textbox_count.get(slide_number, 0) + original_image_count.get(slide_number, 0) * 2 != new_tb_count.get(slide_number, 0):
+        
+        #compare each slide's textbox
+        for slide_number in original_textbox_count:
+            if original_textbox_count.get(slide_number, 0) + original_image_count.get(slide_number, 0) * 2 != new_tb_count.get(slide_number, 0):
                 extra_textbox_slides.append(slide_number)
-    
+
+        #this score will be higher if less slides have missing or extra textboxes
         step_2_percentage_score = ((total_slides - len(extra_textbox_slides))/total_slides) * 10
         if(new_total_textboxes > expected_textboxcount):
             checkpoint.add_step(
