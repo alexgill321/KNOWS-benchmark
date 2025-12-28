@@ -948,6 +948,7 @@ def grade_checkpoint_4():
     new_total_textboxes = sum(len(txt) for txt in cached_text_boxes.values())
     step_start = time.time()
 
+    new_tb_count = {}
     img_box_count = {}
     textbox_count = {}
     original_image_count = {}
@@ -956,6 +957,9 @@ def grade_checkpoint_4():
     for slide_index in range(len(slides)):
         images = cached_slide_images.get(slide_index, [])
         img_box_count[slide_index] = len(images)
+
+        tb = cached_text_boxes.get(slide_index, [])
+        new_tb_count[slide_index] = len(tb)
 
     # Get the amount of images in original slides
     for info in original_locations.values():
@@ -1017,23 +1021,38 @@ def grade_checkpoint_4():
             "Extra textbox check",
             True,
             2,
-            "No extra images were added",
+            "No extra Textboxes were added",
             score = 10,
             max_score=10,
             execution_time= time.time() - step_start
         )
     else:
-        checkpoint.add_step(
-            "Extra textbox check",
-            False,
-            2,
-            f"expected textbox {expected_textboxcount}, actual {new_total_textboxes}",
-            score = 10,
-            max_score=10,
-            execution_time= time.time() - step_start
-        )
-        
-
+        extra_textbox_slides = []
+        total_slides = len(original_image_count.keys())
+        for slide_number in textbox_count:
+            if textbox_count.get(slide_number, 0) != new_tb_count.get(slide_number, 0):
+                extra_textbox_slides.append(slide_number)
+        if(new_total_textboxes > expected_textboxcount):
+            step_1_percentage_score = ((len(extra_textbox_slides))/total_slides) * 10
+            checkpoint.add_step(
+                "Extra textbox check",
+                False,
+                2,
+                f"There is more textboxes then expected",
+                score = 0,
+                max_score=10,
+                execution_time= time.time() - step_start
+            )
+        else:
+            checkpoint.add_step(
+                "Extra textbox check",
+                False,
+                2,
+                f"There is less textboxes then expected",
+                score = 0,
+                max_score=10,
+                execution_time= time.time() - step_start
+            )
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
         
