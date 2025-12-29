@@ -1,32 +1,75 @@
+
 from rapidfuzz import fuzz, process
 
 # Global cache for DocTR OCR model to avoid reloading
 _ocr_model_cache = None
 import sys
 import os
+import re
 sys.path.append(os.getcwd())
 from src.browsergym.eval.eval_utils.utils import retrieve_validate_doc_path, bbox_ratio_to_location, location
 from src.browsergym.eval.eval_utils.text_helpers import *
 
-def text_exact_match_contained(src_text, ref_text):
-    """
-    Check if any text in text_options is contained as an exact match in text2.
+def text_exact_match_contained(src_text: str, ref_text: str, *, standalone_line: bool = False) -> bool:
+    """Return True if *target* is found in *text* with an 'exact' notion.
 
-    Args:
-        src_text (Union[str, List[str]]): A string or a list of strings to be checked.
-        ref_text (str): The reference text.
-
-    Returns:
-        string: The matched text if found, otherwise None.
+    - If standalone_line=False: simple containment check (target in text).
+    - If standalone_line=True: require an exact full-line match after normalization
+      (case-insensitive, whitespace-collapsed). Only trailing punctuation that typically
+      ends a standalone item (period, comma, colon, semicolon) is tolerated.
+      Opening brackets/parens attached to the text indicate concatenation and are rejected.
+      This is useful for header fields like a name.
     """
-    if isinstance(src_text, str):
-        if preprocess_text(src_text) in preprocess_text(ref_text):
-            return src_text
-    elif isinstance(src_text, list):
-        for text in src_text:
-            if preprocess_text(text) in preprocess_text(ref_text):
-                return text
-        return None
+    if not src_text or not ref_text:
+        return False
+
+    if not standalone_line:
+        return src_text in ref_text
+
+    def _norm_core(s: str) -> str:
+        """Normalize the core text: lowercase, collapse whitespace, replace non-breaking spaces."""
+        s = s.replace("\u00a0", " ")
+        s = s.strip().lower()
+        s = re.sub(r"\s+", " ", s)  # collapse whitespace
+        return s
+
+    def _is_valid_standalone(line: str, target: str) -> bool:
+        """Check if line matches target as a standalone item.
+
+        Allows only trailing punctuation that typically ends a standalone item
+        (period, comma, colon, semicolon). Rejects lines where the target is
+        followed by opening brackets, parens, or other text that suggests concatenation.
+        """
+        line_norm = _norm_core(line)
+        target_norm = _norm_core(target)
+
+        if not target_norm:
+            return False
+
+        # Exact match
+        if line_norm == target_norm:
+            return True
+
+        # Check if line starts with target followed only by allowed trailing punctuation
+        # Allowed: . , : ; (these commonly end standalone items)
+        # NOT allowed: ( [ { < or any other characters (suggests concatenation)
+        if line_norm.startswith(target_norm):
+            remainder = line_norm[len(target_norm):]
+            # Only allow empty remainder or trailing punctuation that ends an item
+            allowed_trailing = set(".,;:")
+            if all(c in allowed_trailing for c in remainder):
+                return True
+
+        return False
+
+    target_norm = _norm_core(src_text)
+    if not target_norm:
+        return False
+
+    for line in ref_text.splitlines():
+        if _is_valid_standalone(line, src_text):
+            return True
+    return False
     
 def text_fuzzy_match_contained_long(target, full_text, threshold=85):
     """
@@ -286,12 +329,12 @@ def extract_text_location(ocr_result, text_to_find):
             line_text = line.get('text', '').strip()
             
             # Check for exact line match
-            if line_text.lower() == text_lower:
+            if preprocess_text(line_text.lower()) == preprocess_text(text_lower):
                 print(f"Found exact line match on page {page_num}: '{line_text}'")
                 return line['location']
             
             # Check if text is within a line
-            if text_lower in line_text.lower():
+            if preprocess_text(text_lower) in preprocess_text(line_text.lower()):
                 # Calculate approximate position within the line
                 # Based on character position in the line
                 char_width = line['location'].width / len(line_text)
@@ -457,3 +500,31 @@ def get_smallest_x_position(text_ocr):
             if line['location'].x < smallest_x:
                 smallest_x = line['location'].x
     return smallest_x
+
+
+def fuzzy_match_text(text1: str, text2: str, threshold: int = 80) -> tuple:
+    """Perform fuzzy matching between two texts.
+
+    Uses token_sort_ratio for better matching of reordered text.
+    Normalizes texts by lowercasing and collapsing whitespace.
+
+    Args:
+        text1: First text.
+        text2: Second text.
+        threshold: Minimum similarity score (0-100).
+
+    Returns:
+        Tuple of (is_match, similarity_score).
+    """
+    if not text1 or not text2:
+        return False, 0
+
+    # Normalize texts
+    text1 = ' '.join(text1.lower().split())
+    text2 = ' '.join(text2.lower().split())
+
+    # Use token_sort_ratio for better matching of reordered text
+    score = fuzz.token_sort_ratio(text1, text2)
+
+    return score >= threshold, score
+
