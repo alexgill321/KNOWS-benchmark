@@ -22,7 +22,7 @@ sys.path.append(BASE_PATH)
 
 from src.browsergym.eval.eval_utils.scoring import Checkpoint, Result, EvaluationStep # type: ignore
 from src.browsergym.eval.eval_utils.google_services_utils import *  # type: ignore
-from src.browsergym.eval.eval_utils.text_utils import extract_text_from_pdf, text_exact_match_contained, extract_text_location # type: ignore
+from src.browsergym.eval.eval_utils.text_utils import extract_text_from_pdf, text_exact_match_contained, extract_text_location, get_smallest_x_position # type: ignore
 from src.browsergym.eval.eval_utils.parallel_utils import parallel_execute  # type: ignore
 from src.browsergym.eval.eval_utils.image_utils import * # type: ignore
 from src.browsergym.eval.eval_utils.utils import layout, image_id_from_path # type: ignore
@@ -109,7 +109,7 @@ def setup_document(workspace_doc_id):
     Args:
         workspace_doc_id (str): The Google Docs document ID (gold instance ID) to use
     """
-    global doc_id, gold_text, text_ocr, doc_structure
+    global doc_id, gold_text, text_ocr, doc_structure, smallest_x
 
     if not workspace_doc_id:
         raise ValueError("workspace_doc_id is required")
@@ -141,6 +141,8 @@ def setup_document(workspace_doc_id):
 
         text_ocr = ocr_future.result()
         gold_text, doc_structure = api_future.result()
+        smallest_x = get_smallest_x_position(text_ocr)
+
 
 def is_first_page_text(loc) -> bool:
     return loc is not None and getattr(loc, "page_number", None) == 0
@@ -182,6 +184,17 @@ def grade_checkpoint_1(gold_text, text_ocr):
     if name_found and location and location.is_upper_left():
         print("Name match successful")
         checkpoint.add_step("Name Text Match", True, 1, f"Found '{name}' in document", execution_time=step_time)
+
+        step_start = time.time()
+        location = extract_text_location(text_ocr, name)
+        step_time = time.time() - step_start
+        if int(location.x) >= int(smallest_x) + 6:
+            checkpoint.add_step("Name Location", False, 2, f"Name is not aligned, found at {location}", execution_time=step_time)
+        if location.is_upper_left():
+            checkpoint.add_step("Name Location", True, 2, f"Name correctly positioned in upper left at {location}", execution_time=step_time)
+        else:
+            print("Name location failed")
+            checkpoint.add_step("Name Location", False, 2, f"Name not in upper left, found at {location}", execution_time=step_time)
         checkpoint.add_step("Name Location", True, 2, f"Name correctly positioned in upper left at {location}", execution_time=step_time)
     else:
         print("Name match failed (header exact)")
@@ -205,13 +218,20 @@ def grade_checkpoint_1(gold_text, text_ocr):
         print("Email match successful")
         checkpoint.add_step("Email Text Match", True, 3, f"Found '{email}' in document", execution_time=step_time)
 
-        if location and location.y > 450:
+        step_start = time.time()
+        location = extract_text_location(text_ocr, email)
+        step_time = time.time() - step_start
+
+        
+        if location.y > 450:
             print(f"Rejecting email location: too low on page at y={location.y}")
             location = None
-        if location and not is_first_page_text(location):
+        if is_first_page_text(location):
             print(f"Rejecting email location: wrong page number at {location.page_number}")
             location = None
-        if location and location.is_upper_left():
+        if int(location.x) >= int(smallest_x) + 6:
+            checkpoint.add_step("Email Location", False, 4, f"Email not in correct position, found at {location}", execution_time=step_time)
+        if location.is_upper_left():
             checkpoint.add_step("Email Location", True, 4, f"Email correctly positioned in upper left at {location}", execution_time=step_time)
         else:
             print("Email location failed")
@@ -236,8 +256,10 @@ def grade_checkpoint_1(gold_text, text_ocr):
         step_start = time.time()
         location = extract_text_location(text_ocr, title_match)
         step_time = time.time() - step_start
-
-        if location and location.y > 450:
+        
+        if int(location.x) >= int(smallest_x) + 6:
+            checkpoint.add_step("Title Location", False, 6, f"Title is not aligned, found at {location}", execution_time=step_time)
+        if location.y > 450:
             print(f"Rejecting title location: too low on page at y={location.y}")
             location = None
         if location and not is_first_page_text(location):
@@ -321,6 +343,9 @@ def grade_checkpoint_2():
             step_time = time.time() - step_start
             print(f"Location is {exact_size_location}")
             if exact_size_location:
+                if int(exact_size_location.x) >= int(smallest_x) + 13:
+                    print("Image location is not align")
+                    checkpoint.add_step("Logo Location", False, 8, f"Logo is not aligned, found at {exact_size_location}", execution_time=step_time)
                 if exact_size_location and getattr(exact_size_location, "y", None) is not None and exact_size_location.y > 450:
                     print(f"Rejecting logo location: too low on page at y={exact_size_location.y}")
                     exact_size_location = None

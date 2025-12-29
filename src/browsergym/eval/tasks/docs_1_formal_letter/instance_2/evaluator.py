@@ -184,8 +184,8 @@ def grade_checkpoint_1(gold_text, text_ocr):
         step_start = time.time()
         location = extract_text_location(text_ocr, name)
         step_time = time.time() - step_start
-        #adding a space give us extra a value of 13, so if the location is not in the range the smallest + 13 will be in the correct location
-        if int(location.x) >= int(smallest_x) + 13:
+        #adding a space give us extra a value of 6, so if the location is not in the range the smallest + 13 will be in the correct location
+        if int(location.x) >= int(smallest_x) + 6:
             checkpoint.add_step("Name Location", False, 2, f"Name is not aligned, found at {location}", execution_time=step_time)
         if location.is_upper_left():
             checkpoint.add_step("Name Location", True, 2, f"Name correctly positioned in upper left at {location}", execution_time=step_time)
@@ -218,7 +218,7 @@ def grade_checkpoint_1(gold_text, text_ocr):
         location = extract_text_location(text_ocr, email)
         step_time = time.time() - step_start           
            
-        if int(location.x) >= int(smallest_x) + 13:
+        if int(location.x) >= int(smallest_x) + 6:
                 checkpoint.add_step("Email Location", False, 4, f"Email is not aligned, found at {location}", execution_time=step_time)
         if location and location.y > 450:
             print(f"Rejecting email location: too low on page at y={location.y}")
@@ -251,7 +251,7 @@ def grade_checkpoint_1(gold_text, text_ocr):
         step_start = time.time()
         location = extract_text_location(text_ocr, title_match)
         step_time = time.time() - step_start
-        if int(location.x) >= int(smallest_x) + 13:
+        if int(location.x) >= int(smallest_x) + 6:
             checkpoint.add_step("Title Location", False, 6, f"Title is not aligned/, found at {location}", execution_time=step_time)
 
         if location and location.y > 450:
@@ -337,7 +337,7 @@ def grade_checkpoint_2():
             step_time = time.time() - step_start
             print(f"Location is {exact_size_location}")
             if exact_size_location:
-                if int(exact_size_location.x) >= int(smallest_x) + 13:
+                if int(exact_size_location.x) >= int(smallest_x) + 6:
                     print("Image location is not align")
                     checkpoint.add_step("Logo Location", False, 8, f"Logo is not aligned, found at {exact_size_location}", execution_time=step_time)                    
                 if exact_size_location and getattr(exact_size_location, "y", None) is not None and exact_size_location.y > 450:
