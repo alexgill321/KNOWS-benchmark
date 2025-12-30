@@ -37,14 +37,6 @@ def fetch_url_content(url):
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
 
-            # Block ads and trackers to speed up loading
-            def handle_route(route):
-                if any(x in route.request.url for x in ['analytics', 'ad', 'doubleclick', 'tracker']):
-                    route.abort()
-                else:
-                    route.continue_()
-            
-            context.route('**/*', handle_route)
             page = context.new_page()
 
             # Navigate: try domcontentloaded, fallback to load
