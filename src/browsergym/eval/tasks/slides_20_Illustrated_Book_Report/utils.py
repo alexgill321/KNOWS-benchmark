@@ -36,12 +36,32 @@ def fetch_url_content(url):
             context = browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
+
+            # Block ads and trackers to speed up loading
+            def handle_route(route):
+                if any(x in route.request.url for x in ['analytics', 'ad', 'doubleclick', 'tracker']):
+                    route.abort()
+                else:
+                    route.continue_()
+            
+            context.route('**/*', handle_route)
             page = context.new_page()
 
-            # Navigate and wait for content to load
-            page.goto(url, timeout=30000)
-            # Wait for the main content to be rendered
-            page.wait_for_load_state("networkidle", timeout=15000)
+
+            # fast DOM parse, then wait for main content (short timeouts to stay under 30s)
+            page.goto(url, wait_until="domcontentloaded", timeout=10000)
+            try:
+                page.wait_for_selector("main, article, .mw-parser-output, #content", timeout=3000)
+            except:
+                # small grace for client-rendered content, then short networkidle fallback
+                page.wait_for_timeout(500)
+                try:
+                    page.goto(url, wait_until="load", timeout=5000)
+                except:
+                    try:
+                        page.wait_for_load_state("networkidle", timeout=3000)
+                    except:
+                        pass
 
             # Get the rendered HTML
             html_content = page.content()
