@@ -22,11 +22,12 @@ sys.path.append(BASE_PATH)
 
 # Imports
 from src.browsergym.eval.eval_utils.scoring import Checkpoint, Result
-from src.browsergym.eval.eval_utils.google_services_utils import (
-    initialize_google_services,
-    extract_tables_from_sheet
+from src.browsergym.eval.eval_utils.google_services_utils import initialize_google_services
+from src.browsergym.eval.eval_utils.google_sheets_utils import (
+    extract_tables_from_sheet,
+    extract_sheet_data,
+    get_sheet_content,
 )
-from src.browsergym.eval.eval_utils.google_services_helpers import get_sheet_content
 from src.browsergym.eval.eval_utils.table_utils import match_columns, is_text_visible_in_cell
 from src.browsergym.eval.eval_utils.text_utils import numerical_match_with_error
 from src.browsergym.eval.eval_utils.models import load_model

@@ -9,7 +9,7 @@ from typing import Any, Optional, List
 
 # Import general utilities from eval_utils
 from src.browsergym.eval.eval_utils.web_utils import is_url_from_domain, fetch_api_with_retry
-from src.browsergym.eval.eval_utils.table_utils import matches_keywords
+from src.browsergym.eval.eval_utils.text_utils import keywords_exact_match
 
 __all__ = [
     # Task-specific utilities
@@ -86,8 +86,8 @@ def ingredient_matches_usda_page(
     # Use provided keywords or default to ingredient name
     match_keywords = keywords if keywords else [ingredient.lower()]
 
-    # Use matches_keywords for consistent matching
-    if matches_keywords(page_title, match_keywords):
+    # Use keywords_exact_match for consistent matching
+    if keywords_exact_match(page_title, match_keywords):
         print(f"  [DEBUG] USDA page '{page_title}' matched ingredient '{ingredient}' via KEYWORD")
         return True
 

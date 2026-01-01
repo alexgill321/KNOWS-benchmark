@@ -25,9 +25,7 @@ imagehash
 rapidfuzz
 python-doctr
 
-# Machine Learning
-torch
-transformers
+# Hugging Face (for API access, not local models)
 huggingface-hub
 
 # Academic APIs

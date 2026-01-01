@@ -29,10 +29,20 @@ sys.path.append(BASE_PATH)
 from src.browsergym.eval.eval_utils.scoring import Checkpoint, Result
 from src.browsergym.eval.eval_utils.google_services_utils import (
     initialize_google_services,
-    extract_tables_from_sheet
+    extract_drive_file_id
 )
-from src.browsergym.eval.eval_utils.google_services_helpers import get_sheet_content
-from src.browsergym.eval.eval_utils.text_utils import text_fuzzy_match_contained_long, fuzzy_match_text
+from src.browsergym.eval.eval_utils.google_sheets_utils import (
+    extract_tables_from_sheet,
+    extract_sheet_data,
+    get_sheet_content,
+)
+from src.browsergym.eval.eval_utils.text_utils import (
+    text_fuzzy_match_contained_long,
+    fuzzy_match_text,
+    split_delimited_text,
+    normalize_name
+)
+from src.browsergym.eval.eval_utils.web_utils import extract_id_from_url
 from src.browsergym.eval.eval_utils.image_utils import binary_compare_images
 from src.browsergym.eval.eval_utils.models import load_model
 from src.browsergym.eval.eval_utils.table_utils import (
@@ -52,15 +62,38 @@ from src.browsergym.eval.eval_utils.parallel_utils import (
 import tempfile
 import requests
 
-# Local imports
-from src.browsergym.eval.tasks.sheets_10_paper_sorting.utils import (
-    ARXIV_HEADERS,
-    extract_arxiv_id_from_url,
-    extract_drive_file_id,
-    parse_authors_string,
-    normalize_author_name,
-    compare_authors_list
-)
+# Local imports - only task-specific utilities
+from src.browsergym.eval.tasks.sheets_10_paper_sorting.utils import compare_authors_list
+
+# arXiv-specific constants (task-specific, defined inline)
+ARXIV_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.5',
+}
+
+# arXiv URL patterns for ID extraction
+ARXIV_PATTERNS = [
+    r'arxiv\.org/(?:abs|pdf)/(\d{4}\.\d{4,5})(?:v\d+)?',  # New format with version
+    r'arxiv\.org/(?:abs|pdf)/([\w\-\.]+/\d+)(?:v\d+)?',    # Old format with version
+    r'ar5iv\.org/(?:abs|pdf)/(\d{4}\.\d{4,5})(?:v\d+)?',   # ar5iv mirror
+    r'(\d{4}\.\d{4,5})(?:v\d+)?\.pdf',                     # Just ID in PDF filename
+    r'(\d{4}\.\d{4,5})(?:v\d+)?$',                         # Just the ID at end
+]
+
+
+def extract_arxiv_id_from_url(url: str) -> str:
+    """Extract arXiv ID from a URL using predefined patterns.
+
+    Wrapper around extract_id_from_url for arXiv-specific patterns.
+    """
+    arxiv_id = extract_id_from_url(url, ARXIV_PATTERNS)
+    if arxiv_id:
+        # Remove version suffix if present (for patterns that don't capture it)
+        import re
+        arxiv_id = re.sub(r'v\d+$', '', arxiv_id)
+    return arxiv_id
+
 
 # Constants
 TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_10_paper_sorting/instance_1/")
@@ -572,7 +605,7 @@ def grade_checkpoint_2():
         # Authors validation
         gold_authors = gold.get('authors', [])
         user_authors_str = str(matched_row.get(authors_col, '')) if authors_col else ''
-        user_authors = parse_authors_string(user_authors_str)
+        user_authors = split_delimited_text(user_authors_str)
         auth_match, _ = compare_authors_list(user_authors, gold_authors, strict=False)
         if auth_match:
             author_matches += 1
@@ -802,8 +835,8 @@ def grade_checkpoint_3():
 
             # Parse ALL authors from the user's paper
             user_authors_str = str(row.get(authors_col, ''))
-            user_authors = parse_authors_string(user_authors_str)
-            user_authors_normalized = [normalize_author_name(a) for a in user_authors]
+            user_authors = split_delimited_text(user_authors_str)
+            user_authors_normalized = [normalize_name(a, remove_suffixes=True) for a in user_authors]
 
             # Check if ANY first author from original paper is in this paper's author list
             if any(fa in user_authors_normalized for fa in first_authors_normalized):
@@ -917,8 +950,8 @@ def grade_checkpoint_4():
 
         # Parse ALL authors from the user's paper
         user_authors_str = str(row.get(authors_col, '')) if authors_col else ''
-        user_authors = parse_authors_string(user_authors_str)
-        user_authors_normalized = [normalize_author_name(a) for a in user_authors]
+        user_authors = split_delimited_text(user_authors_str)
+        user_authors_normalized = [normalize_name(a, remove_suffixes=True) for a in user_authors]
 
         # Check if ANY first author from original papers is in this paper's author list
         if any(fa in user_authors_normalized for fa in all_first_authors):
@@ -1030,7 +1063,7 @@ def grade_checkpoint_4():
         # Authors validation
         gold_authors = gold.get('authors', [])
         user_authors_str = str(row.get(authors_col, '')) if authors_col else ''
-        user_authors = parse_authors_string(user_authors_str)
+        user_authors = split_delimited_text(user_authors_str)
         auth_match, _ = compare_authors_list(user_authors, gold_authors, strict=False)
         if auth_match:
             author_matches += 1

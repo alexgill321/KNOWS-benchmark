@@ -12,7 +12,6 @@ import io
 GUI_AVAILABLE = False
 from src.browsergym.eval.eval_utils.image_helpers import load_process_images, find_template_scale_invariant, parse_response
 from src.browsergym.eval.eval_utils.utils import location, retrieve_validate_doc_path
-import torch
 
 def convert_pdf_to_pngs(pdf_path, output_dir, dpi=300):
     """Converts each page of a PDF file to a PNG image.

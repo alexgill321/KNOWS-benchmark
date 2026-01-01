@@ -159,6 +159,88 @@ def is_text_visible_in_cell(
     return True
 
 
+def check_all_content_visible(
+    sheet_raw_data: Dict[str, Any],
+    start_row: int,
+    end_row: int,
+    num_cols: int
+) -> Tuple[bool, str]:
+    """
+    Check if all table content is fully visible (no truncation/clipping).
+
+    Iterates through cells in the specified range and checks visibility
+    using is_text_visible_in_cell().
+
+    Args:
+        sheet_raw_data: Raw sheet data from Google Sheets API (get_sheet_content).
+        start_row: Starting row index of the table (0-indexed, typically header row).
+        end_row: Ending row index (exclusive).
+        num_cols: Number of columns to check.
+
+    Returns:
+        tuple: (all_visible: bool, details: str)
+            - all_visible: True if all content is visible
+            - details: Description of result or list of truncated cells
+    """
+    if not sheet_raw_data:
+        return False, "No sheet data available"
+
+    try:
+        # Get column metadata for widths
+        sheets = sheet_raw_data.get('sheets', [])
+        if not sheets:
+            return False, "No sheets found in raw data"
+
+        sheet_data = sheets[0]
+        data_blocks = sheet_data.get('data', [])
+        if not data_blocks:
+            return False, "No data blocks found"
+
+        col_metadata = data_blocks[0].get('columnMetadata', [])
+        row_data = data_blocks[0].get('rowData', [])
+
+        truncated_cells = []
+
+        # Iterate through table cells and check visibility
+        for row_idx in range(start_row, end_row):
+            if row_idx >= len(row_data):
+                continue
+            row = row_data[row_idx]
+            row_values = row.get('values', [])
+
+            for col_idx in range(num_cols):
+                if col_idx >= len(row_values):
+                    continue
+                cell = row_values[col_idx]
+                content = cell.get('formattedValue', '')
+
+                if not content:
+                    continue
+
+                # Get column width (default 100 pixels if not specified)
+                col_width = 100
+                if col_idx < len(col_metadata):
+                    col_width = col_metadata[col_idx].get('pixelSize', 100)
+
+                # Get wrap strategy (default OVERFLOW_CELL)
+                wrap_strategy = cell.get('effectiveFormat', {}).get('wrapStrategy', 'OVERFLOW_CELL')
+
+                if not is_text_visible_in_cell(content, col_width, wrap_strategy, row_values, col_idx):
+                    # Track which cells are truncated
+                    truncated_cells.append(f"Row {row_idx + 1}, Col {col_idx + 1}: '{content[:30]}...'")
+
+        if truncated_cells:
+            # Limit to first 5 examples
+            examples = truncated_cells[:5]
+            more = f" (+{len(truncated_cells) - 5} more)" if len(truncated_cells) > 5 else ""
+            return False, f"Truncated cells: {'; '.join(examples)}{more}"
+
+        return True, "All content fully visible"
+
+    except Exception as e:
+        return False, f"Error checking visibility: {str(e)}"
+
+
 # =============================================================================
 # Google Sheets Image Extraction Utilities
 # =============================================================================
@@ -572,74 +654,8 @@ def colors_are_distinct(colors: List[Dict], tolerance: float = 0.1) -> bool:
 
 
 # =============================================================================
-# Keyword-Based Search Utilities
+# Column Matching (uses text_utils)
 # =============================================================================
-
-def matches_keywords(
-    value: str,
-    keywords: List[str],
-    case_sensitive: bool = False,
-    strict: bool = True
-) -> bool:
-    """Check if a value matches any of the given keywords.
-
-    This is the core matching function used by find_column_by_keywords,
-    find_row_by_keywords, and can be used directly for ingredient matching.
-
-    Args:
-        value: The string value to check.
-        keywords: List of keyword strings to match against.
-        case_sensitive: Whether to perform case-sensitive matching.
-        strict: If True, requires exact match (value equals keyword after stripping).
-                If False, uses substring matching (keyword in value).
-
-    Returns:
-        True if the value matches any keyword, False otherwise.
-    """
-    if not value or not keywords:
-        return False
-
-    value_check = value.strip() if case_sensitive else value.lower().strip()
-
-    for keyword in keywords:
-        keyword_check = keyword.strip() if case_sensitive else keyword.lower().strip()
-        if strict:
-            if value_check == keyword_check:
-                return True
-        else:
-            if keyword_check in value_check:
-                return True
-
-    return False
-
-
-def find_column_by_keywords(
-    columns: List[str],
-    keywords: List[str],
-    case_sensitive: bool = False,
-    strict: bool = False
-) -> Optional[str]:
-    """Find a column that matches any of the given keywords.
-
-    This is a fast keyword-based search that can be used as a pre-check
-    before falling back to the more expensive LLM-based find_matching_column_or_row().
-
-    Args:
-        columns: List of column names.
-        keywords: List of keyword strings to match.
-        case_sensitive: Whether to perform case-sensitive matching.
-        strict: If True, requires exact match or column name equals keyword
-                (after stripping whitespace). If False, uses substring matching.
-
-    Returns:
-        The matching column name, or None if not found.
-    """
-    # Inline the logic from find_match_in_list for clarity
-    for col in columns:
-        if matches_keywords(col, keywords, case_sensitive, strict):
-            return col
-    return None
-
 
 def match_columns(
     df: pd.DataFrame,
@@ -652,10 +668,7 @@ def match_columns(
     """Match required columns using keyword matching with optional LLM fallback.
 
     This is the standard column matching function for all sheets evaluators.
-    It provides consistent 2-phase matching:
-
-    Phase 1: Try keyword matching for all columns (fast)
-    Phase 2: For unmatched columns, try LLM semantic matching (if model provided)
+    It uses the unified text matching utilities from text_utils.
 
     Args:
         df: DataFrame to search columns in.
@@ -663,22 +676,31 @@ def match_columns(
             Example: [("Stock Symbol", ["symbol", "ticker"]), ("Price", ["price", "cost"])]
         model: Optional LLM model for semantic fallback. If None, keyword-only matching.
         strict: If True, requires exact keyword match. If False, uses substring matching.
+            Note: This parameter is kept for backwards compatibility but the new
+            text_utils functions always use exact matching. For substring matching,
+            use the fuzzy matching utilities in text_utils instead.
         parallel: If True, run LLM fallback calls in parallel using ThreadPoolExecutor.
+            Note: Since the new keywords_llm_match makes a single LLM call per column,
+            parallel=True now runs multiple column matches concurrently.
         max_workers: Maximum number of parallel LLM calls (only used if parallel=True).
 
     Returns:
         Dict mapping col_name -> matched_column_name for all matched columns.
         Columns that couldn't be matched are not included in the dict.
     """
+    from .text_utils import keywords_exact_match, keywords_llm_match
+
     columns = [str(col) for col in df.columns]
     matched = {}
     unmatched = []
 
     # Phase 1: Keyword matching (fast)
     for col_name, keywords in required_columns:
-        result = find_column_by_keywords(columns, keywords, strict=strict)
-        if result:
-            matched[col_name] = result
+        # Try to find a column that matches any keyword
+        for col in columns:
+            if keywords_exact_match(col, keywords):
+                matched[col_name] = col
+                break
         else:
             unmatched.append((col_name, keywords))
 
@@ -689,7 +711,7 @@ def match_columns(
             from concurrent.futures import ThreadPoolExecutor, as_completed
 
             def call_llm_for_column(col_name: str, keywords: List[str]) -> Tuple[str, Optional[str]]:
-                result = _llm_match_column(col_name, columns, keywords, model)
+                result = keywords_llm_match(columns, keywords, model, description=f"column for '{col_name}'")
                 return col_name, result
 
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -707,65 +729,11 @@ def match_columns(
         else:
             # Sequential LLM matching
             for col_name, keywords in unmatched:
-                result = _llm_match_column(col_name, columns, keywords, model)
+                result = keywords_llm_match(columns, keywords, model, description=f"column for '{col_name}'")
                 if result:
                     matched[col_name] = result
 
     return matched
-
-
-def _llm_match_column(
-    col_name: str,
-    columns: List[str],
-    keywords: List[str],
-    model: Any
-) -> Optional[str]:
-    """Use LLM to find matching column (internal helper).
-
-    Args:
-        col_name: Logical column name (e.g., "Stock Symbol").
-        columns: List of actual column names from DataFrame.
-        keywords: Example keywords that might match.
-        model: LLM model callable that accepts messages list.
-
-    Returns:
-        Matched column name, or None if no match.
-    """
-    if not columns:
-        return None
-
-    headers_text = "\n".join([f"{i+1}. {col}" for i, col in enumerate(columns)])
-    keywords_hint = f"\nExample keywords that might match: {', '.join(keywords)}" if keywords else ""
-
-    prompt = f"""You are analyzing Google Sheets column headers to find one that best matches specific criteria.
-
-Criteria: Find the column that represents '{col_name}'.{keywords_hint}
-
-Available columns:
-{headers_text}
-
-Please analyze each header and determine which one best matches the criteria. Consider:
-- Exact matches
-- Synonyms and semantically similar terms
-- Common abbreviations
-- Spreadsheet naming conventions
-
-Respond with ONLY the number (1, 2, 3, etc.) of the best matching column, or "NONE" if no column adequately matches."""
-
-    try:
-        messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
-        response = model(messages).strip().upper()
-
-        if response == "NONE":
-            return None
-
-        idx = int(response) - 1
-        if 0 <= idx < len(columns):
-            return columns[idx]
-    except Exception as e:
-        print(f"Error in LLM column matching for '{col_name}': {e}")
-
-    return None
 
 
 # =============================================================================
@@ -922,6 +890,11 @@ def has_top_border(cell: Dict) -> bool:
 def row_has_bottom_border(row: Dict) -> bool:
     """Check if any cell in a row has a bottom border. Alias for row_has_border(row, 'bottom')."""
     return row_has_border(row, "bottom")
+
+
+def row_has_top_border(row: Dict) -> bool:
+    """Check if any cell in a row has a top border. Alias for row_has_border(row, 'top')."""
+    return row_has_border(row, "top")
 
 
 def count_bold_cells_in_row(row: Dict) -> tuple:
