@@ -36,18 +36,34 @@ def fetch_url_content(url):
             context = browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
+
             page = context.new_page()
 
-            # Navigate and wait for content to load
-            page.goto(url, timeout=30000)
-            # Wait for the main content to be rendered
-            page.wait_for_load_state("networkidle", timeout=15000)
+            # Navigate: try domcontentloaded, fallback to load
+            try:
+                page.goto(url, wait_until="domcontentloaded", timeout=10000)
+            except Exception:
+                page.goto(url, wait_until="load", timeout=5000)
 
+            # Wait for selector (only reached if navigation succeeded)
+            try:
+                page.wait_for_selector("main, article, .mw-parser-output, #content", timeout=3000)
+            except Exception:
+                page.wait_for_timeout(500)
+                try:
+                    page.wait_for_load_state("networkidle", timeout=3000)
+                except Exception:
+                    raise Exception(f"Timeout waiting for content from {url}: selector not found and networkidle (3s) exceeded")
+           
             # Get the rendered HTML
             html_content = page.content()
 
             browser.close()
 
+        if "JavaScript is disabled" in html_content:
+            print(f"JavaScript appears to be disabled for {url}")
+            return None
+        
         # Convert HTML to Markdown
         h = html2text.HTML2Text()
         h.ignore_links = True  # Don't convert hyperlinks to markdown format
@@ -58,7 +74,6 @@ def fetch_url_content(url):
         # Truncate to ~60k chars (~15k tokens) to prevent excessive LLM usage
         if len(markdown) > 60000:
             markdown = markdown[:60000]
-
         return markdown
 
     except Exception as e:
