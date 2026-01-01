@@ -275,7 +275,7 @@ def grade_checkpoint_2():
 
         print("Locating Logo Image")
         step_start = time.time()
-        exact_size_location = extract_image_location_size_feature_based(cropped_logo_path, logo_size, PDF_IMAGES_DIR, True, dpi=PDF_DPI)
+        exact_size_location = extract_image_location_size_feature_based(cropped_logo_path, logo_size, PDF_IMAGES_DIR, DEBUG, dpi=PDF_DPI)
         step_time = time.time() - step_start
 
         if exact_size_location and getattr(exact_size_location, "y", None) is not None and exact_size_location.y > 450:
@@ -317,7 +317,7 @@ def grade_checkpoint_2():
 
             print("Locating Logo Image")
             step_start = time.time()
-            exact_size_location = extract_image_location_size_feature_based(cropped_logo_path, logo_size, PDF_IMAGES_DIR, True, dpi=PDF_DPI)
+            exact_size_location = extract_image_location_size_feature_based(cropped_logo_path, logo_size, PDF_IMAGES_DIR, DEBUG, dpi=PDF_DPI)
             step_time = time.time() - step_start
             print(f"Location is {exact_size_location}")
             if exact_size_location:
