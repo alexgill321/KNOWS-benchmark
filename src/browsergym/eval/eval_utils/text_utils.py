@@ -1,5 +1,6 @@
 import unicodedata
-from typing import List, Optional
+import warnings
+from typing import List, Optional, Union, Any
 from rapidfuzz import fuzz, process
 
 # Global cache for DocTR OCR model to avoid reloading
@@ -11,8 +12,304 @@ sys.path.append(os.getcwd())
 from src.browsergym.eval.eval_utils.utils import retrieve_validate_doc_path, bbox_ratio_to_location, location
 from src.browsergym.eval.eval_utils.text_helpers import *
 
+
+# =============================================================================
+# Text Normalization
+# =============================================================================
+
+def _normalize_text(text: str, *,
+                    lowercase: bool = True,
+                    strip: bool = True,
+                    collapse_whitespace: bool = True,
+                    replace_nbsp: bool = True) -> str:
+    """Unified text normalization for matching.
+
+    Consolidates normalization logic from multiple sources into a single utility.
+
+    Args:
+        text: The text to normalize.
+        lowercase: Convert to lowercase. Default True.
+        strip: Strip leading/trailing whitespace. Default True.
+        collapse_whitespace: Collapse multiple spaces to single space. Default True.
+        replace_nbsp: Replace non-breaking spaces with regular spaces. Default True.
+
+    Returns:
+        Normalized text string.
+    """
+    if not text:
+        return ""
+
+    if replace_nbsp:
+        text = text.replace("\u00a0", " ")
+
+    if strip:
+        text = text.strip()
+
+    if lowercase:
+        text = text.lower()
+
+    if collapse_whitespace:
+        text = re.sub(r"\s+", " ", text)
+
+    return text
+
+
+# =============================================================================
+# Keyword Exact Matching
+# =============================================================================
+
+def keyword_exact_match(text: str, keyword: str, *,
+                        case_sensitive: bool = False,
+                        normalize: bool = True,
+                        standalone_line: bool = False) -> bool:
+    """Strict exact match of a keyword to text.
+
+    Performs exact comparison after optional normalization. This is the core
+    matching function for keyword-based text matching.
+
+    Normalization (if enabled):
+    - Lowercase (unless case_sensitive)
+    - Strip whitespace
+    - Replace non-breaking spaces
+    - Collapse multiple whitespace
+
+    Args:
+        text: The text to check.
+        keyword: The keyword to match against.
+        case_sensitive: If True, perform case-sensitive matching. Default False.
+        normalize: If True, normalize both text and keyword before comparison. Default True.
+        standalone_line: If True, check line-by-line with trailing punctuation
+                        tolerance (.,;:). Useful for header matching where
+                        "Name." should match "Name". Default False.
+
+    Returns:
+        True if text exactly matches keyword after normalization.
+
+    Examples:
+        >>> keyword_exact_match("Hello World", "hello world")
+        True
+        >>> keyword_exact_match("Hello World", "hello", case_sensitive=True)
+        False
+        >>> keyword_exact_match("Name.", "Name", standalone_line=True)
+        True
+    """
+    if not text or not keyword:
+        return False
+
+    if normalize:
+        text_norm = _normalize_text(text, lowercase=not case_sensitive)
+        keyword_norm = _normalize_text(keyword, lowercase=not case_sensitive)
+    else:
+        text_norm = text.strip() if not case_sensitive else text.strip()
+        keyword_norm = keyword.strip() if not case_sensitive else keyword.strip()
+        if not case_sensitive:
+            text_norm = text_norm.lower()
+            keyword_norm = keyword_norm.lower()
+
+    if not standalone_line:
+        return text_norm == keyword_norm
+
+    # Standalone line mode: check line-by-line with trailing punctuation tolerance
+    allowed_trailing = set(".,;:")
+
+    for line in text.splitlines():
+        line_norm = _normalize_text(line, lowercase=not case_sensitive)
+
+        # Exact match
+        if line_norm == keyword_norm:
+            return True
+
+        # Match with trailing punctuation
+        if line_norm.startswith(keyword_norm):
+            remainder = line_norm[len(keyword_norm):]
+            if all(c in allowed_trailing for c in remainder):
+                return True
+
+    return False
+
+
+def keywords_exact_match(text: str, keywords: List[str], *,
+                         case_sensitive: bool = False,
+                         normalize: bool = True,
+                         standalone_line: bool = False) -> Optional[str]:
+    """Match text against a list of keywords using exact matching.
+
+    Iterates through keywords and returns the first one that matches the text.
+    This is useful when you have multiple acceptable keywords for the same concept.
+
+    Args:
+        text: The text to check.
+        keywords: List of keyword strings to match against.
+        case_sensitive: If True, perform case-sensitive matching. Default False.
+        normalize: If True, normalize text and keywords before comparison. Default True.
+        standalone_line: If True, check line-by-line with trailing punctuation tolerance.
+
+    Returns:
+        The first matching keyword, or None if no match.
+
+    Examples:
+        >>> keywords_exact_match("price", ["cost", "price", "amount"])
+        'price'
+        >>> keywords_exact_match("TICKER", ["symbol", "ticker"])
+        'ticker'
+    """
+    if not text or not keywords:
+        return None
+
+    for keyword in keywords:
+        if keyword_exact_match(text, keyword,
+                               case_sensitive=case_sensitive,
+                               normalize=normalize,
+                               standalone_line=standalone_line):
+            return keyword
+
+    return None
+
+
+# =============================================================================
+# LLM-Based Matching
+# =============================================================================
+
+def keywords_llm_match(texts: Union[str, List[str]],
+                       keywords: List[str],
+                       model: Any,
+                       description: str = None) -> Optional[str]:
+    """Use LLM to find semantic match between texts and keywords.
+
+    Makes a single LLM call that evaluates all texts at once against the keywords.
+    The prompt presents all candidate texts as a numbered list and asks the LLM
+    to identify which one (if any) matches the keywords/description.
+
+    Args:
+        texts: Single text or list of candidate texts (e.g., column headers).
+        keywords: List of keywords describing what we're looking for.
+        model: LLM model callable that accepts messages list.
+        description: Optional description of what we're matching (e.g., "stock symbol column").
+
+    Returns:
+        The matching text from the texts list, or None if no match.
+
+    Examples:
+        >>> keywords_llm_match(
+        ...     ["Stock Symbol", "Share Price", "Volume"],
+        ...     ["ticker", "symbol"],
+        ...     model,
+        ...     description="column for stock ticker"
+        ... )
+        'Stock Symbol'
+    """
+    if not texts or not keywords or model is None:
+        return None
+
+    # Normalize to list
+    if isinstance(texts, str):
+        texts = [texts]
+
+    if not texts:
+        return None
+
+    # Build numbered list of texts
+    texts_numbered = "\n".join([f"{i+1}. {t}" for i, t in enumerate(texts)])
+
+    # Build prompt
+    keywords_hint = f"Example keywords that might match: {', '.join(keywords)}"
+    desc_text = f"'{description}'" if description else "the specified criteria"
+
+    prompt = f"""You are analyzing text values to find one that best matches specific criteria.
+
+Criteria: Find the text that represents {desc_text}.
+{keywords_hint}
+
+Available texts:
+{texts_numbered}
+
+Please analyze each text and determine which one best matches the criteria. Consider:
+- Exact matches
+- Synonyms and semantically similar terms
+- Common abbreviations
+- Naming conventions
+
+Respond with ONLY the number (1, 2, 3, etc.) of the best matching text, or "NONE" if no text adequately matches."""
+
+    try:
+        messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
+        response = model(messages).strip().upper()
+
+        if response == "NONE":
+            return None
+
+        idx = int(response) - 1
+        if 0 <= idx < len(texts):
+            return texts[idx]
+    except Exception as e:
+        print(f"Error in LLM text matching: {e}")
+
+    return None
+
+
+def keywords_match_robust(texts: Union[str, List[str]],
+                          keywords: Union[str, List[str]],
+                          model: Any = None,
+                          description: str = None) -> Optional[str]:
+    """Robust matching: exact match first, then LLM fallback.
+
+    This is the primary entry point for keyword-based text matching. It uses
+    a two-phase approach:
+
+    Phase 1: Try exact keyword matching against all texts (fast, deterministic)
+    Phase 2: If no exact match and model provided, use single LLM call for semantic matching
+
+    Args:
+        texts: Single text or list of candidate texts to search.
+        keywords: Single keyword or list of keywords to match against.
+        model: Optional LLM model for fallback. If None, only exact matching is used.
+        description: Optional description for LLM context (e.g., "stock symbol column").
+
+    Returns:
+        The matching text, or None if no match found.
+
+    Examples:
+        >>> keywords_match_robust(
+        ...     ["Stock Symbol", "Share Price", "Volume"],
+        ...     ["symbol", "ticker"],
+        ...     model=my_model,
+        ...     description="stock ticker column"
+        ... )
+        'Stock Symbol'
+    """
+    if not texts or not keywords:
+        return None
+
+    # Normalize inputs to lists
+    if isinstance(texts, str):
+        texts = [texts]
+    if isinstance(keywords, str):
+        keywords = [keywords]
+
+    # Phase 1: Exact keyword matching
+    for text in texts:
+        matched_keyword = keywords_exact_match(text, keywords)
+        if matched_keyword:
+            return text
+
+    # Phase 2: LLM fallback (if model provided)
+    if model is not None:
+        return keywords_llm_match(texts, keywords, model, description)
+
+    return None
+
+
+# =============================================================================
+# Legacy Functions (Deprecated)
+# =============================================================================
+
 def text_exact_match_contained(src_text: str, ref_text: str, *, standalone_line: bool = False) -> bool:
     """Return True if *target* is found in *text* with an 'exact' notion.
+
+    .. deprecated::
+        Use `keyword_exact_match()` for exact matching or `keywords_exact_match()`
+        for matching against multiple keywords. This function is kept for backwards
+        compatibility but will be removed in a future version.
 
     - If standalone_line=False: simple containment check (target in text).
     - If standalone_line=True: require an exact full-line match after normalization
@@ -21,56 +318,21 @@ def text_exact_match_contained(src_text: str, ref_text: str, *, standalone_line:
       Opening brackets/parens attached to the text indicate concatenation and are rejected.
       This is useful for header fields like a name.
     """
+    warnings.warn(
+        "text_exact_match_contained() is deprecated. Use keyword_exact_match() or "
+        "keywords_exact_match() instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+
     if not src_text or not ref_text:
         return False
 
     if not standalone_line:
         return src_text in ref_text
 
-    def _norm_core(s: str) -> str:
-        """Normalize the core text: lowercase, collapse whitespace, replace non-breaking spaces."""
-        s = s.replace("\u00a0", " ")
-        s = s.strip().lower()
-        s = re.sub(r"\s+", " ", s)  # collapse whitespace
-        return s
-
-    def _is_valid_standalone(line: str, target: str) -> bool:
-        """Check if line matches target as a standalone item.
-
-        Allows only trailing punctuation that typically ends a standalone item
-        (period, comma, colon, semicolon). Rejects lines where the target is
-        followed by opening brackets, parens, or other text that suggests concatenation.
-        """
-        line_norm = _norm_core(line)
-        target_norm = _norm_core(target)
-
-        if not target_norm:
-            return False
-
-        # Exact match
-        if line_norm == target_norm:
-            return True
-
-        # Check if line starts with target followed only by allowed trailing punctuation
-        # Allowed: . , : ; (these commonly end standalone items)
-        # NOT allowed: ( [ { < or any other characters (suggests concatenation)
-        if line_norm.startswith(target_norm):
-            remainder = line_norm[len(target_norm):]
-            # Only allow empty remainder or trailing punctuation that ends an item
-            allowed_trailing = set(".,;:")
-            if all(c in allowed_trailing for c in remainder):
-                return True
-
-        return False
-
-    target_norm = _norm_core(src_text)
-    if not target_norm:
-        return False
-
-    for line in ref_text.splitlines():
-        if _is_valid_standalone(line, src_text):
-            return True
-    return False
+    # Use the new keyword_exact_match for standalone_line mode
+    return keyword_exact_match(ref_text, src_text, standalone_line=True)
     
 def text_fuzzy_match_contained_long(target, full_text, threshold=85):
     """
@@ -170,7 +432,6 @@ def text_fuzzy_match_contained_short(query, larger_text):
         #print("No suitable match found.")
         return None
 
-
 def match_text_in_list(text, text_list, threshold=80):
     """
     Find the best matching item from a list in the given text.
@@ -211,38 +472,6 @@ def match_text_in_list(text, text_list, threshold=80):
         return matched_item, score
 
     return None, 0
-
-def binary_judge_text(model, src_text, gld_text):
-    """Classifies a text based on its presence in another text using a pre-trained LLM.
-
-    Args:
-        model (str): The model to use for classification. Model should be loaded beforehand.
-        src_text (str): The text to be classified.
-        gld_text (str): The reference text.
-
-    Returns:
-        bool: True if text1 is deemed to be present in text2, False otherwise.
-    """
-
-    messages = [
-        {
-            "role": "system",
-            "content": 
-            [{
-                "type": "text", 
-                "text": "Given text 1 and a reference text, determine whether there is a semantically similar match for text 1 in the "
-                "reference text. If there is, return True, otherwise return False."
-            }]
-        },
-        {
-            "role": "user",
-            "content": 
-            [{
-                "type": "text", 
-                "text": f"Text 1: {src_text}\nReference Text: {gld_text}"
-            }]
-        }
-    ]
 
 def extract_text_from_pdf(pdf_images_path):
     """
@@ -517,7 +746,6 @@ def fuzzy_match_text(text1: str, text2: str, threshold: int = 80) -> tuple:
     score = fuzz.token_sort_ratio(text1, text2)
 
     return score >= threshold, score
-
 
 def split_delimited_text(text: str, delimiters: List[str] = None) -> List[str]:
     """Split text by multiple delimiters.

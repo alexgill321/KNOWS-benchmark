@@ -23,25 +23,38 @@ from src.browsergym.eval.eval_utils.google_services_utils import initialize_goog
 from src.browsergym.eval.eval_utils.google_sheets_utils import (
     extract_charts_from_sheet,
     extract_sheet_data,
+    find_urls_in_sheet,
 )
+from src.browsergym.eval.eval_utils.web_utils import validate_url_accessible
 from src.browsergym.eval.eval_utils.table_utils import (
     match_columns,
-    is_text_visible_in_cell,
+    colors_are_similar,
+    check_all_content_visible,
 )
+from src.browsergym.eval.eval_utils.text_utils import keywords_match_robust
 from src.browsergym.eval.eval_utils.models import load_model
+from src.browsergym.eval.eval_utils.chart_utils import (
+    get_series_header_label,
+    get_series_column_values,
+    validate_constant_series,
+    get_series_line_style,
+    get_series_color,
+    get_chart_axis_labels,
+    check_chart_overlap,
+    check_point_shape,
+    get_all_series_metadata,
+    get_chart_type,
+    identify_series_by_content,
+)
 
 # Task-specific utilities
 from src.browsergym.eval.tasks.sheets_7_running_analysis.utils import (
     normalize_date,
     load_gold_run_activities,
-    check_all_content_visible,
-    get_chart_axis_labels,
-    check_chart_overlap,
-    extract_baseline_series,
-    find_urls_in_sheet,
-    validate_url_accessible,
-    check_circular_points,
     find_speed_chart_by_metadata,
+    find_cumulative_chart_by_metadata,
+    validate_cumulative_against_sheet,
+    extract_and_convert_pace_from_url,
 )
 
 # Constants
@@ -51,7 +64,7 @@ DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 # Gold baseline values for checkpoint 3
 MALE_5K_PACE_RANGE = (8.0, 10.0)  # min/mile for 25yo male
-KIPCHOGE_PACE_RANGE = (4.5, 4.8)  # min/mile (based on top 3 marathons)
+KIPCHOGE_PACE_RANGE = (4.6, 4.65)  # min/mile (4:36-4:39, based on top 3 marathons)
 
 model = None
 model_id = "gemini-2.5-flash-google-ai"
@@ -65,6 +78,8 @@ table_data = None  # SheetTable object with position metadata
 rows = None  # Raw row data from sheet
 matched_columns = None  # Shared across checkpoints
 chart_data = None  # All charts extracted from the sheet
+sheet_male_5k_pace = None  # Male 5K baseline value from sheet (for checkpoint 5)
+sheet_kipchoge_pace = None  # Kipchoge baseline value from sheet (for checkpoint 5)
 
 
 def setup(workspace_doc_id):
@@ -194,7 +209,7 @@ def grade_checkpoint_1():
     start_row = table_data.start_row if table_data else 0
     end_row = table_data.end_row if table_data else start_row + len(df) + 1
     num_cols = len(df.columns)
-    all_visible, visibility_details = check_all_content_visible(sheet_raw, start_row, end_row, num_cols, is_text_visible_in_cell)
+    all_visible, visibility_details = check_all_content_visible(sheet_raw, start_row, end_row, num_cols)
     checkpoint.add_step(
         "Content Visibility",
         all_visible,
@@ -396,87 +411,152 @@ def grade_checkpoint_2():
 
 def grade_checkpoint_3():
     """
-    Grade Checkpoint 3: Speed Over Time Plot (15 pts, consolidated to 14 steps).
+    Grade Checkpoint 3: Speed Over Time Plot (13 steps).
 
     Outcome Evaluation:
     1. X-axis label indicates activity date
     2. Y-axis label indicates speed (min/mile or similar)
     3. Chart title indicates speed over time
     4. Chart is not placed over any other charts or tables
-    5. Chart main data series comes from the average speed column
-    6. Speed values are in min/mile units
-    7. Speed values are present as circular points in the chart
-    8. Male 5K baseline line is present in speed chart
-    9. Male 5K baseline is styled as dotted/dashed
-    10. Male 5K baseline is within gold range
-    11. Male 5K baseline matches source (if source present)
-    12. Kipchoge baseline line is present in speed chart
-    13. Kipchoge baseline represents average of his top 3 marathons
-    14. Source URLs are valid and accessible below the speed chart
+    5. Chart main data series comes from the average speed column (min/mile)
+    6. Speed values are present as circular points in the chart
+    7. Male 5K baseline is properly displayed (labeled in legend + dotted/dashed style)
+    8. Male 5K baseline data is constant and within expected range (8-10 min/mile)
+    9. Kipchoge baseline is properly displayed (labeled in legend + dotted/dashed style)
+    10. Kipchoge baseline data is constant and within expected range (4.5-4.8 min/mile)
+    11. Both baselines are visually distinguishable from the main data
+    12. Source URLs are valid and accessible below the speed chart
     """
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=14, result=0, name="Speed Over Time Plot")
+    checkpoint = Checkpoint(total=12, result=0, name="Speed Over Time Plot")
 
     # Check if any charts exist
     if not chart_data:
         error_msg = "No charts found in spreadsheet"
-        for i in range(1, 15):
+        for i in range(1, 13):
             checkpoint.add_step(f"Step {i}", False, i, error_msg)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     # Find speed chart by metadata (title -> axis labels -> series data)
-    speed_chart = find_speed_chart_by_metadata(chart_data, matched_columns, df)
+    speed_chart = find_speed_chart_by_metadata(chart_data, matched_columns, table_data.df, model=model)
 
     if not speed_chart:
         error_msg = "Could not identify speed chart by title, axis labels, or series data"
-        for i in range(1, 15):
+        for i in range(1, 13):
             checkpoint.add_step(f"Step {i}", False, i, error_msg)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     chart_type = speed_chart.get('chart_type', 'UNKNOWN')
 
+    # Identify series by content using three separate calls to the generalized function
+    df = table_data.df if table_data else None
+
+    # Keywords for identifying each series type
+    male_5k_keywords = ["male", "5k", "5 k", "baseline", "men", "25 year", "25-year", "25yo"]
+    kipchoge_keywords = ["kipchoge", "eliud", "marathon", "world", "record"]
+
+    # Identify Male 5K baseline series (constant, 8-10 min/mile range)
+    male_5k_idx = identify_series_by_content(
+        chart=speed_chart,
+        rows=rows,
+        keywords=male_5k_keywords,
+        expected_value_range=MALE_5K_PACE_RANGE,
+        require_constant=True,
+        model=model,
+        description="legend label for male 5K running baseline"
+    )
+
+    # Identify Kipchoge baseline series (constant, 4.6-4.65 min/mile range)
+    kipchoge_idx = identify_series_by_content(
+        chart=speed_chart,
+        rows=rows,
+        keywords=kipchoge_keywords,
+        expected_value_range=KIPCHOGE_PACE_RANGE,
+        require_constant=True,
+        exclude_indices=[male_5k_idx] if male_5k_idx is not None else None,
+        model=model,
+        description="legend label for Kipchoge marathon baseline"
+    )
+
+    # Identify main data series (highest variance, from speed column)
+    exclude_baselines = [i for i in [male_5k_idx, kipchoge_idx] if i is not None]
+    main_idx = identify_series_by_content(
+        chart=speed_chart,
+        rows=rows,
+        keywords=[],  # No keywords - identify by variance/column
+        matched_columns=matched_columns,
+        column_name="Speed (min/mile)",
+        df=df,
+        exclude_indices=exclude_baselines if exclude_baselines else None,
+        model=model
+    )
+
     # Get axis labels
     axis_labels = get_chart_axis_labels(speed_chart)
 
     # Step 1: X-axis label indicates activity date
     step_start = time.time()
-    x_label = axis_labels.get('x_axis', '').lower()
+    x_label = axis_labels.get('x_axis', '')
     date_keywords = ['date', 'time', 'day', 'activity']
-    has_date_label = any(kw in x_label for kw in date_keywords) or bool(x_label)
+    x_label_match = keywords_match_robust(
+        texts=x_label,
+        keywords=date_keywords,
+        model=model,
+        description="X-axis label indicating activity date or time"
+    ) if x_label else None
+    has_date_label = x_label_match is not None or bool(x_label)
     checkpoint.add_step(
         "X-Axis Date Label",
         has_date_label,
         1,
-        f"X-axis label: '{axis_labels.get('x_axis', 'None')}'" if has_date_label else "No date-related X-axis label found",
+        f"X-axis label: '{x_label}'" if has_date_label else "No date-related X-axis label found",
         execution_time=time.time() - step_start
     )
 
     # Step 2: Y-axis label indicates speed
     step_start = time.time()
-    y_label = axis_labels.get('y_axis', '').lower()
+    y_label = axis_labels.get('y_axis', '')
     speed_keywords = ['speed', 'pace', 'min/mile', 'min per mile', 'minute']
-    has_speed_label = any(kw in y_label for kw in speed_keywords)
+    y_label_match = keywords_match_robust(
+        texts=y_label,
+        keywords=speed_keywords,
+        model=model,
+        description="Y-axis label indicating running speed or pace"
+    ) if y_label else None
+    has_speed_label = y_label_match is not None
     checkpoint.add_step(
         "Y-Axis Speed Label",
         has_speed_label,
         2,
-        f"Y-axis label: '{axis_labels.get('y_axis', 'None')}'" if has_speed_label else "No speed-related Y-axis label found",
+        f"Y-axis label: '{y_label}'" if has_speed_label else "No speed-related Y-axis label found",
         execution_time=time.time() - step_start
     )
 
     # Step 3: Chart title indicates speed over time
     step_start = time.time()
-    chart_title = speed_chart.get('title', '').lower()
-    title_has_speed = any(kw in chart_title for kw in ['speed', 'pace', 'running'])
-    title_has_time = any(kw in chart_title for kw in ['time', 'over', 'progression', 'trend'])
-    has_good_title = title_has_speed or title_has_time or bool(speed_chart.get('title', ''))
+    chart_title = speed_chart.get('title', '')
+    speed_title_keywords = ['speed', 'pace', 'running']
+    time_title_keywords = ['time', 'over', 'progression', 'trend']
+    title_speed_match = keywords_match_robust(
+        texts=chart_title,
+        keywords=speed_title_keywords,
+        model=model,
+        description="chart title related to running speed or pace"
+    ) if chart_title else None
+    title_time_match = keywords_match_robust(
+        texts=chart_title,
+        keywords=time_title_keywords,
+        model=model,
+        description="chart title indicating time progression or trend"
+    ) if chart_title else None
+    has_good_title = title_speed_match is not None or title_time_match is not None or bool(chart_title)
     checkpoint.add_step(
         "Chart Title",
         has_good_title,
         3,
-        f"Chart title: '{speed_chart.get('title', 'None')}'",
+        f"Chart title: '{chart_title or 'None'}'",
         execution_time=time.time() - step_start
     )
 
@@ -484,7 +564,9 @@ def grade_checkpoint_3():
     step_start = time.time()
     table_start = table_data.start_row if table_data else 0
     table_end = table_data.end_row if table_data else (table_start + len(df) + 1 if df is not None else table_start + 110)
-    has_overlap, overlap_details = check_chart_overlap(speed_chart, table_start, table_end, chart_data or [])
+    table_start_col = table_data.start_col if table_data else 0
+    table_end_col = table_data.end_col if table_data else None
+    has_overlap, overlap_details = check_chart_overlap(speed_chart, table_start, table_end, chart_data or [], table_start_col, table_end_col)
     checkpoint.add_step(
         "No Chart Overlap",
         not has_overlap,
@@ -495,9 +577,38 @@ def grade_checkpoint_3():
 
     # Step 5: Main data series from speed column
     step_start = time.time()
-    series_list = extract_baseline_series(speed_chart)
-    main_series_valid = len(series_list) > 0
-    series_details = f"Found {len(series_list)} series in chart"
+    series_list = get_all_series_metadata(speed_chart)
+    main_series_valid = False
+    series_details = "No series found in chart"
+
+    if series_list and len(series_list) > 0:
+        if main_idx is not None:
+            # Get the expected speed column index from checkpoint 2 matching (uses correct units)
+            speed_col_name = matched_columns.get("Speed (min/mile)") if matched_columns else None
+
+            if speed_col_name and df is not None and speed_col_name in df.columns:
+                expected_col_idx = df.columns.get_loc(speed_col_name)
+
+                # Check if the identified main series uses the speed column
+                if main_idx < len(series_list):
+                    main_series = series_list[main_idx]
+                    src_range = main_series.get('source_range', {})
+                    actual_start_col = src_range.get('start_col')
+
+                    if actual_start_col == expected_col_idx:
+                        main_series_valid = True
+                        series_details = f"Main series (index {main_idx}) uses '{speed_col_name}' (column {expected_col_idx})"
+                    else:
+                        series_details = f"Main series (index {main_idx}) uses column {actual_start_col}, expected column {expected_col_idx} ('{speed_col_name}')"
+                else:
+                    series_details = f"Main series index {main_idx} out of range (only {len(series_list)} series)"
+            else:
+                # Fallback: main series identified but can't verify column
+                main_series_valid = True
+                series_details = f"Main series identified at index {main_idx} (could not verify column match)"
+        else:
+            series_details = "Could not identify main data series by content"
+
     checkpoint.add_step(
         "Speed Data Series",
         main_series_valid,
@@ -506,121 +617,220 @@ def grade_checkpoint_3():
         execution_time=time.time() - step_start
     )
 
-    # Step 6: Speed values in min/mile units
+    # Step 6: Circular points in chart
     step_start = time.time()
-    # Check if y-axis values are in reasonable min/mile range (4-20)
-    # This is validated by checking axis label and title for "min/mile"
-    has_minmile_unit = 'min/mile' in y_label or 'min per mile' in y_label or 'min/mile' in chart_title
-    checkpoint.add_step(
-        "Min/Mile Units",
-        has_minmile_unit or has_speed_label,
-        6,
-        "Speed values labeled as min/mile" if has_minmile_unit else "Speed units inferred from axis label",
-        execution_time=time.time() - step_start
-    )
-
-    # Step 7: Circular points in chart
-    step_start = time.time()
-    has_points, point_details = check_circular_points(speed_chart, chart_type)
+    has_points, point_details = check_point_shape(speed_chart, chart_type)
     checkpoint.add_step(
         "Circular Points",
         has_points,
-        7,
+        6,
         point_details,
         execution_time=time.time() - step_start
     )
 
-    # Step 8: Male 5K baseline line present
+    # Step 7: Male 5K baseline display check (legend label + line style)
     step_start = time.time()
-    # Need at least 2 series (main data + 1 baseline)
-    has_male_baseline = len(series_list) >= 2
+    male_5k_display_valid = False
+    male_5k_display_details = "Could not identify Male 5K baseline series"
+
+    if male_5k_idx is not None:
+        # Get legend label from identified series
+        male_5k_label = get_series_header_label(speed_chart, male_5k_idx, rows)
+        male_5k_keywords = ["male", "5k", "5 k", "baseline", "average", "men", "25"]
+        label_match = keywords_match_robust(
+            texts=male_5k_label,
+            keywords=male_5k_keywords,
+            model=model,
+            description="legend label for male 5K running baseline"
+        ) if male_5k_label else None
+
+        # Check line style
+        male_5k_line_style = get_series_line_style(speed_chart, male_5k_idx)
+        is_dashed = male_5k_line_style and male_5k_line_style.upper() in [
+            'DOTTED', 'DASHED', 'LONG_DASHED', 'MEDIUM_DASHED', 'LONG_DASHED_DOTTED'
+        ]
+
+        if label_match and is_dashed:
+            male_5k_display_valid = True
+            male_5k_display_details = f"Label: '{male_5k_label}', Style: {male_5k_line_style} (series index {male_5k_idx})"
+        elif label_match:
+            male_5k_display_details = f"Label: '{male_5k_label}' OK, but line style is {male_5k_line_style or 'SOLID'} (series index {male_5k_idx})"
+        elif is_dashed:
+            male_5k_display_details = f"Line style {male_5k_line_style} OK, but label '{male_5k_label}' doesn't match keywords (series index {male_5k_idx})"
+        else:
+            male_5k_display_details = f"Label: '{male_5k_label}', Style: {male_5k_line_style or 'SOLID'} - both need improvement (series index {male_5k_idx})"
+
     checkpoint.add_step(
-        "Male 5K Baseline Present",
-        has_male_baseline,
+        "Male 5K Display",
+        male_5k_display_valid,
+        7,
+        male_5k_display_details,
+        execution_time=time.time() - step_start
+    )
+
+    # Step 8: Male 5K baseline data validation (constant value in range)
+    step_start = time.time()
+    global sheet_male_5k_pace
+    male_5k_data_valid = False
+    male_5k_data_details = "Could not identify Male 5K baseline series"
+
+    if male_5k_idx is not None:
+        male_5k_values = get_series_column_values(speed_chart, male_5k_idx, rows)
+        if male_5k_values:
+            male_5k_data_valid, _, male_5k_data_details = validate_constant_series(
+                male_5k_values, MALE_5K_PACE_RANGE, tolerance=0.01
+            )
+            # Store the baseline value for use in checkpoint 5
+            if male_5k_values:
+                sheet_male_5k_pace = male_5k_values[0]  # Constant series, all values same
+        else:
+            male_5k_data_details = f"Could not extract values from baseline series (index {male_5k_idx})"
+
+    checkpoint.add_step(
+        "Male 5K Data",
+        male_5k_data_valid,
         8,
-        f"Found {len(series_list)} series (need ≥2 for baselines)" if not has_male_baseline else "Baseline series found",
+        male_5k_data_details,
         execution_time=time.time() - step_start
     )
 
-    # Step 9: Male 5K baseline is dotted/dashed
+    # Step 9: Kipchoge baseline display check (legend label only - no line style requirement per task.md)
     step_start = time.time()
-    baseline_is_dashed = False
-    if len(series_list) >= 2:
-        for series in series_list[1:]:  # Skip main data series
-            line_style = series.get('line_style', 'SOLID')
-            if line_style and line_style.upper() in ['DOTTED', 'DASHED', 'LONG_DASHED', 'MEDIUM_DASHED', 'LONG_DASHED_DOTTED']:
-                baseline_is_dashed = True
-                break
+    kipchoge_display_valid = False
+    kipchoge_display_details = "Could not identify Kipchoge baseline series"
+
+    if kipchoge_idx is not None:
+        # Get legend label from identified series
+        kipchoge_label = get_series_header_label(speed_chart, kipchoge_idx, rows)
+        kipchoge_keywords = ["kipchoge", "eliud", "marathon", "world", "record"]
+        label_match = keywords_match_robust(
+            texts=kipchoge_label,
+            keywords=kipchoge_keywords,
+            model=model,
+            description="legend label for Kipchoge marathon baseline"
+        ) if kipchoge_label else None
+
+        # Get line style for informational purposes only
+        kipchoge_line_style = get_series_line_style(speed_chart, kipchoge_idx)
+
+        if label_match:
+            kipchoge_display_valid = True
+            kipchoge_display_details = f"Label: '{kipchoge_label}', Style: {kipchoge_line_style or 'SOLID'} (series index {kipchoge_idx})"
+        else:
+            kipchoge_display_details = f"Label '{kipchoge_label}' doesn't match Kipchoge keywords (series index {kipchoge_idx})"
+
     checkpoint.add_step(
-        "Male 5K Baseline Dotted/Dashed",
-        baseline_is_dashed,
+        "Kipchoge Display",
+        kipchoge_display_valid,
         9,
-        "Baseline has dotted/dashed style" if baseline_is_dashed else "Baseline line style is solid or not found",
+        kipchoge_display_details,
         execution_time=time.time() - step_start
     )
 
-    # Step 10: Male 5K baseline within gold range
+    # Step 10: Kipchoge baseline data validation (constant value in range)
     step_start = time.time()
-    # This would require extracting actual baseline values from the chart data
-    # For now, check if baseline series exists
-    baseline_in_range = has_male_baseline  # Simplified check
+    global sheet_kipchoge_pace
+    kipchoge_data_valid = False
+    kipchoge_data_details = "Could not identify Kipchoge baseline series"
+
+    if kipchoge_idx is not None:
+        kipchoge_values = get_series_column_values(speed_chart, kipchoge_idx, rows)
+        if kipchoge_values:
+            kipchoge_data_valid, _, kipchoge_data_details = validate_constant_series(
+                kipchoge_values, KIPCHOGE_PACE_RANGE, tolerance=0.01
+            )
+            # Store the baseline value for use in checkpoint 5
+            if kipchoge_values:
+                sheet_kipchoge_pace = kipchoge_values[0]  # Constant series, all values same
+        else:
+            kipchoge_data_details = f"Could not extract values from baseline series (index {kipchoge_idx})"
+
     checkpoint.add_step(
-        "Male 5K Baseline in Range",
-        baseline_in_range,
+        "Kipchoge Data",
+        kipchoge_data_valid,
         10,
-        f"Expected range: {MALE_5K_PACE_RANGE[0]}-{MALE_5K_PACE_RANGE[1]} min/mile",
+        kipchoge_data_details,
         execution_time=time.time() - step_start
     )
 
-    # Step 11: Male 5K baseline matches source
+    # Step 11: Both baselines visually distinguishable from main data AND from each other
+    # Per task.md: only male 5K needs to be dotted, Kipchoge just needs to be distinguishable
     step_start = time.time()
-    # This would compare against browsing_history content
-    # For now, pass if baseline exists
+    baselines_distinguishable = False
+    distinguishable_details = "Need all three series identified (main, male 5K, Kipchoge)"
+
+    if main_idx is not None and male_5k_idx is not None and kipchoge_idx is not None:
+        # Get line styles for all series
+        main_line_style = get_series_line_style(speed_chart, main_idx)
+        male_5k_style = get_series_line_style(speed_chart, male_5k_idx)
+        kipchoge_style = get_series_line_style(speed_chart, kipchoge_idx)
+
+        # Get colors for all series
+        main_color = get_series_color(speed_chart, main_idx)
+        male_5k_color = get_series_color(speed_chart, male_5k_idx)
+        kipchoge_color = get_series_color(speed_chart, kipchoge_idx)
+
+        # Per task.md: only male 5K baseline needs to be dotted/dashed
+        male_5k_is_styled = male_5k_style and male_5k_style.upper() != 'SOLID'
+
+        # Check if baselines are distinguishable from each other (different styles OR different colors)
+        baselines_have_different_styles = male_5k_style != kipchoge_style
+        baselines_have_different_colors = not colors_are_similar(male_5k_color or {}, kipchoge_color or {})
+        baselines_distinguishable_from_each_other = baselines_have_different_styles or baselines_have_different_colors
+
+        # Check if Kipchoge is distinguishable from main data (different style OR different color)
+        kipchoge_different_from_main_style = main_line_style != kipchoge_style
+        kipchoge_different_from_main_color = not colors_are_similar(main_color or {}, kipchoge_color or {})
+        kipchoge_distinguishable_from_main = kipchoge_different_from_main_style or kipchoge_different_from_main_color
+
+        # All conditions must be met:
+        # 1. Male 5K baseline is dotted/dashed (per task.md requirement)
+        # 2. Baselines are distinguishable from each other (different style OR different color)
+        # 3. Kipchoge is distinguishable from main data (different style OR different color)
+        if male_5k_is_styled and baselines_distinguishable_from_each_other and kipchoge_distinguishable_from_main:
+            baselines_distinguishable = True
+            distinguishable_details = (
+                f"Male 5K: {male_5k_style} (dotted per task.md), "
+                f"Kipchoge: {kipchoge_style or 'SOLID'}, Main: {main_line_style or 'SOLID'}"
+            )
+        else:
+            # Build detailed failure message
+            issues = []
+            if not male_5k_is_styled:
+                issues.append(f"Male 5K not dotted/dashed ({male_5k_style or 'SOLID'})")
+            if not baselines_distinguishable_from_each_other:
+                issues.append(f"baselines not distinguishable from each other")
+            if not kipchoge_distinguishable_from_main:
+                issues.append(f"Kipchoge not distinguishable from main data")
+            distinguishable_details = f"Issues: {'; '.join(issues)}"
+
     checkpoint.add_step(
-        "Male 5K Baseline Matches Source",
-        has_male_baseline,
+        "Baselines Distinguishable",
+        baselines_distinguishable,
         11,
-        "Baseline value should match researched 5K pace",
+        distinguishable_details,
         execution_time=time.time() - step_start
     )
 
-    # Step 12: Kipchoge baseline line present
-    step_start = time.time()
-    # Need at least 3 series (main data + 2 baselines)
-    has_kipchoge_baseline = len(series_list) >= 3
-    checkpoint.add_step(
-        "Kipchoge Baseline Present",
-        has_kipchoge_baseline,
-        12,
-        f"Found {len(series_list)} series (need ≥3 for both baselines)" if not has_kipchoge_baseline else "Second baseline series found",
-        execution_time=time.time() - step_start
-    )
-
-    # Step 13: Kipchoge baseline correct value
-    step_start = time.time()
-    kipchoge_correct = has_kipchoge_baseline  # Simplified check
-    checkpoint.add_step(
-        "Kipchoge Baseline Correct",
-        kipchoge_correct,
-        13,
-        f"Expected range: {KIPCHOGE_PACE_RANGE[0]}-{KIPCHOGE_PACE_RANGE[1]} min/mile (top 3 marathon avg)",
-        execution_time=time.time() - step_start
-    )
-
-    # Step 14: Source URLs valid and accessible below chart
+    # Step 12: Source URLs valid and accessible below chart
     step_start = time.time()
     urls_valid = False
     url_details = "No URLs found below chart"
 
     if rows:
-        # Find URLs in rows below the chart
+        # Find URLs in rows below the chart, within the chart's column range
         chart_position = speed_chart.get('position', {})
         chart_anchor_row = chart_position.get('anchor_cell', {}).get('row', 0)
+        chart_anchor_col = chart_position.get('anchor_cell', {}).get('col', 0)
         chart_height = chart_position.get('height', 300)
+        chart_width = chart_position.get('width', 600)
         # Estimate chart end row (assuming ~20 pixels per row)
         search_start_row = chart_anchor_row + (chart_height // 20) + 1
+        # Estimate chart end column (assuming ~100 pixels per column)
+        search_start_col = chart_anchor_col
+        search_end_col = chart_anchor_col + (chart_width // 100) + 1
 
-        urls = find_urls_in_sheet(rows, search_start_row, num_rows=10)
+        urls = find_urls_in_sheet(rows, search_start_row, num_rows=10, start_col=search_start_col, end_col=search_end_col)
 
         if urls:
             # Validate at least one URL is accessible
@@ -641,8 +851,309 @@ def grade_checkpoint_3():
     checkpoint.add_step(
         "Source URLs Valid",
         urls_valid,
-        14,
+        12,
         url_details,
+        execution_time=time.time() - step_start
+    )
+
+    checkpoint.execution_time = time.time() - checkpoint_start
+    return checkpoint
+
+
+def grade_checkpoint_4():
+    """
+    Grade Checkpoint 4: Cumulative Distance Plot (6 pts).
+
+    Outcome Evaluation:
+    1. X-axis label indicates activity date
+    2. Y-axis label indicates cumulative distance (miles or similar)
+    3. Chart title indicates cumulative distance over time
+    4. Chart is not placed over any other charts or tables
+    5. Data shows cumulative/running total
+    6. Cumulative running values are present as a line plot
+    """
+    checkpoint_start = time.time()
+    checkpoint = Checkpoint(total=6, result=0, name="Cumulative Distance Plot")
+
+    # Check if any charts exist
+    if not chart_data:
+        error_msg = "No charts found in spreadsheet"
+        for i in range(1, 7):
+            checkpoint.add_step(f"Step {i}", False, i, error_msg)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
+
+    # Find cumulative distance chart by metadata
+    cumulative_chart = find_cumulative_chart_by_metadata(
+        chart_data, matched_columns, table_data.df if table_data else None, model
+    )
+
+    if not cumulative_chart:
+        error_msg = "Could not identify cumulative distance chart by title or axis labels"
+        for i in range(1, 7):
+            checkpoint.add_step(f"Step {i}", False, i, error_msg)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
+
+    chart_type = get_chart_type(cumulative_chart)
+
+    # Get axis labels
+    axis_labels = get_chart_axis_labels(cumulative_chart)
+
+    # Step 1: X-axis label indicates activity date
+    step_start = time.time()
+    x_label = axis_labels.get('x_axis', '')
+    date_keywords = ['date', 'time', 'day', 'activity']
+    x_label_match = keywords_match_robust(
+        texts=x_label,
+        keywords=date_keywords,
+        model=model,
+        description="X-axis label indicating activity date or time"
+    ) if x_label else None
+    has_date_label = x_label_match is not None or bool(x_label)
+    checkpoint.add_step(
+        "X-Axis Date Label",
+        has_date_label,
+        1,
+        f"X-axis label: '{x_label}'" if has_date_label else "No date-related X-axis label found",
+        execution_time=time.time() - step_start
+    )
+
+    # Step 2: Y-axis label indicates cumulative distance
+    step_start = time.time()
+    y_label = axis_labels.get('y_axis', '')
+    distance_keywords = ['cumulative', 'total', 'distance', 'miles', 'running total']
+    y_label_match = keywords_match_robust(
+        texts=y_label,
+        keywords=distance_keywords,
+        model=model,
+        description="Y-axis label indicating cumulative distance"
+    ) if y_label else None
+    has_distance_label = y_label_match is not None
+    checkpoint.add_step(
+        "Y-Axis Distance Label",
+        has_distance_label,
+        2,
+        f"Y-axis label: '{y_label}'" if has_distance_label else "No cumulative distance Y-axis label found",
+        execution_time=time.time() - step_start
+    )
+
+    # Step 3: Chart title indicates cumulative distance over time
+    step_start = time.time()
+    chart_title = cumulative_chart.get('title', '')
+    cumulative_title_keywords = ['cumulative', 'total', 'distance']
+    time_title_keywords = ['time', 'over', 'progression', 'trend']
+    title_cumulative_match = keywords_match_robust(
+        texts=chart_title,
+        keywords=cumulative_title_keywords,
+        model=model,
+        description="chart title related to cumulative distance"
+    ) if chart_title else None
+    title_time_match = keywords_match_robust(
+        texts=chart_title,
+        keywords=time_title_keywords,
+        model=model,
+        description="chart title indicating time progression"
+    ) if chart_title else None
+    has_good_title = title_cumulative_match is not None or title_time_match is not None or bool(chart_title)
+    checkpoint.add_step(
+        "Chart Title",
+        has_good_title,
+        3,
+        f"Chart title: '{chart_title or 'None'}'",
+        execution_time=time.time() - step_start
+    )
+
+    # Step 4: Chart not placed over other charts/tables
+    step_start = time.time()
+    df = table_data.df if table_data else None
+    table_start = table_data.start_row if table_data else 0
+    table_end = table_data.end_row if table_data else (table_start + len(df) + 1 if df is not None else table_start + 110)
+    table_start_col = table_data.start_col if table_data else 0
+    table_end_col = table_data.end_col if table_data else None
+    has_overlap, overlap_details = check_chart_overlap(
+        cumulative_chart, table_start, table_end, chart_data or [], table_start_col, table_end_col
+    )
+    checkpoint.add_step(
+        "No Chart Overlap",
+        not has_overlap,
+        4,
+        overlap_details if has_overlap else "Chart does not overlap with table or other charts",
+        execution_time=time.time() - step_start
+    )
+
+    # Step 5: Data shows cumulative/running total (validate against sheet data)
+    step_start = time.time()
+    cumulative_valid = False
+    cumulative_details = "Could not extract chart values"
+
+    # Get first series values from the chart
+    if rows:
+        chart_values = get_series_column_values(cumulative_chart, 0, rows)
+        if chart_values:
+            cumulative_valid, cumulative_details = validate_cumulative_against_sheet(
+                chart_values, df, matched_columns, tolerance_percent=1.0
+            )
+        else:
+            cumulative_details = "No values extracted from chart series"
+
+    checkpoint.add_step(
+        "Cumulative Data",
+        cumulative_valid,
+        5,
+        cumulative_details,
+        execution_time=time.time() - step_start
+    )
+
+    # Step 6: Cumulative values present as line plot
+    step_start = time.time()
+    is_line = chart_type in ['LINE', 'AREA']
+    line_details = f"Chart type is {chart_type}"
+    if is_line:
+        line_details = f"Chart is a {chart_type} chart (line plot)"
+    else:
+        line_details = f"Chart type is {chart_type}, expected LINE or AREA"
+
+    checkpoint.add_step(
+        "Line Plot",
+        is_line,
+        6,
+        line_details,
+        execution_time=time.time() - step_start
+    )
+
+    checkpoint.execution_time = time.time() - checkpoint_start
+    return checkpoint
+
+
+def grade_checkpoint_5(browsing_history=None):
+    """
+    Grade Checkpoint 5: Website Visit Validation (4 pts).
+
+    Validates that the agent visited required websites to gather baseline data.
+
+    Outcome Evaluation:
+    - A source URL for male 5K running speed was visited.
+    - A source URL for Eliud Kipchoge marathon data was visited.
+    - Male 5K source URL contains relevant pace/speed information.
+    - Kipchoge source URL contains relevant marathon time information.
+    """
+    checkpoint_start = time.time()
+    checkpoint = Checkpoint(total=4, result=0, name="Website Visit Validation")
+
+    if not browsing_history:
+        checkpoint.add_step("Male 5K URL Visited", False, 1, "No browsing history provided")
+        checkpoint.add_step("Kipchoge URL Visited", False, 2, "No browsing history provided")
+        checkpoint.add_step("Male 5K Content Valid", False, 3, "No browsing history provided")
+        checkpoint.add_step("Kipchoge Content Valid", False, 4, "No browsing history provided")
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
+
+    browsing_lower = [url.lower() for url in browsing_history]
+
+    # Keywords for identifying relevant URLs
+    male_5k_keywords = ['5k', '5-k', 'running', 'pace', 'speed', 'average', 'runner', 'race time']
+    kipchoge_keywords = ['kipchoge', 'eliud', 'marathon record', 'world record marathon']
+
+    # Find candidate URLs for each category
+    male_5k_urls = []
+    kipchoge_urls = []
+
+    for i, url_lower in enumerate(browsing_lower):
+        original_url = browsing_history[i]
+        if any(kw in url_lower for kw in male_5k_keywords):
+            male_5k_urls.append(original_url)
+        if any(kw in url_lower for kw in kipchoge_keywords):
+            kipchoge_urls.append(original_url)
+
+    # Step 1: Male 5K URL visited
+    step_start = time.time()
+    male_5k_visited = len(male_5k_urls) > 0
+    checkpoint.add_step(
+        "Male 5K URL Visited",
+        male_5k_visited,
+        1,
+        f"Found {len(male_5k_urls)} relevant URL(s)" if male_5k_visited else "No male 5K running URL found in browsing history",
+        execution_time=time.time() - step_start
+    )
+
+    # Step 2: Kipchoge URL visited
+    step_start = time.time()
+    kipchoge_visited = len(kipchoge_urls) > 0
+    checkpoint.add_step(
+        "Kipchoge URL Visited",
+        kipchoge_visited,
+        2,
+        f"Found {len(kipchoge_urls)} relevant URL(s)" if kipchoge_visited else "No Kipchoge marathon URL found in browsing history",
+        execution_time=time.time() - step_start
+    )
+
+    # Step 3: Male 5K source contains valid pace information
+    # Compare extracted URL pace against sheet value with 5% tolerance
+    step_start = time.time()
+    male_5k_content_valid = False
+    male_5k_content_details = "No male 5K URLs to check"
+    tolerance_percent = 0.05  # 5% tolerance
+
+    if not sheet_male_5k_pace:
+        male_5k_content_details = "No Male 5K baseline value found in sheet (checkpoint 3 may have failed)"
+    elif male_5k_urls and model:
+        # Try each URL until we find one with valid pace data
+        for url in male_5k_urls[:3]:  # Check up to 3 URLs
+            pace, details = extract_and_convert_pace_from_url(url, "male_5k", model)
+            if pace is not None:
+                # Compare extracted pace to sheet value with 5% tolerance
+                diff_percent = abs(pace - sheet_male_5k_pace) / sheet_male_5k_pace
+                if diff_percent <= tolerance_percent:
+                    male_5k_content_valid = True
+                    male_5k_content_details = f"URL pace {pace:.2f} matches sheet value {sheet_male_5k_pace:.2f} min/mile ({diff_percent*100:.1f}% diff)"
+                    break
+                else:
+                    male_5k_content_details = f"URL pace {pace:.2f} differs from sheet value {sheet_male_5k_pace:.2f} by {diff_percent*100:.1f}% (max 5%)"
+            else:
+                male_5k_content_details = details
+    elif not model:
+        male_5k_content_details = "Model not available for content validation"
+
+    checkpoint.add_step(
+        "Male 5K Content Valid",
+        male_5k_content_valid,
+        3,
+        male_5k_content_details,
+        execution_time=time.time() - step_start
+    )
+
+    # Step 4: Kipchoge source contains valid marathon time information
+    # Compare extracted URL pace against sheet value with 5% tolerance
+    step_start = time.time()
+    kipchoge_content_valid = False
+    kipchoge_content_details = "No Kipchoge URLs to check"
+
+    if not sheet_kipchoge_pace:
+        kipchoge_content_details = "No Kipchoge baseline value found in sheet (checkpoint 3 may have failed)"
+    elif kipchoge_urls and model:
+        # Try each URL until we find one with valid pace data
+        for url in kipchoge_urls[:3]:  # Check up to 3 URLs
+            pace, details = extract_and_convert_pace_from_url(url, "kipchoge", model)
+            if pace is not None:
+                # Compare extracted pace to sheet value with 5% tolerance
+                diff_percent = abs(pace - sheet_kipchoge_pace) / sheet_kipchoge_pace
+                if diff_percent <= tolerance_percent:
+                    kipchoge_content_valid = True
+                    kipchoge_content_details = f"URL pace {pace:.2f} matches sheet value {sheet_kipchoge_pace:.2f} min/mile ({diff_percent*100:.1f}% diff)"
+                    break
+                else:
+                    kipchoge_content_details = f"URL pace {pace:.2f} differs from sheet value {sheet_kipchoge_pace:.2f} by {diff_percent*100:.1f}% (max 5%)"
+            else:
+                kipchoge_content_details = details
+    elif not model:
+        kipchoge_content_details = "Model not available for content validation"
+
+    checkpoint.add_step(
+        "Kipchoge Content Valid",
+        kipchoge_content_valid,
+        4,
+        kipchoge_content_details,
         execution_time=time.time() - step_start
     )
 
@@ -681,6 +1192,12 @@ def grade_checkpoints(workspace_doc_id=None, browsing_history=None):
 
         # Checkpoint 3: Speed Over Time Plot
         checkpoints.append(grade_checkpoint_3())
+
+        # Checkpoint 4: Cumulative Distance Plot
+        checkpoints.append(grade_checkpoint_4())
+
+        # Checkpoint 5: Website Visit Validation
+        checkpoints.append(grade_checkpoint_5(browsing_history))
 
         total_execution_time = time.time() - total_start_time
         result = Result(checkpoints, total_execution_time=total_execution_time)

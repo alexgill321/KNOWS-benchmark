@@ -1,4 +1,3 @@
-import torch
 import os
 import requests
 import subprocess

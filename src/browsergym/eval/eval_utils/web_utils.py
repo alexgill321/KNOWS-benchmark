@@ -3,7 +3,7 @@
 import os
 import re
 import requests
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 # Domains known to block programmatic image downloads (anti-hotlinking, bot protection, etc.)
@@ -162,6 +162,96 @@ def fetch_api_with_retry(
 
     print(f"Failed to fetch data after {max_retries} retries")
     return None
+
+
+def validate_url_accessible(url: str, timeout: int = 10) -> Tuple[bool, str]:
+    """
+    Check if URL is accessible via HTTP request.
+
+    Performs a HEAD request to check if the URL is reachable and returns
+    a success status code (< 400).
+
+    Args:
+        url: URL to validate.
+        timeout: Request timeout in seconds (default 10).
+
+    Returns:
+        tuple: (is_accessible: bool, details: str)
+            - is_accessible: True if URL returned status < 400
+            - details: Description of result or error
+    """
+    try:
+        response = requests.head(
+            url,
+            timeout=timeout,
+            allow_redirects=True,
+            headers={'User-Agent': 'Mozilla/5.0'}
+        )
+        if response.status_code < 400:
+            return True, f"URL accessible (status {response.status_code})"
+        else:
+            return False, f"URL returned status {response.status_code}"
+    except requests.exceptions.Timeout:
+        return False, "URL request timed out"
+    except requests.exceptions.RequestException as e:
+        return False, f"URL request failed: {str(e)[:50]}"
+
+
+def fetch_page_text_content(
+    url: str,
+    timeout: int = 10,
+    max_chars: int = 15000,
+    headers: Optional[Dict[str, str]] = None
+) -> Tuple[Optional[str], str]:
+    """Fetch URL and convert HTML to readable text content.
+
+    Removes non-content elements (script, style, nav, header, footer, aside)
+    and returns cleaned text suitable for LLM analysis.
+
+    Args:
+        url: URL to fetch.
+        timeout: Request timeout in seconds.
+        max_chars: Maximum characters to return (truncates if exceeded).
+        headers: Optional HTTP headers to send with request.
+
+    Returns:
+        Tuple of (text_content or None, status_details).
+    """
+    try:
+        from bs4 import BeautifulSoup
+
+        default_headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        request_headers = headers or default_headers
+
+        response = requests.get(url, timeout=timeout, headers=request_headers)
+
+        if response.status_code != 200:
+            return None, f"HTTP {response.status_code}"
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Remove script, style, and other non-content elements
+        for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
+            element.decompose()
+
+        # Get text and clean whitespace
+        text = soup.get_text(separator=' ')
+        text = re.sub(r'\s+', ' ', text).strip()
+
+        # Truncate if needed
+        if len(text) > max_chars:
+            text = text[:max_chars] + "..."
+
+        return text, "OK"
+
+    except requests.exceptions.Timeout:
+        return None, "Request timed out"
+    except requests.exceptions.RequestException as e:
+        return None, f"Request failed: {str(e)[:50]}"
+    except Exception as e:
+        return None, f"Error: {str(e)[:50]}"
 
 
 def fetch_page_title(url: str, timeout: int = 10, headers: Optional[Dict[str, str]] = None) -> Optional[str]:

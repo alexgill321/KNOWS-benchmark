@@ -19,7 +19,7 @@ The data in the table exactly matches the source running data for all Run activi
 - All 109 Run activities have exact distance match to gold data (converted to miles).
 - All 109 Run activities have exact average speed match to gold data (converted to min/miles).
 
-## Checkpoint 3 (15 pts): Speed Over Time Plot
+## Checkpoint 3 (13 pts): Speed Over Time Plot
 A scatter plot showing average running speed (min/mile) over time.
 
 ### Outcome Evaluation:
@@ -29,16 +29,13 @@ A scatter plot showing average running speed (min/mile) over time.
 - Chart is not placed over any other charts or tables.
 - Chart main data series comes from the average speed column.
 - Speed values are in min/mile units.
-- Speed values are present as circular points in the chart
-- Male 5K baseline line is present in speed chart.
-- Male 5K baseline is styled as dotted/dashed.
-- Male 5K baseline is within gold range
-- Male 5k baseline matches source running speed (If source is present)
-- Kipchoge baseline line is present in speed chart.
-- Kipchoge baseline represents average of his top 3 marathons.
+- Speed values are present as circular points in the chart.
+- Male 5K baseline is properly displayed (labeled in legend + dotted/dashed style).
+- Male 5K baseline data is constant and within expected range (8-10 min/mile).
+- Kipchoge baseline is properly displayed (labeled in legend + dotted/dashed style).
+- Kipchoge baseline data is constant and within expected range (4.5-4.8 min/mile).
 - Both baselines are visually distinguishable from the main data.
-- Source URLs are valid and accessible below the speed chart
-- Source URLS are valid and accessible
+- Source URLs are valid and accessible below the speed chart.
 
 ## Checkpoint 4 (6 pts): Cumulative Distance Plot
 A chart showing cumulative distance ran in miles over time.

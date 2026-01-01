@@ -5,11 +5,15 @@ Contains unit conversion functions for distance and speed, date normalization,
 chart identification, and other evaluation helpers.
 """
 
-from datetime import datetime
-from typing import Dict, List, Any, Tuple, Optional
-import pandas as pd
 import re
-import requests
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+import pandas as pd
+
+from src.browsergym.eval.eval_utils.chart_utils import (
+    find_chart_by_metadata
+)
+from src.browsergym.eval.eval_utils.web_utils import fetch_page_text_content
 
 
 # =============================================================================
@@ -41,6 +45,136 @@ def ms_to_min_per_mile(speed_ms: float) -> float:
 def ms_to_kmh(speed_ms: float) -> float:
     """Convert speed from m/s to km/h."""
     return speed_ms * 3.6
+
+
+def min_per_km_to_min_per_mile(min_per_km: float) -> float:
+    """Convert pace from min/km to min/mile.
+
+    Args:
+        min_per_km: Pace in minutes per kilometer.
+
+    Returns:
+        Pace in minutes per mile.
+    """
+    # 1 mile = 1.60934 km, so min/mile = min/km * 1.60934
+    return min_per_km * 1.60934
+
+
+def mph_to_min_per_mile(mph: float) -> float:
+    """Convert speed from miles per hour to min/mile pace.
+
+    Args:
+        mph: Speed in miles per hour.
+
+    Returns:
+        Pace in minutes per mile.
+    """
+    if mph <= 0:
+        return float('inf')
+    return 60.0 / mph
+
+
+def kmh_to_min_per_mile(kmh: float) -> float:
+    """Convert speed from km/h to min/mile pace.
+
+    Args:
+        kmh: Speed in kilometers per hour.
+
+    Returns:
+        Pace in minutes per mile.
+    """
+    if kmh <= 0:
+        return float('inf')
+    # Convert km/h to miles/h, then to min/mile
+    mph = kmh / 1.60934
+    return 60.0 / mph
+
+
+def marathon_time_to_min_per_mile(hours: float, minutes: float, seconds: float) -> float:
+    """Convert marathon finish time to min/mile pace.
+
+    Args:
+        hours: Hours component of finish time.
+        minutes: Minutes component of finish time.
+        seconds: Seconds component of finish time.
+
+    Returns:
+        Pace in minutes per mile.
+    """
+    total_minutes = hours * 60 + minutes + seconds / 60
+    marathon_miles = 26.2188  # Official marathon distance in miles
+    return total_minutes / marathon_miles
+
+
+def race_time_to_min_per_mile(total_minutes: float, distance_miles: float) -> float:
+    """Convert race time to min/mile pace.
+
+    Args:
+        total_minutes: Total race time in minutes.
+        distance_miles: Race distance in miles.
+
+    Returns:
+        Pace in minutes per mile.
+    """
+    if distance_miles <= 0:
+        return float('inf')
+    return total_minutes / distance_miles
+
+
+def convert_pace_to_min_per_mile(value: float, unit: str) -> Tuple[Optional[float], str]:
+    """Convert a pace/speed value from various units to min/mile.
+
+    Args:
+        value: The numeric pace or speed value.
+        unit: The unit of the value. Supported units:
+            - "min/mile" or "min_per_mile": Already in target format
+            - "min/km" or "min_per_km": Minutes per kilometer
+            - "mph" or "miles_per_hour": Miles per hour
+            - "kmh" or "km/h" or "km_per_hour": Kilometers per hour
+            - "m/s" or "ms" or "meters_per_second": Meters per second
+            - "marathon_time_minutes": Total marathon time in minutes
+            - "5k_time_minutes": Total 5K time in minutes
+
+    Returns:
+        Tuple of (pace_in_min_per_mile or None, details string)
+    """
+    unit_lower = unit.lower().strip()
+
+    try:
+        if unit_lower in ["min/mile", "min_per_mile", "minutes_per_mile"]:
+            return value, f"Already in min/mile: {value:.2f}"
+
+        elif unit_lower in ["min/km", "min_per_km", "minutes_per_km"]:
+            result = min_per_km_to_min_per_mile(value)
+            return result, f"Converted {value:.2f} min/km to {result:.2f} min/mile"
+
+        elif unit_lower in ["mph", "miles_per_hour"]:
+            result = mph_to_min_per_mile(value)
+            return result, f"Converted {value:.2f} mph to {result:.2f} min/mile"
+
+        elif unit_lower in ["kmh", "km/h", "km_per_hour", "kph"]:
+            result = kmh_to_min_per_mile(value)
+            return result, f"Converted {value:.2f} km/h to {result:.2f} min/mile"
+
+        elif unit_lower in ["m/s", "ms", "meters_per_second"]:
+            result = ms_to_min_per_mile(value)
+            return result, f"Converted {value:.2f} m/s to {result:.2f} min/mile"
+
+        elif unit_lower == "marathon_time_minutes":
+            marathon_miles = 26.2188
+            result = race_time_to_min_per_mile(value, marathon_miles)
+            return result, f"Converted {value:.1f} min marathon to {result:.2f} min/mile"
+
+        elif unit_lower == "5k_time_minutes":
+            five_k_miles = 3.10686  # 5km in miles
+            result = race_time_to_min_per_mile(value, five_k_miles)
+            return result, f"Converted {value:.1f} min 5K to {result:.2f} min/mile"
+
+        else:
+            return None, f"Unknown unit: {unit}"
+
+    except Exception as e:
+        return None, f"Conversion error: {str(e)}"
 
 
 # =============================================================================
@@ -126,389 +260,354 @@ def load_gold_run_activities(csv_path: str):
 
 
 # =============================================================================
-# Table Visibility Helpers
-# =============================================================================
-
-def check_all_content_visible(sheet_raw_data, start_row: int, end_row: int, num_cols: int, is_text_visible_fn) -> Tuple[bool, str]:
-    """
-    Check if all table content is fully visible (no truncation/clipping).
-
-    Args:
-        sheet_raw_data: Raw sheet data from get_sheet_content()
-        start_row: Starting row index of the table (header row)
-        end_row: Ending row index (exclusive)
-        num_cols: Number of columns to check
-        is_text_visible_fn: Function to check text visibility (is_text_visible_in_cell)
-
-    Returns:
-        tuple: (all_visible: bool, details: str)
-    """
-    if not sheet_raw_data:
-        return False, "No sheet data available"
-
-    try:
-        # Get column metadata for widths
-        sheets = sheet_raw_data.get('sheets', [])
-        if not sheets:
-            return False, "No sheets found in raw data"
-
-        sheet_data = sheets[0]
-        data_blocks = sheet_data.get('data', [])
-        if not data_blocks:
-            return False, "No data blocks found"
-
-        col_metadata = data_blocks[0].get('columnMetadata', [])
-        row_data = data_blocks[0].get('rowData', [])
-
-        truncated_cells = []
-
-        # Iterate through table cells and check visibility
-        for row_idx in range(start_row, end_row):
-            if row_idx >= len(row_data):
-                continue
-            row = row_data[row_idx]
-            row_values = row.get('values', [])
-
-            for col_idx in range(num_cols):
-                if col_idx >= len(row_values):
-                    continue
-                cell = row_values[col_idx]
-                content = cell.get('formattedValue', '')
-
-                if not content:
-                    continue
-
-                # Get column width (default 100 pixels if not specified)
-                col_width = 100
-                if col_idx < len(col_metadata):
-                    col_width = col_metadata[col_idx].get('pixelSize', 100)
-
-                # Get wrap strategy (default OVERFLOW_CELL)
-                wrap_strategy = cell.get('effectiveFormat', {}).get('wrapStrategy', 'OVERFLOW_CELL')
-
-                if not is_text_visible_fn(content, col_width, wrap_strategy, row_values, col_idx):
-                    # Track which cells are truncated
-                    truncated_cells.append(f"Row {row_idx + 1}, Col {col_idx + 1}: '{content[:30]}...'")
-
-        if truncated_cells:
-            # Limit to first 5 examples
-            examples = truncated_cells[:5]
-            more = f" (+{len(truncated_cells) - 5} more)" if len(truncated_cells) > 5 else ""
-            return False, f"Truncated cells: {'; '.join(examples)}{more}"
-
-        return True, "All content fully visible"
-
-    except Exception as e:
-        return False, f"Error checking visibility: {str(e)}"
-
-
-# =============================================================================
-# Chart Analysis Helpers
-# =============================================================================
-
-def get_chart_axis_labels(chart: Dict[str, Any]) -> Dict[str, str]:
-    """
-    Extract X and Y axis labels from chart spec.
-
-    Args:
-        chart: Chart object from extract_charts_from_sheet()
-
-    Returns:
-        dict: {'x_axis': str, 'y_axis': str} with axis titles
-    """
-    result = {'x_axis': '', 'y_axis': ''}
-
-    raw_chart = chart.get('raw_chart', {})
-    spec = raw_chart.get('spec', {})
-    basic_chart = spec.get('basicChart', {})
-    axes = basic_chart.get('axis', [])
-
-    for axis in axes:
-        position = axis.get('position', '').upper()
-        title = axis.get('title', '')
-
-        if position == 'BOTTOM_AXIS':
-            result['x_axis'] = title
-        elif position in ['LEFT_AXIS', 'RIGHT_AXIS']:
-            result['y_axis'] = title
-
-    return result
-
-
-def check_chart_overlap(chart: Dict[str, Any], table_start_row: int, table_end_row: int, other_charts: List[Dict[str, Any]]) -> Tuple[bool, str]:
-    """
-    Check if chart overlaps with table or other charts.
-
-    Args:
-        chart: Chart object to check
-        table_start_row: Starting row of the data table
-        table_end_row: Ending row of the data table
-        other_charts: List of other chart objects
-
-    Returns:
-        tuple: (has_overlap: bool, overlap_details: str)
-    """
-    position = chart.get('position', {})
-    if position.get('type') != 'overlay':
-        return False, "Chart not in overlay position"
-
-    anchor_row = position.get('anchor_cell', {}).get('row', 0)
-    anchor_col = position.get('anchor_cell', {}).get('col', 0)
-    height = position.get('height', 0)
-    width = position.get('width', 0)
-
-    # Estimate chart end row (assuming ~20 pixels per row)
-    chart_end_row = anchor_row + (height // 20) if height else anchor_row + 15
-
-    # Check overlap with table
-    if anchor_row < table_end_row and chart_end_row > table_start_row:
-        return True, f"Chart overlaps with data table (chart rows {anchor_row}-{chart_end_row}, table rows {table_start_row}-{table_end_row})"
-
-    # Check overlap with other charts
-    chart_id = chart.get('chart_id')
-    for other in other_charts:
-        if other.get('chart_id') == chart_id:
-            continue
-
-        other_pos = other.get('position', {})
-        if other_pos.get('type') != 'overlay':
-            continue
-
-        other_anchor_row = other_pos.get('anchor_cell', {}).get('row', 0)
-        other_anchor_col = other_pos.get('anchor_cell', {}).get('col', 0)
-        other_height = other_pos.get('height', 0)
-        other_width = other_pos.get('width', 0)
-        other_end_row = other_anchor_row + (other_height // 20) if other_height else other_anchor_row + 15
-        other_end_col = other_anchor_col + (other_width // 100) if other_width else other_anchor_col + 6
-
-        chart_end_col = anchor_col + (width // 100) if width else anchor_col + 6
-
-        # Check row overlap
-        row_overlap = anchor_row < other_end_row and chart_end_row > other_anchor_row
-        # Check column overlap
-        col_overlap = anchor_col < other_end_col and chart_end_col > other_anchor_col
-
-        if row_overlap and col_overlap:
-            return True, f"Chart overlaps with another chart (ID: {other.get('chart_id')})"
-
-    return False, "No overlap detected"
-
-
-def extract_baseline_series(chart: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """
-    Extract baseline line series from chart (series beyond main data).
-
-    Baselines are typically constant-value horizontal lines.
-
-    Args:
-        chart: Chart object from extract_charts_from_sheet()
-
-    Returns:
-        list: List of baseline series info dicts
-    """
-    raw_chart = chart.get('raw_chart', {})
-    spec = raw_chart.get('spec', {})
-    basic_chart = spec.get('basicChart', {})
-    all_series = basic_chart.get('series', [])
-
-    baselines = []
-
-    # Skip the first series (main data) and look for baseline series
-    for i, series in enumerate(all_series):
-        series_info = {
-            'index': i,
-            'type': series.get('type', 'UNKNOWN'),
-            'line_style': None,
-            'color': None,
-            'target_axis': series.get('targetAxis', 'LEFT_AXIS'),
-        }
-
-        # Check for line style (dotted/dashed)
-        line_style = series.get('lineStyle', {})
-        if line_style:
-            series_info['line_style'] = line_style.get('type', 'SOLID')
-
-        # Check color
-        color = series.get('color', {})
-        if color:
-            series_info['color'] = color
-
-        # Get data source range
-        series_data = series.get('series', {})
-        source_range = series_data.get('sourceRange', {})
-        if source_range:
-            sources = source_range.get('sources', [])
-            if sources:
-                src = sources[0]
-                series_info['source_range'] = {
-                    'start_row': src.get('startRowIndex'),
-                    'end_row': src.get('endRowIndex'),
-                    'start_col': src.get('startColumnIndex'),
-                    'end_col': src.get('endColumnIndex'),
-                }
-
-        baselines.append(series_info)
-
-    return baselines
-
-
-def find_urls_in_sheet(sheet_rows: List[Dict], start_row: int, num_rows: int = 20) -> List[str]:
-    """
-    Find URLs in cells starting from a specific row.
-
-    Args:
-        sheet_rows: Raw rowData from sheet
-        start_row: Row index to start searching from
-        num_rows: Number of rows to search
-
-    Returns:
-        list: List of URLs found
-    """
-    urls = []
-    url_pattern = re.compile(r'https?://[^\s<>"{}|\\^`\[\]]+')
-
-    for row_idx in range(start_row, min(start_row + num_rows, len(sheet_rows))):
-        row = sheet_rows[row_idx] if row_idx < len(sheet_rows) else {}
-        values = row.get('values', [])
-
-        for cell in values:
-            # Check formatted value
-            content = cell.get('formattedValue', '')
-            if content:
-                found_urls = url_pattern.findall(content)
-                urls.extend(found_urls)
-
-            # Check hyperlink
-            hyperlink = cell.get('hyperlink', '')
-            if hyperlink and hyperlink.startswith('http'):
-                urls.append(hyperlink)
-
-    return list(set(urls))  # Remove duplicates
-
-
-def validate_url_accessible(url: str, timeout: int = 10) -> Tuple[bool, str]:
-    """
-    Check if URL is accessible via HTTP request.
-
-    Args:
-        url: URL to validate
-        timeout: Request timeout in seconds
-
-    Returns:
-        tuple: (is_accessible: bool, details: str)
-    """
-    try:
-        response = requests.head(url, timeout=timeout, allow_redirects=True,
-                                  headers={'User-Agent': 'Mozilla/5.0'})
-        if response.status_code < 400:
-            return True, f"URL accessible (status {response.status_code})"
-        else:
-            return False, f"URL returned status {response.status_code}"
-    except requests.exceptions.Timeout:
-        return False, "URL request timed out"
-    except requests.exceptions.RequestException as e:
-        return False, f"URL request failed: {str(e)[:50]}"
-
-
-def check_circular_points(chart: Dict[str, Any], chart_type: str) -> Tuple[bool, str]:
-    """
-    Check if chart displays data as circular points.
-
-    Args:
-        chart: Chart object
-        chart_type: Type of chart (SCATTER, LINE, etc.)
-
-    Returns:
-        tuple: (has_circular_points: bool, details: str)
-    """
-    # SCATTER charts always show points
-    if chart_type == 'SCATTER':
-        return True, "Scatter chart displays points"
-
-    # For LINE charts, check if points are visible and line is hidden
-    raw_chart = chart.get('raw_chart', {})
-    spec = raw_chart.get('spec', {})
-    basic_chart = spec.get('basicChart', {})
-    series_list = basic_chart.get('series', [])
-
-    if not series_list:
-        return False, "No series found in chart"
-
-    # Check first series (main data)
-    main_series = series_list[0]
-
-    # Check point style
-    point_style = main_series.get('pointStyle', {})
-    point_size = point_style.get('size', 0)
-
-    # Check line style
-    line_style = main_series.get('lineStyle', {})
-    line_width = line_style.get('width', 2)  # Default line width is usually 2
-
-    # For points-only: need positive point size and zero/minimal line width
-    if point_size > 0 and line_width == 0:
-        return True, f"Line chart with points (size={point_size}) and no line"
-
-    # Check if it's a combo chart type showing points
-    series_type = main_series.get('type', '')
-    if series_type == 'SCATTER':
-        return True, "Series type is SCATTER"
-
-    # If point style exists with non-zero size, likely has points
-    if point_size > 0:
-        return True, f"Chart has point markers (size={point_size})"
-
-    return False, f"Could not confirm circular points (chart_type={chart_type}, point_size={point_size})"
-
-
-# =============================================================================
 # Chart Identification
 # =============================================================================
 
-def find_speed_chart_by_metadata(charts: List[Dict[str, Any]], matched_columns: Optional[Dict[str, str]], df: Optional[pd.DataFrame]) -> Optional[Dict[str, Any]]:
+def find_speed_chart_by_metadata(
+    charts: List[Dict[str, Any]],
+    matched_columns: Optional[Dict[str, str]],
+    df: Optional[pd.DataFrame],
+    model: Any = None
+) -> Optional[Dict[str, Any]]:
     """
     Identify the speed chart using metadata (no VLM/image analysis).
 
-    Matching order:
-    1. Chart title contains speed/pace keywords
-    2. Y-axis label contains speed/pace/min keywords
-    3. Series data matches the speed column from checkpoint 2
+    Uses the general find_chart_by_metadata() with speed-specific keywords.
 
     Args:
         charts: List of chart objects from extract_charts_from_sheet()
         matched_columns: Column mapping from checkpoint 2 (may contain "Speed (min/mile)")
         df: DataFrame with sheet data
+        model: Optional LLM model for fallback matching
 
     Returns:
         Chart object or None if not found
     """
-    if not charts:
-        return None
+    return find_chart_by_metadata(
+        charts=charts,
+        title_keywords=['speed', 'pace', 'running speed', 'min/mile', 'min per mile'],
+        y_axis_keywords=['speed', 'pace', 'min/mile', 'minute'],
+        title_description="chart title related to running speed or pace",
+        axis_description="Y-axis label related to running speed or pace",
+        matched_columns=matched_columns,
+        column_name="Speed (min/mile)",
+        df=df,
+        model=model
+    )
 
-    speed_keywords = ['speed', 'pace', 'running speed', 'min/mile', 'min per mile']
 
-    # Step 1: Title matching
-    for chart in charts:
-        title = chart.get('title', '').lower()
-        if any(kw in title for kw in speed_keywords):
-            return chart
+def find_cumulative_chart_by_metadata(
+    charts: List[Dict[str, Any]],
+    matched_columns: Optional[Dict[str, str]],
+    df: Optional[pd.DataFrame],
+    model: Any = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Identify the cumulative distance chart using metadata.
 
-    # Step 2: Axis label matching
-    for chart in charts:
-        axis_labels = get_chart_axis_labels(chart)
-        y_label = axis_labels.get('y_axis', '').lower()
-        if any(kw in y_label for kw in ['speed', 'pace', 'min/mile', 'minute']):
-            return chart
+    Uses the general find_chart_by_metadata() with cumulative/distance keywords.
 
-    # Step 3: Series data matching (if matched_columns available from checkpoint 2)
-    if matched_columns and df is not None:
-        speed_col_name = matched_columns.get("Speed (min/mile)")
-        if speed_col_name and speed_col_name in df.columns:
-            speed_col_idx = df.columns.get_loc(speed_col_name)
-            for chart in charts:
-                for series in chart.get('series', []):
-                    src = series.get('source_range', {})
-                    if src.get('start_col') == speed_col_idx:
-                        return chart
+    Args:
+        charts: List of chart objects from extract_charts_from_sheet()
+        matched_columns: Column mapping (may contain cumulative distance column)
+        df: DataFrame with sheet data
+        model: Optional LLM model for fallback matching
 
-    return None
+    Returns:
+        Chart object or None if not found
+    """
+    return find_chart_by_metadata(
+        charts=charts,
+        title_keywords=['cumulative', 'total distance', 'distance over time', 'total miles'],
+        y_axis_keywords=['cumulative', 'total', 'distance', 'miles'],
+        title_description="chart title related to cumulative distance",
+        axis_description="Y-axis label related to cumulative distance",
+        matched_columns=matched_columns,
+        column_name=None,  # No specific column name for cumulative
+        df=df,
+        model=model
+    )
+
+
+def validate_cumulative_against_sheet(
+    chart_values: List[float],
+    df: pd.DataFrame,
+    matched_columns: Dict[str, str],
+    tolerance_percent: float = 5.0,
+    match_threshold: float = 0.8
+) -> Tuple[bool, str]:
+    """
+    Validate chart cumulative values against expected cumulative sum from sheet data.
+
+    Uses the already-validated distance column from the spreadsheet (matched in checkpoint 2)
+    to compute expected cumulative values. This ensures consistency with checkpoint 2 validation
+    and avoids unit conversion issues.
+
+    Checks:
+    1. Values are monotonically increasing (cumulative pattern)
+    2. Data point count matches expected count
+    3. All cumulative values match expected values within tolerance
+
+    Args:
+        chart_values: List of values from chart series
+        df: DataFrame containing the sheet data
+        matched_columns: Column mapping from checkpoint 2 (should contain "Distance (Miles)")
+        tolerance_percent: Allowed error for each value match (default 5%)
+        match_threshold: Minimum proportion of values that must match (default 0.8 = 80%)
+
+    Returns:
+        tuple: (is_valid: bool, details: str)
+    """
+    if not chart_values:
+        return False, "No chart values provided"
+
+    # Check 1: Monotonically increasing (cumulative pattern)
+    # Allow small tolerance for floating point comparison
+    non_increasing_count = 0
+    for i in range(1, len(chart_values)):
+        if chart_values[i] < chart_values[i-1] - 0.01:  # Small tolerance
+            non_increasing_count += 1
+
+    if non_increasing_count > 0:
+        return False, f"Values not monotonically increasing ({non_increasing_count} decreases found)"
+
+    # Get the distance column from matched_columns (already validated in checkpoint 2)
+    if df is None or df.empty:
+        return False, "No sheet data available"
+
+    if not matched_columns:
+        return False, "No matched columns available"
+
+    # Try to find distance column - prefer miles, fall back to general distance
+    dist_col = matched_columns.get("Distance (Miles)") or matched_columns.get("Distance")
+    if not dist_col or dist_col not in df.columns:
+        return False, f"Distance column not found in matched columns: {list(matched_columns.keys())}"
+
+    # Extract distance values and calculate expected cumulative sum
+    try:
+        distances = pd.to_numeric(df[dist_col], errors='coerce').dropna().values
+    except Exception as e:
+        return False, f"Error extracting distance values: {str(e)}"
+
+    if len(distances) == 0:
+        return False, "No valid distance values found in sheet"
+
+    # Calculate expected cumulative distances
+    expected_cumulative = []
+    running_total = 0
+    for d in distances:
+        running_total += d
+        expected_cumulative.append(running_total)
+
+    expected_count = len(expected_cumulative)
+    actual_count = len(chart_values)
+
+    # Check 2: Data point count matches
+    if actual_count != expected_count:
+        count_diff_percent = abs(actual_count - expected_count) / expected_count * 100
+        if count_diff_percent > 10:  # Allow 10% variance in count
+            return False, f"Data point count {actual_count} differs significantly from expected {expected_count}"
+
+    # Check 3: Validate all cumulative values against expected data
+    # Compare each value to its expected counterpart
+    comparison_count = min(actual_count, expected_count)
+    matches = 0
+    mismatches = []
+
+    for i in range(comparison_count):
+        actual_val = chart_values[i]
+        expected_val = expected_cumulative[i]
+
+        if expected_val > 0:
+            error_percent = abs(actual_val - expected_val) / expected_val * 100
+            if error_percent <= tolerance_percent:
+                matches += 1
+            else:
+                if len(mismatches) < 5:  # Only track first 5 mismatches for reporting
+                    mismatches.append(f"Point {i+1}: {actual_val:.1f} vs expected {expected_val:.1f} ({error_percent:.1f}% diff)")
+        elif actual_val == 0:
+            matches += 1
+        else:
+            if len(mismatches) < 5:
+                mismatches.append(f"Point {i+1}: {actual_val:.1f} vs expected 0")
+
+    match_rate = matches / comparison_count if comparison_count > 0 else 0
+
+    if match_rate < match_threshold:
+        mismatch_summary = "; ".join(mismatches[:3])
+        return False, f"Only {matches}/{comparison_count} values match ({match_rate:.0%}). Examples: {mismatch_summary}"
+
+    # All checks passed
+    actual_final = chart_values[-1]
+    expected_total = expected_cumulative[-1] if expected_cumulative else 0
+    return True, f"Cumulative data valid: {matches}/{comparison_count} values match ({match_rate:.0%}), final value {actual_final:.1f} miles (expected {expected_total:.1f})"
+
+
+# =============================================================================
+# Website Content Extraction for Checkpoint 5
+# =============================================================================
+
+def extract_pace_from_url(
+    url: str,
+    pace_type: str,
+    model: Any,
+    timeout: int = 10
+) -> Tuple[Optional[Dict[str, Any]], str]:
+    """
+    Extract running pace from a webpage using LLM in structured format.
+
+    Fetches the page content and uses an LLM to extract pace/speed data
+    in a structured format with value and unit. Does NOT perform conversion.
+
+    Args:
+        url: URL to fetch and analyze
+        pace_type: Either "male_5k" or "kipchoge"
+        model: LLM model for extraction
+        timeout: Request timeout in seconds
+
+    Returns:
+        Tuple of (structured_pace_data or None, details: str)
+        structured_pace_data is a dict with keys:
+            - "value": float - the numeric pace/speed value
+            - "unit": str - the unit (e.g., "min/mile", "min/km", "mph", "km/h", "marathon_time_minutes", "5k_time_minutes")
+            - "raw_text": str - the original text extracted from the page
+    """
+    # Fetch page content
+    content, fetch_status = fetch_page_text_content(url, timeout)
+
+    if not content:
+        return None, f"Failed to fetch URL: {fetch_status}"
+
+    # Build prompt based on pace type
+    if pace_type == "male_5k":
+        extraction_prompt = """Extract the average running pace for a 5K race for males (especially around age 25-30).
+Look for pace in any format: min/mile, min/km, mph, km/h, or total 5K time.
+Report the value exactly as found on the page with its original unit."""
+    elif pace_type == "kipchoge":
+        extraction_prompt = """Extract Eliud Kipchoge's marathon pace or marathon finish time.
+Look for his fastest marathon times (around 2:01-2:02 range) or his pace in any format.
+Report the value exactly as found on the page with its original unit."""
+    else:
+        return None, f"Unknown pace_type: {pace_type}"
+
+    # Truncate content for LLM (to avoid token limits)
+    truncated_content = content[:10000] if len(content) > 10000 else content
+
+    messages = [
+        {
+            "role": "system",
+            "content": [{"type": "text", "text": """You are a running data extraction assistant.
+Extract running pace/speed data from webpage content and return it in a structured format.
+Do NOT convert the value - return it exactly as found on the page.
+
+Return your response in this exact format (3 lines):
+VALUE: <number>
+UNIT: <unit>
+RAW: <original text from page>
+
+For UNIT, use one of these exact values:
+- min/mile (for minutes per mile pace, e.g., "8:30 per mile" -> VALUE: 8.5, UNIT: min/mile)
+- min/km (for minutes per kilometer pace, e.g., "5:00/km" -> VALUE: 5.0, UNIT: min/km)
+- mph (for miles per hour speed)
+- km/h (for kilometers per hour speed)
+- marathon_time_minutes (for total marathon time, convert H:MM:SS to total minutes, e.g., "2:01:39" -> VALUE: 121.65)
+- 5k_time_minutes (for total 5K time, convert MM:SS to total minutes, e.g., "25:30" -> VALUE: 25.5)
+
+For pace in MM:SS format, convert to decimal minutes (e.g., "8:30" = 8.5 minutes).
+
+If no relevant pace data is found, return exactly: NOT_FOUND"""}]
+        },
+        {
+            "role": "user",
+            "content": [{"type": "text", "text": f"""{extraction_prompt}
+
+Webpage content:
+{truncated_content}
+
+Extract the pace data:"""}]
+        }
+    ]
+
+    try:
+        response = model(messages)
+        response_text = response.strip()
+
+        if response_text == "NOT_FOUND" or "not found" in response_text.lower():
+            return None, "No pace data found in page content"
+
+        # Parse the structured response
+        lines = response_text.strip().split('\n')
+        parsed_data = {}
+
+        for line in lines:
+            line = line.strip()
+            if line.upper().startswith('VALUE:'):
+                value_str = line.split(':', 1)[1].strip()
+                # Clean up the value string
+                value_str = value_str.replace(',', '.').strip()
+                value_str = re.sub(r'[^\d.]', '', value_str)
+                if value_str:
+                    parsed_data['value'] = float(value_str)
+            elif line.upper().startswith('UNIT:'):
+                parsed_data['unit'] = line.split(':', 1)[1].strip()
+            elif line.upper().startswith('RAW:'):
+                parsed_data['raw_text'] = line.split(':', 1)[1].strip()
+
+        # Validate we got the required fields
+        if 'value' not in parsed_data or 'unit' not in parsed_data:
+            return None, f"Could not parse structured response: {response_text[:100]}"
+
+        # Set default raw_text if not provided
+        if 'raw_text' not in parsed_data:
+            parsed_data['raw_text'] = f"{parsed_data['value']} {parsed_data['unit']}"
+
+        return parsed_data, f"Extracted: {parsed_data['value']} {parsed_data['unit']} (raw: {parsed_data['raw_text']})"
+
+    except ValueError as e:
+        return None, f"Failed to parse pace from LLM response: {str(e)[:50]}"
+    except Exception as e:
+        return None, f"LLM extraction error: {str(e)[:50]}"
+
+
+def extract_and_convert_pace_from_url(
+    url: str,
+    pace_type: str,
+    model: Any,
+    timeout: int = 10
+) -> Tuple[Optional[float], str]:
+    """
+    Extract running pace from a webpage and convert to min/mile.
+
+    This is a convenience function that combines extract_pace_from_url()
+    with convert_pace_to_min_per_mile() for cases where the final min/mile
+    value is needed.
+
+    Args:
+        url: URL to fetch and analyze
+        pace_type: Either "male_5k" or "kipchoge"
+        model: LLM model for extraction
+        timeout: Request timeout in seconds
+
+    Returns:
+        Tuple of (pace_in_min_per_mile: float or None, details: str)
+    """
+    # Extract structured pace data
+    pace_data, extract_details = extract_pace_from_url(url, pace_type, model, timeout)
+
+    if pace_data is None:
+        return None, extract_details
+
+    # Convert to min/mile
+    pace_min_mile, convert_details = convert_pace_to_min_per_mile(
+        pace_data['value'],
+        pace_data['unit']
+    )
+
+    if pace_min_mile is None:
+        return None, f"Extraction OK but conversion failed: {convert_details}"
+
+    # Sanity check: pace should be between 3 and 20 min/mile
+    if not (3.0 <= pace_min_mile <= 20.0):
+        return None, f"Converted value {pace_min_mile:.2f} min/mile outside reasonable range (3-20)"
+
+    return pace_min_mile, f"{extract_details} -> {convert_details}"

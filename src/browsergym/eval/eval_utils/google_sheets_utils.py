@@ -12,6 +12,7 @@ For general Google services (Drive, authentication), see google_services_utils.p
 
 import pandas as pd
 from typing import Optional, Union, Tuple, List, Any, Dict
+import re
 from googleapiclient.discovery import build
 
 # Import SheetTable from table_utils
@@ -490,6 +491,57 @@ def extract_structure_from_sheet(sheet_id: str, service) -> List[dict]:
                     'format': fmt
                 })
     return structure
+
+
+def find_urls_in_sheet(
+    sheet_rows: List[Dict],
+    start_row: int,
+    num_rows: int = 20,
+    start_col: int = None,
+    end_col: int = None
+) -> List[str]:
+    """
+    Find URLs in cells starting from a specific row and within column bounds.
+
+    Searches both cell formatted values and hyperlink properties
+    for URLs matching http/https patterns.
+
+    Args:
+        sheet_rows: Raw rowData from sheet (from get_sheet_content or extract_sheet_data).
+        start_row: Row index to start searching from (0-indexed).
+        num_rows: Number of rows to search (default 20).
+        start_col: Starting column index (0-indexed, inclusive). If None, starts from column 0.
+        end_col: Ending column index (0-indexed, exclusive). If None, searches all columns.
+
+    Returns:
+        list: List of unique URLs found in the specified row/column range.
+    """
+    urls = []
+    url_pattern = re.compile(r'https?://[^\s<>"{}|\\^`\[\]]+')
+
+    for row_idx in range(start_row, min(start_row + num_rows, len(sheet_rows))):
+        row = sheet_rows[row_idx] if row_idx < len(sheet_rows) else {}
+        values = row.get('values', [])
+
+        # Determine column range to search
+        col_start = start_col if start_col is not None else 0
+        col_end = end_col if end_col is not None else len(values)
+
+        for col_idx in range(col_start, min(col_end, len(values))):
+            cell = values[col_idx] if col_idx < len(values) else {}
+
+            # Check formatted value
+            content = cell.get('formattedValue', '')
+            if content:
+                found_urls = url_pattern.findall(content)
+                urls.extend(found_urls)
+
+            # Check hyperlink
+            hyperlink = cell.get('hyperlink', '')
+            if hyperlink and hyperlink.startswith('http'):
+                urls.append(hyperlink)
+
+    return list(set(urls))  # Remove duplicates
 
 
 def extract_charts_from_sheet(sheet_id: str, service) -> List[dict]:
