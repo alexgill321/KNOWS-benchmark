@@ -61,7 +61,8 @@ def _normalize_text(text: str, *,
 def keyword_exact_match(text: str, keyword: str, *,
                         case_sensitive: bool = False,
                         normalize: bool = True,
-                        standalone_line: bool = False) -> bool:
+                        standalone_line: bool = False,
+                        substring: bool = False) -> bool:
     """Strict exact match of a keyword to text.
 
     Performs exact comparison after optional normalization. This is the core
@@ -81,9 +82,11 @@ def keyword_exact_match(text: str, keyword: str, *,
         standalone_line: If True, check line-by-line with trailing punctuation
                         tolerance (.,;:). Useful for header matching where
                         "Name." should match "Name". Default False.
+        substring: If True, check if keyword is contained within text (substring match).
+                   Default False (exact match).
 
     Returns:
-        True if text exactly matches keyword after normalization.
+        True if text exactly matches keyword after normalization (or contains it if substring=True).
 
     Examples:
         >>> keyword_exact_match("Hello World", "hello world")
@@ -91,6 +94,8 @@ def keyword_exact_match(text: str, keyword: str, *,
         >>> keyword_exact_match("Hello World", "hello", case_sensitive=True)
         False
         >>> keyword_exact_match("Name.", "Name", standalone_line=True)
+        True
+        >>> keyword_exact_match("Avg Male 25 Speed", "male", substring=True)
         True
     """
     if not text or not keyword:
@@ -107,6 +112,8 @@ def keyword_exact_match(text: str, keyword: str, *,
             keyword_norm = keyword_norm.lower()
 
     if not standalone_line:
+        if substring:
+            return keyword_norm in text_norm
         return text_norm == keyword_norm
 
     # Standalone line mode: check line-by-line with trailing punctuation tolerance
@@ -131,7 +138,8 @@ def keyword_exact_match(text: str, keyword: str, *,
 def keywords_exact_match(text: str, keywords: List[str], *,
                          case_sensitive: bool = False,
                          normalize: bool = True,
-                         standalone_line: bool = False) -> Optional[str]:
+                         standalone_line: bool = False,
+                         substring: bool = False) -> Optional[str]:
     """Match text against a list of keywords using exact matching.
 
     Iterates through keywords and returns the first one that matches the text.
@@ -143,6 +151,8 @@ def keywords_exact_match(text: str, keywords: List[str], *,
         case_sensitive: If True, perform case-sensitive matching. Default False.
         normalize: If True, normalize text and keywords before comparison. Default True.
         standalone_line: If True, check line-by-line with trailing punctuation tolerance.
+        substring: If True, check if any keyword is contained within text (substring match).
+                   Default False (exact match).
 
     Returns:
         The first matching keyword, or None if no match.
@@ -152,6 +162,8 @@ def keywords_exact_match(text: str, keywords: List[str], *,
         'price'
         >>> keywords_exact_match("TICKER", ["symbol", "ticker"])
         'ticker'
+        >>> keywords_exact_match("Avg Male 25 Speed", ["male", "5k"], substring=True)
+        'male'
     """
     if not text or not keywords:
         return None
@@ -160,7 +172,8 @@ def keywords_exact_match(text: str, keywords: List[str], *,
         if keyword_exact_match(text, keyword,
                                case_sensitive=case_sensitive,
                                normalize=normalize,
-                               standalone_line=standalone_line):
+                               standalone_line=standalone_line,
+                               substring=substring):
             return keyword
 
     return None
@@ -250,7 +263,8 @@ Respond with ONLY the number (1, 2, 3, etc.) of the best matching text, or "NONE
 def keywords_match_robust(texts: Union[str, List[str]],
                           keywords: Union[str, List[str]],
                           model: Any = None,
-                          description: str = None) -> Optional[str]:
+                          description: str = None,
+                          substring: bool = False) -> Optional[str]:
     """Robust matching: exact match first, then LLM fallback.
 
     This is the primary entry point for keyword-based text matching. It uses
@@ -264,6 +278,9 @@ def keywords_match_robust(texts: Union[str, List[str]],
         keywords: Single keyword or list of keywords to match against.
         model: Optional LLM model for fallback. If None, only exact matching is used.
         description: Optional description for LLM context (e.g., "stock symbol column").
+        substring: If True, check if any keyword is contained within text (substring match).
+                   Default False (exact match). Useful for legend labels where "Avg Male 25"
+                   should match keyword "male".
 
     Returns:
         The matching text, or None if no match found.
@@ -276,6 +293,12 @@ def keywords_match_robust(texts: Union[str, List[str]],
         ...     description="stock ticker column"
         ... )
         'Stock Symbol'
+        >>> keywords_match_robust(
+        ...     "Avg Male 25 Speed (min/mile)",
+        ...     ["male", "5k", "25"],
+        ...     substring=True
+        ... )
+        'Avg Male 25 Speed (min/mile)'
     """
     if not texts or not keywords:
         return None
@@ -286,9 +309,9 @@ def keywords_match_robust(texts: Union[str, List[str]],
     if isinstance(keywords, str):
         keywords = [keywords]
 
-    # Phase 1: Exact keyword matching
+    # Phase 1: Exact keyword matching (or substring matching if enabled)
     for text in texts:
-        matched_keyword = keywords_exact_match(text, keywords)
+        matched_keyword = keywords_exact_match(text, keywords, substring=substring)
         if matched_keyword:
             return text
 

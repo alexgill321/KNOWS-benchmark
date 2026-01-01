@@ -138,6 +138,7 @@ class Result:
                 {
                     "name": cp.name or f"Checkpoint {i+1}",
                     "score": f"{cp.result}/{cp.total}",
+                    "execution_time": cp.execution_time,
                     "steps": cp.get_step_summary()["steps"]
                 }
                 for i, cp in enumerate(self.checkpoints)

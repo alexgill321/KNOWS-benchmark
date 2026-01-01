@@ -46,6 +46,7 @@ from src.browsergym.eval.eval_utils.chart_utils import (
     get_chart_type,
     identify_series_by_content,
 )
+from src.browsergym.eval.eval_utils.parallel_utils import parallel_execute, fast_parallel_vlm_calls
 
 # Task-specific utilities
 from src.browsergym.eval.tasks.sheets_7_running_analysis.utils import (
@@ -164,43 +165,45 @@ def grade_checkpoint_1():
         ("Average Running Speed", ["pace", "min/mile", "average pace", "avg pace", "speed", "average speed", "km/h", "speed (km/h)"]),
     ]
 
-    # Match columns using keyword + LLM fallback
+    # Match columns using keyword + LLM fallback (this is the main work for steps 1-3)
+    column_match_start = time.time()
     matched = match_columns(df, required_columns, model=model, parallel=True)
+    column_match_time = time.time() - column_match_start
 
     # Store globally for use in Checkpoint 2
     matched_columns = matched
 
+    # Split column matching time across steps 1-3 (they share the same call)
+    per_column_time = column_match_time / 3
+
     # Step 1: Activity Date column
-    step_start = time.time()
     date_col = matched.get("Activity Date")
     checkpoint.add_step(
         "Activity Date Column",
         date_col is not None,
         1,
         f"Found column: '{date_col}'" if date_col else "No activity date column found",
-        execution_time=time.time() - step_start
+        execution_time=per_column_time
     )
 
     # Step 2: Distance column
-    step_start = time.time()
     dist_col = matched.get("Distance")
     checkpoint.add_step(
         "Distance Column",
         dist_col is not None,
         2,
         f"Found column: '{dist_col}'" if dist_col else "No distance column found",
-        execution_time=time.time() - step_start
+        execution_time=per_column_time
     )
 
     # Step 3: Average Running Speed column
-    step_start = time.time()
     speed_col = matched.get("Average Running Speed")
     checkpoint.add_step(
         "Average Running Speed Column",
         speed_col is not None,
         3,
         f"Found column: '{speed_col}'" if speed_col else "No average speed/pace column found",
-        execution_time=time.time() - step_start
+        execution_time=per_column_time
     )
 
     # Step 4: Content visibility
@@ -307,7 +310,8 @@ def grade_checkpoint_2():
     # Track failed matches for debugging
     failed_distance_rows = []
 
-    # Validate row by row
+    # Validate row by row (this is the main work for steps 1-3)
+    validation_start = time.time()
     for idx, user_row in df.iterrows():
         # Get user date
         if date_col and date_col in df.columns:
@@ -353,9 +357,12 @@ def grade_checkpoint_2():
                             detected_speed_unit = 'min/mile'
                 except (ValueError, TypeError):
                     pass
+    validation_time = time.time() - validation_start
+
+    # Split validation time across all 3 steps (they share the same loop)
+    per_step_time = validation_time / 3
 
     # Step 1: Date matching
-    step_start = time.time()
     if date_col:
         all_dates_match = date_matches == 109
         checkpoint.add_step(
@@ -363,13 +370,12 @@ def grade_checkpoint_2():
             all_dates_match,
             1,
             f"{date_matches}/109 dates match" if not all_dates_match else "All 109 dates match",
-            execution_time=time.time() - step_start
+            execution_time=per_step_time
         )
     else:
-        checkpoint.add_step("Date Match", False, 1, "Date column not found")
+        checkpoint.add_step("Date Match", False, 1, "Date column not found", execution_time=per_step_time)
 
     # Step 2: Distance matching (row-level)
-    step_start = time.time()
     if dist_col:
         all_dist_match = distance_matches == 109
         unit_str = f" ({detected_dist_unit})" if detected_dist_unit else ""
@@ -385,13 +391,12 @@ def grade_checkpoint_2():
             all_dist_match,
             2,
             f"{distance_matches}/109 distances match{unit_str}" if not all_dist_match else f"All 109 distances match{unit_str}",
-            execution_time=time.time() - step_start
+            execution_time=per_step_time
         )
     else:
-        checkpoint.add_step("Distance Match", False, 2, "No distance column with miles unit found (column header must contain 'miles')")
+        checkpoint.add_step("Distance Match", False, 2, "No distance column with miles unit found (column header must contain 'miles')", execution_time=per_step_time)
 
     # Step 3: Speed matching (row-level)
-    step_start = time.time()
     if speed_col:
         all_speed_match = speed_matches == 109
         unit_str = f" ({detected_speed_unit})" if detected_speed_unit else ""
@@ -400,10 +405,10 @@ def grade_checkpoint_2():
             all_speed_match,
             3,
             f"{speed_matches}/109 speeds match{unit_str}" if not all_speed_match else f"All 109 speeds match{unit_str}",
-            execution_time=time.time() - step_start
+            execution_time=per_step_time
         )
     else:
-        checkpoint.add_step("Speed Match", False, 3, "No speed column with min/mile unit found (column header must contain 'min/mile')")
+        checkpoint.add_step("Speed Match", False, 3, "No speed column with min/mile unit found (column header must contain 'min/mile')", execution_time=per_step_time)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -450,37 +455,47 @@ def grade_checkpoint_3():
 
     chart_type = speed_chart.get('chart_type', 'UNKNOWN')
 
-    # Identify series by content using three separate calls to the generalized function
+    # Identify series by content using parallel calls for baseline series
     df = table_data.df if table_data else None
 
     # Keywords for identifying each series type
     male_5k_keywords = ["male", "5k", "5 k", "baseline", "men", "25 year", "25-year", "25yo"]
     kipchoge_keywords = ["kipchoge", "eliud", "marathon", "world", "record"]
 
-    # Identify Male 5K baseline series (constant, 8-10 min/mile range)
-    male_5k_idx = identify_series_by_content(
-        chart=speed_chart,
-        rows=rows,
-        keywords=male_5k_keywords,
-        expected_value_range=MALE_5K_PACE_RANGE,
-        require_constant=True,
-        model=model,
-        description="legend label for male 5K running baseline"
-    )
+    # Parallel: Identify both baseline series concurrently (they're independent)
+    baseline_tasks = [
+        {
+            'id': 'male_5k',
+            'func': identify_series_by_content,
+            'kwargs': {
+                'chart': speed_chart,
+                'rows': rows,
+                'keywords': male_5k_keywords,
+                'expected_value_range': MALE_5K_PACE_RANGE,
+                'require_constant': True,
+                'model': model,
+                'description': "legend label for male 5K running baseline"
+            }
+        },
+        {
+            'id': 'kipchoge',
+            'func': identify_series_by_content,
+            'kwargs': {
+                'chart': speed_chart,
+                'rows': rows,
+                'keywords': kipchoge_keywords,
+                'expected_value_range': KIPCHOGE_PACE_RANGE,
+                'require_constant': True,
+                'model': model,
+                'description': "legend label for Kipchoge marathon baseline"
+            }
+        },
+    ]
+    baseline_results = parallel_execute(baseline_tasks, max_workers=2)
+    male_5k_idx = baseline_results.get('male_5k')
+    kipchoge_idx = baseline_results.get('kipchoge')
 
-    # Identify Kipchoge baseline series (constant, 4.6-4.65 min/mile range)
-    kipchoge_idx = identify_series_by_content(
-        chart=speed_chart,
-        rows=rows,
-        keywords=kipchoge_keywords,
-        expected_value_range=KIPCHOGE_PACE_RANGE,
-        require_constant=True,
-        exclude_indices=[male_5k_idx] if male_5k_idx is not None else None,
-        model=model,
-        description="legend label for Kipchoge marathon baseline"
-    )
-
-    # Identify main data series (highest variance, from speed column)
+    # Sequential: Identify main data series (depends on both baselines for exclude_indices)
     exclude_baselines = [i for i in [male_5k_idx, kipchoge_idx] if i is not None]
     main_idx = identify_series_by_content(
         chart=speed_chart,
@@ -495,69 +510,93 @@ def grade_checkpoint_3():
 
     # Get axis labels
     axis_labels = get_chart_axis_labels(speed_chart)
+    x_label = axis_labels.get('x_axis', '')
+    y_label = axis_labels.get('y_axis', '')
+    chart_title = speed_chart.get('title', '')
+
+    # Define keywords for each match
+    date_keywords = ['date', 'time', 'day', 'activity']
+    speed_keywords = ['speed', 'pace', 'min/mile', 'min per mile', 'minute']
+    speed_title_keywords = ['speed', 'pace', 'running']
+    time_title_keywords = ['time', 'over', 'progression', 'trend']
+
+    # Build VLM tasks for parallel keyword matching (steps 1-3)
+    def build_keyword_match_prompt(text, keywords, description):
+        return f"Does the text '{text}' match any of these concepts: {', '.join(keywords)}? Context: {description}. Answer only Yes or No."
+
+    vlm_tasks = []
+    if x_label:
+        vlm_tasks.append({
+            'id': 'x_axis',
+            'messages': [
+                {"role": "system", "content": [{"type": "text", "text": "You are a helpful assistant that answers Yes or No."}]},
+                {"role": "user", "content": [{"type": "text", "text": build_keyword_match_prompt(x_label, date_keywords, "X-axis label indicating activity date or time")}]}
+            ]
+        })
+    if y_label:
+        vlm_tasks.append({
+            'id': 'y_axis',
+            'messages': [
+                {"role": "system", "content": [{"type": "text", "text": "You are a helpful assistant that answers Yes or No."}]},
+                {"role": "user", "content": [{"type": "text", "text": build_keyword_match_prompt(y_label, speed_keywords, "Y-axis label indicating running speed or pace")}]}
+            ]
+        })
+    if chart_title:
+        vlm_tasks.append({
+            'id': 'title_speed',
+            'messages': [
+                {"role": "system", "content": [{"type": "text", "text": "You are a helpful assistant that answers Yes or No."}]},
+                {"role": "user", "content": [{"type": "text", "text": build_keyword_match_prompt(chart_title, speed_title_keywords, "chart title related to running speed or pace")}]}
+            ]
+        })
+        vlm_tasks.append({
+            'id': 'title_time',
+            'messages': [
+                {"role": "system", "content": [{"type": "text", "text": "You are a helpful assistant that answers Yes or No."}]},
+                {"role": "user", "content": [{"type": "text", "text": build_keyword_match_prompt(chart_title, time_title_keywords, "chart title indicating time progression or trend")}]}
+            ]
+        })
+
+    # Execute all keyword matching in parallel
+    keyword_start = time.time()
+    if vlm_tasks:
+        keyword_results = fast_parallel_vlm_calls(vlm_tasks, model, max_workers=4)
+    else:
+        keyword_results = {}
+    keyword_time = time.time() - keyword_start
 
     # Step 1: X-axis label indicates activity date
-    step_start = time.time()
-    x_label = axis_labels.get('x_axis', '')
-    date_keywords = ['date', 'time', 'day', 'activity']
-    x_label_match = keywords_match_robust(
-        texts=x_label,
-        keywords=date_keywords,
-        model=model,
-        description="X-axis label indicating activity date or time"
-    ) if x_label else None
-    has_date_label = x_label_match is not None or bool(x_label)
+    x_label_match = keyword_results.get('x_axis', False) if x_label else None
+    has_date_label = x_label_match or bool(x_label)
     checkpoint.add_step(
         "X-Axis Date Label",
         has_date_label,
         1,
         f"X-axis label: '{x_label}'" if has_date_label else "No date-related X-axis label found",
-        execution_time=time.time() - step_start
+        execution_time=keyword_time / max(len(vlm_tasks), 1)
     )
 
     # Step 2: Y-axis label indicates speed
-    step_start = time.time()
-    y_label = axis_labels.get('y_axis', '')
-    speed_keywords = ['speed', 'pace', 'min/mile', 'min per mile', 'minute']
-    y_label_match = keywords_match_robust(
-        texts=y_label,
-        keywords=speed_keywords,
-        model=model,
-        description="Y-axis label indicating running speed or pace"
-    ) if y_label else None
-    has_speed_label = y_label_match is not None
+    y_label_match = keyword_results.get('y_axis', False) if y_label else None
+    has_speed_label = y_label_match is not None and y_label_match
     checkpoint.add_step(
         "Y-Axis Speed Label",
         has_speed_label,
         2,
         f"Y-axis label: '{y_label}'" if has_speed_label else "No speed-related Y-axis label found",
-        execution_time=time.time() - step_start
+        execution_time=keyword_time / max(len(vlm_tasks), 1)
     )
 
     # Step 3: Chart title indicates speed over time
-    step_start = time.time()
-    chart_title = speed_chart.get('title', '')
-    speed_title_keywords = ['speed', 'pace', 'running']
-    time_title_keywords = ['time', 'over', 'progression', 'trend']
-    title_speed_match = keywords_match_robust(
-        texts=chart_title,
-        keywords=speed_title_keywords,
-        model=model,
-        description="chart title related to running speed or pace"
-    ) if chart_title else None
-    title_time_match = keywords_match_robust(
-        texts=chart_title,
-        keywords=time_title_keywords,
-        model=model,
-        description="chart title indicating time progression or trend"
-    ) if chart_title else None
-    has_good_title = title_speed_match is not None or title_time_match is not None or bool(chart_title)
+    title_speed_match = keyword_results.get('title_speed', False) if chart_title else None
+    title_time_match = keyword_results.get('title_time', False) if chart_title else None
+    has_good_title = title_speed_match or title_time_match or bool(chart_title)
     checkpoint.add_step(
         "Chart Title",
         has_good_title,
         3,
         f"Chart title: '{chart_title or 'None'}'",
-        execution_time=time.time() - step_start
+        execution_time=keyword_time / max(len(vlm_tasks), 1)
     )
 
     # Step 4: Chart not placed over other charts/tables
@@ -637,11 +676,12 @@ def grade_checkpoint_3():
         # Get legend label from identified series
         male_5k_label = get_series_header_label(speed_chart, male_5k_idx, rows)
         male_5k_keywords = ["male", "5k", "5 k", "baseline", "average", "men", "25"]
+
+        # Use substring matching for legend labels (faster than LLM, more reliable)
         label_match = keywords_match_robust(
             texts=male_5k_label,
             keywords=male_5k_keywords,
-            model=model,
-            description="legend label for male 5K running baseline"
+            substring=True  # Check if any keyword is contained in the label
         ) if male_5k_label else None
 
         # Check line style
@@ -703,11 +743,12 @@ def grade_checkpoint_3():
         # Get legend label from identified series
         kipchoge_label = get_series_header_label(speed_chart, kipchoge_idx, rows)
         kipchoge_keywords = ["kipchoge", "eliud", "marathon", "world", "record"]
+
+        # Use substring matching for legend labels (faster than LLM, more reliable)
         label_match = keywords_match_robust(
             texts=kipchoge_label,
             keywords=kipchoge_keywords,
-            model=model,
-            description="legend label for Kipchoge marathon baseline"
+            substring=True  # Check if any keyword is contained in the label
         ) if kipchoge_label else None
 
         # Get line style for informational purposes only
@@ -899,69 +940,93 @@ def grade_checkpoint_4():
 
     # Get axis labels
     axis_labels = get_chart_axis_labels(cumulative_chart)
+    x_label = axis_labels.get('x_axis', '')
+    y_label = axis_labels.get('y_axis', '')
+    chart_title = cumulative_chart.get('title', '')
+
+    # Define keywords for each match
+    date_keywords = ['date', 'time', 'day', 'activity']
+    distance_keywords = ['cumulative', 'total', 'distance', 'miles', 'running total']
+    cumulative_title_keywords = ['cumulative', 'total', 'distance']
+    time_title_keywords = ['time', 'over', 'progression', 'trend']
+
+    # Build VLM tasks for parallel keyword matching (steps 1-3)
+    def build_keyword_match_prompt_cp4(text, keywords, description):
+        return f"Does the text '{text}' match any of these concepts: {', '.join(keywords)}? Context: {description}. Answer only Yes or No."
+
+    vlm_tasks_cp4 = []
+    if x_label:
+        vlm_tasks_cp4.append({
+            'id': 'x_axis',
+            'messages': [
+                {"role": "system", "content": [{"type": "text", "text": "You are a helpful assistant that answers Yes or No."}]},
+                {"role": "user", "content": [{"type": "text", "text": build_keyword_match_prompt_cp4(x_label, date_keywords, "X-axis label indicating activity date or time")}]}
+            ]
+        })
+    if y_label:
+        vlm_tasks_cp4.append({
+            'id': 'y_axis',
+            'messages': [
+                {"role": "system", "content": [{"type": "text", "text": "You are a helpful assistant that answers Yes or No."}]},
+                {"role": "user", "content": [{"type": "text", "text": build_keyword_match_prompt_cp4(y_label, distance_keywords, "Y-axis label indicating cumulative distance")}]}
+            ]
+        })
+    if chart_title:
+        vlm_tasks_cp4.append({
+            'id': 'title_cumulative',
+            'messages': [
+                {"role": "system", "content": [{"type": "text", "text": "You are a helpful assistant that answers Yes or No."}]},
+                {"role": "user", "content": [{"type": "text", "text": build_keyword_match_prompt_cp4(chart_title, cumulative_title_keywords, "chart title related to cumulative distance")}]}
+            ]
+        })
+        vlm_tasks_cp4.append({
+            'id': 'title_time',
+            'messages': [
+                {"role": "system", "content": [{"type": "text", "text": "You are a helpful assistant that answers Yes or No."}]},
+                {"role": "user", "content": [{"type": "text", "text": build_keyword_match_prompt_cp4(chart_title, time_title_keywords, "chart title indicating time progression")}]}
+            ]
+        })
+
+    # Execute all keyword matching in parallel
+    keyword_start = time.time()
+    if vlm_tasks_cp4:
+        keyword_results_cp4 = fast_parallel_vlm_calls(vlm_tasks_cp4, model, max_workers=4)
+    else:
+        keyword_results_cp4 = {}
+    keyword_time = time.time() - keyword_start
 
     # Step 1: X-axis label indicates activity date
-    step_start = time.time()
-    x_label = axis_labels.get('x_axis', '')
-    date_keywords = ['date', 'time', 'day', 'activity']
-    x_label_match = keywords_match_robust(
-        texts=x_label,
-        keywords=date_keywords,
-        model=model,
-        description="X-axis label indicating activity date or time"
-    ) if x_label else None
-    has_date_label = x_label_match is not None or bool(x_label)
+    x_label_match = keyword_results_cp4.get('x_axis', False) if x_label else None
+    has_date_label = x_label_match or bool(x_label)
     checkpoint.add_step(
         "X-Axis Date Label",
         has_date_label,
         1,
         f"X-axis label: '{x_label}'" if has_date_label else "No date-related X-axis label found",
-        execution_time=time.time() - step_start
+        execution_time=keyword_time / max(len(vlm_tasks_cp4), 1)
     )
 
     # Step 2: Y-axis label indicates cumulative distance
-    step_start = time.time()
-    y_label = axis_labels.get('y_axis', '')
-    distance_keywords = ['cumulative', 'total', 'distance', 'miles', 'running total']
-    y_label_match = keywords_match_robust(
-        texts=y_label,
-        keywords=distance_keywords,
-        model=model,
-        description="Y-axis label indicating cumulative distance"
-    ) if y_label else None
-    has_distance_label = y_label_match is not None
+    y_label_match = keyword_results_cp4.get('y_axis', False) if y_label else None
+    has_distance_label = y_label_match is not None and y_label_match
     checkpoint.add_step(
         "Y-Axis Distance Label",
         has_distance_label,
         2,
         f"Y-axis label: '{y_label}'" if has_distance_label else "No cumulative distance Y-axis label found",
-        execution_time=time.time() - step_start
+        execution_time=keyword_time / max(len(vlm_tasks_cp4), 1)
     )
 
     # Step 3: Chart title indicates cumulative distance over time
-    step_start = time.time()
-    chart_title = cumulative_chart.get('title', '')
-    cumulative_title_keywords = ['cumulative', 'total', 'distance']
-    time_title_keywords = ['time', 'over', 'progression', 'trend']
-    title_cumulative_match = keywords_match_robust(
-        texts=chart_title,
-        keywords=cumulative_title_keywords,
-        model=model,
-        description="chart title related to cumulative distance"
-    ) if chart_title else None
-    title_time_match = keywords_match_robust(
-        texts=chart_title,
-        keywords=time_title_keywords,
-        model=model,
-        description="chart title indicating time progression"
-    ) if chart_title else None
-    has_good_title = title_cumulative_match is not None or title_time_match is not None or bool(chart_title)
+    title_cumulative_match = keyword_results_cp4.get('title_cumulative', False) if chart_title else None
+    title_time_match = keyword_results_cp4.get('title_time', False) if chart_title else None
+    has_good_title = title_cumulative_match or title_time_match or bool(chart_title)
     checkpoint.add_step(
         "Chart Title",
         has_good_title,
         3,
         f"Chart title: '{chart_title or 'None'}'",
-        execution_time=time.time() - step_start
+        execution_time=keyword_time / max(len(vlm_tasks_cp4), 1)
     )
 
     # Step 4: Chart not placed over other charts/tables
@@ -1088,73 +1153,98 @@ def grade_checkpoint_5(browsing_history=None):
         execution_time=time.time() - step_start
     )
 
-    # Step 3: Male 5K source contains valid pace information
-    # Compare extracted URL pace against sheet value with 5% tolerance
+    # Steps 3-4: URL content validation - parallelize all URL pace extractions
     step_start = time.time()
+    tolerance_percent = 0.05  # 5% tolerance
+
+    # Build parallel tasks for all URL pace extractions
+    url_tasks = []
+    if sheet_male_5k_pace and male_5k_urls and model:
+        for url in male_5k_urls[:3]:
+            url_tasks.append({
+                'id': f'male_5k|{url}',
+                'func': extract_and_convert_pace_from_url,
+                'args': (url, 'male_5k', model),
+            })
+    if sheet_kipchoge_pace and kipchoge_urls and model:
+        for url in kipchoge_urls[:3]:
+            url_tasks.append({
+                'id': f'kipchoge|{url}',
+                'func': extract_and_convert_pace_from_url,
+                'args': (url, 'kipchoge', model),
+            })
+
+    # Execute all URL extractions in parallel
+    if url_tasks:
+        url_results = parallel_execute(url_tasks, max_workers=6)
+    else:
+        url_results = {}
+    url_time = time.time() - step_start
+
+    # Process results for Male 5K
     male_5k_content_valid = False
     male_5k_content_details = "No male 5K URLs to check"
-    tolerance_percent = 0.05  # 5% tolerance
 
     if not sheet_male_5k_pace:
         male_5k_content_details = "No Male 5K baseline value found in sheet (checkpoint 3 may have failed)"
-    elif male_5k_urls and model:
-        # Try each URL until we find one with valid pace data
-        for url in male_5k_urls[:3]:  # Check up to 3 URLs
-            pace, details = extract_and_convert_pace_from_url(url, "male_5k", model)
-            if pace is not None:
-                # Compare extracted pace to sheet value with 5% tolerance
-                diff_percent = abs(pace - sheet_male_5k_pace) / sheet_male_5k_pace
-                if diff_percent <= tolerance_percent:
-                    male_5k_content_valid = True
-                    male_5k_content_details = f"URL pace {pace:.2f} matches sheet value {sheet_male_5k_pace:.2f} min/mile ({diff_percent*100:.1f}% diff)"
-                    break
-                else:
-                    male_5k_content_details = f"URL pace {pace:.2f} differs from sheet value {sheet_male_5k_pace:.2f} by {diff_percent*100:.1f}% (max 5%)"
-            else:
-                male_5k_content_details = details
     elif not model:
         male_5k_content_details = "Model not available for content validation"
+    elif male_5k_urls:
+        # Check results for male_5k URLs
+        for url in male_5k_urls[:3]:
+            result = url_results.get(f'male_5k|{url}')
+            if result is not None:
+                pace, details = result
+                if pace is not None:
+                    diff_percent = abs(pace - sheet_male_5k_pace) / sheet_male_5k_pace
+                    if diff_percent <= tolerance_percent:
+                        male_5k_content_valid = True
+                        male_5k_content_details = f"URL pace {pace:.2f} matches sheet value {sheet_male_5k_pace:.2f} min/mile ({diff_percent*100:.1f}% diff)"
+                        break
+                    else:
+                        male_5k_content_details = f"URL pace {pace:.2f} differs from sheet value {sheet_male_5k_pace:.2f} by {diff_percent*100:.1f}% (max 5%)"
+                else:
+                    male_5k_content_details = details
 
     checkpoint.add_step(
         "Male 5K Content Valid",
         male_5k_content_valid,
         3,
         male_5k_content_details,
-        execution_time=time.time() - step_start
+        execution_time=url_time / 2 if url_tasks else 0
     )
 
-    # Step 4: Kipchoge source contains valid marathon time information
-    # Compare extracted URL pace against sheet value with 5% tolerance
-    step_start = time.time()
+    # Process results for Kipchoge
     kipchoge_content_valid = False
     kipchoge_content_details = "No Kipchoge URLs to check"
 
     if not sheet_kipchoge_pace:
         kipchoge_content_details = "No Kipchoge baseline value found in sheet (checkpoint 3 may have failed)"
-    elif kipchoge_urls and model:
-        # Try each URL until we find one with valid pace data
-        for url in kipchoge_urls[:3]:  # Check up to 3 URLs
-            pace, details = extract_and_convert_pace_from_url(url, "kipchoge", model)
-            if pace is not None:
-                # Compare extracted pace to sheet value with 5% tolerance
-                diff_percent = abs(pace - sheet_kipchoge_pace) / sheet_kipchoge_pace
-                if diff_percent <= tolerance_percent:
-                    kipchoge_content_valid = True
-                    kipchoge_content_details = f"URL pace {pace:.2f} matches sheet value {sheet_kipchoge_pace:.2f} min/mile ({diff_percent*100:.1f}% diff)"
-                    break
-                else:
-                    kipchoge_content_details = f"URL pace {pace:.2f} differs from sheet value {sheet_kipchoge_pace:.2f} by {diff_percent*100:.1f}% (max 5%)"
-            else:
-                kipchoge_content_details = details
     elif not model:
         kipchoge_content_details = "Model not available for content validation"
+    elif kipchoge_urls:
+        # Check results for kipchoge URLs
+        for url in kipchoge_urls[:3]:
+            result = url_results.get(f'kipchoge|{url}')
+            if result is not None:
+                pace, details = result
+                if pace is not None:
+                    diff_percent = abs(pace - sheet_kipchoge_pace) / sheet_kipchoge_pace
+                    if diff_percent <= tolerance_percent:
+                        kipchoge_content_valid = True
+                        kipchoge_content_details = f"URL pace {pace:.2f} matches sheet value {sheet_kipchoge_pace:.2f} min/mile ({diff_percent*100:.1f}% diff)"
+                        break
+                    else:
+                        kipchoge_content_details = f"URL pace {pace:.2f} differs from sheet value {sheet_kipchoge_pace:.2f} by {diff_percent*100:.1f}% (max 5%)"
+                else:
+                    kipchoge_content_details = details
 
     checkpoint.add_step(
         "Kipchoge Content Valid",
         kipchoge_content_valid,
         4,
         kipchoge_content_details,
-        execution_time=time.time() - step_start
+        execution_time=url_time / 2 if url_tasks else 0
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -1185,19 +1275,29 @@ def grade_checkpoints(workspace_doc_id=None, browsing_history=None):
         checkpoints: List[Checkpoint] = []
 
         # Checkpoint 1: Data Table Structure
+        cp1_start = time.time()
         checkpoints.append(grade_checkpoint_1())
+        print(f"  Checkpoint 1 took {time.time() - cp1_start:.2f}s")
 
         # Checkpoint 2: Data Table Content Accuracy
+        cp2_start = time.time()
         checkpoints.append(grade_checkpoint_2())
+        print(f"  Checkpoint 2 took {time.time() - cp2_start:.2f}s")
 
         # Checkpoint 3: Speed Over Time Plot
+        cp3_start = time.time()
         checkpoints.append(grade_checkpoint_3())
+        print(f"  Checkpoint 3 took {time.time() - cp3_start:.2f}s")
 
         # Checkpoint 4: Cumulative Distance Plot
+        cp4_start = time.time()
         checkpoints.append(grade_checkpoint_4())
+        print(f"  Checkpoint 4 took {time.time() - cp4_start:.2f}s")
 
         # Checkpoint 5: Website Visit Validation
+        cp5_start = time.time()
         checkpoints.append(grade_checkpoint_5(browsing_history))
+        print(f"  Checkpoint 5 took {time.time() - cp5_start:.2f}s")
 
         total_execution_time = time.time() - total_start_time
         result = Result(checkpoints, total_execution_time=total_execution_time)
@@ -1230,12 +1330,14 @@ if __name__ == "__main__":
 
     print("=== EVALUATION RESULTS ===")
     print(f"Final Score: {result.final_score}")
-    print("\n=== DETAILED REPORT ===")
+    print("\n=== DETAILED REPORT (with timings) ===")
     detailed_report = result.get_detailed_report()
     for checkpoint in detailed_report["checkpoints"]:
-        print(f"\n{checkpoint['name']}: {checkpoint['score']}")
+        cp_time = checkpoint.get('execution_time', 0)
+        print(f"\n{checkpoint['name']}: {checkpoint['score']} ({cp_time:.2f}s)")
         for step in checkpoint["steps"]:
             status = "✓" if step["success"] else "✗"
-            print(f"  {status} {step['name']}: {step['details'] or 'No details'}")
+            step_time = step.get('execution_time', 0)
+            print(f"  {status} {step['name']} ({step_time:.2f}s): {step['details'] or 'No details'}")
     end_time = time.time()
     print(f"\nTotal time taken: {end_time - start_time:.2f} seconds")
