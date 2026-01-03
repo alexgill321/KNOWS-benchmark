@@ -878,10 +878,10 @@ def grade_checkpoint_3():
     # Step 2: URL on slide
     step2_score = calculate_percentage_score(url_on_slide_count, total_images, 10)
     checkpoint.add_step(
-        "URL Credit on Slide",
+        "URL Credit on Slide Under Image",
         url_on_slide_count == total_images,
         2,
-        f"{url_on_slide_count}/{total_images} images have URL credits",
+        f"{url_on_slide_count}/{total_images} images have URL credits in the right location",
         score=step2_score,
         max_score=10,
         execution_time=0
@@ -893,7 +893,7 @@ def grade_checkpoint_3():
         "URL Points to Correct Image",
         url_valid_count == total_images,
         3,
-        f"{url_valid_count}/{total_images} URLs point to the correct replacement images",
+        f"{url_valid_count}/{total_images} URLs point to the correct replacement images as well in the correct locations.",
         score=step3_score,
         max_score=10,
         execution_time=0
@@ -905,7 +905,7 @@ def grade_checkpoint_3():
         "Replacement Matches Original",
         image_similar_count == total_images,
         4,
-        f"{image_similar_count}/{total_images} replacement images are reasonable substitutes for originals",
+        f"{image_similar_count}/{total_images} replacement images are reasonable substitutes for originals as well in the correct locations.",
         score=step4_score,
         max_score=10,
         execution_time=0
