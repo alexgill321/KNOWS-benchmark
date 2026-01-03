@@ -249,8 +249,7 @@ For this listing, extract:
 2. Number of bedrooms (use 0 for studio)
 3. Number of bathrooms
 4. Full address (if available)
-5. Does it have in-unit laundry/washer/dryer? (Yes/No/Unknown)
-6. Is it pet-friendly (allows cats or dogs)? (Yes/No/Unknown)
+5. Is this unit fully furnished? (Yes/No/Unknown)
 7. Square footage (number only)
 8. Any other notable amenities or features
 
@@ -260,7 +259,7 @@ Respond ONLY with this exact JSON format:
     "bedrooms": <number or null>,
     "bathrooms": <number or null>,
     "address": "<string or null>",
-    "featured": "<Yes/No/Unknown>",
+    "furnished": "<Yes/No/Unknown>",
     "sqft": <number or null>,
     "amenities": ["list", "of", "amenities"]
 }}
