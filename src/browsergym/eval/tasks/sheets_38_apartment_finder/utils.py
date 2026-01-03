@@ -560,7 +560,7 @@ def is_valid_craigslist_url(url: str) -> bool:
     return any(pattern in url_lower for pattern in valid_patterns)
 
 
-def extract_craigslist_data_with_llm(html_content: str, model: Any) -> Optional[Dict]:
+def extract_craigslist_data_with_llm(html_content: str, model: Any, text: str = "") -> Optional[Dict]:
     """
     Use LLM to extract listing data from Craigslist HTML content.
 
@@ -572,22 +572,13 @@ def extract_craigslist_data_with_llm(html_content: str, model: Any) -> Optional[
         Dictionary with extracted listing data, or None if extraction fails.
     """
     # Truncate HTML to avoid token limits
+    task_text = text
     truncated_html = html_content[:50000] if len(html_content) > 50000 else html_content
-
-    messages = [
-        {
-            "role": "system",
-            "content": [{
-                "type": "text",
-                "text": """You are a data extraction assistant. Extract rental listing information from Craigslist HTML.
-Always respond with valid JSON only, no other text."""
-            }]
-        },
-        {
-            "role": "user",
-            "content": [{
-                "type": "text",
-                "text": f"""Extract rental listing information from this Craigslist HTML.
+    if task_text:
+        task_text += f"""HTML Content:
+{truncated_html}"""
+    else:
+        task_text = f"""Extract rental listing information from this Craigslist HTML.
 
 For this listing, extract:
 1. Monthly rent price in USD (number only, no $ sign)
@@ -613,6 +604,21 @@ Respond ONLY with this exact JSON format:
 
 HTML Content:
 {truncated_html}"""
+        
+    messages = [
+        {
+            "role": "system",
+            "content": [{
+                "type": "text",
+                "text": """You are a data extraction assistant. Extract rental listing information from Craigslist HTML.
+Always respond with valid JSON only, no other text."""
+            }]
+        },
+        {
+            "role": "user",
+            "content": [{
+                "type": "text",
+                "text": task_text
             }]
         }
     ]
