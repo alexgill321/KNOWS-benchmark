@@ -35,6 +35,9 @@ arxiv
 flask
 gunicorn
 
+# Claude API (for perturbation testing with computer use)
+anthropic>=0.40.0
+
 # Optional: Task-specific dependencies (uncomment if needed)
 # oxylabs        # sheets_38 task
 # llama-cpp-python  # Local Llama models
