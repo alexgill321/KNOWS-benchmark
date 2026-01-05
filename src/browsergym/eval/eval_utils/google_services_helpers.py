@@ -8,7 +8,6 @@ def authenticate(services):
     scopes = get_scopes(services)
     token_path = os.environ.get('TOKEN_PATH', os.getcwd() + '/auth-data/token.json')
     creds_path = os.environ.get('CLIENT_SECRETS_PATH', os.getcwd() + '/auth-data/credentials.json')
-    service_account_path = os.environ.get('SERVICE_PATH', os.getcwd() + '/auth-data/service-account.json')
 
     if os.path.exists(token_path):
         creds = Credentials.from_authorized_user_file(token_path, scopes)

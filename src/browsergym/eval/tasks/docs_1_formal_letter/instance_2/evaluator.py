@@ -178,19 +178,16 @@ def grade_checkpoint_1(gold_text, text_ocr):
         print(f"Rejecting name location: too low on page at y={location.y}")
         location = None
 
-    if name_found and location :
+    if name_found and location and location.is_upper_left():
         print("Name match successful")
         checkpoint.add_step("Name Text Match", True, 1, f"Found '{name}' in document", execution_time=step_time)
-        step_start = time.time()
-        location = extract_text_location(text_ocr, name)
-        step_time = time.time() - step_start
-        #adding a space give us extra a value of 6, so if the location is not in the range the smallest + 6 will be in the correct location
-        
-        if location.is_upper_left() and int(location.x) < int(smallest_x) + 6:
+
+        # Check alignment: x position should be within 6 pixels of the smallest x (left margin)
+        if int(location.x) < int(smallest_x) + 6:
             checkpoint.add_step("Name Location", True, 2, f"Name correctly positioned in upper left at {location}", execution_time=step_time)
         else:
-            print("Name location failed")
-            checkpoint.add_step("Name Location", False, 2, f"Name not in upper left, found at {location}", execution_time=step_time)
+            print("Name location failed - not aligned")
+            checkpoint.add_step("Name Location", False, 2, f"Name not aligned with left margin, found at {location}", execution_time=step_time)
     else:
         print("Name match failed (header exact)")
         checkpoint.add_step("Name Text Match", False, 1, f"Header name '{name}' not found as standalone line", execution_time=step_time)
@@ -212,17 +209,13 @@ def grade_checkpoint_1(gold_text, text_ocr):
         print("Email match successful")
         checkpoint.add_step("Email Text Match", True, 3, f"Found '{email}' in document", execution_time=step_time)
 
-        step_start = time.time()
-        location = extract_text_location(text_ocr, email)
-        step_time = time.time() - step_start           
-           
         if location.y > 450:
             print(f"Rejecting email location: too low on page at y={location.y}")
             location = None
-        if not is_first_page_text(location):
+        if location and not is_first_page_text(location):
             print(f"Rejecting email location: wrong page number at {location.page_number}")
             location = None
-        if location.is_upper_left() and int(location.x) < int(smallest_x) + 6:
+        if location and location.is_upper_left() and int(location.x) < int(smallest_x) + 6:
             checkpoint.add_step("Email Location", True, 4, f"Email correctly positioned in upper left at {location}", execution_time=step_time)
         else:
             print("Email location failed")
@@ -255,7 +248,7 @@ def grade_checkpoint_1(gold_text, text_ocr):
             print(f"Rejecting title location: wrong page_number={location.page_number}")
             location = None
         if location and location.is_upper_left() and int(location.x) < int(smallest_x) + 6:
-                checkpoint.add_step("Title Location", True, 6, f"Title correctly positioned in upper left at {location}", execution_time=step_time)
+            checkpoint.add_step("Title Location", True, 6, f"Title correctly positioned in upper left at {location}", execution_time=step_time)
         else:
             print("Title location failed")
             checkpoint.add_step("Title Location", False, 6, f"Title not in upper left, found at {location}", execution_time=step_time)
@@ -338,8 +331,8 @@ def grade_checkpoint_2():
                     print(f"Rejecting logo location: wrong page_number={exact_size_location.page_number}")
                     exact_size_location = None
                 if exact_size_location and exact_size_location.is_upper_left() and int(exact_size_location.x) < int(smallest_x) + 6:
-                        print("Image location match successful")
-                        checkpoint.add_step("Logo Location", True, 8, f"Logo correctly positioned in upper left at {exact_size_location}", execution_time=step_time)
+                    print("Image location match successful")
+                    checkpoint.add_step("Logo Location", True, 8, f"Logo correctly positioned in upper left at {exact_size_location}", execution_time=step_time)
                 else:
                     print("Image location exact match failed")
 
