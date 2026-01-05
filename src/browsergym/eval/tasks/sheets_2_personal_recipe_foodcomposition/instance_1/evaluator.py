@@ -21,18 +21,22 @@ sys.path.append(BASE_PATH)
 
 # Imports from eval_utils
 from src.browsergym.eval.eval_utils.scoring import Checkpoint, Result
-from src.browsergym.eval.eval_utils.google_services_utils import (
-    initialize_google_services,
-    extract_tables_from_sheet
+from src.browsergym.eval.eval_utils.google_services_utils import initialize_google_services
+from src.browsergym.eval.eval_utils.google_sheets_utils import (
+    extract_tables_from_sheet,
+    extract_sheet_data,
+    get_sheet_content,
+    detect_header_row,
 )
-from src.browsergym.eval.eval_utils.google_services_helpers import get_sheet_content, detect_header_row
-from src.browsergym.eval.eval_utils.text_utils import numerical_match_with_error
+from src.browsergym.eval.eval_utils.text_utils import (
+    numerical_match_with_error,
+    keywords_exact_match,
+    keywords_match_robust,
+)
 from src.browsergym.eval.eval_utils.table_utils import (
     get_cell_background_color,
     colors_are_similar,
     colors_are_distinct,
-    matches_keywords,
-    find_column_by_keywords,
     match_columns,
     find_merged_cell_by_text,
     get_merge_column_span,
@@ -40,6 +44,7 @@ from src.browsergym.eval.eval_utils.table_utils import (
     is_cell_italic,
     is_cell_bold,
     row_has_bottom_border,
+    row_has_top_border,
     count_bold_cells_in_row,
 )
 from src.browsergym.eval.eval_utils.models import load_model
@@ -656,7 +661,7 @@ def grade_checkpoint_4():
         return checkpoint
 
     columns = list(df.columns)
-    ingredient_col = matched_columns.get("Ingredients") or find_column_by_keywords(columns, COLUMN_KEYWORDS["Ingredients"], strict=True)
+    ingredient_col = matched_columns.get("Ingredients") or keywords_match_robust(columns, COLUMN_KEYWORDS["Ingredients"])
 
     if not ingredient_col:
         for i, ingredient in enumerate(EXPECTED_INGREDIENTS + [EXCLUDED_INGREDIENT], 1):
@@ -674,7 +679,7 @@ def grade_checkpoint_4():
 
         for idx, row in df.iterrows():
             cell_value = str(row[ingredient_col]).lower().strip()
-            if matches_keywords(cell_value, keywords):
+            if keywords_exact_match(cell_value, keywords):
                 matched_row_idx = idx
                 keyword_matches[ingredient] = (idx, cell_value)
                 print(f"  [DEBUG] Ingredient '{ingredient}' matched via KEYWORD (row {idx})")
@@ -762,11 +767,11 @@ def grade_checkpoint_4():
     step_num += 1
     step_start = time.time()
 
-    # Use matches_keywords for excluded ingredient check
+    # Use keywords_exact_match for excluded ingredient check
     excluded_found = False
     for _, row in df.iterrows():
         cell_value = str(row[ingredient_col]).lower().strip()
-        if matches_keywords(cell_value, EXCLUDED_KEYWORDS):
+        if keywords_exact_match(cell_value, EXCLUDED_KEYWORDS):
             excluded_found = True
             break
 
@@ -811,8 +816,8 @@ def grade_checkpoint_5():
         return checkpoint
 
     columns = list(df.columns)
-    ingredient_col = matched_columns.get("Ingredients") or find_column_by_keywords(columns, COLUMN_KEYWORDS["Ingredients"], strict=True)
-    link_col = matched_columns.get("Link") or find_column_by_keywords(columns, COLUMN_KEYWORDS["Link"], strict=True)
+    ingredient_col = matched_columns.get("Ingredients") or keywords_match_robust(columns, COLUMN_KEYWORDS["Ingredients"])
+    link_col = matched_columns.get("Link") or keywords_match_robust(columns, COLUMN_KEYWORDS["Link"])
 
     if not ingredient_col or not link_col:
         for i, ingredient in enumerate(EXPECTED_INGREDIENTS, 1):
@@ -858,7 +863,7 @@ def grade_checkpoint_5():
         if page_title:
             # Try keyword matching first (from INGREDIENT_KEYWORDS)
             keywords = INGREDIENT_KEYWORDS.get(ingredient, [ingredient.lower()])
-            if matches_keywords(page_title, keywords):
+            if keywords_exact_match(page_title, keywords):
                 keyword_matches[ingredient] = True
                 print(f"  [DEBUG] USDA page '{page_title}' matched '{ingredient}' via KEYWORD")
             else:
@@ -956,7 +961,7 @@ def grade_checkpoint_6():
         return checkpoint
 
     columns = list(df.columns)
-    ingredient_col = matched_columns.get("Ingredients") or find_column_by_keywords(columns, COLUMN_KEYWORDS["Ingredients"], strict=True)
+    ingredient_col = matched_columns.get("Ingredients") or keywords_match_robust(columns, COLUMN_KEYWORDS["Ingredients"])
 
     if not ingredient_col:
         for i, nutrient in enumerate(ALL_NUTRIENTS, 1):
