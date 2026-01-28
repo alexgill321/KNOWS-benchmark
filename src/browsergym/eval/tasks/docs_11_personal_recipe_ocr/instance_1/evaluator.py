@@ -32,11 +32,15 @@ from src.browsergym.eval.eval_utils.scoring import Checkpoint, Result
 from src.browsergym.eval.eval_utils.google_services_utils import (
     initialize_google_services,
     download_doc_as_pdf,
-    convert_pdf_to_pngs,
     extract_text_from_doc,
     extract_structure_from_doc,
     extract_images_from_doc,
     extract_images_from_doc_with_cropping,
+)
+from src.browsergym.eval.eval_utils.image_utils import (
+    convert_pdf_to_pngs,
+    binary_compare_images,
+    match_image_tiered,
 )
 from src.browsergym.eval.eval_utils.text_utils import (
     extract_text_from_pdf,
@@ -45,10 +49,6 @@ from src.browsergym.eval.eval_utils.text_utils import (
 from src.browsergym.eval.eval_utils.web_utils import (
     validate_url_accessible,
     fetch_page_text_content,
-)
-from src.browsergym.eval.eval_utils.image_utils import (
-    binary_compare_images,
-    match_image_tiered,
 )
 from src.browsergym.eval.eval_utils.models import load_model
 
