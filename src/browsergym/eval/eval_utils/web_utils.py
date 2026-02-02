@@ -164,33 +164,92 @@ def fetch_api_with_retry(
     return None
 
 
-def validate_url_accessible(url: str, timeout: int = 10) -> Tuple[bool, str]:
+def validate_url_format(url: str) -> Tuple[bool, str]:
+    """
+    Validate URL format without making HTTP requests.
+
+    Checks that the URL has a valid scheme (http/https), a valid domain,
+    and proper structure. Useful when websites block programmatic access.
+
+    Args:
+        url: URL to validate.
+
+    Returns:
+        tuple: (is_valid: bool, details: str)
+            - is_valid: True if URL has valid format
+            - details: Description of result
+    """
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ('http', 'https'):
+            return False, f"Invalid URL scheme: {parsed.scheme}"
+        if not parsed.netloc:
+            return False, "URL has no domain"
+        if '.' not in parsed.netloc:
+            return False, "Invalid domain format"
+        return True, "URL format is valid"
+    except Exception as e:
+        return False, f"URL parsing failed: {str(e)[:50]}"
+
+
+def validate_url_accessible(url: str, timeout: int = 10, fallback_to_format: bool = True) -> Tuple[bool, str]:
     """
     Check if URL is accessible via HTTP request.
 
     Performs a HEAD request to check if the URL is reachable and returns
-    a success status code (< 400).
+    a success status code (< 400). Falls back to GET request if HEAD fails
+    with 403/405 (some websites block HEAD requests). If all HTTP methods fail
+    and fallback_to_format is True, validates URL format instead.
 
     Args:
         url: URL to validate.
         timeout: Request timeout in seconds (default 10).
+        fallback_to_format: If True, validate URL format when HTTP fails with 403.
 
     Returns:
         tuple: (is_accessible: bool, details: str)
-            - is_accessible: True if URL returned status < 400
+            - is_accessible: True if URL returned status < 400 (or has valid format if fallback)
             - details: Description of result or error
     """
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+    }
     try:
+        # Try HEAD request first (faster, less bandwidth)
         response = requests.head(
             url,
             timeout=timeout,
             allow_redirects=True,
-            headers={'User-Agent': 'Mozilla/5.0'}
+            headers=headers
         )
         if response.status_code < 400:
             return True, f"URL accessible (status {response.status_code})"
-        else:
-            return False, f"URL returned status {response.status_code}"
+
+        # If HEAD returns 403 or 405, try GET (some sites block HEAD)
+        if response.status_code in (403, 405):
+            response = requests.get(
+                url,
+                timeout=timeout,
+                allow_redirects=True,
+                headers=headers,
+                stream=True  # Don't download full content
+            )
+            # Close connection immediately after checking status
+            response.close()
+            if response.status_code < 400:
+                return True, f"URL accessible (status {response.status_code})"
+
+        # If still 403 and fallback enabled, check URL format
+        # (some sites block programmatic access but URL is valid)
+        if response.status_code == 403 and fallback_to_format:
+            is_valid, details = validate_url_format(url)
+            if is_valid:
+                return True, f"URL format valid (site blocks programmatic access)"
+            return False, details
+
+        return False, f"URL returned status {response.status_code}"
     except requests.exceptions.Timeout:
         return False, "URL request timed out"
     except requests.exceptions.RequestException as e:
