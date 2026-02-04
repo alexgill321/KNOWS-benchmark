@@ -118,7 +118,7 @@ def download_slide_image(image_url: str) -> Optional[Image.Image]:
     return None
 
 
-def get_slide_background_color(slide: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def get_slide_background_color(slide: Dict[str, Any], presentation: Dict[str, Any] = None) -> Optional[Dict[str, Any]]:
     """
     Extract background color from a slide.
 
@@ -134,7 +134,16 @@ def get_slide_background_color(slide: Dict[str, Any]) -> Optional[Dict[str, Any]
     if 'solidFill' in page_props:
         color_info = page_props['solidFill'].get('color', {})
         return _parse_color(color_info)
-
+    elif page_props.get('propertyState') == 'INHERIT' and presentation:
+        master_id = slide.get('slideProperties', {}).get('masterObjectId')
+        if "masters" in presentation:
+            for master in presentation['masters']:
+                if master['objectId'] == master_id:
+                    master_bg = master.get('pageProperties', {}).get('pageBackgroundFill', {})
+                    if 'solidFill' in master_bg:
+                        color_info = master_bg['solidFill'].get('color', {})
+                        return _parse_color(color_info)
+        
     # No background or unsupported type
     return None
 
@@ -728,7 +737,6 @@ def get_text_style_from_shape(shape: Dict[str, Any]) -> Dict[str, Any]:
                 result['italic'] = style['italic']
 
     return result
-
 
 def is_text_red(text_style: Dict[str, Any], threshold: float = 0.7) -> bool:
     """
