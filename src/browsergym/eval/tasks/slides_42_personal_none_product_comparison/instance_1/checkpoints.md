@@ -1,6 +1,6 @@
 # Checkpoints
 
-This task has 52 points in total.
+This task has 51 points in total.
 
 ## Checkpoint 1 (5pt):
 
@@ -24,7 +24,7 @@ The Challenge and the goal slides meet requirements.
 - At least one line in the slide body explains the challenge of the search.
 - At least one line in the slide body explains the goal of the search.
 
-# Checkpoint 3 (6pt):
+# Checkpoint 3 (5pt):
 
 All evaluation criteria are listed.
 

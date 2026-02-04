@@ -283,6 +283,53 @@ def grade_checkpoint_2():
     return checkpoint
 
 
+def grade_checkpoint_3():
+    """
+    Checkpoint 3 (5pt): All evaluation criteria are listed.
+
+    Outcome Evaluation:
+    - Battery life found.
+    - Weight found.
+    - Memory capacity found.
+    - Budget considerations found.
+    - Processor.
+    """
+    print("----------------- CHECKPOINT 3 ----------------")
+    checkpoint_start = time.time()
+    checkpoint = Checkpoint(total=6, result=0, name="Evaluation Criteria")
+
+    if not presentation_data or 'slides' not in presentation_data:
+        checkpoint.add_step("Criteria Slide", False, 1, "No slides found", execution_time=time.time() - checkpoint_start)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
+
+    # Slide 3 index 2
+    slides = presentation_data['slides']
+    if len(slides) < 3:
+        checkpoint.add_step("Criteria Slide", False, 1, "Criteria slide not found or not in the correct order", execution_time=time.time() - checkpoint_start)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
+
+    
+    slide = slides[2]
+    slide_text = extract_slide_text(slide)
+
+    category_keyword_list = [
+        ["Battery life", "battery", "lasting", "hours"], 
+        ["Weight", "lbs", "portability"], 
+        ["Memory", 'ram'], 
+        ["Budget", "price", "cost", "affordibility"], 
+        ["Processor", "cpu", "speed", "performance"]
+    ]
+    for i, category_keywords in enumerate(category_keyword_list):
+        step_start = time.time()
+        is_valid = keywords_match_robust(slide_text, category_keywords[0], model=None, substring=True)
+        checkpoint.add_step(category_keywords[0], bool(is_valid), i + 1, f"Found {category_keywords[0]}" if bool(is_valid) else f"Missing {category_keywords[0]}", execution_time=time.time() - step_start)
+
+    checkpoint.execution_time = time.time() - checkpoint_start
+    return checkpoint
+
+
 def grade_checkpoints(workspace_doc_id: str, cached_models: Dict[str, Any] = None, browsing_history: List[str] = None):
     total_start = time.time()
     try:
@@ -295,6 +342,7 @@ def grade_checkpoints(workspace_doc_id: str, cached_models: Dict[str, Any] = Non
         checkpoints: List[Checkpoint] = []
         checkpoints.append(grade_checkpoint_1())
         checkpoints.append(grade_checkpoint_2())
+        checkpoints.append(grade_checkpoint_3())
 
         total_execution_time = time.time() - total_start
         return Result(checkpoints, total_execution_time=total_execution_time)
