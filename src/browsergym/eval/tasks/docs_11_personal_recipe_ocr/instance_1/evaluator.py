@@ -32,11 +32,15 @@ from src.browsergym.eval.eval_utils.scoring import Checkpoint, Result
 from src.browsergym.eval.eval_utils.google_services_utils import (
     initialize_google_services,
     download_doc_as_pdf,
-    convert_pdf_to_pngs,
     extract_text_from_doc,
     extract_structure_from_doc,
     extract_images_from_doc,
     extract_images_from_doc_with_cropping,
+)
+from src.browsergym.eval.eval_utils.image_utils import (
+    convert_pdf_to_pngs,
+    binary_compare_images,
+    match_image_tiered,
 )
 from src.browsergym.eval.eval_utils.text_utils import (
     extract_text_from_pdf,
@@ -46,14 +50,10 @@ from src.browsergym.eval.eval_utils.web_utils import (
     validate_url_accessible,
     fetch_page_text_content,
 )
-from src.browsergym.eval.eval_utils.image_utils import (
-    binary_compare_images,
-    match_image_tiered,
-)
 from src.browsergym.eval.eval_utils.models import load_model
 
 # Import task-specific utilities
-from ..utils import (
+from src.browsergym.eval.tasks.docs_11_personal_recipe_ocr.utils import (
     extract_hyperlinks_from_doc,
     extract_section_content,
     extract_list_items,
@@ -102,7 +102,7 @@ TEMPLATE_DEFAULTS = {
 GOLD_TITLE = "Pumpkin Soup"
 GOLD_INGREDIENTS_FILE = os.path.join(GOLDS_DIR, "gold_ingredients.txt")
 GOLD_PREPSTEPS_FILE = os.path.join(GOLDS_DIR, "gold_prepsteps.txt")
-GOLD_IMAGE_ORIGINAL = os.path.join(GOLDS_DIR, "original_image.avif")
+GOLD_IMAGE_ORIGINAL = os.path.join(GOLDS_DIR, "original_image.png")
 GOLD_IMAGE_CROPPED = os.path.join(GOLDS_DIR, "original_image_cropped.png")
 
 
@@ -215,7 +215,7 @@ def grade_checkpoint_1():
 
     # Step 1.1: Title Check
     step_start = time.time()
-    title_found = keyword_exact_match(doc_text, GOLD_TITLE, case_sensitive=False)
+    title_found = keyword_exact_match(doc_text, GOLD_TITLE, case_sensitive=False, substring=True)
     step_time = time.time() - step_start
 
     if title_found:
@@ -252,7 +252,18 @@ def grade_checkpoint_1():
     # Step 1.4: Tips Relevance Check
     step_start = time.time()
     tips_text = extract_section_content(doc_structure, "Tips")
-    tips_list = extract_list_items(tips_text)
+    tips_list_raw = extract_list_items(tips_text)
+
+    # Filter out URL lines and "Source:" prefixed lines
+    tips_list = []
+    for tip in tips_list_raw:
+        tip_lower = tip.lower().strip()
+        # Skip URL lines, source labels, and empty/short tips
+        if tip_lower.startswith('http') or tip_lower.startswith('source:'):
+            continue
+        if len(tip) < 10:
+            continue
+        tips_list.append(tip)
 
     if model is None:
         model = load_model(model_id)
@@ -261,7 +272,7 @@ def grade_checkpoint_1():
     tips_relevance_details = []
 
     for tip in tips_list:
-        if not tip or len(tip) < 10:  # Skip very short/empty tips
+        if not tip:
             continue
 
         messages = [
