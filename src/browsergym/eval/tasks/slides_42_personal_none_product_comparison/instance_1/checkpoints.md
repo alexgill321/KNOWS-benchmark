@@ -1,17 +1,8 @@
 # Checkpoints
 
-This task has 51 points in total.
+This task has 52 points in total.
 
-## Checkppoint 1 (2pt):
-
-The overall structure follows the specified task requirements.
-
-### Outcome Evaluation:
-
-- Exactly 8 slides found.
-- All slides follow the required sequence an titles
-
-## Checkpoint 2 (5pt):
+## Checkpoint 1 (5pt):
 
 Title slide has all required elements.
 
@@ -23,7 +14,7 @@ Title slide has all required elements.
 - Image representing the University of Utah found.
 - The university's official colors are used.
 
-# Checkpoint 3 (2pt):
+# Checkpoint 2 (3pt):
 
 The Challenge and the goal slides meet requirements.
 
@@ -33,7 +24,7 @@ The Challenge and the goal slides meet requirements.
 - At least one line in the slide body explains the challenge of the search.
 - At least one line in the slide body explains the goal of the search.
 
-# Checkpoint 4 (6pt):
+# Checkpoint 3 (6pt):
 
 All evaluation criteria are listed.
 
@@ -45,7 +36,7 @@ All evaluation criteria are listed.
 - Budget considerations found.
 - Processor.
 
-# Checkpoint 5 (18pt):
+# Checkpoint 4 (18pt):
 
 The device slides meet the requirements.
 
@@ -59,7 +50,7 @@ The device slides meet the requirements.
 - Product images are from the source link(s) in the slide.
 - Content about the product is objective and accurate according to the source.
 
-# Checkpoint 6 (15pt):
+# Checkpoint 5 (15pt):
 
 Side-by-side comparison meets the requirements.
 
@@ -81,7 +72,7 @@ Side-by-side comparison meets the requirements.
 - Other relevant factors is covered.
 - An appropriate color applied for each cell under Other relevant factors.
 
-# Checkpoint 7 (3pt):
+# Checkpoint 6 (3pt):
 
 Recommendation slide meets all requirements.
 
@@ -90,3 +81,12 @@ Recommendation slide meets all requirements.
 - A summary for each device is presented.
 - Recommendations based on different student styles are provided.
 - Recommendations aligns with the comparison data.
+
+## Checkppoint 7 (2pt):
+
+The overall structure follows the specified task requirements.
+
+### Outcome Evaluation:
+
+- Exactly 8 slides found.
+- All slides follow the required sequence and titles
