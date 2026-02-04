@@ -29,8 +29,9 @@ The Challenge and the goal slides meet requirements.
 
 ### Outcome Evaluation:
 
-- The decision-making challenge explained.
-- The goal explicitly stated.
+- Title is similar to "The challenge and the goal"
+- At least one line in the slide body explains the challenge of the search.
+- At least one line in the slide body explains the goal of the search.
 
 # Checkpoint 4 (6pt):
 
@@ -38,20 +39,20 @@ All evaluation criteria are listed.
 
 ### Outcome Evaluation:
 
-- Durability for campus life found.
 - Battery life found.
-- Portability found.
-- Performance for academic tasks found.
+- Weight found.
+- Memory capacity found.
 - Budget considerations found.
-- Other relevant factors found.
+- Processor.
 
 # Checkpoint 5 (18pt):
 
 The device slides meet the requirements.
 
-### Outcome Evaluation (x3 devices, [...] pts each):
+### Outcome Evaluation (x3 devices, 6 pts each):
 
 - Two product images from different angles found.
+- The images show the correct device.
 - Key features and specificications section found.
 - Pros and cons are listed.
 - Each slide contains at least one source link.
