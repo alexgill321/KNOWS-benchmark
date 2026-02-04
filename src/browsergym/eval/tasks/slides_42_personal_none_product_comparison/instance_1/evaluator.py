@@ -23,10 +23,12 @@ sys.path.append(BASE_PATH)
 from src.browsergym.eval.eval_utils.scoring import Checkpoint, Result
 from src.browsergym.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.eval.eval_utils.text_utils import (
+    keywords_match_robust,
     keyword_exact_match,
 )
 from src.browsergym.eval.eval_utils.slides_utils import (
     extract_slide_text,
+    extract_title_text,
     extract_slide_images,
     get_slide_background_color,
     colors_are_different,
@@ -35,7 +37,6 @@ from src.browsergym.eval.eval_utils.slides_utils import (
 )
 from src.browsergym.eval.eval_utils.image_utils import binary_judge_image
 from src.browsergym.eval.eval_utils.models import load_model
-from src.browsergym.eval.eval_utils.parallel_utils import parallel_download, fast_parallel_vlm_calls
 
 # Task-specific helpers
 from src.browsergym.eval.tasks.slides_42_personal_none_product_comparison.utils import (
@@ -205,6 +206,83 @@ def grade_checkpoint_1():
     return checkpoint
 
 
+def grade_checkpoint_2():
+    """
+    Checkpoint 2 (3pt): The Challenge and the goal slides meet requirements.
+
+    Outcome Evaluation:
+    - Title is similar to "The challenge and the goal"
+    - At least one line in the slide body explains the challenge of the search.
+    - At least one line in the slide body explains the goal of the search.
+    """
+    print("----------------- CHECKPOINT 2 ----------------")
+    global model
+    checkpoint_start = time.time()
+    checkpoint = Checkpoint(total=3, result=0, name="Challenge & Goal")
+
+    if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
+        checkpoint.add_step("Title Slide Exists", False, 1,
+                          "No slides found in presentation",
+                          execution_time=time.time() - checkpoint_start)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
+
+    # Slide 2 is index 1
+    slides = presentation_data['slides']
+    if len(slides) < 2:
+        checkpoint.add_step("Slide Exists", False, 1, "Challenge slide not found or not in the correct order", execution_time=time.time() - checkpoint_start)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
+
+    slide = slides[1]
+    title_text = extract_title_text(slide)
+
+    # Step 1: Title similar to 'The Challenge & The Goal'
+    title_keywords = ["challenge", "goal"]
+    step_start = time.time()
+    title_matches = keywords_match_robust(title_text, title_keywords, substring=True)
+    checkpoint.add_step("Title Similar", bool(title_matches), 1, "Slide title similar to 'The Challenge & The Goal' found" if title_matches else "No appropriate title found", execution_time=time.time() - step_start)
+
+    # Step 2 & 3: At least one line explaining challenge and one explaining goal
+    step_start = time.time()
+    slide_text = extract_slide_text(slide)
+    if slide_text:
+        if model is None:
+                model = load_model(model_id)
+        try:
+            messages = [
+                {
+                    "role": "system",
+                    "content": [{"type": "text", "text": "You are a helpful assistant who evaluates whether the text describes at least one challenge in choosing an electronic device for a new college student. Response with ONLY 'yes' or 'no'."}]
+                },
+                {
+                    "role": "user",
+                    "content": [{"type": "text", "text": f"Is there at least one challenge in choosing an electronic device for a new college student in this text?\n\nText: {slide_text}"}]
+                }
+            ]
+            
+            response = model(messages).strip().lower()
+            checkpoint.add_step("Explains Challenge", 'yes' in response, 2, "Found challenge explanation" if 'yes' in response else "No challenge explanation found", execution_time=time.time() - step_start)
+            
+            messages = [
+                {
+                    "role": "system",
+                    "content": [{"type": "text", "text": "You are a helpful assistant who evaluates whether the text describes at least one goal in choosing an electronic device for a new college student. Response with ONLY 'yes' or 'no'."}]
+                },
+                {
+                    "role": "user",
+                    "content": [{"type": "text", "text": f"Is there at least one goal in choosing an electronic device for a new college student in this text?\n\nText: {slide_text}"}]
+                }
+            ]
+            response = model(messages).strip().lower()
+            checkpoint.add_step("Explains Goal", 'yes' in response, 3, "Found goal explanation" if 'yes' in response else "No goal explanation found", execution_time=time.time() - step_start)
+            
+        except Exception as e:
+            print(f"LLM failed to evaluate slide text: {e}")
+    checkpoint.execution_time = time.time() - checkpoint_start
+    return checkpoint
+
+
 def grade_checkpoints(workspace_doc_id: str, cached_models: Dict[str, Any] = None, browsing_history: List[str] = None):
     total_start = time.time()
     try:
@@ -216,6 +294,7 @@ def grade_checkpoints(workspace_doc_id: str, cached_models: Dict[str, Any] = Non
 
         checkpoints: List[Checkpoint] = []
         checkpoints.append(grade_checkpoint_1())
+        checkpoints.append(grade_checkpoint_2())
 
         total_execution_time = time.time() - total_start
         return Result(checkpoints, total_execution_time=total_execution_time)

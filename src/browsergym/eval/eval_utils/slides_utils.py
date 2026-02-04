@@ -47,6 +47,48 @@ def extract_slide_text(slide: Dict[str, Any]) -> str:
 
     return " ".join(text_parts)
 
+def extract_title_text(slide):
+    """
+    Extract text from the title placeholder or topmost text element of a slide.
+
+    Args:
+        slide (dict): Slide object from Google Slides API.
+
+    Returns:
+        str: Title text or empty string if no title found.
+    """
+    if 'pageElements' not in slide:
+        return ""
+
+    title_candidates = []
+
+    for element in slide['pageElements']:
+        if 'shape' in element:
+            shape = element['shape']
+
+            # Check if it's a title placeholder
+            placeholder = shape.get('placeholder', {})
+            placeholder_type = placeholder.get('type', '')
+
+            if placeholder_type in ['TITLE', 'CENTERED_TITLE', 'SUBTITLE']:
+                if 'text' in shape:
+                    return _extract_text_from_text_element(shape['text'])
+
+            # Also check position - collect text from top elements
+            transform = element.get('transform', {})
+            translate_y = transform.get('translateY', float('inf'))
+
+            if 'text' in shape and translate_y < 1000000:  # Top ~20% of slide
+                text = _extract_text_from_text_element(shape['text'])
+                if text:
+                    title_candidates.append((translate_y, text))
+
+    # Return the topmost text element if no title placeholder found
+    if title_candidates:
+        title_candidates.sort(key=lambda x: x[0])  # Sort by Y position
+        return title_candidates[0][1]
+
+    return ""
 
 def _extract_text_from_text_element(text_element: Dict[str, Any]) -> str:
     """
