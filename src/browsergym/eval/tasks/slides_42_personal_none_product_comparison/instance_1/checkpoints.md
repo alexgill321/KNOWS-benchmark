@@ -78,9 +78,9 @@ Recommendation slide meets all requirements.
 
 ### Outcome Evaluation:
 
-- A summary for each device is presented.
+- All three devices found in the slide.
+- Summaries aligns with the comparison data.
 - Recommendations based on different student styles are provided.
-- Recommendations aligns with the comparison data.
 
 ## Checkppoint 7 (2pt):
 
