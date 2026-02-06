@@ -35,12 +35,16 @@ from src.browsergym.eval.eval_utils.slides_utils import (
     extract_slide_images,
     download_slide_image
 )
+from src.browsergym.eval.eval_utils.parallel_utils import parallel_download, parallel_execute
 from src.browsergym.eval.eval_utils.image_utils import binary_judge_image
 from src.browsergym.eval.eval_utils.models import load_model
 
 # Task-specific helpers
 from src.browsergym.eval.tasks.slides_42_personal_none_product_comparison.utils import (
-    text_matches_style
+    text_matches_style,
+    extract_device_info_with_llm,
+    match_text_in_list,
+    content_is_valid
 )
 
 # Constants
@@ -221,7 +225,7 @@ def grade_checkpoint_2():
     checkpoint = Checkpoint(total=3, result=0, name="Challenge & Goal")
 
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
-        checkpoint.add_step("Title Slide Exists", False, 1,
+        checkpoint.add_step("Challenge and Goal Slide Exists", False, 1,
                           "No slides found in presentation",
                           execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
@@ -230,18 +234,18 @@ def grade_checkpoint_2():
     # Slide 2 is index 1
     slides = presentation_data['slides']
     if len(slides) < 2:
-        checkpoint.add_step("Slide Exists", False, 1, "Challenge slide not found or not in the correct order", execution_time=time.time() - checkpoint_start)
+        checkpoint.add_step("Challenge and Goal Slide Exists", False, 1, "Challenge slide not found or not in the correct order", execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     slide = slides[1]
-    title_text = extract_title_text(slide)
+    # title_text = extract_title_text(slide)
 
-    # Step 1: Title similar to 'The Challenge & The Goal'
-    title_keywords = ["challenge", "goal"]
-    step_start = time.time()
-    title_matches = keywords_match_robust(title_text, title_keywords, substring=True)
-    checkpoint.add_step("Title Similar", bool(title_matches), 1, "Slide title similar to 'The Challenge & The Goal' found" if title_matches else "No appropriate title found", execution_time=time.time() - step_start)
+    # # Step 1: Title similar to 'The Challenge & The Goal'
+    # title_keywords = ["challenge", "goal"]
+    # step_start = time.time()
+    # title_matches = keywords_match_robust(title_text, title_keywords, substring=True)
+    # checkpoint.add_step("Title Similar", bool(title_matches), 1, "Slide title similar to 'The Challenge & The Goal' found" if title_matches else "No appropriate title found", execution_time=time.time() - step_start)
 
     # Step 2 & 3: At least one line explaining challenge and one explaining goal
     step_start = time.time()
@@ -299,14 +303,14 @@ def grade_checkpoint_3():
     checkpoint = Checkpoint(total=6, result=0, name="Evaluation Criteria")
 
     if not presentation_data or 'slides' not in presentation_data:
-        checkpoint.add_step("Criteria Slide", False, 1, "No slides found", execution_time=time.time() - checkpoint_start)
+        checkpoint.add_step("Criteria Slide Exists", False, 1, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     # Slide 3 index 2
     slides = presentation_data['slides']
     if len(slides) < 3:
-        checkpoint.add_step("Criteria Slide", False, 1, "Criteria slide not found or not in the correct order", execution_time=time.time() - checkpoint_start)
+        checkpoint.add_step("Criteria Slide Exists", False, 1, "Criteria slide not found or not in the correct order", execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -329,6 +333,119 @@ def grade_checkpoint_3():
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
+def grade_checkpoint_6():
+    """
+    Checkpoint 6 (3pt): Recommendation slide meets all requirements.
+
+    Outcome Evaluation:
+    - All three devices found in the slide.
+    - Summaries aligns with the comparison data.
+    - Recommendations based on different student styles are provided.
+    """
+    print("----------------- CHECKPOINT 6 ----------------")
+    global model
+    checkpoint_start = time.time()
+    checkpoint = Checkpoint(total=3, result=0, name="Recommendation Slide")
+
+    if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
+        checkpoint.add_step("Recommendation Slide Exists", False, 1, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
+    
+    slides = presentation_data.get('slides', [])
+    if len(slides) < 7:
+        checkpoint.add_step("Recommendation Slide Exists", False, 1, "Recommendation slide missing or not in the correct order", execution_time=time.time() - checkpoint_start)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
+
+    step_start = time.time()
+    slide = slides[7]
+    slide_text = extract_slide_text(slide)
+    
+    # Step 1: Summary for each device
+    if slide_text:
+        if model is None:
+                model = load_model(model_id)
+        device_map = extract_device_info_with_llm(slide_text, model)
+        device_names = list(device_map.keys())    
+        missing_devices = ""
+        print(f"    Phase 1. Validating devices:")
+        for device in gold_devices:
+            matches = keywords_match_robust(device_names, device.split(), substring=True)
+            if not bool(matches):
+                missing_devices += device + "; "
+                print(f"        Missing device: {device}")
+            else:
+                print(f"        Found device: {device}")
+
+        checkpoint.add_step("All Devices Mentioned", len(missing_devices) == 0, 1, "All three correct devices discussed in the slide" if len(missing_devices) == 0 else f"Missing information for: {missing_devices}", execution_time=time.time() - step_start)
+    
+        comparison_slide = slides[6]
+        comparison_text = extract_slide_text(comparison_slide)
+    
+        summary_tasks = []
+        recommendation_tasks = []
+        missing_sum = 0
+        missing_rec = 0
+        print(f"    Phase 2. Collecting Summaries and Recommendations for Evaluation Tasks...")
+        for device in device_map:
+            device_info = device_map[device]
+            summary = device_info["summary"]
+            if summary:
+                sum_task_text = f"Is the following summary for {device} consistent with the source information?\n\nSource: {comparison_text}\n\nSummary: {summary}"
+            
+                summary_tasks.append({
+                    'id': f'{device}',
+                    'func': content_is_valid,
+                    'args': (sum_task_text,model)
+                })
+            else:
+                missing_sum += 1
+                print(f"        Missing summary for {device}")
+            
+            recommendation = device_info["recommendation"]
+            if recommendation:
+                rec_task_text = f"Is the following recommendation of {device} based on a student style?\n\nRecommendation: {recommendation}"
+                recommendation_tasks.append({
+                    'id': f'{device}',
+                    'func': content_is_valid,
+                    'args': (rec_task_text,model)
+                })
+            else:
+                missing_rec += 1
+                print(f"        Missing recommendation for {device}")
+        
+        step_start = time.time()
+        print(f"    Phase 3. Evaluating Summaries:")
+        invalid_summaries = 0
+        if summary_tasks:
+            summary_eval_results = parallel_execute(summary_tasks, max_workers=3)
+            for device, isValid in summary_eval_results.items():
+                if isValid:
+                    print(f"        Summary for {device} is consistent with source information.")
+                else:
+                    invalid_summaries += 1
+                    print(f"        Summary for {device} is NOT consistent with source information.")
+        valid_summaries = invalid_summaries == 0 and missing_sum == 0
+        checkpoint.add_step("Summaries Align with Comparison Data", valid_summaries, 2, "All summaries are consistent with source information" if valid_summaries else f"Some device summaries are inconsistent with the source information or missing", execution_time=time.time() - step_start)
+        
+        step_start = time.time()
+        print(f"    Phase 4. Evaluating Recommendations:")
+        invalid_recommendations = 0
+        if recommendation_tasks:
+            rec_eval_results = parallel_execute(recommendation_tasks, max_workers=3)
+            for device, isValid in rec_eval_results.items():
+                if isValid:
+                    print(f"        Recommendation for {device} is based on student style.")
+                else:
+                    invalid_recommendations += 1
+                    print(f"        Recommendation for {device} is not based on student style.")
+        valid_recommendations = invalid_recommendations == 0 and missing_rec == 0
+        checkpoint.add_step("Recommendations Based on Student Styles", valid_recommendations, 3, "All recommendations are valid" if valid_recommendations else f"Some device recommendations are not valid or missing", execution_time=time.time() - step_start)
+        
+
+    checkpoint.execution_time = time.time() - checkpoint_start
+    return checkpoint
 
 def grade_checkpoints(workspace_doc_id: str, cached_models: Dict[str, Any] = None, browsing_history: List[str] = None):
     total_start = time.time()
@@ -343,6 +460,10 @@ def grade_checkpoints(workspace_doc_id: str, cached_models: Dict[str, Any] = Non
         checkpoints.append(grade_checkpoint_1())
         checkpoints.append(grade_checkpoint_2())
         checkpoints.append(grade_checkpoint_3())
+        # checkpoints.append(grade_checkpoint_4())
+        # checkpoints.append(grade_checkpoint_5())
+        checkpoints.append(grade_checkpoint_6())
+        # checkpoints.append(grade_checkpoint_7())
 
         total_execution_time = time.time() - total_start
         return Result(checkpoints, total_execution_time=total_execution_time)
