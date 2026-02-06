@@ -35,7 +35,7 @@ from src.browsergym.eval.eval_utils.slides_utils import (
     extract_slide_images,
     download_slide_image
 )
-from src.browsergym.eval.eval_utils.parallel_utils import parallel_download, parallel_execute
+from src.browsergym.eval.eval_utils.parallel_utils import parallel_execute
 from src.browsergym.eval.eval_utils.image_utils import binary_judge_image
 from src.browsergym.eval.eval_utils.models import load_model
 
@@ -43,7 +43,6 @@ from src.browsergym.eval.eval_utils.models import load_model
 from src.browsergym.eval.tasks.slides_42_personal_none_product_comparison.utils import (
     text_matches_style,
     extract_device_info_with_llm,
-    match_text_in_list,
     content_is_valid
 )
 
