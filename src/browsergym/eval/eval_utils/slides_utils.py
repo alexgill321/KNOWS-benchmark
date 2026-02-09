@@ -14,7 +14,7 @@ from PIL import Image
 import requests
 
 
-def extract_slide_text(slide: Dict[str, Any]) -> str:
+def extract_slide_text(slide: Dict[str, Any], separator: str = " ") -> str:
     """
     Extract all text content from a slide.
 
@@ -45,7 +45,7 @@ def extract_slide_text(slide: Dict[str, Any]) -> str:
                         if cell_text:
                             text_parts.append(cell_text)
 
-    return " ".join(text_parts)
+    return separator.join(text_parts)
 
 def extract_title_text(slide):
     """
@@ -77,8 +77,9 @@ def extract_title_text(slide):
             # Also check position - collect text from top elements
             transform = element.get('transform', {})
             translate_y = transform.get('translateY', float('inf'))
-
-            if 'text' in shape and translate_y < 1000000:  # Top ~20% of slide
+            content_alignment = shape.get('shapeProperties', {}).get('contentAlignment', {})
+            
+            if 'text' in shape and (translate_y < 1000000 or 'top' in content_alignment.lower()):  # Top ~20% of slide
                 text = _extract_text_from_text_element(shape['text'])
                 if text:
                     title_candidates.append((translate_y, text))

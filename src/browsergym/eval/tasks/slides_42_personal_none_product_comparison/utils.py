@@ -49,7 +49,7 @@ def text_matches_style(slide: Dict[str, Any], text: str, style: str) -> bool:
 
     return False
 
-def extract_device_info_with_llm(slide_text: str, model: Any, task_text: str = "") -> Optional[Dict[str, Dict[str, str]]]:
+def extract_device_info_with_llm(task_text: str, model: Any) -> Optional[Dict[str, Any]]:
     """
     Extract device summaries and recommendations from slide text using an LLM.
     
@@ -65,23 +65,6 @@ def extract_device_info_with_llm(slide_text: str, model: Any, task_text: str = "
                 "recommendation":[["MacBook Air","Recommended for ..."], ["Dell XPS 13", "Recommended for ..."]]
             }
     """
-    user_text = task_text or f"""Extract the following electronic device summaries and recommendations from this Google slide text.
-            
-IMPORTANT: This text may contain multiple devices or none at all.
-Extract the information for EACH device separately.
-                        
-Respond ONLY with this exact JSON format (array of devices):
-{{
-    "summary":[["<device_name>","<summary_text>""]],
-    "recommendation":[["<device_name>","<recommendation_text>""]]
-}}
-
-
-If a summary or recommendation is not found, use an empty string for that field.
-If there is NO device, still return an object with the two properties set to empty arrays.
-
-Slide text:
-{slide_text}"""
     
     messages = [
         {
@@ -92,7 +75,7 @@ Always respond with valid JSON only, no other text."""}]
         },
         {
             "role": "user",
-            "content": [{"type": "text", "text": user_text}]
+            "content": [{"type": "text", "text": task_text}]
         }
     ]
         
@@ -114,16 +97,8 @@ Always respond with valid JSON only, no other text."""}]
             if json_lines:
                 response = "\n".join(json_lines)
                 
-        data = json.loads(response)
-        data_map = {}
-        
-        for summary_item,rec_item in zip(data["summary"], data["recommendation"]):
-            device_name = summary_item[0] if len(summary_item) > 0 else ""
-            data_map[device_name] = {}
-            data_map[device_name]['summary'] = summary_item[1] if len(summary_item) > 1 else ""
-            data_map[device_name]['recommendation'] = rec_item[1] if len(rec_item) > 1 else ""
-            
-        return data_map
+        json_data = json.loads(response)
+        return json_data
 
     except json.JSONDecodeError as e:
         print(f"Failed to parse LLM response as JSON: {e}")

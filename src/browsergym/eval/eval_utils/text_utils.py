@@ -271,7 +271,8 @@ def keywords_match_robust(texts: Union[str, List[str]],
                           keywords: Union[str, List[str]],
                           model: Any = None,
                           description: str = None,
-                          substring: bool = False) -> Optional[str]:
+                          substring: bool = False,
+                          unlimited_texts: bool = False) -> Optional[str]:
     """Robust matching: exact match first, then LLM fallback.
 
     This is the primary entry point for keyword-based text matching. It uses
@@ -323,7 +324,7 @@ def keywords_match_robust(texts: Union[str, List[str]],
             return text
 
     # Phase 2: LLM fallback (if model provided)
-    if model is not None:
+    if model is not None and (unlimited_texts or (len(texts) < 30 and len(keywords) < 30)):
         return keywords_llm_match(texts, keywords, model, description)
 
     return None
