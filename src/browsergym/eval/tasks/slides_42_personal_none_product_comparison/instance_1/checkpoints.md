@@ -1,6 +1,6 @@
 # Checkpoints
 
-This task has 48 points in total.
+This task has 51 points in total.
 
 ## Checkpoint 1 (5pt):
 
@@ -35,19 +35,19 @@ All evaluation criteria are listed.
 - Budget considerations found.
 - Processor.
 
-# Checkpoint 4 (18pt):
+# Checkpoint 4 (21pt):
 
 The device slides meet the requirements.
 
 ### Outcome Evaluation (x3 devices, 6 pts each):
 
+- Title of the slide is the device name.
+- Each slide contains at least one source link.
 - Two product images from different angles found.
-- The images show the correct device.
 - Key features and specificications section found.
 - Pros and cons are listed.
-- Each slide contains at least one source link.
 - Product images are from the source link(s) in the slide.
-- Content about the product is objective and accurate according to the source.
+- Product key features is accurate according to the sources.
 
 # Checkpoint 5 (13pt):
 

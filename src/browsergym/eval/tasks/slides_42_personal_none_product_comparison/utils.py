@@ -352,30 +352,39 @@ def validate_rankings(expected_ranking: Dict[str, int], actual_ranking: Dict[str
     
     return True
 
-def download_image_from_url(url: str, temp_dir: str, timeout: int = 15) -> str:
-    """Download image from URL to temp directory.
-
-    Args:
-        url: The URL to download the image from.
-        temp_dir: Directory to save the downloaded image.
-        timeout: Request timeout in seconds.
-
-    Returns:
-        Path to downloaded image, or None if download failed.
-    """
-    # Only accept images with these extensions
+def download_images_from_url(url, folder):
+    # Only accept these image extensions
     allowed_exts = {"png", "jpg", "jpeg", "gif", "webp", "bmp", "tif", "tiff"}
+    
+    # 1. Create the folder if it doesn't exist
+    os.makedirs(folder, exist_ok=True)
 
-    try:
-        # First, try to determine extension from the URL path
-        parsed = urlparse(url)
-        _, ext = os.path.splitext(parsed.path or "")
-        ext = ext.lower().lstrip('.') if ext else ''
+    # 2. Get the HTML of the website
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
 
-        # If the URL extension is not one of the allowed, we'll inspect the content-type
-        response = requests.get(url, timeout=timeout, allow_redirects=True)
-        if response.status_code == 200:
-            content_type = response.headers.get('Content-Type', '')
+    # 3. Find all <img> tags
+    img_tags = soup.find_all('img')
+    # print(f"Found {len(img_tags)} images.")
+    downloaded_files = []
+    for i, img in enumerate(img_tags):
+        # Get the 'src' attribute
+        img_url = img.get('src')
+        if not img_url:
+            continue
+
+        # Handle relative URLs (e.g., /images/pic.jpg -> https://site.com/images/pic.jpg)
+        img_url = urljoin(url, img_url)
+
+        try:
+            # Extract extension from URL path
+            parsed = urlparse(img_url)
+            _, ext = os.path.splitext(parsed.path or "")
+            ext = ext.lower().lstrip('.') if ext else ''
+
+            # Download the image data
+            response = requests.get(img_url, timeout=10)
+            content_type = response.headers.get('Content-Type', '').lower()
 
             # Prefer URL extension when valid
             if ext and ext in allowed_exts:
@@ -392,17 +401,28 @@ def download_image_from_url(url: str, temp_dir: str, timeout: int = 15) -> str:
                     'image/tiff': 'tiff',
                     'image/x-tiff': 'tiff'
                 }
-                ct = content_type.split(';')[0].strip().lower()
+                ct = content_type.split(';')[0].strip()
                 chosen_ext = ct_map.get(ct)
 
-            # If we still don't have an allowed extension, refuse to download
+            # Skip if extension is not allowed
             if not chosen_ext or chosen_ext not in allowed_exts:
-                return None
-
-            temp_path = os.path.join(temp_dir, f"url_image_{abs(hash(url))}.{chosen_ext}")
-            with open(temp_path, 'wb') as f:
+                # print(f"Skipping {img_url} (unsupported type)")
+                continue
+            
+            # Create a filename
+            filename = os.path.basename(urlparse(img_url).path)
+            if not filename or '.' not in filename:
+                filename = f"image_{i}.{chosen_ext}"
+            else:
+                # Ensure correct extension
+                name_without_ext = os.path.splitext(filename)[0]
+                filename = f"{name_without_ext}.{chosen_ext}"
+                
+            with open(os.path.join(folder, filename), 'wb') as f:
                 f.write(response.content)
-            return temp_path
-    except Exception as e:
-        print(f"Failed to download image from {url}: {e}")
-    return None
+            # print(f"Downloaded: {filename}")
+            downloaded_files.append(filename)
+        except Exception as e:
+            # print(f"Could not download {img_url}: {e}")
+            pass
+    return downloaded_files

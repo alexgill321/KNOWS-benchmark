@@ -398,7 +398,10 @@ def fetch_url_content(url):
             try:
                 page.goto(url, wait_until="domcontentloaded", timeout=10000)
             except Exception:
-                page.goto(url, wait_until="load", timeout=5000)
+                try:
+                    page.goto(url, wait_until="load", timeout=5000)
+                except:
+                    pass
 
             # Wait for selector (only reached if navigation succeeded)
             try:
