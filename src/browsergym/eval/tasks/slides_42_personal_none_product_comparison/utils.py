@@ -9,6 +9,9 @@ from cmath import exp
 import os
 import json
 from typing import List, Literal, Optional, Tuple, Dict, Any, Union
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse
 
 from src.browsergym.eval.eval_utils.text_utils import keyword_exact_match
 
@@ -348,3 +351,58 @@ def validate_rankings(expected_ranking: Dict[str, int], actual_ranking: Dict[str
             return False
     
     return True
+
+def download_image_from_url(url: str, temp_dir: str, timeout: int = 15) -> str:
+    """Download image from URL to temp directory.
+
+    Args:
+        url: The URL to download the image from.
+        temp_dir: Directory to save the downloaded image.
+        timeout: Request timeout in seconds.
+
+    Returns:
+        Path to downloaded image, or None if download failed.
+    """
+    # Only accept images with these extensions
+    allowed_exts = {"png", "jpg", "jpeg", "gif", "webp", "bmp", "tif", "tiff"}
+
+    try:
+        # First, try to determine extension from the URL path
+        parsed = urlparse(url)
+        _, ext = os.path.splitext(parsed.path or "")
+        ext = ext.lower().lstrip('.') if ext else ''
+
+        # If the URL extension is not one of the allowed, we'll inspect the content-type
+        response = requests.get(url, timeout=timeout, allow_redirects=True)
+        if response.status_code == 200:
+            content_type = response.headers.get('Content-Type', '')
+
+            # Prefer URL extension when valid
+            if ext and ext in allowed_exts:
+                chosen_ext = ext
+            else:
+                # Map common content-types to extensions
+                ct_map = {
+                    'image/png': 'png',
+                    'image/jpeg': 'jpg',
+                    'image/jpg': 'jpg',
+                    'image/gif': 'gif',
+                    'image/webp': 'webp',
+                    'image/bmp': 'bmp',
+                    'image/tiff': 'tiff',
+                    'image/x-tiff': 'tiff'
+                }
+                ct = content_type.split(';')[0].strip().lower()
+                chosen_ext = ct_map.get(ct)
+
+            # If we still don't have an allowed extension, refuse to download
+            if not chosen_ext or chosen_ext not in allowed_exts:
+                return None
+
+            temp_path = os.path.join(temp_dir, f"url_image_{abs(hash(url))}.{chosen_ext}")
+            with open(temp_path, 'wb') as f:
+                f.write(response.content)
+            return temp_path
+    except Exception as e:
+        print(f"Failed to download image from {url}: {e}")
+    return None

@@ -1,9 +1,11 @@
 from itertools import chain
+import glob
 import os
 import sys
 import time
 import argparse
 import requests
+import re
 from typing import List, Dict, Any, Optional
 import shutil
 
@@ -29,6 +31,7 @@ from src.browsergym.eval.eval_utils.text_utils import (
     keyword_exact_match,
 )
 from src.browsergym.eval.eval_utils.slides_utils import (
+    extract_slide_links,
     extract_slide_text,
     extract_title_text,
     extract_slide_images,
@@ -37,23 +40,25 @@ from src.browsergym.eval.eval_utils.slides_utils import (
     extract_slide_images,
     download_slide_image
 )
-from src.browsergym.eval.eval_utils.parallel_utils import parallel_execute
+from src.browsergym.eval.eval_utils.parallel_utils import parallel_download, parallel_execute
 from src.browsergym.eval.eval_utils.image_utils import binary_judge_image
 from src.browsergym.eval.eval_utils.models import load_model
+from src.browsergym.eval.eval_utils.web_utils import fetch_url_content
 
 from src.browsergym.eval.tasks.slides_42_personal_none_product_comparison.utils import (
     text_matches_style,
     extract_device_info_with_llm,
     evaluate_device_info_with_llm,
     extract_table_from_slide,
-    validate_rankings
+    validate_rankings,
+    download_images_from_url
 )
 
 # Constants
 TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/slides_42_personal_none_product_comparison/instance_1/")
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
-
+GOLD_IMAGES_DIR = os.path.join(TASK_DIR, "data/gold_images/")
 model = None
 model_id = "gemini-2.5-flash-google-ai"
 
@@ -334,6 +339,233 @@ def grade_checkpoint_3():
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
+def grade_checkpoint_4():
+    """
+    Checkpoint 4 (21pt): The device slides meet the requirements.
+
+    Outcome Evaluation (x3 devices, 7 pts each):
+    - Title of the slide is the device name.
+    - Each slide contains at least one source link.
+    - Two product images from different angles found.
+    - Key features and specificications section found.
+    - Pros and cons are listed.
+    - Product images are from the source link(s) in the slide.
+    - Product key features is accurate according to the sources."""
+    print("----------------- CHECKPOINT 4 ----------------")
+    global model
+    checkpoint_start = time.time()
+    checkpoint = Checkpoint(total=21, result=0, name="Device Slides")
+
+    if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
+        checkpoint.add_step("Device Slides Exist", False, 1, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
+    
+    slides = presentation_data.get('slides', [])
+    if len(slides) < 6:
+        checkpoint.add_step("Device Slides Exist", False, 1, "Device slides missing or not in the correct order", execution_time=time.time() - checkpoint_start)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
+    
+    section_validation_task = []
+    
+    expected_titles = gold_devices.copy()
+    split_pattern = r'[;/|\n*#\t]+|\s{2,}'
+    step_id = 1
+    all_slides = []
+    if model is None:
+        model = load_model(model_id)
+    
+    # Retrieve all image filenames from gold_images
+    patterns = ["*.png","*.jpg","*.jpeg","*.gif","*.webp","*.bmp","*.tif","*.tiff"]
+    image_paths = []
+    for pat in patterns:
+        image_paths.extend([os.path.basename(p) for p in glob.glob(os.path.join(GOLD_IMAGES_DIR, pat))])
+    image_paths = sorted(image_paths)    
+    for i in range(3): # for each device slide
+        step_start = time.time()
+        slide = slides[3+i]
+    
+#         slide_text = extract_slide_text(slide, "\n")
+#         slide_text_tokens = [part.strip() for part in re.split(split_pattern, slide_text) if part.strip()]
+#         step_start = time.time()
+#         slide_title = extract_title_text(slide)
+#         # Validate title
+#         title_match = keywords_match_robust(expected_titles, slide_title)
+#         if not title_match:
+#             checkpoint.add_step(f"{slide_title} - Device Name as Title", False, step_id, "The title is not the device name", execution_time=time.time()-step_start)
+#         else:
+#             checkpoint.add_step(f"{slide_title} - Device Name as Title", True, step_id, "The title is the device name", execution_time=time.time()-step_start)
+#             expected_titles.remove(title_match)
+#         step_id += 1    
+        
+#         # Validate that slide contains at least one source link
+#         step_start = time.time()
+        slide_links = extract_slide_links(slide)
+        
+        # Download all images from url
+        try:
+            temp_dir = os.path.join(DATA_DIR, "temp_url_images")
+            os.makedirs(temp_dir, exist_ok=True)
+            image_download_tasks = []
+            for link in slide_links:
+                image_download_tasks.append({
+                    'id': link,
+                    'func': download_images_from_url,
+                    'args': (link,temp_dir)
+                })
+                
+            image_download_tasks = parallel_execute(image_download_tasks, max_workers=2)
+        finally:
+            # Cleanup temp directory
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+        
+#         checkpoint.add_step(f"{slide_title} - Source Link(s) in Slide", len(slide_links) > 0, step_id, "The slide contains at least one source" if len(slide_links) > 0 else "No source is found in slide", execution_time=time.time() - step_start)
+#         step_id += 1
+        
+#         # Validate that there are 2 products image from 2 different angle
+#         step_start = time.time()
+#         images = extract_slide_images(slide, presentation_id, SLIDES_SERVICE)
+#         uni_image_valid = False
+#         if len(images) == 2:
+#             # Create temp directory for downloaded images
+#             temp_dir = os.path.join(DATA_DIR, "temp_images")
+#             os.makedirs(temp_dir, exist_ok=True)
+#             try:
+#                 # Download and save each image temporarily
+#                 for idx, img_info in enumerate(images):
+#                     if img_info['contentUrl']:
+#                         img = download_slide_image(img_info['contentUrl'])
+#                         if img:
+#                             temp_img_path = os.path.join(temp_dir, f"temp_image_{idx}.png")
+#                             img.save(temp_img_path)
+                            
+#                 # Use binary_judge_image to check if any image is the Red Rising book cover
+#                 if os.listdir(temp_dir):
+#                     matching_image = binary_judge_image(
+#                         model,
+#                         temp_dir,
+#                         f"Is this an image of a laptop of the same or similar model as {slide_title}?"
+#                     )
+
+#                     if matching_image:
+#                         uni_image_valid = True
+#             finally:
+#                     # Cleanup temp directory
+#                     if os.path.exists(temp_dir):
+#                         shutil.rmtree(temp_dir)
+                        
+#             checkpoint.add_step(f"{slide_title} -  Product Images", uni_image_valid, step_id, f"Found 2 product images from 2 different angles" if uni_image_valid else "Product images are missing or not from different angles", execution_time=time.time() - step_start)
+#             step_id += 1
+#         else:
+#             checkpoint.add_step(f"{slide_title} - Product Images", False, step_id, f"Required 2 images, but got {len(images)}", execution_time=time.time()-step_start)
+#             step_id += 1
+        
+#         all_slides.append({
+#             "title": slide_title,
+#             "links": slide_links,
+#             "text_tokens": slide_text_tokens
+#         })
+        
+    
+#     # Validate key features, pros, and cons sections
+#     for slide_i in all_slides:
+#         slide_title = slide_i["title"]
+#         slide_text = "\n".join(slide_i["text_tokens"])
+#         task_text = f"""Extract the content for key features, pros, and cons of an electronic device from the given slide text.
+        
+# Respond ONLY with this exact JSON format:
+
+# {{
+#     "key_features": "<semicolon-separated point>",
+#     "pros": "<semicolon-separated points>",
+#     "cons": "<semicolon-separated points>" 
+# }}
+
+# If no information is found for a certain section, still include it in the response with an empty string as value.
+
+# Slide text:
+
+# {slide_text}
+# """
+#         section_validation_task.append({
+#             'id': slide_title,
+#             'func': extract_device_info_with_llm,
+#             'args': (task_text, model)
+#         })
+        
+    
+#     section_validation_results = parallel_execute(section_validation_task, max_workers=5)    
+#     for slide_i in all_slides:
+#         step_start = time.time()
+#         slide_title = slide_i["title"]
+#         section_content = section_validation_results[slide_title]
+        
+#         has_key_features = bool(section_content["key_features"])
+#         checkpoint.add_step(f"{slide_title} - Key Features", has_key_features, step_id, 
+#                            f"Key features found for {slide_title}" if has_key_features else f"Missing key features for {slide_title}",
+#                            execution_time=time.time() - step_start)
+#         step_id += 1
+        
+#         step_start = time.time()
+#         has_pros = bool(section_content["pros"])
+#         step_start = time.time()
+#         checkpoint.add_step(f"{slide_title} - Pros", has_pros, step_id,
+#                            f"Pros found for {slide_title}" if has_pros else f"Missing pros for {slide_title}",
+#                            execution_time=time.time() - step_start)
+#         step_id += 1
+        
+#         step_start = time.time()
+#         has_cons = bool(section_content["cons"])
+#         step_start = time.time()
+#         checkpoint.add_step(f"{slide_title} - Cons", has_cons, step_id,
+#                            f"Cons found for {slide_title}" if has_cons else f"Missing cons for {slide_title}",
+#                            execution_time=time.time() - step_start)
+#         step_id += 1
+        
+#         slide_i["key_features"] = section_content["key_features"]
+        
+#     # Validate that information are pulled from links
+#     match_threshold = 90
+#     for slide_i in all_slides:
+#         step_start = time.time()
+#         slide_title = slide_i["title"]
+#         slide_links = slide_i["links"]
+#         links_text = "\n".join(slide_links)
+#         features = slide_i["key_features"]
+
+#         url_fetch_tasks = []
+#         for link in slide_links:
+#             url_fetch_tasks.append({
+#                 'id': link,
+#                 'func': fetch_url_content,
+#                 'args': (link,)
+#             })
+            
+#         fetched_contents = []
+#         if url_fetch_tasks:
+#             fetch_results = parallel_download(url_fetch_tasks, max_workers=3, use_rate_limit=False)
+#             for url, content in fetch_results.items():
+#                 fetched_contents.append([part.strip() for part in re.split(split_pattern, content) if part.strip()])
+
+#         unmatched_count = 0
+#         for line in features:    
+#             for content in fetched_contents:
+#                 match = keywords_match_robust(content, line, model=None, substring=True)
+#                 if match:
+#                     break
+#             if not match:
+#                 unmatched_count+=1
+        
+#         match_percentage =(1 - unmatched_count/len(features))*100 
+                   
+#         print(f"Verifying that info are pulled from websites: {match_percentage:.2f}% of slide text found in sources.")
+#         checkpoint.add_step(f"{slide_title} - Content From Sources", match_percentage >= match_threshold, step_id, f"{match_percentage}% of the listed features found in sources" if match_percentage >= match_threshold else f"Only {match_percentage}% of listed features is from sources", execution_time=time.time()-step_start)
+#         step_id += 1
+    checkpoint.execution_time = time.time() - checkpoint_start
+    return checkpoint 
+
 def grade_checkpoint_5():
     """
     Checkpoint 5 (13pt): Side-by-side comparison meets the requirements.
@@ -367,13 +599,13 @@ def grade_checkpoint_5():
         return checkpoint
     
     slides = presentation_data.get('slides', [])
-    if len(slides) < 7:
+    if len(slides) < 6:
         checkpoint.add_step("Comparison Slide Exists", False, 1, "Comparison slide missing or not in the correct order", execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
     
     step_start = time.time()
-    slide = slides[6]
+    slide = slides[5]
     
     # Extract table from slide
     table_data = extract_table_from_slide(slide)
@@ -548,7 +780,7 @@ def grade_checkpoint_6():
         return checkpoint
     
     slides = presentation_data.get('slides', [])
-    if len(slides) < 8:
+    if len(slides) < 7:
         checkpoint.add_step("Recommendation Slide Exists", False, 1, "Recommendation slide missing or not in the correct order", execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -561,8 +793,35 @@ def grade_checkpoint_6():
     if slide_text:
         if model is None:
                 model = load_model(model_id)
-        device_map = extract_device_info_with_llm(slide_text, model)
-        device_names = list(device_map.keys())    
+        
+        task_text = f"""Extract the following electronic device summaries and recommendations from this Google slide text.
+            
+IMPORTANT: This text may contain multiple devices or none at all.
+Extract the information for EACH device separately.
+                        
+Respond ONLY with this exact JSON format (array of devices):
+{{
+    "summary":[["<device_name>","<summary_text>""]],
+    "recommendation":[["<device_name>","<recommendation_text>""]]
+}}
+
+
+If a summary or recommendation is not found, use an empty string for that field.
+If there is NO device, still return an object with the two properties set to empty arrays.
+
+Slide text:
+{slide_text}"""
+        device_data = extract_device_info_with_llm(task_text, model)
+        device_map = {}
+        device_names = []    
+        
+        for summary_item,rec_item in zip(device_data["summary"], device_data["recommendation"]):
+            device_name = summary_item[0] if len(summary_item) > 0 else ""
+            device_names.append(device_name)
+            device_map[device_name] = {}
+            device_map[device_name]['summary'] = summary_item[1] if len(summary_item) > 1 else ""
+            device_map[device_name]['recommendation'] = rec_item[1] if len(rec_item) > 1 else ""
+            
         missing_devices = ""
         print(f"1. Validating devices:")
         for device in gold_devices:
@@ -714,13 +973,13 @@ def grade_checkpoints(workspace_doc_id: str, cached_models: Dict[str, Any] = Non
             model = cached_models[model_id]
 
         checkpoints: List[Checkpoint] = []
-        checkpoints.append(grade_checkpoint_1())
-        checkpoints.append(grade_checkpoint_2())
-        checkpoints.append(grade_checkpoint_3())
-        # checkpoints.append(grade_checkpoint_4())
-        checkpoints.append(grade_checkpoint_5())
-        checkpoints.append(grade_checkpoint_6())
-        checkpoints.append(grade_checkpoint_7())
+        # checkpoints.append(grade_checkpoint_1())
+        # checkpoints.append(grade_checkpoint_2())
+        # checkpoints.append(grade_checkpoint_3())
+        checkpoints.append(grade_checkpoint_4())
+        # checkpoints.append(grade_checkpoint_5())
+        # checkpoints.append(grade_checkpoint_6())
+        # checkpoints.append(grade_checkpoint_7())
 
         total_execution_time = time.time() - total_start
         return Result(checkpoints, total_execution_time=total_execution_time)
