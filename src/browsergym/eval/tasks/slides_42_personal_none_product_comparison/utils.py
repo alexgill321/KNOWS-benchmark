@@ -7,7 +7,7 @@ parsing simple slide tables and colors, etc.).
 """
 import os
 import json
-from typing import List, Optional, Tuple, Dict, Any
+from typing import List, Literal, Optional, Tuple, Dict, Any, Union
 
 from src.browsergym.eval.eval_utils.text_utils import keyword_exact_match
 
@@ -48,7 +48,7 @@ def text_matches_style(slide: Dict[str, Any], text: str, style: str) -> bool:
 
     return False
 
-def extract_device_info_with_llm(slide_text: str, model: Any) -> Optional[Dict[str, Dict[str, str]]]:
+def extract_device_info_with_llm(slide_text: str, model: Any, task_text: str = "") -> Optional[Dict[str, Dict[str, str]]]:
     """
     Extract device summaries and recommendations from slide text using an LLM.
     
@@ -64,16 +64,7 @@ def extract_device_info_with_llm(slide_text: str, model: Any) -> Optional[Dict[s
                 "recommendation":[["MacBook Air","Recommended for ..."], ["Dell XPS 13", "Recommended for ..."]]
             }
     """
-    messages = [
-        {
-            "role": "system",
-            "content": [{"type": "text", "text": f"""You are a data extraction assistant. Extract the information in the provided text and format it as specified. 
-            
-Always respond with valid JSON only, no other text."""}]
-        },
-        {
-            "role": "user",
-            "content": [{"type": "text", "text": f"""Extract the following electronicdevice summaries and recommendations from this Google slide text.
+    user_text = task_text or f"""Extract the following electronic device summaries and recommendations from this Google slide text.
             
 IMPORTANT: This text may contain multiple devices or none at all.
 Extract the information for EACH device separately.
@@ -89,7 +80,18 @@ If a summary or recommendation is not found, use an empty string for that field.
 If there is NO device, still return an object with the two properties set to empty arrays.
 
 Slide text:
-{slide_text}"""}]
+{slide_text}"""
+    
+    messages = [
+        {
+            "role": "system",
+            "content": [{"type": "text", "text": f"""You are a data extraction assistant. Extract the information in the provided text and format it as specified. 
+            
+Always respond with valid JSON only, no other text."""}]
+        },
+        {
+            "role": "user",
+            "content": [{"type": "text", "text": user_text}]
         }
     ]
         
@@ -130,7 +132,7 @@ Slide text:
         print(f"Error in LLM extraction: {e}")
         return None
     
-def content_is_valid(task_text: str, model: Any) -> bool:
+def evaluate_device_info_with_llm(task_text: str, model: Any, return_type: Literal["bool", "str", "json"]="bool") -> Optional[Union[bool, str, Any]]:
     """Quick boolean check using an LLM to validate task text.
 
     Args:
@@ -141,10 +143,18 @@ def content_is_valid(task_text: str, model: Any) -> bool:
         bool: True if model indicates the text is valid (contains "yes");
         False on any other response or error.
     """
+    return_type_instruction = {
+        "bool": "Response with ONLY 'yes' or 'no'.",
+        "str": "Format your response strictly as specified in the task instructions.",
+        "json": "Respond with the JSON format specified in the task instructions."
+    }
+    
     messages = [
         {
             "role": "system",
-            "content": [{"type": "text", "text": "You are a helpful assistant who evaluates whether a the text satisfies the requirements of the task. Response with ONLY 'yes' or 'no'."}]
+            "content": [{"type": "text", "text": f"""You are a helpful assistant who evaluates whether a text satisfies the requirements of the task. 
+                         
+            {return_type_instruction.get(return_type, "")}"""}]
         },
         {
             "role": "user",
@@ -153,11 +163,34 @@ def content_is_valid(task_text: str, model: Any) -> bool:
     ]
     try:
         response = model(messages).strip().lower()
-        return "yes" in response
+        
+        if return_type == "bool":
+            return "yes" in response
+        elif return_type == "str":
+            return response
+        elif return_type == "json":
+            # Handle markdown code blocks
+            if "```" in response:
+                lines = response.split('\n')
+                json_lines = []
+                in_code_block = False
+                for line in lines:
+                    if line.strip().startswith("```"):
+                        in_code_block = not in_code_block
+                        continue
+                    if in_code_block:
+                        json_lines.append(line)
+                if json_lines:
+                    response = "\n".join(json_lines)
+                    
+            data_json = json.loads(response)
+            return data_json
+        else:
+            return None
         
     except Exception as e:
             print(f"LLM failed to evaluate slide text: {e}")
-            return False
+            return None
 
 
 def extract_table_from_slide(slide: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -285,3 +318,143 @@ def _get_cell_background_color(cell: Dict[str, Any]) -> Optional[Dict[str, float
     
     return None
 
+
+def verify_cell_colors(table_data: Dict[str, Any], 
+                      criteria: Dict[str, List[Tuple[int, str]]],
+                      color_threshold: float = 0.15) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Verify that cells have appropriate colors based on criteria.
+    
+    Args:
+        table_data (Dict[str, Any]): Extracted table data.
+        criteria (Dict[str, List[Tuple[int, str]]]): 
+            Mapping like: {
+                "Battery life": [(1, "green"), (2, "red"), (3, "yellow")],  # row_idx, color_name
+                ...
+            }
+        color_threshold (float): Threshold for color matching (0.0-1.0).
+    
+    Returns:
+        Tuple[bool, Dict[str, Any]]: (all_valid: bool, validation_details: dict)
+    """
+    if not table_data:
+        return False, {}
+    
+    headers = table_data['headers']
+    cell_colors = table_data['cell_colors']
+    
+    # Define RGB ranges for colors
+    color_ranges = {
+        'red': {'r': (0.7, 1.0), 'g': (0.0, 0.3), 'b': (0.0, 0.3)},
+        'green': {'r': (0.0, 0.3), 'g': (0.7, 1.0), 'b': (0.0, 0.3)},
+        'yellow': {'r': (0.7, 1.0), 'g': (0.7, 1.0), 'b': (0.0, 0.3)},
+    }
+    
+    validation_results = {}
+    all_valid = True
+    
+    for category, color_specs in criteria.items():
+        # Find column index for this category
+        col_idx = None
+        for idx, header in enumerate(headers):
+            if keyword_exact_match(header, category, substring=True):
+                col_idx = idx
+                break
+        
+        if col_idx is None:
+            validation_results[category] = {'valid': False, 'reason': 'Category not found in headers'}
+            all_valid = False
+            continue
+        
+        category_valid = True
+        color_mismatches = []
+        
+        for row_idx, expected_color in color_specs:
+            cell_key = (row_idx, col_idx)
+            
+            if cell_key not in cell_colors or cell_colors[cell_key] is None:
+                color_mismatches.append(f"Row {row_idx}: No color found")
+                category_valid = False
+                continue
+            
+            actual_rgb = cell_colors[cell_key]
+            
+            # Check if actual color matches expected color
+            if expected_color.lower() not in color_ranges:
+                color_mismatches.append(f"Row {row_idx}: Unknown color '{expected_color}'")
+                category_valid = False
+                continue
+            
+            expected_range = color_ranges[expected_color.lower()]
+            
+            color_match = (
+                expected_range['r'][0] <= actual_rgb['r'] <= expected_range['r'][1] and
+                expected_range['g'][0] <= actual_rgb['g'] <= expected_range['g'][1] and
+                expected_range['b'][0] <= actual_rgb['b'] <= expected_range['b'][1]
+            )
+            
+            if not color_match:
+                color_mismatches.append(
+                    f"Row {row_idx}: Expected {expected_color}, got RGB({actual_rgb['r']:.2f}, {actual_rgb['g']:.2f}, {actual_rgb['b']:.2f})"
+                )
+                category_valid = False
+        
+        validation_results[category] = {
+            'valid': category_valid,
+            'mismatches': color_mismatches
+        }
+        
+        if not category_valid:
+            all_valid = False
+    
+    return all_valid, validation_results
+
+
+def verify_table_row_contents(table_data: Dict[str, Any],
+                             expected_rows: List[Dict[str, str]]) -> Tuple[bool, List[str]]:
+    """
+    Verify table row contents match expected values.
+    
+    Args:
+        table_data (Dict[str, Any]): Extracted table data.
+        expected_rows (List[Dict[str, str]]): List of dicts with expected content.
+            Keys should match table headers (case-insensitive).
+    
+    Returns:
+        Tuple[bool, List[str]]: (all_match: bool, mismatches: List[str])
+    """
+    if not table_data:
+        return False, ["No table data found"]
+    
+    actual_rows = table_data['rows']
+    mismatches = []
+    
+    if len(actual_rows) != len(expected_rows):
+        mismatches.append(f"Row count mismatch: expected {len(expected_rows)}, got {len(actual_rows)}")
+    
+    for row_idx, expected_row in enumerate(expected_rows):
+        if row_idx >= len(actual_rows):
+            mismatches.append(f"Row {row_idx}: Missing row")
+            continue
+        
+        actual_row = actual_rows[row_idx]
+        
+        for key, expected_value in expected_row.items():
+            # Find matching column (case-insensitive)
+            actual_value = None
+            for actual_key, val in actual_row.items():
+                if keyword_exact_match(actual_key, key, substring=True):
+                    actual_value = val
+                    break
+            
+            if actual_value is None:
+                mismatches.append(f"Row {row_idx}: Column '{key}' not found")
+                continue
+            
+            # Check if values match (case-insensitive, substring match)
+            if not keyword_exact_match(actual_value, expected_value, substring=True):
+                mismatches.append(
+                    f"Row {row_idx}, Column '{key}': expected '{expected_value}', got '{actual_value}'"
+                )
+    
+    return len(mismatches) == 0, mismatches
