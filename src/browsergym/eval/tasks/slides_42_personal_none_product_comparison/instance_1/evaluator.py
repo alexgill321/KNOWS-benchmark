@@ -23,6 +23,7 @@ sys.path.append(BASE_PATH)
 from src.browsergym.eval.eval_utils.scoring import Checkpoint, Result
 from src.browsergym.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.eval.eval_utils.text_utils import (
+    keywords_exact_match,
     keywords_match_robust,
     keyword_exact_match,
 )
@@ -39,11 +40,12 @@ from src.browsergym.eval.eval_utils.parallel_utils import parallel_execute
 from src.browsergym.eval.eval_utils.image_utils import binary_judge_image
 from src.browsergym.eval.eval_utils.models import load_model
 
-# Task-specific helpers
 from src.browsergym.eval.tasks.slides_42_personal_none_product_comparison.utils import (
     text_matches_style,
     extract_device_info_with_llm,
-    content_is_valid
+    evaluate_device_info_with_llm,
+    extract_table_from_slide,
+    validate_rankings
 )
 
 # Constants
@@ -211,17 +213,16 @@ def grade_checkpoint_1():
 
 def grade_checkpoint_2():
     """
-    Checkpoint 2 (3pt): The Challenge and the goal slides meet requirements.
+    Checkpoint 2 (2pt): The Challenge and the goal slides meet requirements.
 
     Outcome Evaluation:
-    - Title is similar to "The challenge and the goal"
     - At least one line in the slide body explains the challenge of the search.
     - At least one line in the slide body explains the goal of the search.
     """
     print("----------------- CHECKPOINT 2 ----------------")
     global model
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=3, result=0, name="Challenge & Goal")
+    checkpoint = Checkpoint(total=2, result=0, name="Challenge & Goal")
 
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
         checkpoint.add_step("Challenge and Goal Slide Exists", False, 1,
@@ -299,7 +300,7 @@ def grade_checkpoint_3():
     """
     print("----------------- CHECKPOINT 3 ----------------")
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=6, result=0, name="Evaluation Criteria")
+    checkpoint = Checkpoint(total=5, result=0, name="Evaluation Criteria")
 
     if not presentation_data or 'slides' not in presentation_data:
         checkpoint.add_step("Criteria Slide Exists", False, 1, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
@@ -332,6 +333,200 @@ def grade_checkpoint_3():
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
+def grade_checkpoint_5():
+    """
+    Checkpoint 5 (13pt): Side-by-side comparison meets the requirements.
+
+    Outcome Evaluation:
+
+    - Table has exactly 3 columns.
+    - All devices are included as column headers.
+    - Three colors red, yellow, and green are used for the coding scheme in the table content.
+    - Battery life is covered.
+    - An appropriate color applied for each cell under Battery life.
+    - Weight is covered.
+    - An appropriate color applied for each cell under Weight.
+    - Processor is covered.
+    - An appropriate color applied for each cell under Processor.
+    - Budget consideration is covered.
+    - An appropriate color applied for each cell under Budget consideration.
+    - Memory capacity is covered.
+    - An appropriate color applied for each cell under Memory capacity.
+    """
+    print("----------------- CHECKPOINT 5 ----------------")
+    global model
+    if model is None:
+        model = load_model(model_id)
+    checkpoint_start = time.time()
+    checkpoint = Checkpoint(total=13, result=0, name="Comparison Slide")
+    
+    if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
+        checkpoint.add_step("Comparison Slide Exists", False, 1, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
+    
+    slides = presentation_data.get('slides', [])
+    if len(slides) < 7:
+        checkpoint.add_step("Comparison Slide Exists", False, 1, "Comparison slide missing or not in the correct order", execution_time=time.time() - checkpoint_start)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
+    
+    step_start = time.time()
+    slide = slides[6]
+    
+    # Extract table from slide
+    table_data = extract_table_from_slide(slide)
+    
+    if not table_data:
+        checkpoint.add_step("Table Found", False, 1, "No table found on the comparison slide", execution_time=time.time() - step_start)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
+    
+    # Step 1: Verify table has exactly 3 columns
+    step_start = time.time()
+    has_3_columns = table_data['num_columns'] == 3
+    checkpoint.add_step("Table Has 3 Columns", has_3_columns, 1, 
+                       "Table has exactly 3 columns" if has_3_columns else f"Table has {table_data['num_columns']} columns, expected 3",
+                       execution_time=time.time() - step_start)
+    
+    # Step 2: Verify all devices are column headers
+    step_start = time.time()
+    headers = table_data.get('headers', [])
+    missing_devices = ""
+    print(f"1. Validating table headers.")
+    for device in gold_devices:
+        header_match = keywords_exact_match(device, headers, substring=True)
+        if not bool(header_match):
+            missing_devices += f"{device}; " 
+    headers_valid = len(missing_devices) == 0
+    checkpoint.add_step("All Devices as Headers", headers_valid, 2,
+                       "All devices found as column headers" if headers_valid else f"Missing header(s) for the following devices: {missing_devices}",
+                       execution_time=time.time() - step_start)
+    
+    print(f"2. Validating category coverage based on the table content.")
+    categories = ["battery life", "weight", "processor", "budget", "memory"]
+    color_rank_map = {
+        'green': 1,
+        'yellow': 2,
+        'red': 3
+    }
+    rows_content = ""
+    print(f"    Extracting table content for LLM evaluation...")
+    for row in table_data.get('rows', []):
+        rows_content += "; ".join([row[device] for device in headers]) + "\n"
+    
+    task_text = f"""Extract each row in the given table content and assign it to the following categories.
+            
+IMPORTANT: Each line represents one table row, with each semicolon-separated value corresponding to the devices {", ".join(headers)}, respectively.
+Each line should be evaluated to one category ONLY.
+                        
+Respond ONLY with this exact JSON format:
+
+{{
+    "<Category Name>": {{
+        "<Device Name>": "<Cell Content>",
+    }}    
+}}
+
+
+If the line contains mixed-category information, evaluate based on the most prominent category or the category that best fits the overall content of the line.
+If no line contains relevant information for a category, leave it out of the response.
+
+Categories:
+{"; ".join(categories)}
+
+Table Content:
+{rows_content}
+"""
+    print(f"    Sending table content to LLM for category extraction...")
+    step_start = time.time()
+    category_map = evaluate_device_info_with_llm(task_text, model, return_type="json")
+    print(f"    LLM finished category extraction in {time.time() - step_start:.2f} seconds.")
+    categories_covered = list(category_map.keys())
+    
+    llm_ranking_task = []
+    ranking_from_table = {}
+    colors_used = set()
+    task_idx = 4
+    
+    print(f"    Starting category coverage validation and preparing LLM ranking tasks...")
+    for category in categories:
+        step_start = time.time()
+        if category in categories_covered:
+            print(f"        Found category '{category}' in table content. Creating LLM ranking task for this category.")
+            checkpoint.add_step(f"Found {category} Row", True, task_idx, f"The {category} category is covered in table", execution_time=time.time() - step_start)
+            task_idx += 1
+            
+            step_start = time.time()
+            cells = list(category_map[category].values())
+            comparison_content = "\n".join(cells)
+            # print(f"    Cell content: {comparison_content}")
+            task_text = f"""Given the information for these devices {", ".join(headers)}, respectively, rank them numerically, based on the category {category}, from best to worst, where 1 is best and {len(headers)} is worst. 
+IMPORTANT:
+
+Values may contains both numerical and qualitative information. When two values have the same numerical ranking, use the qualitative information to determine if they should be ranked the same or if one is better than the other.
+
+Respond with ONLY the rankings in the following JSON format:
+{{
+"<Device Name>": <Rank>,
+}}
+
+Two values can be ranked the same if they are very close or identical.
+'Unknown' values are always ranked worst.
+
+Values:
+
+{comparison_content}
+"""
+            llm_ranking_task.append({
+              'id': f'{category}',
+              'func': evaluate_device_info_with_llm,
+              'args': (task_text, model, "json")
+            })
+            
+        else:
+            print(f"        No clear information about category '{category}' found in table content.")
+            checkpoint.add_step(f"Found {category} Row", False, task_idx, f"No clear information about {category} found in table", execution_time=time.time() - step_start)
+            task_idx += 1
+            checkpoint.add_step(f"{category} Cell Colors", False, task_idx, f"Cannot evaluate cell colors for {category} since category not found", execution_time=time.time() - step_start)
+            task_idx += 1
+        
+    # Extract comparison from table
+    print(f"3a. Extracting color coding scheme from table for validation...")
+    step_start = time.time()
+    for cat_idx,category in enumerate(categories_covered):
+        step_start = time.time()
+        ranking_from_table[category] = {}
+        for dev_idx, device in enumerate(headers):
+            color = table_data['cell_colors'][(cat_idx+1,dev_idx)]
+            colors_used.add(color)
+            ranking_from_table[category][device] = color_rank_map.get(color, -1)
+    print(f"    Validating that the table uses Green, Yellow, and Red as the color coding scheme...")
+    if "unknown" in colors_used:
+        checkpoint.add_step("Green, Yellow, and Red as Color Coding Scheme", False, 3, f"Unknown colors found in table: {', '.join(colors_used)}", execution_time=time.time() - step_start)
+    elif len(colors_used) < 3 or len(colors_used) > 3:
+        checkpoint.add_step("Green, Yellow, and Red as Color Coding Scheme", False, 3, f"Too many or too few colors used. Colors found: {', '.join(colors_used)}", execution_time=time.time() - step_start)
+    else:
+        checkpoint.add_step("Green, Yellow, and Red as Color Coding Scheme", True, 3, f"All required colors are used: {', '.join(colors_used)}", execution_time=time.time() - step_start)
+    
+    start_time = time.time()
+    print(f"3b. Validating that the table correctly ranks the devices for each category based on the color coding scheme...")
+    if llm_ranking_task:
+        llm_ranking_results = parallel_execute(llm_ranking_task, max_workers=len(categories_covered))
+        print(f"    LLM finished ranking tasks in {time.time() - start_time:.2f} seconds.")
+        print(f"    Validating LLM rankings against table color coding for each category...")
+        for category in categories:
+            if category in llm_ranking_results:
+                start_time = time.time()
+                ranking_consistent = validate_rankings(llm_ranking_results[category], ranking_from_table[category])
+                checkpoint.add_step(f"Correct Color Coding", ranking_consistent, task_idx, f"Appropriate colors are used to rank values from best to worst for {category}" if ranking_consistent else f"Colors are not correctly assigned for {category}", execution_time=time.time() - start_time)
+            else:
+                checkpoint.add_step(f"Correct Color Coding", False, task_idx, f"LLM failed to rank devices for {category}, cannot validate color coding for {category}", execution_time=time.time() - start_time)
+            task_idx += 1
+
+    checkpoint.execution_time = time.time() - checkpoint_start
+    return checkpoint
+
 def grade_checkpoint_6():
     """
     Checkpoint 6 (3pt): Recommendation slide meets all requirements.
@@ -352,7 +547,7 @@ def grade_checkpoint_6():
         return checkpoint
     
     slides = presentation_data.get('slides', [])
-    if len(slides) < 7:
+    if len(slides) < 8:
         checkpoint.add_step("Recommendation Slide Exists", False, 1, "Recommendation slide missing or not in the correct order", execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -368,14 +563,14 @@ def grade_checkpoint_6():
         device_map = extract_device_info_with_llm(slide_text, model)
         device_names = list(device_map.keys())    
         missing_devices = ""
-        print(f"    Phase 1. Validating devices:")
+        print(f"1. Validating devices:")
         for device in gold_devices:
             matches = keywords_match_robust(device_names, device.split(), substring=True)
             if not bool(matches):
                 missing_devices += device + "; "
-                print(f"        Missing device: {device}")
+                print(f"    Missing device: {device}")
             else:
-                print(f"        Found device: {device}")
+                print(f"    Found device: {device}")
 
         checkpoint.add_step("All Devices Mentioned", len(missing_devices) == 0, 1, "All three correct devices discussed in the slide" if len(missing_devices) == 0 else f"Missing information for: {missing_devices}", execution_time=time.time() - step_start)
     
@@ -386,7 +581,7 @@ def grade_checkpoint_6():
         recommendation_tasks = []
         missing_sum = 0
         missing_rec = 0
-        print(f"    Phase 2. Collecting Summaries and Recommendations for Evaluation Tasks...")
+        print(f"2. Collecting Summaries and Recommendations for Evaluation Tasks...")
         for device in device_map:
             device_info = device_map[device]
             summary = device_info["summary"]
@@ -395,50 +590,50 @@ def grade_checkpoint_6():
             
                 summary_tasks.append({
                     'id': f'{device}',
-                    'func': content_is_valid,
+                    'func': evaluate_device_info_with_llm,
                     'args': (sum_task_text,model)
                 })
             else:
                 missing_sum += 1
-                print(f"        Missing summary for {device}")
+                print(f"    Missing summary for {device}")
             
             recommendation = device_info["recommendation"]
             if recommendation:
                 rec_task_text = f"Is the following recommendation of {device} based on a student style?\n\nRecommendation: {recommendation}"
                 recommendation_tasks.append({
                     'id': f'{device}',
-                    'func': content_is_valid,
+                    'func': evaluate_device_info_with_llm,
                     'args': (rec_task_text,model)
                 })
             else:
                 missing_rec += 1
-                print(f"        Missing recommendation for {device}")
+                print(f"    Missing recommendation for {device}")
         
         step_start = time.time()
-        print(f"    Phase 3. Evaluating Summaries:")
+        print(f"3. Evaluating Summaries:")
         invalid_summaries = 0
         if summary_tasks:
             summary_eval_results = parallel_execute(summary_tasks, max_workers=3)
             for device, isValid in summary_eval_results.items():
                 if isValid:
-                    print(f"        Summary for {device} is consistent with source information.")
+                    print(f"    Summary for {device} is consistent with source information.")
                 else:
                     invalid_summaries += 1
-                    print(f"        Summary for {device} is NOT consistent with source information.")
+                    print(f"    Summary for {device} is NOT consistent with source information.")
         valid_summaries = invalid_summaries == 0 and missing_sum == 0
         checkpoint.add_step("Summaries Align with Comparison Data", valid_summaries, 2, "All summaries are consistent with source information" if valid_summaries else f"Some device summaries are inconsistent with the source information or missing", execution_time=time.time() - step_start)
         
         step_start = time.time()
-        print(f"    Phase 4. Evaluating Recommendations:")
+        print(f"4. Evaluating Recommendations:")
         invalid_recommendations = 0
         if recommendation_tasks:
             rec_eval_results = parallel_execute(recommendation_tasks, max_workers=3)
             for device, isValid in rec_eval_results.items():
                 if isValid:
-                    print(f"        Recommendation for {device} is based on student style.")
+                    print(f"    Recommendation for {device} is based on student style.")
                 else:
                     invalid_recommendations += 1
-                    print(f"        Recommendation for {device} is not based on student style.")
+                    print(f"    Recommendation for {device} is not based on student style.")
         valid_recommendations = invalid_recommendations == 0 and missing_rec == 0
         checkpoint.add_step("Recommendations Based on Student Styles", valid_recommendations, 3, "All recommendations are valid" if valid_recommendations else f"Some device recommendations are not valid or missing", execution_time=time.time() - step_start)
         
@@ -460,7 +655,7 @@ def grade_checkpoints(workspace_doc_id: str, cached_models: Dict[str, Any] = Non
         checkpoints.append(grade_checkpoint_2())
         checkpoints.append(grade_checkpoint_3())
         # checkpoints.append(grade_checkpoint_4())
-        # checkpoints.append(grade_checkpoint_5())
+        checkpoints.append(grade_checkpoint_5())
         checkpoints.append(grade_checkpoint_6())
         # checkpoints.append(grade_checkpoint_7())
 
@@ -481,7 +676,7 @@ if __name__ == "__main__":
     parser.add_argument("--cached_models", type=dict, default=None, help="Dictionary of preloaded models")
     args = parser.parse_args()
 
-    start_time = time.time()
+    step_start = time.time()
 
     print(f"DEBUG mode: {DEBUG}")
     result = grade_checkpoints(
@@ -500,4 +695,4 @@ if __name__ == "__main__":
             status = "" if step["success"] else ""
             print(f"  {status} {step['name']}: {step['details'] or 'No details'}")
     end_time = time.time()
-    print(f"\nTotal time taken: {end_time - start_time:.2f} seconds")
+    print(f"\nTotal time taken: {end_time - step_start:.2f} seconds")

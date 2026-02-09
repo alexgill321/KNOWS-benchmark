@@ -5,6 +5,7 @@ These helpers use existing eval_utils functions where possible and add
 small, task-specific utilities (loading gold devices, checking title bold,
 parsing simple slide tables and colors, etc.).
 """
+from cmath import exp
 import os
 import json
 from typing import List, Literal, Optional, Tuple, Dict, Any, Union
@@ -193,7 +194,7 @@ def evaluate_device_info_with_llm(task_text: str, model: Any, return_type: Liter
             return None
 
 
-def extract_table_from_slide(slide: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def extract_table_from_slide(slide: Dict[str, Any], normalize_text: bool = True) -> Optional[Dict[str, Any]]:
     """
     Extract structured table data from a slide.
     
@@ -226,7 +227,7 @@ def extract_table_from_slide(slide: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         headers = []
         first_row = table_rows[0]
         for cell in first_row.get('tableCells', []):
-            cell_text = _extract_text_from_table_cell(cell)
+            cell_text = _extract_text_from_table_cell(cell, normalize_text=normalize_text)
             headers.append(cell_text)
         
         num_columns = len(headers)
@@ -246,7 +247,7 @@ def extract_table_from_slide(slide: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             
             row_data = {}
             for col_idx, cell in enumerate(cells):
-                cell_text = _extract_text_from_table_cell(cell)
+                cell_text = _extract_text_from_table_cell(cell, normalize_text=normalize_text)
                 if col_idx < len(headers):
                     row_data[headers[col_idx]] = cell_text
                 
@@ -267,7 +268,7 @@ def extract_table_from_slide(slide: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return None
 
 
-def _extract_text_from_table_cell(cell: Dict[str, Any]) -> str:
+def _extract_text_from_table_cell(cell: Dict[str, Any], normalize_text: bool = True) -> str:
     """
     Extract text content from a table cell.
     
@@ -286,21 +287,24 @@ def _extract_text_from_table_cell(cell: Dict[str, Any]) -> str:
     if 'textElements' in text_element:
         for elem in text_element['textElements']:
             if 'textRun' in elem and 'content' in elem['textRun']:
-                text_parts.append(elem['textRun']['content'])
+                text_run = elem['textRun']['content']
+                if normalize_text:
+                    text_run = text_run.strip().lower()
+                text_parts.append(text_run)
     
     return "".join(text_parts).strip()
 
 
-def _get_cell_background_color(cell: Dict[str, Any]) -> Optional[Dict[str, float]]:
+def _get_cell_background_color(cell: Dict[str, Any], threshold: float = 0.2) -> str:
     """
-    Extract background color from a table cell.
+    Extract background color name from a table cell.
     
     Args:
         cell (Dict[str, Any]): Table cell object from Google Slides API.
+        threshold (float): Threshold for color detection (0.0-1.0). Default 0.2.
     
     Returns:
-        Optional[Dict[str, float]]: RGB color dict with 'r', 'g', 'b' keys (0.0-1.0),
-            or None if no color found.
+        str: Color name ('red', 'green', 'yellow', or 'unknown').
     """
     if 'tableCellProperties' in cell:
         props = cell['tableCellProperties']
@@ -310,151 +314,62 @@ def _get_cell_background_color(cell: Dict[str, Any]) -> Optional[Dict[str, float
                 color = fill['solidFill'].get('color', {})
                 if 'rgbColor' in color:
                     rgb = color['rgbColor']
-                    return {
-                        'r': rgb.get('red', 0),
-                        'g': rgb.get('green', 0),
-                        'b': rgb.get('blue', 0)
-                    }
+                    r = rgb.get('red', 0)
+                    g = rgb.get('green', 0)
+                    b = rgb.get('blue', 0)
+                    
+                    # Detect color based on RGB values with threshold
+                    return _detect_color_name(r, g, b, threshold)
     
-    return None
+    return 'unknown'
 
 
-def verify_cell_colors(table_data: Dict[str, Any], 
-                      criteria: Dict[str, List[Tuple[int, str]]],
-                      color_threshold: float = 0.15) -> Tuple[bool, Dict[str, Any]]:
+def _detect_color_name(r: float, g: float, b: float, threshold: float = 0.2) -> str:
     """
-    Verify that cells have appropriate colors based on criteria.
+    Detect color name from RGB values.
     
     Args:
-        table_data (Dict[str, Any]): Extracted table data.
-        criteria (Dict[str, List[Tuple[int, str]]]): 
-            Mapping like: {
-                "Battery life": [(1, "green"), (2, "red"), (3, "yellow")],  # row_idx, color_name
-                ...
-            }
-        color_threshold (float): Threshold for color matching (0.0-1.0).
+        r, g, b (float): RGB values (0.0-1.0).
+        threshold (float): Threshold for color channel detection (0.0-1.0).
     
     Returns:
-        Tuple[bool, Dict[str, Any]]: (all_valid: bool, validation_details: dict)
+        str: Color name ('red', 'green', 'yellow', or 'unknown').
     """
-    if not table_data:
-        return False, {}
+    high_threshold = 1.0 - threshold
+    low_threshold = threshold
     
-    headers = table_data['headers']
-    cell_colors = table_data['cell_colors']
+    # Red: high R, low G, low B
+    if r >= high_threshold and g <= low_threshold and b <= low_threshold:
+        return 'red'
     
-    # Define RGB ranges for colors
-    color_ranges = {
-        'red': {'r': (0.7, 1.0), 'g': (0.0, 0.3), 'b': (0.0, 0.3)},
-        'green': {'r': (0.0, 0.3), 'g': (0.7, 1.0), 'b': (0.0, 0.3)},
-        'yellow': {'r': (0.7, 1.0), 'g': (0.7, 1.0), 'b': (0.0, 0.3)},
-    }
+    # Green: low R, high G, low B
+    if r <= low_threshold and g >= high_threshold and b <= low_threshold:
+        return 'green'
     
-    validation_results = {}
-    all_valid = True
+    # Yellow: high R, high G, low B
+    if r >= high_threshold and g >= high_threshold and b <= low_threshold:
+        return 'yellow'
     
-    for category, color_specs in criteria.items():
-        # Find column index for this category
-        col_idx = None
-        for idx, header in enumerate(headers):
-            if keyword_exact_match(header, category, substring=True):
-                col_idx = idx
-                break
-        
-        if col_idx is None:
-            validation_results[category] = {'valid': False, 'reason': 'Category not found in headers'}
-            all_valid = False
-            continue
-        
-        category_valid = True
-        color_mismatches = []
-        
-        for row_idx, expected_color in color_specs:
-            cell_key = (row_idx, col_idx)
-            
-            if cell_key not in cell_colors or cell_colors[cell_key] is None:
-                color_mismatches.append(f"Row {row_idx}: No color found")
-                category_valid = False
-                continue
-            
-            actual_rgb = cell_colors[cell_key]
-            
-            # Check if actual color matches expected color
-            if expected_color.lower() not in color_ranges:
-                color_mismatches.append(f"Row {row_idx}: Unknown color '{expected_color}'")
-                category_valid = False
-                continue
-            
-            expected_range = color_ranges[expected_color.lower()]
-            
-            color_match = (
-                expected_range['r'][0] <= actual_rgb['r'] <= expected_range['r'][1] and
-                expected_range['g'][0] <= actual_rgb['g'] <= expected_range['g'][1] and
-                expected_range['b'][0] <= actual_rgb['b'] <= expected_range['b'][1]
-            )
-            
-            if not color_match:
-                color_mismatches.append(
-                    f"Row {row_idx}: Expected {expected_color}, got RGB({actual_rgb['r']:.2f}, {actual_rgb['g']:.2f}, {actual_rgb['b']:.2f})"
-                )
-                category_valid = False
-        
-        validation_results[category] = {
-            'valid': category_valid,
-            'mismatches': color_mismatches
-        }
-        
-        if not category_valid:
-            all_valid = False
-    
-    return all_valid, validation_results
+    return 'unknown'
 
-
-def verify_table_row_contents(table_data: Dict[str, Any],
-                             expected_rows: List[Dict[str, str]]) -> Tuple[bool, List[str]]:
+def validate_rankings(expected_ranking: Dict[str, int], actual_ranking: Dict[str, int]) -> bool:
     """
-    Verify table row contents match expected values.
+    Validate that two rankings are consistent (e.g., higher score means better rank).
     
     Args:
-        table_data (Dict[str, Any]): Extracted table data.
-        expected_rows (List[Dict[str, str]]): List of dicts with expected content.
-            Keys should match table headers (case-insensitive).
+        expected_ranking (Dict[str, int]): First ranking mapping item to rank (lower is better).
+        actual_ranking (Dict[str, int]): Second ranking mapping item to rank.
     
     Returns:
-        Tuple[bool, List[str]]: (all_match: bool, mismatches: List[str])
+        bool: True if rankings are consistent, False otherwise.
     """
-    if not table_data:
-        return False, ["No table data found"]
+    issues = []
     
-    actual_rows = table_data['rows']
-    mismatches = []
+    sorted_expected = sorted(expected_ranking.items(), key=lambda x: x[1])
+    sorted_actual = sorted(actual_ranking.items(), key=lambda x: x[1])
+    # Check if ranks are consistent (e.g., if rank1 is better than another item, rank2 should also reflect that)
+    for expected_item, actual_item in zip(sorted_expected, sorted_actual):
+        if expected_item[0] != actual_item[0]:
+            return False
     
-    if len(actual_rows) != len(expected_rows):
-        mismatches.append(f"Row count mismatch: expected {len(expected_rows)}, got {len(actual_rows)}")
-    
-    for row_idx, expected_row in enumerate(expected_rows):
-        if row_idx >= len(actual_rows):
-            mismatches.append(f"Row {row_idx}: Missing row")
-            continue
-        
-        actual_row = actual_rows[row_idx]
-        
-        for key, expected_value in expected_row.items():
-            # Find matching column (case-insensitive)
-            actual_value = None
-            for actual_key, val in actual_row.items():
-                if keyword_exact_match(actual_key, key, substring=True):
-                    actual_value = val
-                    break
-            
-            if actual_value is None:
-                mismatches.append(f"Row {row_idx}: Column '{key}' not found")
-                continue
-            
-            # Check if values match (case-insensitive, substring match)
-            if not keyword_exact_match(actual_value, expected_value, substring=True):
-                mismatches.append(
-                    f"Row {row_idx}, Column '{key}': expected '{expected_value}', got '{actual_value}'"
-                )
-    
-    return len(mismatches) == 0, mismatches
+    return True

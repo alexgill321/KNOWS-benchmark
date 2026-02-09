@@ -1,6 +1,6 @@
 # Checkpoints
 
-This task has 51 points in total.
+This task has 48 points in total.
 
 ## Checkpoint 1 (5pt):
 
@@ -14,13 +14,12 @@ Title slide has all required elements.
 - Image representing the University of Utah found.
 - The university's official colors are used.
 
-# Checkpoint 2 (3pt):
+# Checkpoint 2 (2pt):
 
 The Challenge and the goal slides meet requirements.
 
 ### Outcome Evaluation:
 
-- Title is similar to "The challenge and the goal"
 - At least one line in the slide body explains the challenge of the search.
 - At least one line in the slide body explains the goal of the search.
 
@@ -50,7 +49,7 @@ The device slides meet the requirements.
 - Product images are from the source link(s) in the slide.
 - Content about the product is objective and accurate according to the source.
 
-# Checkpoint 5 (15pt):
+# Checkpoint 5 (13pt):
 
 Side-by-side comparison meets the requirements.
 
@@ -59,18 +58,16 @@ Side-by-side comparison meets the requirements.
 - Table has exactly 3 columns.
 - All devices are included as column headers.
 - Three colors red, yellow, and green are used for the coding scheme in the table content.
-- Durability for campus life is covered.
-- An appropriate color applied for each cell under Durability for campus.
 - Battery life is covered.
 - An appropriate color applied for each cell under Battery life.
-- Portability is covered.
-- An appropriate color applied for each cell under Portability.
-- Performance for academic tasks is covered.
-- An appropriate color applied for each cell under Performance for academic tasks.
-- Budget considerations is covered.
-- An appropriate color applied for each cell under Budget considerations.
-- Other relevant factors is covered.
-- An appropriate color applied for each cell under Other relevant factors.
+- Weight is covered.
+- An appropriate color applied for each cell under Weight.
+- Processor is covered.
+- An appropriate color applied for each cell under Processor.
+- Budget consideration is covered.
+- An appropriate color applied for each cell under Budget consideration.
+- Memory capacity is covered.
+- An appropriate color applied for each cell under Memory capacity.
 
 # Checkpoint 6 (3pt):
 
