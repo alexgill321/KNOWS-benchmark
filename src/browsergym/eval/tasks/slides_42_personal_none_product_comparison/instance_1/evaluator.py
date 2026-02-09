@@ -418,7 +418,7 @@ def grade_checkpoint_4():
         step_start = time.time()
         images = extract_slide_images(slide, presentation_id, SLIDES_SERVICE)
         ref_image_folder = image_file_map[title_match]
-        valid_images = 0
+        device_image_valid = False
         temp_dir = ""
         if len(images) == 2:
             # Create temp directory for downloaded images
@@ -426,34 +426,32 @@ def grade_checkpoint_4():
             os.makedirs(temp_dir, exist_ok=True)
             try:
                 # Download and save each image temporarily
-                temp_paths = []
                 for idx, img_info in enumerate(images):
                     if img_info['contentUrl']:
                         img = download_slide_image(img_info['contentUrl'])
                         if img:
                             temp_img_path = os.path.join(temp_dir, f"temp_image_{idx}.png")
-                            # temp_paths.append(temp_img_path)
                             img.save(temp_img_path)
                             
-                            # Use binary_judge_image to check if any image is the Red Rising book cover
-                            if os.listdir(temp_dir):
-                                matching_image = binary_judge_image(
-                                    model,
-                                    temp_dir,
-                                    f"Is this an image of a laptop of the same or similar model as those in the examples?",
-                                    os.path.join(GOLD_IMAGES_DIR, ref_image_folder)
-                                )
+                # Use binary_judge_image to check if any image is the Red Rising book cover
+                if os.listdir(temp_dir):
+                    matching_image = binary_judge_image(
+                        model,
+                        temp_dir,
+                        f"Is this an image of a laptop of the same or similar model as those in the examples?",
+                        os.path.join(GOLD_IMAGES_DIR, ref_image_folder)
+                    )
 
-                                # TODO: Implement image judge that require all images in temp_dir to 
-                                if matching_image:
-                                    valid_images += 1
+                    # TODO: Implement image judge that require all images in temp_dir to 
+                    if matching_image:
+                        device_image_valid = True
                                     
                             # os.remove(temp_img_path)
             finally:
                 pass
                     
             # TODO: Implement check for comparing 2 images in the same folder  
-            checkpoint.add_step(f"{slide_title} -  Product Images", valid_images==2, step_id, f"Found 2 product images from 2 different angles" if valid_images==2 else "Product images are missing or not from different angles", execution_time=time.time() - step_start)
+            checkpoint.add_step(f"{slide_title} -  Product Images", device_image_valid, step_id, f"Found 2 product images from 2 different angles" if device_image_valid else "Product images are missing or not from different angles", execution_time=time.time() - step_start)
             step_id += 1
         else:
             checkpoint.add_step(f"{slide_title} - Product Images", False, step_id, f"Required 2 images, but got {len(images)}", execution_time=time.time()-step_start)
