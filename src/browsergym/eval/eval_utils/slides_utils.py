@@ -13,7 +13,6 @@ from io import BytesIO
 from PIL import Image
 import requests
 
-
 def extract_slide_text(slide: Dict[str, Any], separator: str = " ") -> str:
     """
     Extract all text content from a slide.
@@ -878,3 +877,126 @@ def find_url_below_image(image_bbox: dict, links_with_positions: list, tolerance
             best_url = link_info['url']
 
     return best_url
+
+def extract_table_from_slide(slide: Dict[str, Any], normalize_text: bool = True) -> Optional[Dict[str, Any]]:
+    """
+    Extract structured table data from a slide.
+    
+    Args:
+        slide (Dict[str, Any]): Google Slides API slide object.
+    
+    Returns:
+        Optional[Dict[str, Any]]: Dictionary containing:
+            - 'headers': List of header cell texts
+            - 'rows': List of rows, each row is a dict mapping header to cell content
+            - 'cell_colors': Dict mapping (row_idx, col_idx) to RGB color dict
+            - 'num_columns': Number of columns
+            - 'num_rows': Number of rows (excluding header)
+            Returns None if no table found.
+    """
+    if 'pageElements' not in slide:
+        return None
+    
+    for element in slide['pageElements']:
+        if 'table' not in element:
+            continue
+            
+        table = element['table']
+        table_rows = table.get('tableRows', [])
+        
+        if not table_rows:
+            continue
+        
+        # Extract headers from first row
+        headers = []
+        first_row = table_rows[0]
+        for cell in first_row.get('tableCells', []):
+            text_element = cell.get('text', {})
+            cell_text = _extract_text_from_text_element(text_element)
+            headers.append(cell_text)
+        
+        num_columns = len(headers)
+        
+        # Extract data rows and cell colors
+        rows = []
+        cell_colors = {}
+        
+        for row_idx, row in enumerate(table_rows):
+            cells = row.get('tableCells', [])
+            if row_idx == 0:
+                # Store header colors
+                for col_idx, cell in enumerate(cells):
+                    color = _get_table_cell_background_color(cell)
+                    cell_colors[(0, col_idx)] = color
+                continue
+            
+            row_data = {}
+            for col_idx, cell in enumerate(cells):
+                text_element = cell.get('text', {})
+                cell_text = _extract_text_from_text_element(text_element)
+                if col_idx < len(headers):
+                    row_data[headers[col_idx]] = cell_text
+                
+                # Store cell background color
+                color = _get_table_cell_background_color(cell)
+                cell_colors[(row_idx, col_idx)] = color
+            
+            rows.append(row_data)
+        
+        return {
+            'headers': headers,
+            'rows': rows,
+            'cell_colors': cell_colors,
+            'num_columns': num_columns,
+            'num_rows': len(rows)
+        }
+    
+    return None
+
+def _extract_text_from_table_cell(cell: Dict[str, Any], normalize_text: bool = True) -> str:
+    """
+    Extract text content from a table cell.
+    
+    Args:
+        cell (Dict[str, Any]): Table cell object from Google Slides API.
+    
+    Returns:
+        str: Combined text content from all text elements in the cell.
+    """
+    if 'text' not in cell:
+        return ""
+    
+    text_parts = []
+    text_element = cell['text']
+    
+    if 'textElements' in text_element:
+        for elem in text_element['textElements']:
+            if 'textRun' in elem and 'content' in elem['textRun']:
+                text_run = elem['textRun']['content']
+                if normalize_text:
+                    text_run = text_run.strip().lower()
+                text_parts.append(text_run)
+    
+    return "".join(text_parts).strip()
+
+
+def _get_table_cell_background_color(cell: Dict[str, Any]) -> Dict:
+    """
+    Extract background color name from a table cell.
+    
+    Args:
+        cell (Dict[str, Any]): Table cell object from Google Slides API.
+        threshold (float): Threshold for color detection (0.0-1.0). Default 0.2.
+    
+    Returns:
+        dict: Dictionary with 'r', 'g', 'b' keys (0-1 range) or None.
+    """
+    if 'tableCellProperties' in cell:
+        props = cell['tableCellProperties']
+        if 'tableCellBackgroundFill' in props:
+            fill = props['tableCellBackgroundFill']
+            if 'solidFill' in fill:
+                color = fill['solidFill'].get('color', {})
+                return _parse_color(color)
+    
+    return None

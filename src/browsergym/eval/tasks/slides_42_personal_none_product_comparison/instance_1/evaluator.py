@@ -33,12 +33,15 @@ from src.browsergym.eval.eval_utils.text_utils import (
 from src.browsergym.eval.eval_utils.slides_utils import (
     extract_slide_links,
     extract_slide_text,
+    extract_text_boxes_from_slide,
     extract_title_text,
     extract_slide_images,
     get_slide_background_color,
     colors_are_different,
     extract_slide_images,
-    download_slide_image
+    download_slide_image,
+    get_text_style_from_shape,
+    extract_table_from_slide
 )
 from src.browsergym.eval.eval_utils.parallel_utils import parallel_download, parallel_execute
 from src.browsergym.eval.eval_utils.image_utils import binary_judge_image
@@ -46,10 +49,9 @@ from src.browsergym.eval.eval_utils.models import load_model
 from src.browsergym.eval.eval_utils.web_utils import fetch_url_content
 
 from src.browsergym.eval.tasks.slides_42_personal_none_product_comparison.utils import (
-    text_matches_style,
+    detect_color_name,
     extract_device_info_with_llm,
     evaluate_device_info_with_llm,
-    extract_table_from_slide,
     validate_rankings,
     download_images_from_url
 )
@@ -133,21 +135,30 @@ def grade_checkpoint_1():
 
     # Assume first slide is the title slide
     title_slide = presentation_data['slides'][0]
-    slide_text = extract_slide_text(title_slide)
 
     # Step 1: Exact match on 'A Gift for Kathy!'
     step_start = time.time()
-    title_found = keyword_exact_match(slide_text, "A Gift for Kathy!", substring=True)
-    title_bold = title_found and text_matches_style(title_slide, "A Gift for Kathy!", "bold")
+    title_text = extract_title_text(title_slide)
+    title_found = keyword_exact_match(title_text, "A Gift for Kathy!")
     
     checkpoint.add_step("Title Match", title_found, 1, "Found exact title 'A Gift for Kathy!'" if title_found else "Title does not exactly match 'A Gift for Kathy!'", execution_time=time.time() - step_start)
-
+    
     # Step 2: Title is bold
     step_start = time.time()
+    text_boxes = extract_text_boxes_from_slide(title_slide)
+    
+    title_bold = False
+    for text_box in text_boxes:
+        if keyword_exact_match(title_text, text_box.get('text', '')):
+            element = text_box.get('element', {})
+            title_style = get_text_style_from_shape(element.get('shape',{}))
+            title_bold = title_style.get('bold', False)
+            break
     checkpoint.add_step("Title Is Bold", title_bold, 2, "Title text is bold" if title_bold else "Title text not bold or could not determine", execution_time=time.time() - step_start)
 
     # Step 3: Subtitle lists all 3 device options
     step_start = time.time()
+    slide_text = extract_slide_text(title_slide)
     devices_matched = True
     unmatched = ""
     for device in gold_devices:
@@ -245,13 +256,6 @@ def grade_checkpoint_2():
         return checkpoint
 
     slide = slides[1]
-    # title_text = extract_title_text(slide)
-
-    # # Step 1: Title similar to 'The Challenge & The Goal'
-    # title_keywords = ["challenge", "goal"]
-    # step_start = time.time()
-    # title_matches = keywords_match_robust(title_text, title_keywords, substring=True)
-    # checkpoint.add_step("Title Similar", bool(title_matches), 1, "Slide title similar to 'The Challenge & The Goal' found" if title_matches else "No appropriate title found", execution_time=time.time() - step_start)
 
     # Step 2 & 3: At least one line explaining challenge and one explaining goal
     step_start = time.time()
@@ -560,11 +564,12 @@ Slide text:
                            execution_time=time.time() - step_start)
         step_id += 1
         
-        slide_i["key_features"] = section_content["key_features"].split(';')
+        slide_i["key_features"] = section_content["key_features"]
         
     # Validate that information are pulled from links
     print(f"3. Verifying that information comes from given source")
     match_threshold = 90
+    verifying_task = []
     for slide_i in all_slides:
         step_start = time.time()
         slide_title = slide_i["title"]
@@ -589,20 +594,39 @@ Slide text:
             fetch_results = parallel_download(url_fetch_tasks, max_workers=3, use_rate_limit=False)
             print(f"        Finished downloading web content in {time.time()-start_time}")
             for url, content in fetch_results.items():
-                fetched_contents.append([part.strip() for part in re.split(split_pattern, content) if part.strip()])
-
-        unmatched_count = 0
-        for line in features:    
-            print(f"        Verifying claim: {line}")
-            for content in fetched_contents:
-                match = keywords_match_robust(content, line, model=None, substring=True)
-                if match:
-                    break
-            if not match:
-                unmatched_count+=1
+                fetched_contents.append("\n".join([part.strip() for part in re.split(split_pattern, content) if part.strip()]))
+        fetched_text = "\n".join(fetched_contents)
+        # unmatched_count = 0
+        # for line in features:    
+        #     print(f"        Verifying claim: {line}")
+        #     for content in fetched_contents:
+        #         match = keywords_match_robust(content, line.split(), model=None, substring=True)
+        #         if match:
+        #             break
+        #     if not match:
+        #         unmatched_count+=1
         
-        match_percentage =(1 - unmatched_count/len(features))*100 
-                   
+        # match_percentage =(1 - unmatched_count/len(features))*100 
+        
+        task_text = f"""Evaluate how much the following information aligns with the source.
+        
+Respond in a single number between 0 and 100.
+
+Information:
+{features}
+
+Content:
+{fetched_text}
+"""
+        verifying_task.append({
+            'id': slide_title,
+            'func': evaluate_device_info_with_llm,
+            'args': (task_text, model, "str")
+        })    
+        
+    verifying_results = parallel_execute(verifying_task, max_workers = 3)
+    for slide_title in verifying_results:
+        match_percentage = int(verifying_results[slide_title])
         print(f"        Verifying that info are pulled from websites: {match_percentage:.2f}% of slide text found in sources.")
         checkpoint.add_step(f"{slide_title} - Content From Sources", match_percentage >= match_threshold, step_id, f"{match_percentage}% of the listed features found in sources" if match_percentage >= match_threshold else f"Only {match_percentage}% of listed features is from sources", execution_time=time.time()-step_start)
         step_id += 1
@@ -775,8 +799,9 @@ Values:
         ranking_from_table[category] = {}
         for dev_idx, device in enumerate(headers):
             color = table_data['cell_colors'][(cat_idx+1,dev_idx)]
-            colors_used.add(color)
-            ranking_from_table[category][device] = color_rank_map.get(color, -1)
+            color_str = detect_color_name(color)
+            colors_used.add(color_str)
+            ranking_from_table[category][device] = color_rank_map.get(color_str, -1)
     print(f"    Validating that the table uses Green, Yellow, and Red as the color coding scheme...")
     if "unknown" in colors_used:
         checkpoint.add_step("Green, Yellow, and Red as Color Coding Scheme", False, 3, f"Unknown colors found in table: {', '.join(colors_used)}", execution_time=time.time() - step_start)
@@ -1016,13 +1041,13 @@ def grade_checkpoints(workspace_doc_id: str, cached_models: Dict[str, Any] = Non
             model = cached_models[model_id]
 
         checkpoints: List[Checkpoint] = []
-        checkpoints.append(grade_checkpoint_1())
-        checkpoints.append(grade_checkpoint_2())
-        checkpoints.append(grade_checkpoint_3())
-        checkpoints.append(grade_checkpoint_4())
+        # checkpoints.append(grade_checkpoint_1())
+        # checkpoints.append(grade_checkpoint_2())
+        # checkpoints.append(grade_checkpoint_3())
+        # checkpoints.append(grade_checkpoint_4())
         checkpoints.append(grade_checkpoint_5())
-        checkpoints.append(grade_checkpoint_6())
-        checkpoints.append(grade_checkpoint_7())
+        # checkpoints.append(grade_checkpoint_6())
+        # checkpoints.append(grade_checkpoint_7())
 
         total_execution_time = time.time() - total_start
         return Result(checkpoints, total_execution_time=total_execution_time)
