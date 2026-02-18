@@ -1034,6 +1034,7 @@ def grade_checkpoint_7():
     - Exactly 8 slides found.
     - All slides follow the required sequence and titles"""
     print("----------------- CHECKPOINT 7 ----------------")
+    global model
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=2, result=0, name="Overall Structure")
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
@@ -1050,18 +1051,20 @@ def grade_checkpoint_7():
         ["A Gift for Kathy!"],
         ["challenge", "goal"],
         ["evaluation", "criteria", "considerations", "factors", "judge"],
-        ["macbook air", "surface laptop", "lenovo yoga", "m4", "macbook", "surface", "lenovo"],
-        ["macbook air", "surface laptop", "lenovo yoga", "m4", "macbook", "surface", "lenovo"],
-        ["macbook air", "surface laptop", "lenovo yoga", "m4", "macbook", "surface", "lenovo"],
+        [],
+        [],
+        [],
         ["comparison", "side by side", "side-by-side"],
         ["recommendation", "suggestion", "advice", "which", "best"],
     ]
     
+    if model is None:
+        model = load_model(model_id)
     for i in chain(range(3), range(6, 8)):
         step_start = time.time()
         title_text = extract_title_text(slides[i])
         if title_text:
-            title_match = keywords_exact_match(title_text, expected_titles_keywords[i], substring=True)
+            title_match = keywords_match_robust(title_text, expected_titles_keywords[i], model, substring=True)
             if not title_match:
                 checkpoint.add_step(f"Correct Titles and Order", False, 2, f"Slide titles and/or orders do not match the task requirements." , execution_time=time.time() - step_start)
                 checkpoint.execution_time = time.time() - checkpoint_start
@@ -1071,19 +1074,16 @@ def grade_checkpoint_7():
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
     
-    missing_devices = ""       
+    expected_devices = gold_devices.copy()  
     for i in range(3, 6):
-        for device in gold_devices:
-            step_start = time.time()
-            title_text = extract_title_text(slides[i])
-            if title_text:
-                title_match = keywords_match_robust(device, expected_titles_keywords[i], substring=True)
-                if not title_match:
-                    missing_devices += device + "; "
-            else:
-                missing_devices += device + "; "
+        step_start = time.time()
+        title_text = extract_title_text(slides[i])
+        if title_text:
+            title_match = keywords_match_robust(expected_devices, title_text, substring=True)
+            if title_match:
+                expected_devices.remove(title_match)
                 
-    checkpoint.add_step(f"Correct Titles and Order", len(missing_devices) == 0, 2, f"Slide titles and order are correct." if len(missing_devices) == 0 else f"No slide titles for the following devices: {missing_devices}", execution_time=time.time() - step_start)
+    checkpoint.add_step(f"Correct Titles and Order", len(expected_devices) == 0, 2, f"Slide titles and order are correct." if len(expected_devices) == 0 else f"No slide titles for the following devices: {expected_devices}", execution_time=time.time() - step_start)
         
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -1099,12 +1099,12 @@ def grade_checkpoints(workspace_doc_id: str, cached_models: Dict[str, Any] = Non
             model = cached_models[model_id]
 
         checkpoints: List[Checkpoint] = []
-        # checkpoints.append(grade_checkpoint_1())
-        # checkpoints.append(grade_checkpoint_2())
-        # checkpoints.append(grade_checkpoint_3())
-        # checkpoints.append(grade_checkpoint_4())
-        # checkpoints.append(grade_checkpoint_5())
-        # checkpoints.append(grade_checkpoint_6())
+        checkpoints.append(grade_checkpoint_1())
+        checkpoints.append(grade_checkpoint_2())
+        checkpoints.append(grade_checkpoint_3())
+        checkpoints.append(grade_checkpoint_4())
+        checkpoints.append(grade_checkpoint_5())
+        checkpoints.append(grade_checkpoint_6())
         checkpoints.append(grade_checkpoint_7())
 
         total_execution_time = time.time() - total_start
