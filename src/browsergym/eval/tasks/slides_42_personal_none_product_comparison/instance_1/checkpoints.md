@@ -11,7 +11,8 @@ Title slide has all required elements.
 - Exact match on "A Gift for Kathy!" found.
 - Title is in bold.
 - Subtitle correctly lists all 3 device options from the gold list.
-- Image representing the University of Utah found.
+- Image represents the University of Utah found.
+- Image is to the right of the title.
 - The university's official colors are used.
 
 # Checkpoint 2 (2pt):

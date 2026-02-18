@@ -41,7 +41,8 @@ from src.browsergym.eval.eval_utils.slides_utils import (
     extract_slide_images,
     download_slide_image,
     get_text_style_from_shape,
-    extract_table_from_slide
+    extract_table_from_slide,
+    get_element_bbox
 )
 from src.browsergym.eval.eval_utils.parallel_utils import parallel_download, parallel_execute
 from src.browsergym.eval.eval_utils.image_utils import binary_judge_image
@@ -113,23 +114,32 @@ def setup_presentation(workspace_doc_id):
 
 def grade_checkpoint_1():
     """
-    Checkpoint 1 (5pt): Title slide has all required elements.
+    Checkpoint 1 (6pt): Title slide has all required elements.
 
     Outcome Evaluation:
     - Exact match on "A Gift for Kathy!" found.
     - Title is in bold.
     - Subtitle correctly lists all 3 device options from the gold list.
-    - Image representing the University of Utah found.
+    - Image represents the University of Utah found.
+    - Image is to the right of the title.
     - The university's official colors are used.
     """
     print("----------------- CHECKPOINT 1 ----------------")
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=5, result=0, name="Title Slide Validation")
+    checkpoint = Checkpoint(total=6, result=0, name="Title Slide Validation")
+
+    checkpoint_1_step_names = [
+        "Title Match",
+        "Title Is Bold",
+        "Subtitle Includes All Devices",
+        "University Image Found",
+        "Title Left of Image",
+        "University Colors",
+    ]
 
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
-        checkpoint.add_step("Title Slide Exists", False, 1,
-                          "No slides found in presentation",
-                          execution_time=time.time() - checkpoint_start)
+        for i, name in enumerate(checkpoint_1_step_names, 1):
+            checkpoint.add_step(name, False, i, "No slides found in presentation", execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -172,11 +182,12 @@ def grade_checkpoint_1():
     step_start = time.time()
     images = extract_slide_images(title_slide, presentation_id, SLIDES_SERVICE)
     uni_image_valid = False
-    
+    matching_image = None
+
     global model
     if model is None:
         model = load_model(model_id)
-        
+
     # Create temp directory for downloaded images
     temp_dir = os.path.join(DATA_DIR, "temp_images")
     os.makedirs(temp_dir, exist_ok=True)
@@ -188,7 +199,7 @@ def grade_checkpoint_1():
                 if img:
                     temp_img_path = os.path.join(temp_dir, f"temp_image_{idx}.png")
                     img.save(temp_img_path)
-                    
+
         # Use binary_judge_image to check if any image is the Red Rising book cover
         if os.listdir(temp_dir):
             matching_image = binary_judge_image(
@@ -199,14 +210,38 @@ def grade_checkpoint_1():
 
             if matching_image:
                 uni_image_valid = True
+                
+        checkpoint.add_step("University Image Found", uni_image_valid, 4, "Found an image representing University of Utah" if uni_image_valid else "No valid University of Utah image found", execution_time=time.time() - step_start)
+
+        # Step 5: Title is to the left of the university image
+        step_start = time.time()
+        title_left_of_image = False
+        if uni_image_valid and matching_image:
+            # Get title element x-position
+            title_x = None
+            for text_box in text_boxes:
+                if keyword_exact_match(title_text, text_box.get('text', '')):
+                    title_x = text_box['bbox']['x']
+                    break
+            # Get matching image element x-position from its index
+            match_filename = os.path.basename(matching_image)
+            img_idx = int(match_filename.replace("temp_image_", "").replace(".png", ""))
+            img_element = title_slide['pageElements'][
+                [j for j, el in enumerate(title_slide['pageElements']) if 'image' in el][img_idx]
+            ]
+            image_x = get_element_bbox(img_element)['x']
+
+            if title_x is not None:
+                title_width = text_box['bbox']['width']
+                title_center_x = title_x + title_width / 2
+                title_left_of_image = image_x > title_center_x
+        checkpoint.add_step("Title Left of Image", title_left_of_image, 5, "Title is to the left of the university image" if title_left_of_image else "Title is not to the left of the university image", execution_time=time.time() - step_start)
     finally:
             # Cleanup temp directory
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
 
-    checkpoint.add_step("University Image", uni_image_valid, 4, "Found an image representing University of Utah" if uni_image_valid else "No valid University of Utah image found", execution_time=time.time() - step_start)
-
-    # Step 5: University colors used (red prominent)
+    # Step 6: University colors used (red prominent)
     official_color = {
             'r': 0.75,
             'g': 0.0,
@@ -222,7 +257,7 @@ def grade_checkpoint_1():
             color_valid = True
 
     # fallback: presence of red text in title/subtitle via fuzzy check for 'red' in style not available here
-    checkpoint.add_step("University Colors", bool(color_valid), 5, "University official color found on slide" if color_valid else "No strong University official color detected", execution_time=time.time() - step_start)
+    checkpoint.add_step("University Colors", bool(color_valid), 6, "University official color found on slide" if color_valid else "No strong University official color detected", execution_time=time.time() - step_start)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
