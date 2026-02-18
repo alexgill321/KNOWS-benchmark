@@ -1,6 +1,6 @@
 # Checkpoints
 
-This task has 54 points in total.
+This task has 55 points in total.
 
 ## Checkpoint 1 (5pt):
 
@@ -44,7 +44,7 @@ The device slides meet the requirements.
 
 - Title of the slide is the device name.
 - Each slide contains at least one source link.
-- Two product images from different angles found.
+- Two product images found.
 - Key features and specificications section found.
 - Pros are listed.
 - Cons are listed.

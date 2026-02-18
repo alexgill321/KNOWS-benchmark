@@ -35,7 +35,6 @@ from src.browsergym.eval.eval_utils.slides_utils import (
     extract_slide_text,
     extract_text_boxes_from_slide,
     extract_title_text,
-    extract_slide_images,
     get_slide_background_color,
     colors_are_different,
     extract_slide_images,
@@ -200,7 +199,6 @@ def grade_checkpoint_1():
                     temp_img_path = os.path.join(temp_dir, f"temp_image_{idx}.png")
                     img.save(temp_img_path)
 
-        # Use binary_judge_image to check if any image is the Red Rising book cover
         if os.listdir(temp_dir):
             matching_image = binary_judge_image(
                 model,
@@ -295,38 +293,38 @@ def grade_checkpoint_2():
     # Step 2 & 3: At least one line explaining challenge and one explaining goal
     step_start = time.time()
     slide_text = extract_slide_text(slide)
-    if slide_text:
-        if model is None:
-                model = load_model(model_id)
-        try:
-            messages = [
-                {
-                    "role": "system",
-                    "content": [{"type": "text", "text": "You are a helpful assistant who evaluates whether the text describes at least one challenge in choosing an electronic device for a new college student. Response with ONLY 'yes' or 'no'."}]
-                },
-                {
-                    "role": "user",
-                    "content": [{"type": "text", "text": f"Is there at least one challenge in choosing an electronic device for a new college student in this text?\n\nText: {slide_text}"}]
-                }
-            ]
-            
-            response = model(messages).strip().lower()
-            checkpoint.add_step("Explains Challenge", 'yes' in response, 2, "Found challenge explanation" if 'yes' in response else "No challenge explanation found", execution_time=time.time() - step_start)
-            
-            messages = [
-                {
-                    "role": "system",
-                    "content": [{"type": "text", "text": "You are a helpful assistant who evaluates whether the text describes at least one goal in choosing an electronic device for a new college student. Response with ONLY 'yes' or 'no'."}]
-                },
-                {
-                    "role": "user",
-                    "content": [{"type": "text", "text": f"Is there at least one goal in choosing an electronic device for a new college student in this text?\n\nText: {slide_text}"}]
-                }
-            ]
-            response = model(messages).strip().lower()
-            checkpoint.add_step("Explains Goal", 'yes' in response, 3, "Found goal explanation" if 'yes' in response else "No goal explanation found", execution_time=time.time() - step_start)
-            
-        except Exception as e:
+
+    if model is None:
+            model = load_model(model_id)
+    try:
+        messages = [
+            {
+                "role": "system",
+                "content": [{"type": "text", "text": "You are a helpful assistant who evaluates whether the text describes at least one challenge in choosing an electronic device for a new college student. Response with ONLY 'yes' or 'no'."}]
+            },
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": f"Is there at least one challenge in choosing an electronic device for a new college student in this text?\n\nText: {slide_text}"}]
+            }
+        ]
+        
+        response = model(messages).strip().lower()
+        checkpoint.add_step("Explains Challenge", 'yes' in response, 1, "Found challenge explanation" if 'yes' in response else "No challenge explanation found", execution_time=time.time() - step_start)
+        
+        messages = [
+            {
+                "role": "system",
+                "content": [{"type": "text", "text": "You are a helpful assistant who evaluates whether the text describes at least one goal in choosing an electronic device for a new college student. Response with ONLY 'yes' or 'no'."}]
+            },
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": f"Is there at least one goal in choosing an electronic device for a new college student in this text?\n\nText: {slide_text}"}]
+            }
+        ]
+        response = model(messages).strip().lower()
+        checkpoint.add_step("Explains Goal", 'yes' in response, 2, "Found goal explanation" if 'yes' in response else "No goal explanation found", execution_time=time.time() - step_start)
+        
+    except Exception as e:
             print(f"LLM failed to evaluate slide text: {e}")
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -392,7 +390,7 @@ def grade_checkpoint_4():
     Outcome Evaluation (x3 devices, 8 pts each):
     - Title of the slide is the device name.
     - Each slide contains at least one source link.
-    - Two product images from different angles found.
+    - Two product images found.
     - Key features and specificications section found.
     - Pros are listed.
     - Cons are listed.
@@ -408,7 +406,8 @@ def grade_checkpoint_4():
         "Source Link(s) in Slide",
         "Product Images",
         "Key Features",
-        "Pros and Cons",
+        "Pros",
+        "Cons",
         "Product Images From Sources",
         "Content From Sources",
     ]
@@ -482,7 +481,9 @@ def grade_checkpoint_4():
         print(f"        Checking that images from slide match those in the gold folder...")
         step_start = time.time()
         images = extract_slide_images(slide, presentation_id, SLIDES_SERVICE)
-        ref_image_folder = image_file_map[title_match]
+        ref_image_folder = ""
+        if title_match:
+            ref_image_folder = image_file_map[title_match]
         valid_image_count = 0
         temp_dir = ""
         slide_image_paths = []
@@ -553,7 +554,7 @@ def grade_checkpoint_4():
                     'args': (link,url_temp_dir)
                 })
                 
-            image_download_tasks = parallel_execute(image_download_tasks, max_workers=2)
+            image_download_tasks_results = parallel_execute(image_download_tasks)
             
             # Check if any images from source matches the images from the slide:
             if os.listdir(url_temp_dir):
@@ -576,6 +577,7 @@ def grade_checkpoint_4():
             #     shutil.rmtree(temp_example_dir)
         
         checkpoint.add_step(f"Device {i+1} - Product Images From Sources", found_in_source, step_id, "At least one image in the slide was found in the source" if found_in_source else "No images in the slide was from the source", execution_time=time.time()-step_start)
+        step_id += 1
         
         all_slides.append({
             "title": slide_title,
@@ -629,7 +631,6 @@ Slide text:
         
         step_start = time.time()
         has_pros = bool(section_content["pros"])
-        step_start = time.time()
         checkpoint.add_step(f"Device {i+1} - Pros", has_pros, step_id,
                            f"Pros found for device {i+1}" if has_pros else f"Missing pros for device {i+1}",
                            execution_time=time.time() - step_start)
@@ -637,7 +638,6 @@ Slide text:
         
         step_start = time.time()
         has_cons = bool(section_content["cons"])
-        step_start = time.time()
         checkpoint.add_step(f"Device {i+1} - Cons", has_cons, step_id,
                            f"Cons found for device {i+1}" if has_cons else f"Missing cons for device {i+1}",
                            execution_time=time.time() - step_start)
@@ -692,7 +692,7 @@ Content:
         
     verifying_results = parallel_execute(verifying_task, max_workers = 3)
     for i,slide_title in enumerate(verifying_results):
-        match_percentage = int(verifying_results[slide_title])
+        match_percentage = float(verifying_results[slide_title])
         print(f"        Verifying that info are pulled from websites: {match_percentage:.2f}% of slide text found in sources.")
         checkpoint.add_step(f"Device {i+1} - Content From Sources", match_percentage >= match_threshold, step_id, f"{match_percentage}% of the listed features found in sources" if match_percentage >= match_threshold else f"Only {match_percentage}% of listed features is from sources", execution_time=time.time()-step_start)
         step_id += 1
@@ -762,7 +762,8 @@ def grade_checkpoint_5():
     table_data = extract_table_from_slide(slide)
     
     if not table_data:
-        checkpoint.add_step("Table Found", False, 1, "No table found on the comparison slide", execution_time=time.time() - step_start)
+        for i, name in enumerate(comparison_step_names, 1):
+            checkpoint.add_step(name, False, i, "No table found in the slide", execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
     
@@ -831,7 +832,7 @@ Table Content:
     llm_ranking_task = []
     ranking_from_table = {}
     colors_used = set()
-    task_idx = 4
+    task_idx = 3
     
     print(f"    Starting category coverage validation and preparing LLM ranking tasks...")
     for category in categories:
@@ -904,9 +905,13 @@ Values:
             if category in llm_ranking_results:
                 start_time = time.time()
                 ranking_consistent = validate_rankings(llm_ranking_results[category], ranking_from_table[category])
-                checkpoint.add_step(f"Correct Color Coding", ranking_consistent, task_idx, f"Appropriate colors are used to rank values from best to worst for {category}" if ranking_consistent else f"Colors are not correctly assigned for {category}", execution_time=time.time() - start_time)
+                checkpoint.add_step(f"{category} - Correct Color Coding", ranking_consistent, task_idx, f"Appropriate colors are used to rank values from best to worst for {category}" if ranking_consistent else f"Colors are not correctly assigned for {category}", execution_time=time.time() - start_time)
             else:
-                checkpoint.add_step(f"Correct Color Coding", False, task_idx, f"LLM failed to rank devices for {category}, cannot validate color coding for {category}", execution_time=time.time() - start_time)
+                checkpoint.add_step(f"{category} - Correct Color Coding", False, task_idx, f"LLM failed to rank devices for {category}", execution_time=time.time() - start_time)
+            task_idx += 1
+    else:
+        for category in categories:
+            checkpoint.add_step(f"{category} - Correct Color Coding", False, task_idx, f"No LLM ranking performed.", execution_time=time.time() - start_time)
             task_idx += 1
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -949,20 +954,18 @@ def grade_checkpoint_6():
     slide = slides[7]
     slide_text = extract_slide_text(slide)
     
-    # Step 1: Summary for each device
-    if slide_text:
-        if model is None:
-                model = load_model(model_id)
+    if model is None:
+            model = load_model(model_id)
+    
+    task_text = f"""Extract the following electronic device summaries and recommendations from this Google slide text.
         
-        task_text = f"""Extract the following electronic device summaries and recommendations from this Google slide text.
-            
 IMPORTANT: This text may contain multiple devices or none at all.
 Extract the information for EACH device separately.
-                        
+                    
 Respond ONLY with this exact JSON format (array of devices):
 {{
-    "summary":[["<device_name>","<summary_text>""]],
-    "recommendation":[["<device_name>","<recommendation_text>""]]
+"summary":[["<device_name>","<summary_text>""]],
+"recommendation":[["<device_name>","<recommendation_text>""]]
 }}
 
 
@@ -971,91 +974,98 @@ If there is NO device, still return an object with the two properties set to emp
 
 Slide text:
 {slide_text}"""
-        device_data = extract_device_info_with_llm(task_text, model)
-        device_map = {}
-        device_names = []    
+    device_data = extract_device_info_with_llm(task_text, model)
+    device_map = {}
+    device_names = []    
+    
+    for summary_item,rec_item in zip(device_data["summary"], device_data["recommendation"]):
+        device_name = summary_item[0] if len(summary_item) > 0 else ""
+        device_names.append(device_name)
+        device_map[device_name] = {}
+        device_map[device_name]['summary'] = summary_item[1] if len(summary_item) > 1 else ""
+        device_map[device_name]['recommendation'] = rec_item[1] if len(rec_item) > 1 else ""
         
-        for summary_item,rec_item in zip(device_data["summary"], device_data["recommendation"]):
-            device_name = summary_item[0] if len(summary_item) > 0 else ""
-            device_names.append(device_name)
-            device_map[device_name] = {}
-            device_map[device_name]['summary'] = summary_item[1] if len(summary_item) > 1 else ""
-            device_map[device_name]['recommendation'] = rec_item[1] if len(rec_item) > 1 else ""
-            
-        missing_devices = ""
-        print(f"1. Validating devices:")
-        for device in gold_devices:
-            matches = keywords_match_robust(device_names, device.split(), substring=True)
-            if not bool(matches):
-                missing_devices += device + "; "
-                print(f"    Missing device: {device}")
-            else:
-                print(f"    Found device: {device}")
+    missing_devices = ""
+    print(f"1. Validating devices:")
+    for device in gold_devices:
+        matches = keywords_match_robust(device_names, device.split(), substring=True)
+        if not bool(matches):
+            missing_devices += device + "; "
+            print(f"    Missing device: {device}")
+        else:
+            print(f"    Found device: {device}")
 
-        checkpoint.add_step("All Devices Mentioned", len(missing_devices) == 0, 1, "All three correct devices discussed in the slide" if len(missing_devices) == 0 else f"Missing information for: {missing_devices}", execution_time=time.time() - step_start)
-    
-        comparison_slide = slides[6]
-        comparison_text = extract_slide_text(comparison_slide)
-    
-        summary_tasks = []
-        recommendation_tasks = []
-        missing_sum = 0
-        missing_rec = 0
-        print(f"2. Collecting Summaries and Recommendations for Evaluation Tasks...")
-        for device in device_map:
-            device_info = device_map[device]
-            summary = device_info["summary"]
-            if summary:
-                sum_task_text = f"Is the following summary for {device} consistent with the source information?\n\nSource: {comparison_text}\n\nSummary: {summary}"
-            
-                summary_tasks.append({
-                    'id': f'{device}',
-                    'func': evaluate_device_info_with_llm,
-                    'args': (sum_task_text,model)
-                })
-            else:
-                missing_sum += 1
-                print(f"    Missing summary for {device}")
-            
-            recommendation = device_info["recommendation"]
-            if recommendation:
-                rec_task_text = f"Is the following recommendation of {device} based on a student style?\n\nRecommendation: {recommendation}"
-                recommendation_tasks.append({
-                    'id': f'{device}',
-                    'func': evaluate_device_info_with_llm,
-                    'args': (rec_task_text,model)
-                })
-            else:
-                missing_rec += 1
-                print(f"    Missing recommendation for {device}")
+    checkpoint.add_step("All Devices Mentioned", len(missing_devices) == 0, 1, "All three correct devices discussed in the slide" if len(missing_devices) == 0 else f"Missing information for: {missing_devices}", execution_time=time.time() - step_start)
+
+    comparison_slide = slides[6]
+    comparison_table = extract_table_from_slide(comparison_slide)
+
+    summary_tasks = []
+    recommendation_tasks = []
+    missing_sum = 0
+    missing_rec = 0
+    print(f"2. Collecting Summaries and Recommendations for Evaluation Tasks...")
+    for device in device_map:
+        device_info = device_map[device]
+        summary = device_info["summary"]
+        comparison_text = ""
+        if comparison_table:
+            headers = comparison_table.get('headers', [])
+            matched_header = keywords_match_robust(headers, device, substring=True)
+            if matched_header:
+                column_values = [row[matched_header] for row in comparison_table.get('rows', []) if matched_header in row]
+                comparison_text = "\n".join(column_values)
+        if summary:
+            sum_task_text = f"Is the following summary for {device} consistent with the source information?\n\nSource: {comparison_text}\n\nSummary: {summary}"
         
-        step_start = time.time()
-        print(f"3. Evaluating Summaries:")
-        invalid_summaries = 0
-        if summary_tasks:
-            summary_eval_results = parallel_execute(summary_tasks, max_workers=3)
-            for device, isValid in summary_eval_results.items():
-                if isValid:
-                    print(f"    Summary for {device} is consistent with source information.")
-                else:
-                    invalid_summaries += 1
-                    print(f"    Summary for {device} is NOT consistent with source information.")
-        valid_summaries = invalid_summaries == 0 and missing_sum == 0
-        checkpoint.add_step("Summaries Align with Comparison Data", valid_summaries, 2, "All summaries are consistent with source information" if valid_summaries else f"Some device summaries are inconsistent with the source information or missing", execution_time=time.time() - step_start)
+            summary_tasks.append({
+                'id': f'{device}',
+                'func': evaluate_device_info_with_llm,
+                'args': (sum_task_text,model)
+            })
+        else:
+            missing_sum += 1
+            print(f"    Missing summary for {device}")
         
-        step_start = time.time()
-        print(f"4. Evaluating Recommendations:")
-        invalid_recommendations = 0
-        if recommendation_tasks:
-            rec_eval_results = parallel_execute(recommendation_tasks, max_workers=3)
-            for device, isValid in rec_eval_results.items():
-                if isValid:
-                    print(f"    Recommendation for {device} is based on student style.")
-                else:
-                    invalid_recommendations += 1
-                    print(f"    Recommendation for {device} is not based on student style.")
-        valid_recommendations = invalid_recommendations == 0 and missing_rec == 0
-        checkpoint.add_step("Recommendations Based on Student Styles", valid_recommendations, 3, "All recommendations are valid" if valid_recommendations else f"Some device recommendations are not valid or missing", execution_time=time.time() - step_start)
+        recommendation = device_info["recommendation"]
+        if recommendation:
+            rec_task_text = f"Is the following recommendation of {device} based on a student style?\n\nRecommendation: {recommendation}"
+            recommendation_tasks.append({
+                'id': f'{device}',
+                'func': evaluate_device_info_with_llm,
+                'args': (rec_task_text,model)
+            })
+        else:
+            missing_rec += 1
+            print(f"    Missing recommendation for {device}")
+    
+    step_start = time.time()
+    print(f"3. Evaluating Summaries:")
+    invalid_summaries = 0
+    if summary_tasks:
+        summary_eval_results = parallel_execute(summary_tasks, max_workers=3)
+        for device, isValid in summary_eval_results.items():
+            if isValid:
+                print(f"    Summary for {device} is consistent with source information.")
+            else:
+                invalid_summaries += 1
+                print(f"    Summary for {device} is NOT consistent with source information.")
+    valid_summaries = invalid_summaries == 0 and missing_sum == 0
+    checkpoint.add_step("Summaries Align with Comparison Data", valid_summaries, 2, "All summaries are consistent with source information" if valid_summaries else f"Some device summaries are inconsistent with the source information or missing", execution_time=time.time() - step_start)
+    
+    step_start = time.time()
+    print(f"4. Evaluating Recommendations:")
+    invalid_recommendations = 0
+    if recommendation_tasks:
+        rec_eval_results = parallel_execute(recommendation_tasks, max_workers=3)
+        for device, isValid in rec_eval_results.items():
+            if isValid:
+                print(f"    Recommendation for {device} is based on student style.")
+            else:
+                invalid_recommendations += 1
+                print(f"    Recommendation for {device} is not based on student style.")
+    valid_recommendations = invalid_recommendations == 0 and missing_rec == 0
+    checkpoint.add_step("Recommendations Based on Student Styles", valid_recommendations, 3, "All recommendations are valid" if valid_recommendations else f"Some device recommendations are not valid or missing", execution_time=time.time() - step_start)
         
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -1080,7 +1090,12 @@ def grade_checkpoint_7():
     
     step_start = time.time()
     slides = presentation_data.get('slides', [])
-    checkpoint.add_step("Exactly 8 Slides", len(slides) == 8, 1, f"Found exactly 8 slides." if len(slides) == 8 else f"Found only {len(slides)}/8 slides.", execution_time=time.time() - step_start)
+    
+    if len(slides) < 8:
+        checkpoint.add_step("Exactly 8 Slides", False, 1, f"Found only {len(slides)}/8 slides", execution_time=time.time() - step_start)
+        checkpoint.add_step(f"Correct Titles and Order", False, 2, "Some slides are missing from the presentation", execution_time=time.time() - step_start)
+    
+    checkpoint.add_step("Exactly 8 Slides", True, 1, f"Found exactly 8 slides", execution_time=time.time() - step_start)
     
     expected_titles_keywords = [
         ["A Gift for Kathy!"],
