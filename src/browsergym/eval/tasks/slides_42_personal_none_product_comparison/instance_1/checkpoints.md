@@ -44,7 +44,7 @@ The device slides meet the requirements.
 
 - Title of the slide is the device name.
 - Each slide contains at least one source link.
-- Two product images found.
+- Two product images from different angles found.
 - Key features and specificications section found.
 - Pros are listed.
 - Cons are listed.

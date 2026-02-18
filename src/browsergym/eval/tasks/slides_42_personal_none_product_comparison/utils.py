@@ -194,6 +194,7 @@ def validate_rankings(expected_ranking: Dict[str, int], actual_ranking: Dict[str
     return True
 
 def download_images_from_url(url, folder):
+    from PIL import Image
     # Only accept these image extensions
     allowed_exts = {"png", "jpg", "jpeg", "gif", "webp", "bmp", "tif", "tiff"}
     
@@ -259,8 +260,16 @@ def download_images_from_url(url, folder):
                 name_without_ext = os.path.splitext(filename)[0]
                 filename = f"{name_without_ext}.{chosen_ext}"
                 
-            with open(os.path.join(folder, filename), 'wb') as f:
+            filepath = os.path.join(folder, filename)
+            with open(filepath, 'wb') as f:
                 f.write(response.content)
+            # Validate that the file is a real image
+            try:
+                img = Image.open(filepath)
+                img.verify()
+            except Exception:
+                os.remove(filepath)
+                continue
             # print(f"Downloaded: {filename}")
             downloaded_files.append(filename)
         except Exception as e:

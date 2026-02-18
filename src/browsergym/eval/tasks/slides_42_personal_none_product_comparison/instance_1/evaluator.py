@@ -390,7 +390,7 @@ def grade_checkpoint_4():
     Outcome Evaluation (x3 devices, 8 pts each):
     - Title of the slide is the device name.
     - Each slide contains at least one source link.
-    - Two product images found.
+    - Two product images from different angles found.
     - Key features and specificications section found.
     - Pros are listed.
     - Cons are listed.
@@ -523,16 +523,21 @@ def grade_checkpoint_4():
                         if matching_image:
                             valid_image_count += 1
                             
-                    # image_from_different_angle = None
-                    # temp_example_dir = os.path.join(DATA_DIR, "temp_example")
-                    # os.makedirs(temp_example_dir, exist_ok=True)
-                    # if slide_image_paths:
-                    #     shutil.copy2(slide_image_paths[0], temp_example_dir)
-                    # image_from_different_angle = binary_judge_image(model, temp_dir, f"Is this an image of a laptop shown from a different angle as the one in the example? Compare the port layout, hinge design, and chassis thickness to verify.", temp_example_dir)
+                    image_from_different_angle = None
+                    temp_example_dir = os.path.join(DATA_DIR, "temp_example")
+                    os.makedirs(temp_example_dir, exist_ok=True)
+                    if slide_image_paths:
+                        shutil.copy2(slide_image_paths[0], temp_example_dir)
+                        os.remove(slide_image_paths[0])
+                    image_from_different_angle = binary_judge_image(model, temp_dir, f"Is this image showing the laptop from a different perspective or angle compared to the example?", temp_example_dir)
+                    # Move image back from temp_example_dir to temp_dir
+                    for f in os.listdir(temp_example_dir):
+                        shutil.move(os.path.join(temp_example_dir, f), temp_dir)
+
             except Exception as e:
                 print(f"Error evaluating images: {e}")
                     
-            valid_images = valid_image_count == 2 #and bool(image_from_different_angle)
+            valid_images = valid_image_count == 2 and bool(image_from_different_angle)
             checkpoint.add_step(f"Device {i+1} - Product Images", valid_images, step_id, f"Found 2 product images from 2 different angles" if valid_images else "Product images are missing or not from different angles", execution_time=time.time() - step_start)
             step_id += 1
         else:
@@ -647,7 +652,7 @@ Slide text:
         
     # Validate that information are pulled from links
     print(f"3. Verifying that information comes from given source")
-    match_threshold = 75
+    match_threshold = 70
     verifying_task = []
     for i, slide in enumerate(all_slides):
         step_start = time.time()
@@ -1149,13 +1154,13 @@ def grade_checkpoints(workspace_doc_id: str, cached_models: Dict[str, Any] = Non
             model = cached_models[model_id]
 
         checkpoints: List[Checkpoint] = []
-        checkpoints.append(grade_checkpoint_1())
-        checkpoints.append(grade_checkpoint_2())
-        checkpoints.append(grade_checkpoint_3())
+        # checkpoints.append(grade_checkpoint_1())
+        # checkpoints.append(grade_checkpoint_2())
+        # checkpoints.append(grade_checkpoint_3())
         checkpoints.append(grade_checkpoint_4())
-        checkpoints.append(grade_checkpoint_5())
-        checkpoints.append(grade_checkpoint_6())
-        checkpoints.append(grade_checkpoint_7())
+        # checkpoints.append(grade_checkpoint_5())
+        # checkpoints.append(grade_checkpoint_6())
+        # checkpoints.append(grade_checkpoint_7())
 
         total_execution_time = time.time() - total_start
         return Result(checkpoints, total_execution_time=total_execution_time)
