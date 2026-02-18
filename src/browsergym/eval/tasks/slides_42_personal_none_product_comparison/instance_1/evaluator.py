@@ -1154,13 +1154,13 @@ def grade_checkpoints(workspace_doc_id: str, cached_models: Dict[str, Any] = Non
             model = cached_models[model_id]
 
         checkpoints: List[Checkpoint] = []
-        # checkpoints.append(grade_checkpoint_1())
-        # checkpoints.append(grade_checkpoint_2())
-        # checkpoints.append(grade_checkpoint_3())
+        checkpoints.append(grade_checkpoint_1())
+        checkpoints.append(grade_checkpoint_2())
+        checkpoints.append(grade_checkpoint_3())
         checkpoints.append(grade_checkpoint_4())
-        # checkpoints.append(grade_checkpoint_5())
-        # checkpoints.append(grade_checkpoint_6())
-        # checkpoints.append(grade_checkpoint_7())
+        checkpoints.append(grade_checkpoint_5())
+        checkpoints.append(grade_checkpoint_6())
+        checkpoints.append(grade_checkpoint_7())
 
         total_execution_time = time.time() - total_start
         return Result(checkpoints, total_execution_time=total_execution_time)
