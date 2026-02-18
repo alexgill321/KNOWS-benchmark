@@ -342,7 +342,7 @@ def grade_checkpoint_3():
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
-
+        
 def grade_checkpoint_4():
     """
     Checkpoint 4 (21pt): The device slides meet the requirements.
@@ -422,9 +422,13 @@ def grade_checkpoint_4():
         step_start = time.time()
         images = extract_slide_images(slide, presentation_id, SLIDES_SERVICE)
         ref_image_folder = image_file_map[title_match]
-        device_image_valid = False
+        valid_image_count = 0
         temp_dir = ""
-        if len(images) == 2:
+        slide_image_paths = []
+        binary_judge_tasks = []
+        matching_image = None
+        image_from_different_angle = None
+        if len(images) >= 2:
             # Create temp directory for downloaded images
             temp_dir = os.path.join(DATA_DIR, "temp_images")
             os.makedirs(temp_dir, exist_ok=True)
@@ -435,27 +439,35 @@ def grade_checkpoint_4():
                         img = download_slide_image(img_info['contentUrl'])
                         if img:
                             temp_img_path = os.path.join(temp_dir, f"temp_image_{idx}.png")
+                            slide_image_paths.append(temp_img_path)
                             img.save(temp_img_path)
                             
-                # Use binary_judge_image to check if any image is the Red Rising book cover
+                # Use binary_judge_image to check if at least 2 slide images are of the appropriate device
                 if os.listdir(temp_dir):
-                    matching_image = binary_judge_image(
-                        model,
-                        temp_dir,
-                        f"Is this an image of a laptop of the same or similar model as those in the examples?",
-                        os.path.join(GOLD_IMAGES_DIR, ref_image_folder)
-                    )
-
-                    # TODO: Implement image judge that require all images in temp_dir to 
-                    if matching_image:
-                        device_image_valid = True
-                                    
-                            # os.remove(temp_img_path)
-            finally:
-                pass
+                    for idx,img_path in enumerate(slide_image_paths):
+                        binary_judge_tasks.append({
+                            "id": idx,
+                            "func": binary_judge_image,
+                            "args": (model, img_path, f"Is this an image of a laptop of the same or similar model as those in the examples?", os.path.join(GOLD_IMAGES_DIR, ref_image_folder))
+                        })
+                        
+                    binary_judge_results = parallel_execute(binary_judge_tasks)
                     
-            # TODO: Implement check for comparing 2 images in the same folder  
-            checkpoint.add_step(f"{slide_title} -  Product Images", device_image_valid, step_id, f"Found 2 product images from 2 different angles" if device_image_valid else "Product images are missing or not from different angles", execution_time=time.time() - step_start)
+                    for id in binary_judge_results:
+                        if valid_image_count == 2:
+                            break
+                        matching_image = binary_judge_results[id]
+
+                        if matching_image:
+                            valid_image_count += 1
+                            
+                    image_from_different_angle = None
+                    image_from_different_angle = binary_judge_image(model, temp_dir, f"Is this an image of the SAME laptop but from a DIFFERENT angle as {slide_image_paths[0]}?")
+            except Exception as e:
+                print(f"Error evaluating images: {e}")
+                    
+            valid_images = valid_image_count == 2 and bool(image_from_different_angle)
+            checkpoint.add_step(f"{slide_title} -  Product Images", valid_images, step_id, f"Found 2 product images from 2 different angles" if valid_images else "Product images are missing or not from different angles", execution_time=time.time() - step_start)
             step_id += 1
         else:
             checkpoint.add_step(f"{slide_title} - Product Images", False, step_id, f"Required 2 images, but got {len(images)}", execution_time=time.time()-step_start)
@@ -483,8 +495,8 @@ def grade_checkpoint_4():
                 matching_image = binary_judge_image(
                     model,
                     url_temp_dir,
-                    f"Is this an image of a laptop of the same or similar model as those in the examples?",
-                    os.path.join(GOLD_IMAGES_DIR, temp_dir)
+                    f"Is this an image of a laptop of the same or similar model as the examples?",
+                    temp_dir
                 )
 
                 if matching_image:
@@ -568,7 +580,7 @@ Slide text:
         
     # Validate that information are pulled from links
     print(f"3. Verifying that information comes from given source")
-    match_threshold = 90
+    match_threshold = 75
     verifying_task = []
     for slide_i in all_slides:
         step_start = time.time()
@@ -576,7 +588,6 @@ Slide text:
         
         print(f"    Verifying information from slide {slide_title}")
         slide_links = slide_i["links"]
-        links_text = "\n".join(slide_links)
         features = slide_i["key_features"]
 
         url_fetch_tasks = []
@@ -596,19 +607,7 @@ Slide text:
             for url, content in fetch_results.items():
                 fetched_contents.append("\n".join([part.strip() for part in re.split(split_pattern, content) if part.strip()]))
         fetched_text = "\n".join(fetched_contents)
-        # unmatched_count = 0
-        # for line in features:    
-        #     print(f"        Verifying claim: {line}")
-        #     for content in fetched_contents:
-        #         match = keywords_match_robust(content, line.split(), model=None, substring=True)
-        #         if match:
-        #             break
-        #     if not match:
-        #         unmatched_count+=1
-        
-        # match_percentage =(1 - unmatched_count/len(features))*100 
-        
-        task_text = f"""Evaluate how much the following information aligns with the source.
+        task_text = f"""Evaluate how much the following information is supported by the source.
         
 Respond in a single number between 0 and 100.
 
@@ -1041,13 +1040,13 @@ def grade_checkpoints(workspace_doc_id: str, cached_models: Dict[str, Any] = Non
             model = cached_models[model_id]
 
         checkpoints: List[Checkpoint] = []
-        # checkpoints.append(grade_checkpoint_1())
-        # checkpoints.append(grade_checkpoint_2())
-        # checkpoints.append(grade_checkpoint_3())
-        # checkpoints.append(grade_checkpoint_4())
+        checkpoints.append(grade_checkpoint_1())
+        checkpoints.append(grade_checkpoint_2())
+        checkpoints.append(grade_checkpoint_3())
+        checkpoints.append(grade_checkpoint_4())
         checkpoints.append(grade_checkpoint_5())
-        # checkpoints.append(grade_checkpoint_6())
-        # checkpoints.append(grade_checkpoint_7())
+        checkpoints.append(grade_checkpoint_6())
+        checkpoints.append(grade_checkpoint_7())
 
         total_execution_time = time.time() - total_start
         return Result(checkpoints, total_execution_time=total_execution_time)
