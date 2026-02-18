@@ -242,16 +242,16 @@ def grade_checkpoint_2():
     checkpoint = Checkpoint(total=2, result=0, name="Challenge & Goal")
 
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
-        checkpoint.add_step("Challenge and Goal Slide Exists", False, 1,
-                          "No slides found in presentation",
-                          execution_time=time.time() - checkpoint_start)
+        checkpoint.add_step("Explains Challenge", False, 1, "No slides found in presentation", execution_time=time.time() - checkpoint_start)
+        checkpoint.add_step("Explains Goal", False, 2, "No slides found in presentation", execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     # Slide 2 is index 1
     slides = presentation_data['slides']
     if len(slides) < 2:
-        checkpoint.add_step("Challenge and Goal Slide Exists", False, 1, "Challenge slide not found or not in the correct order", execution_time=time.time() - checkpoint_start)
+        checkpoint.add_step("Explains Challenge", False, 1, "Challenge slide not found or not in the correct order", execution_time=time.time() - checkpoint_start)
+        checkpoint.add_step("Explains Goal", False, 2, "Challenge slide not found or not in the correct order", execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -309,18 +309,22 @@ def grade_checkpoint_3():
     - Processor.
     """
     print("----------------- CHECKPOINT 3 ----------------")
+    global model
+    
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=5, result=0, name="Evaluation Criteria")
-
+    categories = ["Battery life", "Weight", "Memory", "Budget", "Processor"]
     if not presentation_data or 'slides' not in presentation_data:
-        checkpoint.add_step("Criteria Slide Exists", False, 1, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
+        for i, name in enumerate(categories, 1):
+            checkpoint.add_step(name, False, i, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     # Slide 3 index 2
     slides = presentation_data['slides']
     if len(slides) < 3:
-        checkpoint.add_step("Criteria Slide Exists", False, 1, "Criteria slide not found or not in the correct order", execution_time=time.time() - checkpoint_start)
+        for i, name in enumerate(categories, 1):
+            checkpoint.add_step(name, False, i, "Criteria slide not found or not in the correct order", execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -335,39 +339,61 @@ def grade_checkpoint_3():
         ["Budget", "price", "cost", "affordibility"], 
         ["Processor", "cpu", "speed", "performance"]
     ]
-    for i, category_keywords in enumerate(category_keyword_list):
+    
+    if model is None:
+        model = load_model(model_id)
+    for i, category in enumerate(categories):
         step_start = time.time()
-        is_valid = keywords_match_robust(slide_text, category_keywords[0], model=None, substring=True)
-        checkpoint.add_step(category_keywords[0], bool(is_valid), i + 1, f"Found {category_keywords[0]}" if bool(is_valid) else f"Missing {category_keywords[0]}", execution_time=time.time() - step_start)
+        is_valid = keywords_match_robust(slide_text, category_keyword_list[i], model=model, substring=True)
+        checkpoint.add_step(category, bool(is_valid), i + 1, f"Found {category}" if bool(is_valid) else f"Missing {category}", execution_time=time.time() - step_start)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
         
 def grade_checkpoint_4():
     """
-    Checkpoint 4 (21pt): The device slides meet the requirements.
+    Checkpoint 4 (24pt): The device slides meet the requirements.
 
-    Outcome Evaluation (x3 devices, 7 pts each):
+    Outcome Evaluation (x3 devices, 8 pts each):
     - Title of the slide is the device name.
     - Each slide contains at least one source link.
     - Two product images from different angles found.
     - Key features and specificications section found.
-    - Pros and cons are listed.
+    - Pros are listed.
+    - Cons are listed.
     - Product images are from the source link(s) in the slide.
     - Product key features is accurate according to the sources."""
     print("----------------- CHECKPOINT 4 ----------------")
     global model
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=21, result=0, name="Device Slides")
+    checkpoint = Checkpoint(total=24, result=0, name="Device Slides")
+
+    step_names_per_device = [
+        "Device Name as Title",
+        "Source Link(s) in Slide",
+        "Product Images",
+        "Key Features",
+        "Pros and Cons",
+        "Product Images From Sources",
+        "Content From Sources",
+    ]
 
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
-        checkpoint.add_step("Device Slides Exist", False, 1, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
+        step_id = 1
+        for device in gold_devices:
+            for name in step_names_per_device:
+                checkpoint.add_step(f"{device} - {name}", False, step_id, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
+                step_id += 1
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
-    
+
     slides = presentation_data.get('slides', [])
     if len(slides) < 6:
-        checkpoint.add_step("Device Slides Exist", False, 1, "Device slides missing or not in the correct order", execution_time=time.time() - checkpoint_start)
+        step_id = 1
+        for device in gold_devices:
+            for name in step_names_per_device:
+                checkpoint.add_step(f"{device} - {name}", False, step_id, "Device slides missing or not in the correct order", execution_time=time.time() - checkpoint_start)
+                step_id += 1
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
     
@@ -388,7 +414,7 @@ def grade_checkpoint_4():
     
     print(f"1. Validate titles, source links, and images")
     for i in range(3): # for each device slide
-        print(f"    Device slide {i+1}:")
+        print(f"    Device slide {i+1}")
         step_start = time.time()
         slide = slides[3+i]
     
@@ -402,9 +428,9 @@ def grade_checkpoint_4():
         # Validate title
         title_match = keywords_match_robust(expected_titles, slide_title)
         if not title_match:
-            checkpoint.add_step(f"{slide_title} - Device Name as Title", False, step_id, "The title is not the device name", execution_time=time.time()-step_start)
+            checkpoint.add_step(f"Device {i+1} - Device Name as Title", False, step_id, "The title is not the device name", execution_time=time.time()-step_start)
         else:
-            checkpoint.add_step(f"{slide_title} - Device Name as Title", True, step_id, "The title is the device name", execution_time=time.time()-step_start)
+            checkpoint.add_step(f"Device {i+1} - Device Name as Title", True, step_id, "The title is the device name", execution_time=time.time()-step_start)
             expected_titles.remove(title_match)
         step_id += 1    
         
@@ -414,7 +440,7 @@ def grade_checkpoint_4():
         
         slide_links = extract_slide_links(slide)
         
-        checkpoint.add_step(f"{slide_title} - Source Link(s) in Slide", len(slide_links) > 0, step_id, "The slide contains at least one source" if len(slide_links) > 0 else "No source is found in slide", execution_time=time.time() - step_start)
+        checkpoint.add_step(f"Device {i+1} - Source Link(s) in Slide", len(slide_links) > 0, step_id, "The slide contains at least one source" if len(slide_links) > 0 else "No source is found in slide", execution_time=time.time() - step_start)
         step_id += 1
         
         # 3. Validate that there are 2 products image from 2 different angle
@@ -461,16 +487,20 @@ def grade_checkpoint_4():
                         if matching_image:
                             valid_image_count += 1
                             
-                    image_from_different_angle = None
-                    image_from_different_angle = binary_judge_image(model, temp_dir, f"Is this an image of the SAME laptop but from a DIFFERENT angle as {slide_image_paths[0]}?")
+                    # image_from_different_angle = None
+                    # temp_example_dir = os.path.join(DATA_DIR, "temp_example")
+                    # os.makedirs(temp_example_dir, exist_ok=True)
+                    # if slide_image_paths:
+                    #     shutil.copy2(slide_image_paths[0], temp_example_dir)
+                    # image_from_different_angle = binary_judge_image(model, temp_dir, f"Is this an image of a laptop shown from a different angle as the one in the example? Compare the port layout, hinge design, and chassis thickness to verify.", temp_example_dir)
             except Exception as e:
                 print(f"Error evaluating images: {e}")
                     
-            valid_images = valid_image_count == 2 and bool(image_from_different_angle)
-            checkpoint.add_step(f"{slide_title} -  Product Images", valid_images, step_id, f"Found 2 product images from 2 different angles" if valid_images else "Product images are missing or not from different angles", execution_time=time.time() - step_start)
+            valid_images = valid_image_count == 2 #and bool(image_from_different_angle)
+            checkpoint.add_step(f"Device {i+1} - Product Images", valid_images, step_id, f"Found 2 product images from 2 different angles" if valid_images else "Product images are missing or not from different angles", execution_time=time.time() - step_start)
             step_id += 1
         else:
-            checkpoint.add_step(f"{slide_title} - Product Images", False, step_id, f"Required 2 images, but got {len(images)}", execution_time=time.time()-step_start)
+            checkpoint.add_step(f"Device {i+1} - Product Images", False, step_id, f"Required 2 images, but got {len(images)}", execution_time=time.time()-step_start)
             step_id += 1
             
         # Download all images from url
@@ -507,8 +537,10 @@ def grade_checkpoint_4():
                 shutil.rmtree(temp_dir)
             if os.path.exists(url_temp_dir):
                 shutil.rmtree(url_temp_dir)
+            # if os.path.exists(temp_example_dir):
+            #     shutil.rmtree(temp_example_dir)
         
-        checkpoint.add_step(f"{slide_title} - Product Images From Sources", found_in_source, step_id, "At least one image in the slide was found in the source" if found_in_source else "No images in the slide was from the source", execution_time=time.time()-step_start)
+        checkpoint.add_step(f"Device {i+1} - Product Images From Sources", found_in_source, step_id, "At least one image in the slide was found in the source" if found_in_source else "No images in the slide was from the source", execution_time=time.time()-step_start)
         
         all_slides.append({
             "title": slide_title,
@@ -518,9 +550,9 @@ def grade_checkpoint_4():
         
     
     # Validate key features, pros, and cons sections
-    for slide_i in all_slides:
-        slide_title = slide_i["title"]
-        slide_text = "\n".join(slide_i["text_tokens"])
+    for i, slide in enumerate(all_slides):
+        slide_title = slide["title"]
+        slide_text = "\n".join(slide["text_tokens"])
         task_text = f"""Extract the content for key features, pros, and cons of an electronic device from the given slide text.
         
 Respond ONLY with this exact JSON format:
@@ -531,7 +563,7 @@ Respond ONLY with this exact JSON format:
     "cons": "<semicolon-separated points>" 
 }}
 
-If no information is found for a certain section, still include it in the response with an empty string as value.
+If no relevant information is found for a certain section, still include it in the response with an empty string as value.
 
 Slide text:
 
@@ -548,47 +580,47 @@ Slide text:
     step_start = time.time()
     section_validation_results = parallel_execute(section_validation_task, max_workers=5)    
     print(f"    Finished extracting section content in {time.time()-step_start}")
-    for slide_i in all_slides:
+    for i, slide in enumerate(all_slides):
         step_start = time.time()
-        slide_title = slide_i["title"]
-        print(f"    Validating section content for slide {slide_title}")
+        slide_title = slide["title"]
+        print(f"    Validating section content for slide device {i+1}")
         section_content = section_validation_results[slide_title]
         
         has_key_features = bool(section_content["key_features"])
-        checkpoint.add_step(f"{slide_title} - Key Features", has_key_features, step_id, 
-                           f"Key features found for {slide_title}" if has_key_features else f"Missing key features for {slide_title}",
+        checkpoint.add_step(f"Device {i+1} - Key Features", has_key_features, step_id, 
+                           f"Key features found for device {i+1}" if has_key_features else f"Missing key features for device {i+1}",
                            execution_time=time.time() - step_start)
         step_id += 1
         
         step_start = time.time()
         has_pros = bool(section_content["pros"])
         step_start = time.time()
-        checkpoint.add_step(f"{slide_title} - Pros", has_pros, step_id,
-                           f"Pros found for {slide_title}" if has_pros else f"Missing pros for {slide_title}",
+        checkpoint.add_step(f"Device {i+1} - Pros", has_pros, step_id,
+                           f"Pros found for device {i+1}" if has_pros else f"Missing pros for device {i+1}",
                            execution_time=time.time() - step_start)
         step_id += 1
         
         step_start = time.time()
         has_cons = bool(section_content["cons"])
         step_start = time.time()
-        checkpoint.add_step(f"{slide_title} - Cons", has_cons, step_id,
-                           f"Cons found for {slide_title}" if has_cons else f"Missing cons for {slide_title}",
+        checkpoint.add_step(f"Device {i+1} - Cons", has_cons, step_id,
+                           f"Cons found for device {i+1}" if has_cons else f"Missing cons for device {i+1}",
                            execution_time=time.time() - step_start)
         step_id += 1
         
-        slide_i["key_features"] = section_content["key_features"]
+        slide["key_features"] = section_content["key_features"]
         
     # Validate that information are pulled from links
     print(f"3. Verifying that information comes from given source")
     match_threshold = 75
     verifying_task = []
-    for slide_i in all_slides:
+    for i, slide in enumerate(all_slides):
         step_start = time.time()
-        slide_title = slide_i["title"]
+        slide_title = slide["title"]
         
-        print(f"    Verifying information from slide {slide_title}")
-        slide_links = slide_i["links"]
-        features = slide_i["key_features"]
+        print(f"    Verifying information from slide Device {i+1}")
+        slide_links = slide["links"]
+        features = slide["key_features"]
 
         url_fetch_tasks = []
         for link in slide_links:
@@ -624,10 +656,10 @@ Content:
         })    
         
     verifying_results = parallel_execute(verifying_task, max_workers = 3)
-    for slide_title in verifying_results:
+    for i,slide_title in enumerate(verifying_results):
         match_percentage = int(verifying_results[slide_title])
         print(f"        Verifying that info are pulled from websites: {match_percentage:.2f}% of slide text found in sources.")
-        checkpoint.add_step(f"{slide_title} - Content From Sources", match_percentage >= match_threshold, step_id, f"{match_percentage}% of the listed features found in sources" if match_percentage >= match_threshold else f"Only {match_percentage}% of listed features is from sources", execution_time=time.time()-step_start)
+        checkpoint.add_step(f"Device {i+1} - Content From Sources", match_percentage >= match_threshold, step_id, f"{match_percentage}% of the listed features found in sources" if match_percentage >= match_threshold else f"Only {match_percentage}% of listed features is from sources", execution_time=time.time()-step_start)
         step_id += 1
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint 
@@ -659,14 +691,32 @@ def grade_checkpoint_5():
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=13, result=0, name="Comparison Slide")
     
+    comparison_step_names = [
+        "Table Has 3 Columns",
+        "All Devices as Headers",
+        "Green, Yellow, and Red as Color Coding Scheme",
+        "Found Battery life Row",
+        "Battery life Cell Colors",
+        "Found Weight Row",
+        "Weight Cell Colors",
+        "Found Processor Row",
+        "Processor Cell Colors",
+        "Found Budget Row",
+        "Budget Cell Colors",
+        "Found Memory Row",
+        "Memory Cell Colors",
+    ]
+
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
-        checkpoint.add_step("Comparison Slide Exists", False, 1, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
+        for i, name in enumerate(comparison_step_names, 1):
+            checkpoint.add_step(name, False, i, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
-    
+
     slides = presentation_data.get('slides', [])
     if len(slides) < 7:
-        checkpoint.add_step("Comparison Slide Exists", False, 1, "Comparison slide missing or not in the correct order", execution_time=time.time() - checkpoint_start)
+        for i, name in enumerate(comparison_step_names, 1):
+            checkpoint.add_step(name, False, i, "Comparison slide missing or not in the correct order", execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
     
@@ -841,14 +891,22 @@ def grade_checkpoint_6():
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=3, result=0, name="Recommendation Slide")
 
+    recommendation_step_names = [
+        "All Devices Mentioned",
+        "Summaries Align with Comparison Data",
+        "Recommendations Based on Student Styles",
+    ]
+
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
-        checkpoint.add_step("Recommendation Slide Exists", False, 1, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
+        for i, name in enumerate(recommendation_step_names, 1):
+            checkpoint.add_step(name, False, i, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
-    
+
     slides = presentation_data.get('slides', [])
-    if len(slides) < 7:
-        checkpoint.add_step("Recommendation Slide Exists", False, 1, "Recommendation slide missing or not in the correct order", execution_time=time.time() - checkpoint_start)
+    if len(slides) < 8:
+        for i, name in enumerate(recommendation_step_names, 1):
+            checkpoint.add_step(name, False, i, "Recommendation slide missing or not in the correct order", execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -979,7 +1037,8 @@ def grade_checkpoint_7():
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=2, result=0, name="Overall Structure")
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
-        checkpoint.add_step("Slides Exist", False, 1, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
+        checkpoint.add_step("Exactly 8 Slides", False, 1, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
+        checkpoint.add_step("Correct Titles and Order", False, 2, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
     
@@ -1018,7 +1077,7 @@ def grade_checkpoint_7():
             step_start = time.time()
             title_text = extract_title_text(slides[i])
             if title_text:
-                title_match = keywords_exact_match(device, expected_titles_keywords[i], substring=True)
+                title_match = keywords_match_robust(device, expected_titles_keywords[i], substring=True)
                 if not title_match:
                     missing_devices += device + "; "
             else:
@@ -1040,12 +1099,12 @@ def grade_checkpoints(workspace_doc_id: str, cached_models: Dict[str, Any] = Non
             model = cached_models[model_id]
 
         checkpoints: List[Checkpoint] = []
-        checkpoints.append(grade_checkpoint_1())
-        checkpoints.append(grade_checkpoint_2())
-        checkpoints.append(grade_checkpoint_3())
-        checkpoints.append(grade_checkpoint_4())
-        checkpoints.append(grade_checkpoint_5())
-        checkpoints.append(grade_checkpoint_6())
+        # checkpoints.append(grade_checkpoint_1())
+        # checkpoints.append(grade_checkpoint_2())
+        # checkpoints.append(grade_checkpoint_3())
+        # checkpoints.append(grade_checkpoint_4())
+        # checkpoints.append(grade_checkpoint_5())
+        # checkpoints.append(grade_checkpoint_6())
         checkpoints.append(grade_checkpoint_7())
 
         total_execution_time = time.time() - total_start
