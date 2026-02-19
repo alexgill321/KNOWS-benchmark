@@ -71,18 +71,6 @@ presentation_id = None
 presentation_data = None
 gold_devices = None
 
-def fetch_page_text(url: str) -> Optional[str]:
-    try:
-        r = requests.get(url, timeout=8)
-        if r.status_code == 200:
-            # strip scripts/styles simply
-            text = r.text
-            return text
-    except Exception as e:
-        print(f"Error fetching {url}: {e}")
-    return None
-
-
 def setup_presentation(workspace_doc_id):
     """
     Setup presentation processing.
@@ -533,6 +521,7 @@ def grade_checkpoint_4():
                     # Move image back from temp_example_dir to temp_dir
                     for f in os.listdir(temp_example_dir):
                         shutil.move(os.path.join(temp_example_dir, f), temp_dir)
+                    shutil.rmtree(temp_example_dir)
 
             except Exception as e:
                 print(f"Error evaluating images: {e}")
@@ -578,8 +567,6 @@ def grade_checkpoint_4():
                 shutil.rmtree(temp_dir)
             if os.path.exists(url_temp_dir):
                 shutil.rmtree(url_temp_dir)
-            # if os.path.exists(temp_example_dir):
-            #     shutil.rmtree(temp_example_dir)
         
         checkpoint.add_step(f"Device {i+1} - Product Images From Sources", found_in_source, step_id, "At least one image in the slide was found in the source" if found_in_source else "No images in the slide was from the source", execution_time=time.time()-step_start)
         step_id += 1
@@ -736,15 +723,15 @@ def grade_checkpoint_5():
         "All Devices as Headers",
         "Green, Yellow, and Red as Color Coding Scheme",
         "Found Battery life Row",
-        "Battery life Cell Colors",
+        "Battery life - Correct Color Coding",
         "Found Weight Row",
-        "Weight Cell Colors",
+        "Weight - Correct Color Coding",
         "Found Processor Row",
-        "Processor Cell Colors",
+        "Processor - Correct Color Coding",
         "Found Budget Row",
-        "Budget Cell Colors",
+        "Budget - Correct Color Coding",
         "Found Memory Row",
-        "Memory Cell Colors",
+        "Memory - Correct Color Coding",
     ]
 
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
@@ -773,11 +760,13 @@ def grade_checkpoint_5():
         return checkpoint
     
     # Step 1: Verify table has exactly 3 columns
+    step_id = 1
     step_start = time.time()
     has_3_columns = table_data['num_columns'] == 3
-    checkpoint.add_step("Table Has 3 Columns", has_3_columns, 1, 
+    checkpoint.add_step("Table Has 3 Columns", has_3_columns, step_id, 
                        "Table has exactly 3 columns" if has_3_columns else f"Table has {table_data['num_columns']} columns, expected 3",
                        execution_time=time.time() - step_start)
+    step_id += 1
     
     # Step 2: Verify all devices are column headers
     step_start = time.time()
@@ -789,9 +778,10 @@ def grade_checkpoint_5():
         if not bool(header_match):
             missing_devices += f"{device}; " 
     headers_valid = len(missing_devices) == 0
-    checkpoint.add_step("All Devices as Headers", headers_valid, 2,
+    checkpoint.add_step("All Devices as Headers", headers_valid, step_id,
                        "All devices found as column headers" if headers_valid else f"Missing header(s) for the following devices: {missing_devices}",
                        execution_time=time.time() - step_start)
+    step_id += 1
     
     print(f"2. Validating category coverage based on the table content.")
     categories = ["battery life", "weight", "processor", "budget", "memory"]
@@ -820,7 +810,7 @@ Respond ONLY with this exact JSON format:
 
 
 If the line contains mixed-category information, evaluate based on the most prominent category or the category that best fits the overall content of the line.
-If no line contains relevant information for a category, leave it out of the response.
+The order of the returned categories must correspond to the order of the content in the table.
 
 Categories:
 {"; ".join(categories)}
@@ -837,15 +827,13 @@ Table Content:
     llm_ranking_task = []
     ranking_from_table = {}
     colors_used = set()
-    task_idx = 3
     
     print(f"    Starting category coverage validation and preparing LLM ranking tasks...")
     for category in categories:
         step_start = time.time()
         if category in categories_covered:
             print(f"        Found category '{category}' in table content. Creating LLM ranking task for this category.")
-            checkpoint.add_step(f"Found {category} Row", True, task_idx, f"The {category} category is covered in table", execution_time=time.time() - step_start)
-            task_idx += 1
+            checkpoint.add_step(f"Found {category} Row", True, step_id, f"The {category} category is covered in table", execution_time=time.time() - step_start)
             
             step_start = time.time()
             cells = list(category_map[category].values())
@@ -876,10 +864,9 @@ Values:
             
         else:
             print(f"        No clear information about category '{category}' found in table content.")
-            checkpoint.add_step(f"Found {category} Row", False, task_idx, f"No clear information about {category} found in table", execution_time=time.time() - step_start)
-            task_idx += 1
-            checkpoint.add_step(f"{category} Cell Colors", False, task_idx, f"Cannot evaluate cell colors for {category} since category not found", execution_time=time.time() - step_start)
-            task_idx += 1
+            checkpoint.add_step(f"Found {category} Row", False, step_id, f"No clear information about {category} found in table", execution_time=time.time() - step_start)
+            
+        step_id += 1
         
     # Extract comparison from table
     print(f"3a. Extracting color coding scheme from table for validation...")
@@ -894,11 +881,12 @@ Values:
             ranking_from_table[category][device] = color_rank_map.get(color_str, -1)
     print(f"    Validating that the table uses Green, Yellow, and Red as the color coding scheme...")
     if "unknown" in colors_used:
-        checkpoint.add_step("Green, Yellow, and Red as Color Coding Scheme", False, 3, f"Unknown colors found in table: {', '.join(colors_used)}", execution_time=time.time() - step_start)
+        checkpoint.add_step("Green, Yellow, and Red as Color Coding Scheme", False, step_id, f"Unknown colors found in table: {', '.join(colors_used)}", execution_time=time.time() - step_start)
     elif len(colors_used) < 3 or len(colors_used) > 3:
-        checkpoint.add_step("Green, Yellow, and Red as Color Coding Scheme", False, 3, f"Too many or too few colors used. Colors found: {', '.join(colors_used)}", execution_time=time.time() - step_start)
+        checkpoint.add_step("Green, Yellow, and Red as Color Coding Scheme", False, step_id, f"Too many or too few colors used. Colors found: {', '.join(colors_used)}", execution_time=time.time() - step_start)
     else:
-        checkpoint.add_step("Green, Yellow, and Red as Color Coding Scheme", True, 3, f"All required colors are used: {', '.join(colors_used)}", execution_time=time.time() - step_start)
+        checkpoint.add_step("Green, Yellow, and Red as Color Coding Scheme", True, step_id, f"All required colors are used: {', '.join(colors_used)}", execution_time=time.time() - step_start)
+    step_id += 1
     
     start_time = time.time()
     print(f"3b. Validating that the table correctly ranks the devices for each category based on the color coding scheme...")
@@ -910,14 +898,14 @@ Values:
             if category in llm_ranking_results:
                 start_time = time.time()
                 ranking_consistent = validate_rankings(llm_ranking_results[category], ranking_from_table[category])
-                checkpoint.add_step(f"{category} - Correct Color Coding", ranking_consistent, task_idx, f"Appropriate colors are used to rank values from best to worst for {category}" if ranking_consistent else f"Colors are not correctly assigned for {category}", execution_time=time.time() - start_time)
+                checkpoint.add_step(f"{category} - Correct Color Coding", ranking_consistent, step_id, f"Appropriate colors are used to rank values from best to worst for {category}" if ranking_consistent else f"Colors are not correctly assigned for {category}", execution_time=time.time() - start_time)
             else:
-                checkpoint.add_step(f"{category} - Correct Color Coding", False, task_idx, f"LLM failed to rank devices for {category}", execution_time=time.time() - start_time)
-            task_idx += 1
+                checkpoint.add_step(f"{category} - Correct Color Coding", False, step_id, f"LLM failed to rank devices for {category}", execution_time=time.time() - start_time)
+            step_id += 1
     else:
         for category in categories:
-            checkpoint.add_step(f"{category} - Correct Color Coding", False, task_idx, f"No LLM ranking performed.", execution_time=time.time() - start_time)
-            task_idx += 1
+            checkpoint.add_step(f"{category} - Correct Color Coding", False, step_id, f"No LLM ranking performed.", execution_time=time.time() - start_time)
+            step_id += 1
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -974,7 +962,7 @@ Respond ONLY with this exact JSON format (array of devices):
 }}
 
 
-If a summary or recommendation is not found, use an empty string for that field.
+If the summary or recommendation for a device is not found, use an empty string for that field.
 If there is NO device, still return an object with the two properties set to empty arrays.
 
 Slide text:
@@ -1099,6 +1087,8 @@ def grade_checkpoint_7():
     if len(slides) < 8:
         checkpoint.add_step("Exactly 8 Slides", False, 1, f"Found only {len(slides)}/8 slides", execution_time=time.time() - step_start)
         checkpoint.add_step(f"Correct Titles and Order", False, 2, "Some slides are missing from the presentation", execution_time=time.time() - step_start)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
     
     checkpoint.add_step("Exactly 8 Slides", True, 1, f"Found exactly 8 slides", execution_time=time.time() - step_start)
     

@@ -2,7 +2,7 @@
 
 This task has 55 points in total.
 
-## Checkpoint 1 (5pt):
+## Checkpoint 1 (6pt):
 
 Title slide has all required elements.
 

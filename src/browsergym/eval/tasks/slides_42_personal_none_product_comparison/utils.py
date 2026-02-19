@@ -196,7 +196,7 @@ def validate_rankings(expected_ranking: Dict[str, int], actual_ranking: Dict[str
 def download_images_from_url(url, folder):
     from PIL import Image
     # Only accept these image extensions
-    allowed_exts = {"png", "jpg", "jpeg", "gif", "webp", "bmp", "tif", "tiff"}
+    allowed_exts = {'png', 'jpg', 'jpeg', 'bmp', 'tiff'}
     
     # 1. Create the folder if it doesn't exist
     os.makedirs(folder, exist_ok=True)
@@ -237,8 +237,6 @@ def download_images_from_url(url, folder):
                     'image/png': 'png',
                     'image/jpeg': 'jpg',
                     'image/jpg': 'jpg',
-                    'image/gif': 'gif',
-                    'image/webp': 'webp',
                     'image/bmp': 'bmp',
                     'image/tiff': 'tiff',
                     'image/x-tiff': 'tiff'
