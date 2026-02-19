@@ -92,6 +92,10 @@ def evaluate_device_info_with_llm(task_text: str, model: Any, return_type: Liter
         bool: True if model indicates the text is valid (contains "yes");
         False on any other response or error.
     """
+    if return_type not in ["bool", "str", "json"]:
+        print(f"Error: return_type must have the follow in values: 'bool', 'str', or 'json'. Got: {return_type}")
+        return None
+    
     return_type_instruction = {
         "bool": "Response with ONLY 'yes' or 'no'.",
         "str": "Format your response strictly as specified in the task instructions.",
@@ -117,7 +121,7 @@ def evaluate_device_info_with_llm(task_text: str, model: Any, return_type: Liter
             return "yes" in response
         elif return_type == "str":
             return response
-        elif return_type == "json":
+        else:
             # Handle markdown code blocks
             if "```" in response:
                 lines = response.split('\n')
@@ -134,8 +138,6 @@ def evaluate_device_info_with_llm(task_text: str, model: Any, return_type: Liter
                     
             data_json = json.loads(response)
             return data_json
-        else:
-            return None
         
     except Exception as e:
             print(f"LLM failed to evaluate slide text: {e}")

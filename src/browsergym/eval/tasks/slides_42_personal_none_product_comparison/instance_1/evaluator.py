@@ -613,7 +613,7 @@ Slide text:
         step_start = time.time()
         slide_title = slide["title"]
         print(f"    Validating section content for slide device {i+1}")
-        section_content = section_validation_results[slide_title]
+        section_content = section_validation_results[slide_title] or {"key_feature": "", "pros": "", "cons": ""}
         
         has_key_features = bool(section_content["key_features"])
         checkpoint.add_step(f"Device {i+1} - Key Features", has_key_features, step_id, 
@@ -820,7 +820,7 @@ Table Content:
 """
     print(f"    Sending table content to LLM for category extraction...")
     step_start = time.time()
-    category_map = evaluate_device_info_with_llm(task_text, model, return_type="json")
+    category_map = evaluate_device_info_with_llm(task_text, model, return_type="json") or {}
     print(f"    LLM finished category extraction in {time.time() - step_start:.2f} seconds.")
     categories_covered = list(category_map.keys())
     
@@ -895,7 +895,7 @@ Values:
         print(f"    LLM finished ranking tasks in {time.time() - start_time:.2f} seconds.")
         print(f"    Validating LLM rankings against table color coding for each category...")
         for category in categories:
-            if category in llm_ranking_results:
+            if category in llm_ranking_results and llm_ranking_results[category] is not None:
                 start_time = time.time()
                 ranking_consistent = validate_rankings(llm_ranking_results[category], ranking_from_table[category])
                 checkpoint.add_step(f"{category} - Correct Color Coding", ranking_consistent, step_id, f"Appropriate colors are used to rank values from best to worst for {category}" if ranking_consistent else f"Colors are not correctly assigned for {category}", execution_time=time.time() - start_time)
@@ -957,8 +957,8 @@ Extract the information for EACH device separately.
                     
 Respond ONLY with this exact JSON format (array of devices):
 {{
-"summary":[["<device_name>","<summary_text>""]],
-"recommendation":[["<device_name>","<recommendation_text>""]]
+"summary":["<device_name>","<summary_text>""],
+"recommendation":["<device_name>","<recommendation_text>""]
 }}
 
 
@@ -967,7 +967,7 @@ If there is NO device, still return an object with the two properties set to emp
 
 Slide text:
 {slide_text}"""
-    device_data = extract_device_info_with_llm(task_text, model)
+    device_data = extract_device_info_with_llm(task_text, model) or {"summary": [], "recommendation": []}
     device_map = {}
     device_names = []    
     
