@@ -21,7 +21,8 @@ def _normalize_text(text: str, *,
                     lowercase: bool = True,
                     strip: bool = True,
                     collapse_whitespace: bool = True,
-                    replace_nbsp: bool = True) -> str:
+                    replace_nbsp: bool = True,
+                    replace_smart_quotes: bool = True) -> str:
     """Unified text normalization for matching.
 
     Consolidates normalization logic from multiple sources into a single utility.
@@ -32,6 +33,8 @@ def _normalize_text(text: str, *,
         strip: Strip leading/trailing whitespace. Default True.
         collapse_whitespace: Collapse multiple spaces to single space. Default True.
         replace_nbsp: Replace non-breaking spaces with regular spaces. Default True.
+        replace_smart_quotes: Replace various unicode double-quote characters (“, ”, «, », etc.)
+                              with standard ASCII double-quote '"'. Default True.
 
     Returns:
         Normalized text string.
@@ -41,6 +44,10 @@ def _normalize_text(text: str, *,
 
     if replace_nbsp:
         text = text.replace("\u00a0", " ")
+
+    if replace_smart_quotes:
+        smart_double_quotes = "\u201c\u201d\u201e\u201f\u00ab\u00bb\u2033\u2036"
+        text = re.sub(f"[{smart_double_quotes}]", '"', text)
 
     if strip:
         text = text.strip()
@@ -264,7 +271,8 @@ def keywords_match_robust(texts: Union[str, List[str]],
                           keywords: Union[str, List[str]],
                           model: Any = None,
                           description: str = None,
-                          substring: bool = False) -> Optional[str]:
+                          substring: bool = False,
+                          unlimited_texts: bool = False) -> Optional[str]:
     """Robust matching: exact match first, then LLM fallback.
 
     This is the primary entry point for keyword-based text matching. It uses
@@ -316,7 +324,7 @@ def keywords_match_robust(texts: Union[str, List[str]],
             return text
 
     # Phase 2: LLM fallback (if model provided)
-    if model is not None:
+    if model is not None and (unlimited_texts or (len(texts) < 30 and len(keywords) < 30)):
         return keywords_llm_match(texts, keywords, model, description)
 
     return None
