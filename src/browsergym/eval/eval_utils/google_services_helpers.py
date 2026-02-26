@@ -1,4 +1,5 @@
 from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 import os
@@ -11,14 +12,20 @@ def authenticate(services):
 
     if os.path.exists(token_path):
         creds = Credentials.from_authorized_user_file(token_path, scopes)
-    
-    if not creds or not creds.valid and creds_path is not None:
-        flow = InstalledAppFlow.from_client_secrets_file(creds_path, scopes)
-        creds = flow.run_local_server(port=0)
-        with open(token_path, 'w') as token:
-            token.write(creds.to_json())
-    elif creds_path is None:
-        raise ValueError("Credentials path is required for the first time authentication.")
+
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            # Auto-refresh using stored refresh token (no browser needed)
+            creds.refresh(Request())
+            with open(token_path, 'w') as token:
+                token.write(creds.to_json())
+        elif creds_path is not None:
+            flow = InstalledAppFlow.from_client_secrets_file(creds_path, scopes)
+            creds = flow.run_local_server(port=0)
+            with open(token_path, 'w') as token:
+                token.write(creds.to_json())
+        else:
+            raise ValueError("Credentials path is required for the first time authentication.")
     return creds
 
     

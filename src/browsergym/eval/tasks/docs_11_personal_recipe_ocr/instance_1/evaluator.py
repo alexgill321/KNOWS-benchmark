@@ -89,7 +89,7 @@ PDF_DPI = 150
 
 # Model configuration
 model = None
-model_id = "gemini-2.5-flash"
+model_id = "gemini-2.5-flash-google-ai"
 
 # Google services
 DRIVE_SERVICE, DOCS_SERVICE = initialize_google_services()
@@ -217,18 +217,27 @@ def grade_checkpoint_1():
 
     # =========================================================================
     # Step 1.4: Tips Relevance Check (BUG-006 FIX: stricter prompt for pumpkin-specific)
+    # BUG-001 FIX: Evaluate tips in context of full Tips section and source URLs
     # =========================================================================
     step_start = time.time()
     # Use first recipe structure only
     tips_text = extract_section_content_first_recipe(doc_structure, "Tips")
     tips_list_raw = extract_list_items(tips_text)
 
-    # Filter out URL lines and "Source:" prefixed lines
+    # Filter out URL lines and "Source:" prefixed lines, but collect source URLs
     tips_list = []
+    source_urls_in_tips = []
     for tip in tips_list_raw:
         tip_lower = tip.lower().strip()
-        # Skip URL lines, source labels, and empty/short tips
-        if tip_lower.startswith('http') or tip_lower.startswith('source:'):
+        # Collect source URLs for context
+        if tip_lower.startswith('http'):
+            source_urls_in_tips.append(tip)
+            continue
+        if tip_lower.startswith('source:'):
+            # Extract URL from "Source: <url>" format
+            url_part = tip[7:].strip()
+            if url_part.startswith('http'):
+                source_urls_in_tips.append(url_part)
             continue
         if len(tip) < 10:
             continue
@@ -240,35 +249,42 @@ def grade_checkpoint_1():
     tips_relevant = True
     tips_relevance_details = []
 
+    # Build context string for LLM (BUG-001 FIX: provide full context)
+    full_tips_context = "\n".join(tips_list)
+    source_url_context = ""
+    if source_urls_in_tips:
+        source_url_context = f"\n\nThese tips come from: {source_urls_in_tips[0]}"
+
     for tip in tips_list:
         if not tip:
             continue
 
-        # BUG-006 FIX: Stricter prompt that requires SPECIFIC relevance to pumpkin soup
+        # BUG-001 FIX: Evaluate tip in context of the full Tips section and source URL
+        # BUG-006 FIX: Still require relevance to pumpkin soup, but consider context
         messages = [
             {
                 "role": "system",
-                "content": [{"type": "text", "text": """You are evaluating if a cooking tip is SPECIFICALLY about making pumpkin soup, not just general cooking advice.
+                "content": [{"type": "text", "text": """You are evaluating if a cooking tip is relevant to making pumpkin soup. Consider the tip in the context of the full Tips section.
 
-A tip is SPECIFIC if it mentions ANY of these:
-- Pumpkin, squash, or gourd
-- Soup-specific techniques (blending, pureeing soup, soup consistency)
-- Specific ingredients in pumpkin soup (cream, butter for this dish, onions for this recipe)
-- Soup serving suggestions specific to this type of dish
+A tip is RELEVANT if ANY of these apply:
+- It mentions pumpkin, squash, butternut, or gourd
+- It discusses soup-specific techniques (blending, pureeing, soup consistency, soup texture)
+- It talks about complementing pumpkin's flavor or sweetness
+- It mentions adding ingredients to enhance the soup
+- It comes from a source URL about pumpkin soup (context provided)
+- Even if the tip title seems generic, if the explanation mentions soup texture, pumpkin characteristics, or making soup better, it is relevant
 
-A tip is GENERIC (not specific) if it applies to ANY cooking:
+A tip is NOT RELEVANT only if it's truly generic advice with no connection to soup or pumpkin:
 - "Always taste and adjust seasoning" - generic, applies to everything
-- "Use fresh ingredients" - generic
-- "Don't overcook" - generic unless specifically about soup
-- "Clean as you go" - generic
+- "Clean as you go" - generic kitchen advice
 - "Read the recipe first" - generic
 
-Answer ONLY 'Yes' if the tip is SPECIFICALLY about pumpkin soup.
-Answer 'No' if it's generic cooking advice that applies to any recipe."""}]
+Answer 'Yes' if the tip is relevant to pumpkin soup (directly or contextually).
+Answer 'No' only if it's completely generic advice unrelated to soup or pumpkin."""}]
             },
             {
                 "role": "user",
-                "content": [{"type": "text", "text": f"Is this tip SPECIFICALLY about pumpkin soup (not just general cooking advice)?\n\nTip: {tip}"}]
+                "content": [{"type": "text", "text": f"Is this tip relevant to pumpkin soup?\n\nTip being evaluated: {tip}\n\nFull Tips section context:\n{full_tips_context}{source_url_context}"}]
             }
         ]
 
@@ -282,12 +298,12 @@ Answer 'No' if it's generic cooking advice that applies to any recipe."""}]
     step_time = time.time() - step_start
 
     if tips_relevant and len(tips_relevance_details) > 0:
-        checkpoint.add_step("Tips Relevance", True, 4, f"All {len(tips_relevance_details)} tips are specific to pumpkin soup", execution_time=step_time)
+        checkpoint.add_step("Tips Relevance", True, 4, f"All {len(tips_relevance_details)} tips are relevant to pumpkin soup", execution_time=step_time)
     elif len(tips_relevance_details) == 0:
         checkpoint.add_step("Tips Relevance", False, 4, "No tips found in Tips section", execution_time=step_time)
     else:
         irrelevant = [t['tip'][:30] for t in tips_relevance_details if not t['relevant']]
-        checkpoint.add_step("Tips Relevance", False, 4, f"Generic tips found (not pumpkin-specific): {irrelevant[:2]}", execution_time=step_time)
+        checkpoint.add_step("Tips Relevance", False, 4, f"Generic tips found (not pumpkin-relevant): {irrelevant[:2]}", execution_time=step_time)
 
     # =========================================================================
     # Step 1.5: Tips URLs Valid (BUG-005 FIX: now checks ONLY page 1 URLs)
