@@ -350,6 +350,11 @@ def get_image_url_from_raw_sheet_cell(
             if url:
                 return url
 
+        # Check hyperlink property (sometimes images are hyperlinked)
+        hyperlink = cell.get('hyperlink', '')
+        if hyperlink and hyperlink.strip().startswith(('http://', 'https://')):
+            return hyperlink.strip()
+
         return None
 
     except Exception as e:
@@ -525,6 +530,27 @@ def validate_color_grouping(row_colors: List[str]) -> Tuple[bool, str]:
     return True, f"Colors are properly grouped: {seen_colors}"
 
 
+def get_cell(sheet_tab: Dict, row_idx: int, col_idx: int) -> Dict:
+    """Return the raw cell dict at (row_idx, col_idx) inside a sheet tab.
+
+    Args:
+        sheet_tab: A single sheet tab dict (e.g. ``sheets[0]``).
+        row_idx: 0-indexed row number.
+        col_idx: 0-indexed column number.
+
+    Returns:
+        The cell dict, or an empty dict if the position is out of range.
+    """
+    data_blocks = sheet_tab.get("data", [{}])
+    rows = data_blocks[0].get("rowData", []) if data_blocks else []
+    if row_idx >= len(rows):
+        return {}
+    values = rows[row_idx].get("values", [])
+    if col_idx >= len(values):
+        return {}
+    return values[col_idx]
+
+
 def get_cell_value(sheet_raw: Dict, row_idx: int, col_idx: int) -> str:
     """Get formatted cell value from raw sheet data.
 
@@ -540,17 +566,66 @@ def get_cell_value(sheet_raw: Dict, row_idx: int, col_idx: int) -> str:
         sheets = sheet_raw.get('sheets', [])
         if not sheets:
             return ""
-
-        sheet_data = sheets[0].get('data', [{}])[0]
-        rows = sheet_data.get('rowData', [])
-
-        if row_idx < len(rows):
-            values = rows[row_idx].get('values', [])
-            if col_idx < len(values):
-                return values[col_idx].get('formattedValue', '')
-        return ""
+        cell = get_cell(sheets[0], row_idx, col_idx)
+        return cell.get('formattedValue', '') if cell else ""
     except Exception:
         return ""
+
+
+def read_column_values(
+    sheet_tab: Dict,
+    col_idx: int,
+    start_row: int = 0,
+    end_row: Optional[int] = None,
+) -> List[str]:
+    """Read formatted cell values for a single column in a sheet tab.
+
+    Args:
+        sheet_tab: A single sheet tab dict (e.g. from ``get_sheet_by_name()`` or
+            ``sheet_raw['sheets'][0]``).
+        col_idx: 0-based column index.
+        start_row: First row to read (inclusive, 0-based).
+        end_row: Last row to read (exclusive). None reads to the end.
+
+    Returns:
+        List of string values (empty string for blank cells).
+    """
+    data_blocks = sheet_tab.get("data", [{}])
+    rows = data_blocks[0].get("rowData", []) if data_blocks else []
+    if end_row is None:
+        end_row = len(rows)
+    values: List[str] = []
+    for r_idx in range(start_row, min(end_row, len(rows))):
+        cell = get_cell(sheet_tab, r_idx, col_idx)
+        values.append(cell.get("formattedValue", "") or "" if cell else "")
+    return values
+
+
+def cell_bg_hex(sheet_raw: Dict, row_idx: int, col_idx: int) -> Optional[str]:
+    """Return the cell background colour as a ``#RRGGBB`` hex string.
+
+    Args:
+        sheet_raw: Raw sheet data from Google Sheets API.
+        row_idx: 0-indexed row number.
+        col_idx: 0-indexed column number.
+
+    Returns:
+        Hex colour string (e.g. ``'#3a7ca5'``) or None if the cell has no
+        non-white fill.
+    """
+    bg = get_background_color(sheet_raw, row_idx, col_idx)
+    if not bg:
+        return None
+    r = bg.get("red", 1.0)
+    g = bg.get("green", 1.0)
+    b = bg.get("blue", 1.0)
+    if r > 0.98 and g > 0.98 and b > 0.98:
+        return None
+    return "#{:02x}{:02x}{:02x}".format(
+        int(round(r * 255)),
+        int(round(g * 255)),
+        int(round(b * 255)),
+    )
 
 
 # Backwards-compatible alias

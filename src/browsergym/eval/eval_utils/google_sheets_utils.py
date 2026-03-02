@@ -115,6 +115,32 @@ def detect_header_row(rows: list, max_rows_to_check: int = 10) -> int:
 
     return best_row
 
+# ---------------------------------------------------------------------------
+# Sheet tab navigation
+# ---------------------------------------------------------------------------
+
+def get_sheet_by_name(sheet_raw: Dict[str, Any], name: str) -> Optional[Dict]:
+    """Return the sheet-level dict for a tab whose title matches *name*.
+
+    The Google Sheets API response nests per-tab data under
+    ``sheet_raw['sheets'][i]``.  Most ``eval_utils`` helpers hard-code
+    ``sheets[0]``; this function lets callers target any tab.
+
+    Args:
+        sheet_raw: Full spreadsheet response from ``get_sheet_content()``.
+        name: Case-insensitive substring to match against tab titles.
+
+    Returns:
+        The matching sheet dict (with 'properties', 'data', etc.) or None.
+    """
+    if not sheet_raw:
+        return None
+    for sheet in sheet_raw.get("sheets", []):
+        title = sheet.get("properties", {}).get("title", "")
+        if name.lower() in title.lower():
+            return sheet
+    return None
+
 
 # =============================================================================
 # TABLE EXTRACTION FUNCTIONS
@@ -503,8 +529,10 @@ def find_urls_in_sheet(
     """
     Find URLs in cells starting from a specific row and within column bounds.
 
-    Searches both cell formatted values and hyperlink properties
-    for URLs matching http/https patterns.
+    Thoroughly checks all known URL storage locations in each cell:
+    hyperlink, userEnteredValue.stringValue, userEnteredValue.formulaValue
+    (=HYPERLINK), textFormatRuns, effectiveFormat.textFormat.link, and
+    formattedValue.
 
     Args:
         sheet_rows: Raw rowData from sheet (from get_sheet_content or extract_sheet_data).
@@ -517,29 +545,69 @@ def find_urls_in_sheet(
         list: List of unique URLs found in the specified row/column range.
     """
     urls = []
-    url_pattern = re.compile(r'https?://[^\s<>"{}|\\^`\[\]]+')
 
     for row_idx in range(start_row, min(start_row + num_rows, len(sheet_rows))):
         row = sheet_rows[row_idx] if row_idx < len(sheet_rows) else {}
         values = row.get('values', [])
 
-        # Determine column range to search
         col_start = start_col if start_col is not None else 0
         col_end = end_col if end_col is not None else len(values)
 
         for col_idx in range(col_start, min(col_end, len(values))):
             cell = values[col_idx] if col_idx < len(values) else {}
+            if not cell:
+                continue
 
-            # Check formatted value
-            content = cell.get('formattedValue', '')
-            if content:
-                found_urls = url_pattern.findall(content)
-                urls.extend(found_urls)
+            # 1. Explicit hyperlink property
+            hyperlink = cell.get("hyperlink", "")
+            if hyperlink and hyperlink.startswith(("http://", "https://")):
+                urls.append(hyperlink.strip())
+                continue
 
-            # Check hyperlink
-            hyperlink = cell.get('hyperlink', '')
-            if hyperlink and hyperlink.startswith('http'):
-                urls.append(hyperlink)
+            user_entered = cell.get("userEnteredValue", {})
+
+            # 2. String value (plain URL pasted into cell)
+            sv = user_entered.get("stringValue", "")
+            if sv and sv.strip().startswith(("http://", "https://")):
+                urls.append(sv.strip())
+                continue
+
+            # 3. Formula (=HYPERLINK("url", "label"))
+            formula = user_entered.get("formulaValue", "")
+            if formula:
+                m = re.search(r'HYPERLINK\s*\(\s*["\']([^"\']+)["\']', formula, re.IGNORECASE)
+                if m:
+                    urls.append(m.group(1))
+                    continue
+
+            # 4. textFormatRuns – links with display text (rich text)
+            found_run = False
+            for run in cell.get("textFormatRuns", []):
+                uri = run.get("format", {}).get("link", {}).get("uri", "")
+                if uri and uri.startswith(("http://", "https://")):
+                    urls.append(uri.strip())
+                    found_run = True
+                    break
+            if found_run:
+                continue
+
+            # 5. effectiveFormat.textFormat.link
+            eff_uri = (
+                cell.get("effectiveFormat", {})
+                .get("textFormat", {})
+                .get("link", {})
+                .get("uri", "")
+            )
+            if eff_uri and eff_uri.startswith(("http://", "https://")):
+                urls.append(eff_uri.strip())
+                continue
+
+            # 6. Formatted value fallback (regex to find URLs anywhere in text)
+            fv = cell.get("formattedValue", "")
+            if fv:
+                m = re.search(r'https?://[^\s<>"{}|\\^`\[\]]+', fv)
+                if m:
+                    urls.append(m.group(0))
 
     return list(set(urls))  # Remove duplicates
 
