@@ -223,6 +223,7 @@ _models = {
     # Google AI API models
     "gemma-google-ai": lambda: gemma_google_ai(model_id="gemma-3-27b-it"),
     "gemini-2.5-flash-google-ai": lambda: gemma_google_ai(model_id="gemini-2.5-flash"),
+    "gemini-3-flash-google-ai": lambda: gemma_google_ai(model_id="gemini-3-flash-preview"),
 
     # Cloud Run services - same interface as local models
     "gemma3-12b-cloud": gemma3_12b_cloud,

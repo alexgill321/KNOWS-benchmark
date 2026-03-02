@@ -13,6 +13,10 @@ from io import BytesIO
 from PIL import Image
 import requests
 
+# Default Google Slides dimensions in EMUs (English Metric Units) - used as fallback
+DEFAULT_SLIDE_WIDTH_EMU = 9144000
+DEFAULT_SLIDE_HEIGHT_EMU = 5143500
+
 def extract_slide_text(slide: Dict[str, Any], separator: str = " ") -> str:
     """
     Extract all text content from a slide.
@@ -136,8 +140,42 @@ def extract_slide_images(slide: Dict[str, Any], presentation_id: str, service: A
                 'size': element.get('size')
             }
             images.append(image_info)
-
+    
     return images
+
+
+def extract_image_source_urls(slide: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Extract source URLs from image ALT text (description field).
+
+    Args:
+        slide (dict): Slide object from Google Slides API.
+
+    Returns:
+        list: List of dictionaries with image info and source URLs.
+              Each dict has {'objectId': str, 'description': str, 'source_urls': list}
+    """
+    image_sources = []
+
+    if 'pageElements' not in slide:
+        return image_sources
+
+    for element in slide['pageElements']:
+        if 'image' in element:
+            object_id = element.get('objectId', '')
+            # Get the description (ALT text)
+            description = element.get('description', '')
+
+            # Extract URLs from description using regex
+            urls = re.findall(r'https?://[^\s<>"{}|\\^`\[\]]+', description)
+
+            image_sources.append({
+                'objectId': object_id,
+                'description': description,
+                'source_urls': urls
+            })
+
+    return image_sources
 
 
 def download_slide_image(image_url: str) -> Optional[Image.Image]:
@@ -878,13 +916,91 @@ def find_url_below_image(image_bbox: dict, links_with_positions: list, tolerance
 
     return best_url
 
+
+def get_slide_dimensions(presentation_data: Dict[str, Any]) -> Tuple[float, float]:
+    """
+    Extract slide dimensions from presentation data.
+
+    Args:
+        presentation_data (dict): Presentation object from Google Slides API.
+
+    Returns:
+        tuple: (width_emu, height_emu) in English Metric Units.
+    """
+    page_size = presentation_data.get('pageSize', {})
+
+    width_obj = page_size.get('width', {})
+    height_obj = page_size.get('height', {})
+
+    width = width_obj.get('magnitude', DEFAULT_SLIDE_WIDTH_EMU) if isinstance(width_obj, dict) else DEFAULT_SLIDE_WIDTH_EMU
+    height = height_obj.get('magnitude', DEFAULT_SLIDE_HEIGHT_EMU) if isinstance(height_obj, dict) else DEFAULT_SLIDE_HEIGHT_EMU
+
+    return width, height
+
+
+def get_image_area_percentage_from_api(slide: Dict[str, Any], slide_width_emu: float = DEFAULT_SLIDE_WIDTH_EMU, slide_height_emu: float = DEFAULT_SLIDE_HEIGHT_EMU) -> float:
+    """
+    Calculate what percentage of the slide is covered by images using Google Slides API.
+
+    Args:
+        slide (dict): Slide object from Google Slides API.
+        slide_width_emu (float): Slide width in EMUs. Defaults to standard 16:9 width.
+        slide_height_emu (float): Slide height in EMUs. Defaults to standard 16:9 height.
+
+    Returns:
+        float: Percentage of slide area covered by images (0-100).
+    """
+    total_slide_area = slide_width_emu * slide_height_emu
+    total_image_area = 0
+
+    if 'pageElements' not in slide:
+        return 0.0
+
+    for element in slide['pageElements']:
+        if 'image' in element:
+            # Get size - check both direct size and nested structure
+            size = element.get('size', {})
+
+            # Handle nested magnitude structure
+            width_obj = size.get('width', {})
+            height_obj = size.get('height', {})
+
+            # Extract magnitude value (could be dict or direct value)
+            if isinstance(width_obj, dict):
+                width = width_obj.get('magnitude', 0)
+            else:
+                width = width_obj
+
+            if isinstance(height_obj, dict):
+                height = height_obj.get('magnitude', 0)
+            else:
+                height = height_obj
+
+            # Check for transform scaling (use abs() since negative values indicate flipping)
+            transform = element.get('transform', {})
+            scale_x = abs(transform.get('scaleX', 1.0))
+            scale_y = abs(transform.get('scaleY', 1.0))
+
+            # Apply scaling to get actual rendered size
+            actual_width = width * scale_x
+            actual_height = height * scale_y
+
+            if actual_width > 0 and actual_height > 0:
+                image_area = actual_width * actual_height
+                total_image_area += image_area
+
+    percentage = (total_image_area / total_slide_area) * 100
+
+    return percentage
+
+
 def extract_table_from_slide(slide: Dict[str, Any], normalize_text: bool = True) -> Optional[Dict[str, Any]]:
     """
     Extract structured table data from a slide.
-    
+
     Args:
         slide (Dict[str, Any]): Google Slides API slide object.
-    
+
     Returns:
         Optional[Dict[str, Any]]: Dictionary containing:
             - 'headers': List of header cell texts
@@ -896,17 +1012,17 @@ def extract_table_from_slide(slide: Dict[str, Any], normalize_text: bool = True)
     """
     if 'pageElements' not in slide:
         return None
-    
+
     for element in slide['pageElements']:
         if 'table' not in element:
             continue
-            
+
         table = element['table']
         table_rows = table.get('tableRows', [])
-        
+
         if not table_rows:
             continue
-        
+
         # Extract headers from first row
         headers = []
         first_row = table_rows[0]
@@ -914,13 +1030,13 @@ def extract_table_from_slide(slide: Dict[str, Any], normalize_text: bool = True)
             text_element = cell.get('text', {})
             cell_text = _extract_text_from_text_element(text_element)
             headers.append(cell_text)
-        
+
         num_columns = len(headers)
-        
+
         # Extract data rows and cell colors
         rows = []
         cell_colors = {}
-        
+
         for row_idx, row in enumerate(table_rows):
             cells = row.get('tableCells', [])
             if row_idx == 0:
@@ -929,20 +1045,20 @@ def extract_table_from_slide(slide: Dict[str, Any], normalize_text: bool = True)
                     color = _get_table_cell_background_color(cell)
                     cell_colors[(0, col_idx)] = color
                 continue
-            
+
             row_data = {}
             for col_idx, cell in enumerate(cells):
                 text_element = cell.get('text', {})
                 cell_text = _extract_text_from_text_element(text_element)
                 if col_idx < len(headers):
                     row_data[headers[col_idx]] = cell_text
-                
+
                 # Store cell background color
                 color = _get_table_cell_background_color(cell)
                 cell_colors[(row_idx, col_idx)] = color
-            
+
             rows.append(row_data)
-        
+
         return {
             'headers': headers,
             'rows': rows,
@@ -950,25 +1066,25 @@ def extract_table_from_slide(slide: Dict[str, Any], normalize_text: bool = True)
             'num_columns': num_columns,
             'num_rows': len(rows)
         }
-    
+
     return None
 
 def _extract_text_from_table_cell(cell: Dict[str, Any], normalize_text: bool = True) -> str:
     """
     Extract text content from a table cell.
-    
+
     Args:
         cell (Dict[str, Any]): Table cell object from Google Slides API.
-    
+
     Returns:
         str: Combined text content from all text elements in the cell.
     """
     if 'text' not in cell:
         return ""
-    
+
     text_parts = []
     text_element = cell['text']
-    
+
     if 'textElements' in text_element:
         for elem in text_element['textElements']:
             if 'textRun' in elem and 'content' in elem['textRun']:
@@ -976,18 +1092,18 @@ def _extract_text_from_table_cell(cell: Dict[str, Any], normalize_text: bool = T
                 if normalize_text:
                     text_run = text_run.strip().lower()
                 text_parts.append(text_run)
-    
+
     return "".join(text_parts).strip()
 
 
 def _get_table_cell_background_color(cell: Dict[str, Any]) -> Dict:
     """
     Extract background color name from a table cell.
-    
+
     Args:
         cell (Dict[str, Any]): Table cell object from Google Slides API.
         threshold (float): Threshold for color detection (0.0-1.0). Default 0.2.
-    
+
     Returns:
         dict: Dictionary with 'r', 'g', 'b' keys (0-1 range) or None.
     """
@@ -998,5 +1114,5 @@ def _get_table_cell_background_color(cell: Dict[str, Any]) -> Dict:
             if 'solidFill' in fill:
                 color = fill['solidFill'].get('color', {})
                 return _parse_color(color)
-    
+
     return None
