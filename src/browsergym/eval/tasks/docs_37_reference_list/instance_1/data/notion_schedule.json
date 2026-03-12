@@ -1,0 +1,219 @@
+[
+  {
+    "lecture_date": "August 19, 2024",
+    "lecture_title": "Course overview & logistics",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1FYEjmFnRWbY_cXIBsEW0muTioKgaAeCTKmZkQIgsXmw/edit?usp=sharing",
+    "lecture_recording_link": null,
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.maxyghcbqh9p"
+  },
+  {
+    "lecture_date": "August 21, 2024",
+    "lecture_title": "Machine learning foundations: Logistic regression",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1wQfkKiRI5zV5Mid0a6ENkUOpfCe-ikuj6_8VWOu-qpM/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/8hkY1DJ9Sos",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.oe3rj6pgd6ov"
+  },
+  {
+    "lecture_date": "August 26, 2024",
+    "lecture_title": "Tokenization; Morphology",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1FFlTO2HkmPYGcwBCCi-WZEwM8r4H1e__9i06bZVbB-c/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/d_84EMdbWwA",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.b7lh2tz8r5gc"
+  },
+  {
+    "lecture_date": "August 28, 2024",
+    "lecture_title": "Neural networks foundations: Feedforward neural networks (FFNNs)",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/13r4HbL9RA6C02Gn6IEXDnqH6qcppxCA2pon8Avf_Z6M/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/r1ykFRU5Imw",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.pr7zpdle115y"
+  },
+  {
+    "lecture_date": "September 4, 2024",
+    "lecture_title": "Word embeddings; Lexical semantics",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1B8nNsGp3RvvPdojLFtwqx6B-mn2UNtcdpSPNeEF36V0/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/Aw4aLTHfCww",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.pex5yza6zhp1"
+  },
+  {
+    "lecture_date": "September 9, 2024",
+    "lecture_title": "FFNNs with embeddings; Pytorch tutorial",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1oyRYrOVnMa0DnD2-Jsq2kdv10JCSWIsuUIF9v2WDzqo/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/S1pMaGmExFc",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.4622ylajhvxb"
+  },
+  {
+    "lecture_date": "September 11, 2024",
+    "lecture_title": "N-gram & neural language models",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1QMpsbFEbp8nX5NYAY55EruovWMT6PzdHXbKGcfFTB9Q/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/ThuBuXBVyDE?feature=shared",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.m6otb7lfb0bw"
+  },
+  {
+    "lecture_date": "September 16, 2024",
+    "lecture_title": "Machine translation: Seq2seq",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1MDMXsd6FESBtXU_dvT3Igr--TT4FLO42fA7y7qnhiGY/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/-Vz_uBP-zZA",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.g5t9s1ivnooc"
+  },
+  {
+    "lecture_date": "September 18, 2024",
+    "lecture_title": "Machine translation: BLEU, Decoding, Attention",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/17B6KP5nRyvBlKiRhpdK-jsdhyLaZErCGRG4M53ZU3aI/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/ODGQWwkq-WQ?feature=shared",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.kd90hg7tk46"
+  },
+  {
+    "lecture_date": "September 23, 2024",
+    "lecture_title": "Transformer",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/12sHgZgjcIB_K5AFZX4QtM9BGwFcQx5drOxaw4YdFAMw/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/ADAd98dwygA",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.355sraqm3j0l"
+  },
+  {
+    "lecture_date": "September 25, 2024",
+    "lecture_title": "Pretraining & Finetuning (FT)",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1syImgc19Kg9b93q-GyZWt0XHYOF_NOXdffjqWWevYmI/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/NIYVd85CIg4",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.2oydy5hl4vva"
+  },
+  {
+    "lecture_date": "September 25, 2024",
+    "lecture_title": "Guest lecture by Kylo Lo: Demystifying data curation for pretrained language models",
+    "lecture_slides_link": null,
+    "lecture_recording_link": "https://youtu.be/AlRQWKOQfbY",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.m5lxo4lo0dfk"
+  },
+  {
+    "lecture_date": "September 30, 2024",
+    "lecture_title": "Midterm overview",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/19r4IRCNLDHsEpS4MlqcSb4MsLsDbSJqVIgrfngboKAs/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/raumMA5xkHI",
+    "lecture_readings_link": null
+  },
+  {
+    "lecture_date": "October 14, 2024",
+    "lecture_title": "Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1JcNN2ZdEoxl2AwpRfusMln9hNx2xZkoinXl6aGrzPFk/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/F_LG8st5Y04",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.2oydy5hl4vva"
+  },
+  {
+    "lecture_date": "October 16, 2024",
+    "lecture_title": "Reinforcement Learning from Human Feedback (RLHF)",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1GJpLrwoWULyVHg8zfja7_Ka25VzGIFB2Q-dcJzTgbMs/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/uiISrv7lQcY?feature=shared",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.l1pjzyze4qci"
+  },
+  {
+    "lecture_date": "October 21, 2024",
+    "lecture_title": "Transformer types & Practical considerations",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1w19JfdyE3v4a8I4AOGTxaNG9HlgsOr9wToGvCTUSrDc/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/DXZmM6bfcYA",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.qlvwyxkm0h78"
+  },
+  {
+    "lecture_date": "October 23, 2024",
+    "lecture_title": "Efficiency: Guest lecture by Tianyi Zhang: Faster and Cheaper LLMs with Weight and Key-value Cache Quantization",
+    "lecture_slides_link": null,
+    "lecture_recording_link": "https://youtu.be/PRr9lesUhp4",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.lb1xdngy2vsw"
+  },
+  {
+    "lecture_date": "October 28, 2024",
+    "lecture_title": "Efficiency: Finetuning with (Q)LoRA",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1jv-gSJjaYHjZQa8QC67j6RUFu30zQViJ8CRjQw55EBQ/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/8g8AVkWzTQc",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.lb1xdngy2vsw"
+  },
+  {
+    "lecture_date": "October 28, 2024",
+    "lecture_title": "Application: Question Answering landscape",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1MSO6Pb8H_bG3AA6WXJA1vZtUzj1jkMcS2VS9V4tSSbw/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/eFLze9JSv2E?feature=shared",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit#bookmark=id.jmlbtybth2bg"
+  },
+  {
+    "lecture_date": "October 30, 2024",
+    "lecture_title": "Application: Dense retrieval; Answer extraction",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1iFCxV9cpUjvvgVeD_ovU4bzKgDi2-7lznuJSRcr8lpg/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/fxHDcqL0Qkg",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit?tab=t.0#bookmark=id.kstyqxg408b2"
+  },
+  {
+    "lecture_date": "November 4, 2024",
+    "lecture_title": "Application: Retrieval augmented generation (RAG); Extractive Summarization",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1DLdkoorblyhp3kn3ljjRqzOhYrkw7XEneRReTunW9Yg/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/Yxd-9NLifcg",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit?tab=t.0#bookmark=id.aae8qd20yvjx"
+  },
+  {
+    "lecture_date": "November 6, 2024",
+    "lecture_title": "LLM Safety: Guest lecture by Niloofar Mireshghallah: Can LLMs Keep a Secret? Membership Inference Attacks and Contextual Integrity for Language",
+    "lecture_slides_link": null,
+    "lecture_recording_link": "https://youtu.be/h91jPRxti_Q",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit?tab=t.0#bookmark=id.r7s7cuil4mke"
+  },
+  {
+    "lecture_date": "November 11, 2024",
+    "lecture_title": "Application: Abstractive summarization; Text generation evaluation",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1ICc4k68hKMqkFCMs7S_PhfVMLJosqPzeZM3-9B2u5mE/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/yTAX7YoSub0",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit?tab=t.0#bookmark=id.6cv45192g4aq"
+  },
+  {
+    "lecture_date": "November 13, 2024",
+    "lecture_title": "Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1Qcle-3JbpC2ctaUa7FUqTwZ_95b2BCgtoqfqMUwJhVI/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/jcIpBJkO9ow",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit?tab=t.0#bookmark=id.bgym99i2hhx5"
+  },
+  {
+    "lecture_date": "November 18, 2024",
+    "lecture_title": "Beyond text: Multimodal LLMs",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1RqYKOO5hveHaMUPDyU4jv57luo2L9ImOZEURbLUpKRU/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/UgOmFZAZAj4",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit?tab=t.0#bookmark=id.4vfljx8gkds7"
+  },
+  {
+    "lecture_date": "November 20, 2024",
+    "lecture_title": "Part-of-speech tagging; Named entity recognition; Hidden Markov Models (HMMs)",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/14cMpLDKpgeybi5U2BH_M65-yGVGsD6wW3X28mQ6urtI/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/4vrbNerivUQ",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit?tab=t.0#bookmark=id.cn8yx3g7maxa"
+  },
+  {
+    "lecture_date": "November 25, 2024",
+    "lecture_title": "HMM: Parameter Estimation and Inference; Viterbi",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1yXEKBSaTcZ8OdkNnBOv-JLwBwjbBPVQm1axKnGGjXTE/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/PCP6h87jNmQ",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit?tab=t.0#bookmark=id.djl7x7364633"
+  },
+  {
+    "lecture_date": "November 25, 2024",
+    "lecture_title": "Context free-grammars; Constituency parsing; CKY; Syntax",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/10Ze5RKhYhxrIWGGabxWvOKyB6wCg0PfGFkPCAOsaOSU/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/B51TcwBinrQ",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit?tab=t.0#bookmark=id.djl7x7364633"
+  },
+  {
+    "lecture_date": "November 27, 2024",
+    "lecture_title": "Dependency parsing",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/18T7J8OBHXiT4UjN6Z9OCaJ5yaRwl8dH77Jva0M3NFpc/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/OJJQBGRyBDA",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit?tab=t.0#bookmark=id.38iulsw61rl5"
+  },
+  {
+    "lecture_date": "December 2, 2024",
+    "lecture_title": "Semantic role labeling; Semantics; Coreference resolution; Discourse",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1RHp8A2Gn6ySvoeDg1mOTeMx1r2yiUwOy7RAGw9p8S-Y/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/IYcrTAMg98E",
+    "lecture_readings_link": "https://docs.google.com/document/d/1wLj6uFhDjP7TG7FYClZ4-p3C_fie4AmyA9ezbSvEldU/edit?tab=t.0#bookmark=id.wrymqj681gl5"
+  },
+  {
+    "lecture_date": "December 4, 2024",
+    "lecture_title": "Final overview",
+    "lecture_slides_link": "https://docs.google.com/presentation/d/1NiqQd9WkTdeBG4vdtylVC7sBCRJhUBSBLWqHrz85dV4/edit?usp=sharing",
+    "lecture_recording_link": "https://youtu.be/UBofLVt7OAQ",
+    "lecture_readings_link": null
+  }
+]
