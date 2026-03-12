@@ -577,3 +577,40 @@ def bboxes_overlap(bbox1, bbox2):
         bool: True if bboxes overlap, False otherwise.
     """
     return bbox_overlap_ratio(bbox1, bbox2) > 0
+
+
+def rgb_to_hex(r: float, g: float, b: float) -> str:
+    """Convert RGB (0-1 floats) to hex color string.
+
+    Args:
+        r: Red component (0-1).
+        g: Green component (0-1).
+        b: Blue component (0-1).
+
+    Returns:
+        Hex color string like '#FF0000'.
+    """
+    r_int = int(r * 255)
+    g_int = int(g * 255)
+    b_int = int(b * 255)
+    return f'#{r_int:02X}{g_int:02X}{b_int:02X}'
+
+
+def rgb_colors_match(color1: tuple, color2: tuple, tolerance: float = 0.05) -> bool:
+    """Check if two RGB colors match within tolerance.
+
+    Args:
+        color1: First RGB tuple (r, g, b) with values 0-1.
+        color2: Second RGB tuple (r, g, b) with values 0-1.
+        tolerance: Maximum difference allowed per channel.
+
+    Returns:
+        True if colors match within tolerance.
+    """
+    if not color1 or not color2:
+        return False
+
+    if len(color1) != 3 or len(color2) != 3:
+        return False
+
+    return all(abs(c1 - c2) <= tolerance for c1, c2 in zip(color1, color2))

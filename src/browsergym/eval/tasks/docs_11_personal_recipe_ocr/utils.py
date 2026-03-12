@@ -2,7 +2,6 @@
 Utility functions for docs_11_personal_recipe_ocr evaluator.
 
 This module provides functions to:
-- Extract hyperlinks from Google Docs
 - Extract content by section name
 - Compare ingredient and preparation lists
 - Isolate content to first recipe only (page 1)
@@ -15,6 +14,9 @@ import shutil
 import glob
 from typing import Dict, List, Optional, Tuple, Any
 from rapidfuzz import fuzz
+
+# Re-export from shared utils so existing imports continue to work
+from src.browsergym.eval.eval_utils.google_services_utils import extract_hyperlinks_from_doc
 
 
 # ============================================================================

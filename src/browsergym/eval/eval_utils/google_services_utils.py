@@ -1,6 +1,7 @@
 import sys
 import os
 import re
+from typing import Dict, List, Optional, Tuple
 sys.path.append(os.getcwd())
 from src.browsergym.eval.eval_utils.google_services_helpers import *
 import requests
@@ -378,6 +379,99 @@ def extract_images_from_doc(doc_id, service, output_dir=None):
         return images
     return None
 
+def extract_images_from_doc_extended(service, output_dir=None, document=None, doc_id=None, include_positioned=False):
+    """Extracts images from a Google document, with support for positioned objects.
+
+    Extends extract_images_from_doc by also handling positionedObjects (images
+    placed at specific page positions, e.g. side-by-side at the bottom) and
+    accepting a pre-fetched document to avoid redundant API calls.
+
+    Args:
+        service: The Google Docs service instance.
+        output_dir (str): Directory to save extracted images. Created if missing.
+        document (dict): Pre-fetched document JSON (from get_doc_content). If None, fetches via doc_id.
+        doc_id (str): The ID of the Google Doc. Required if document is not provided.
+        include_positioned (bool): If True, also extracts positioned objects.
+
+    Returns:
+        list: A list of image byte strings, or None if no images found.
+    """
+    if output_dir is not None and not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        print(f"Created output directory: {output_dir}")
+
+    if document is None:
+        if doc_id is None:
+            raise ValueError("Either document or doc_id must be provided")
+        document = service.documents().get(documentId=doc_id).execute()
+
+    inline_objects = document.get("inlineObjects") or {}
+    positioned_objects = document.get("positionedObjects") or {} if include_positioned else {}
+
+    if not inline_objects and not positioned_objects:
+        print("No images found in the document.")
+        return None
+
+    image_count = 0
+    authed_session = requests.Session()
+    authed_session.headers.update({'Authorization': f'Bearer {service._http.credentials.token}'})
+
+    images = []
+
+    def _download_image(content_uri, obj_id, source_label):
+        nonlocal image_count
+        image_count += 1
+        print(f"Found {source_label} image {image_count} (Object ID: {obj_id})")
+        try:
+            response = authed_session.get(content_uri)
+            response.raise_for_status()
+
+            content_type = response.headers.get('Content-Type')
+            extension = mimetypes.guess_extension(content_type) if content_type else '.jpg'
+            if not extension:
+                if 'png' in content_type.lower(): extension = '.png'
+                elif 'jpeg' in content_type.lower() or 'jpg' in content_type.lower(): extension = '.jpg'
+                elif 'gif' in content_type.lower(): extension = '.gif'
+                elif 'webp' in content_type.lower(): extension = '.webp'
+                else: extension = '.img'
+
+            images.append(response.content)
+
+            if output_dir is not None:
+                filename = f"image_{image_count}_{obj_id}{extension}"
+                filepath = os.path.join(output_dir, filename)
+                with open(filepath, 'wb') as f:
+                    f.write(response.content)
+                print(f" -> Saved {source_label} image to: {filepath}")
+        except requests.exceptions.RequestException as req_err:
+            print(f"  -> Error downloading {source_label} image {image_count} (Object ID: {obj_id}): {req_err}")
+        except IOError as io_err:
+            print(f"  -> Error saving {source_label} image {image_count} (Object ID: {obj_id}): {io_err}")
+        except Exception as e:
+            print(f"  -> Unexpected error processing {source_label} image {image_count} (Object ID: {obj_id}): {e}")
+
+    for obj_id, obj_data in inline_objects.items():
+        embedded_object = obj_data.get('inlineObjectProperties', {}).get('embeddedObject')
+        if embedded_object and embedded_object.get('imageProperties'):
+            content_uri = embedded_object['imageProperties'].get('contentUri')
+            if content_uri:
+                _download_image(content_uri, obj_id, "inline")
+
+    for obj_id, obj_data in positioned_objects.items():
+        embedded_object = obj_data.get('positionedObjectProperties', {}).get('embeddedObject')
+        if embedded_object and embedded_object.get('imageProperties'):
+            content_uri = embedded_object['imageProperties'].get('contentUri')
+            if content_uri:
+                _download_image(content_uri, obj_id, "positioned")
+
+    if image_count == 0:
+        print("No images found in the document.")
+        return None
+
+    print(f"Extracted {image_count} images from the document ({len(inline_objects)} inline, {len(positioned_objects)} positioned).")
+    return images
+
+
 def extract_images_from_doc_with_cropping(doc_id, service, output_dir=None):
     """Extracts images from a Google document and applies document cropping.
 
@@ -564,6 +658,85 @@ def extract_text_from_doc(doc_id, service):
     except Exception as e:
         print(f"An unexpected error occurred during text extraction: {e}")
         return None
+
+
+def extract_hyperlinks_from_doc(doc_id: str, service, document: dict = None) -> list:
+    """Extract all hyperlinks and plain text URLs from a Google Doc.
+
+    Extracts both embedded hyperlinks (textStyle.link.url) and plain text URLs
+    from paragraphs and tables. Returns structured data with URL and anchor text.
+
+    Args:
+        doc_id: The Google Doc ID. Used to fetch document if document is None.
+        service: The Google Docs API service instance.
+        document: Optional pre-fetched document JSON. If provided, doc_id is
+            ignored and no API call is made.
+
+    Returns:
+        List of dicts with 'url' and 'text' keys. Each dict represents one
+        hyperlink found in the document. For plain text URLs, 'text' equals
+        the URL itself.
+    """
+    if document is None:
+        document = service.documents().get(documentId=doc_id).execute()
+
+    body = document.get('body', {})
+    content = body.get('content', [])
+
+    links = []
+    url_pattern = re.compile(
+        r'https?://[^\s<>"\'}\])\u200b\u00a0]+',
+        re.IGNORECASE
+    )
+
+    def process_paragraph(paragraph):
+        para_links = []
+        para_elements = paragraph.get('elements', [])
+
+        for elem in para_elements:
+            if 'textRun' in elem:
+                text_run = elem['textRun']
+                content_text = text_run.get('content', '')
+                text_style = text_run.get('textStyle', {})
+
+                # Check for embedded hyperlink
+                if 'link' in text_style:
+                    url = text_style['link'].get('url', '')
+                    if url:
+                        para_links.append({
+                            'url': url,
+                            'text': content_text.strip()
+                        })
+
+                # Also check for plain text URLs
+                plain_urls = url_pattern.findall(content_text)
+                for plain_url in plain_urls:
+                    if not any(l['url'] == plain_url for l in para_links):
+                        para_links.append({
+                            'url': plain_url,
+                            'text': plain_url
+                        })
+
+        return para_links
+
+    def process_table(table):
+        table_links = []
+        for row in table.get('tableRows', []):
+            for cell in row.get('tableCells', []):
+                cell_content = cell.get('content', [])
+                for elem in cell_content:
+                    if 'paragraph' in elem:
+                        table_links.extend(process_paragraph(elem['paragraph']))
+        return table_links
+
+    for element in content:
+        if 'paragraph' in element:
+            links.extend(process_paragraph(element['paragraph']))
+        elif 'table' in element:
+            links.extend(process_table(element['table']))
+
+    return links
+
 
 def download_doc_as_pdf(doc_id, output_file, service):
     """Downloads a Google Doc as a PDF and saves it to the specified output directory.
@@ -1110,3 +1283,56 @@ def download_drive_image_threadsafe(file_id, access_token):
 
 # NOTE: parse_sheet_to_dataframe has been moved to google_sheets_utils.py
 # and is re-exported at the top of this file.
+
+
+def extract_text_colors_from_doc(document: dict) -> Dict[str, Tuple[float, float, float]]:
+    """Extract text content with background colors as RGB tuples.
+
+    Parses Google Docs JSON to extract text and their background colors.
+    Useful for tasks that require color-coded text validation.
+
+    Args:
+        document: Google Docs API document JSON from get_doc_content().
+
+    Returns:
+        Dict mapping text to RGB color tuple (r, g, b) where values are 0-1 floats.
+        Default color (white or no color) is (1.0, 1.0, 1.0).
+    """
+    from typing import Dict, Tuple
+
+    text_colors = {}
+
+    try:
+        for element in document.get('body', {}).get('content', []):
+            if 'paragraph' not in element:
+                continue
+
+            para = element['paragraph']
+
+            for elem in para.get('elements', []):
+                if 'textRun' not in elem:
+                    continue
+
+                text_run = elem['textRun']
+                text = text_run.get('content', '').strip()
+
+                if not text:
+                    continue
+
+                # Extract background color
+                text_style = text_run.get('textStyle', {})
+                bg_color = text_style.get('backgroundColor', {})
+                color_data = bg_color.get('color', {})
+                rgb_color = color_data.get('rgbColor', {})
+
+                # Default to white if no color specified
+                r = rgb_color.get('red', 1.0)
+                g = rgb_color.get('green', 1.0)
+                b = rgb_color.get('blue', 1.0)
+
+                text_colors[text] = (r, g, b)
+
+    except Exception as e:
+        print(f"Error extracting text colors: {e}")
+
+    return text_colors

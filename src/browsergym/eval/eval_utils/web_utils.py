@@ -5,7 +5,7 @@ import re
 import requests
 import html2text
 from typing import Dict, List, Optional, Tuple
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 # Domains known to block programmatic image downloads (anti-hotlinking, bot protection, etc.)
 UNVERIFIABLE_DOMAINS = [
@@ -314,6 +314,164 @@ def fetch_page_text_content(
         return None, f"Error: {str(e)[:50]}"
 
 
+def fetch_page_text_content_playwright(
+    url: str,
+    max_chars: int = 15000,
+    timeout: int = 10
+) -> Tuple[Optional[str], str]:
+    """Fetch URL using Playwright headless browser for JS-rendered content.
+
+    Renders the page with Chromium, strips non-content elements, isolates the
+    main content area, and converts to markdown via html2text. Useful for
+    JavaScript-heavy sites (Khan Academy, LibreTexts, etc.) where basic
+    requests.get() returns incomplete content.
+
+    Falls back to fetch_page_text_content() if Playwright is unavailable.
+
+    Return signature matches fetch_page_text_content() for drop-in compatibility.
+
+    Args:
+        url: URL to fetch.
+        max_chars: Maximum characters to return (default 15000).
+        timeout: Navigation timeout in seconds.
+
+    Returns:
+        Tuple of (markdown_content or None, status_details).
+    """
+    try:
+        import html2text
+        from bs4 import BeautifulSoup
+        from playwright.sync_api import sync_playwright
+
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True, args=[
+                '--disable-blink-features=AutomationControlled',
+            ])
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                           "AppleWebKit/537.36 (KHTML, like Gecko) "
+                           "Chrome/120.0.0.0 Safari/537.36",
+                extra_http_headers={
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5',
+                }
+            )
+            page = context.new_page()
+
+            # Remove webdriver flag that bot detectors check
+            page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+
+            timeout_ms = timeout * 1000
+            try:
+                page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
+            except Exception:
+                try:
+                    page.goto(url, wait_until="load", timeout=timeout_ms // 2)
+                except Exception as nav_err:
+                    browser.close()
+                    return None, f"Navigation failed: {str(nav_err)[:80]}"
+
+            # Wait for content to render
+            try:
+                page.wait_for_selector(
+                    "main, article, .mw-parser-output, #content, .content, body",
+                    timeout=3000
+                )
+            except Exception:
+                page.wait_for_timeout(2000)
+                try:
+                    page.wait_for_load_state("networkidle", timeout=5000)
+                except Exception:
+                    pass
+
+            html_content = page.content()
+            browser.close()
+
+        # Strip non-content elements
+        soup = BeautifulSoup(html_content, 'html.parser')
+        for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
+            element.decompose()
+
+        # Isolate main content area
+        main_content = (
+            soup.find('main') or
+            soup.find('article') or
+            soup.find(class_='mw-parser-output') or
+            soup.find(id='content') or
+            soup.find(class_='content') or
+            soup.body or
+            soup
+        )
+
+        cleaned_html = str(main_content)
+
+        if "JavaScript is disabled" in cleaned_html:
+            return None, "JavaScript appears disabled on this page"
+
+        # Convert to markdown
+        h = html2text.HTML2Text()
+        h.ignore_links = True
+        h.ignore_images = True
+        h.body_width = 0
+        markdown = h.handle(cleaned_html)
+
+        if len(markdown) > max_chars:
+            markdown = markdown[:max_chars]
+
+        return markdown, "OK"
+
+    except Exception as e:
+        # Fallback to requests-based approach
+        return fetch_page_text_content(url, timeout=timeout, max_chars=max_chars)
+
+
+def fetch_with_fallbacks(url: str, max_chars: int = 15000, timeout: int = 15) -> Tuple[Optional[str], str]:
+    """Fetch URL content with multiple fallback strategies.
+
+    Tries in order:
+    1. Playwright with stealth (default timeout)
+    2. Playwright retry with longer timeout (2x)
+    3. Wayback Machine archived snapshot
+
+    Note: fetch_page_text_content_playwright already falls back to
+    fetch_page_text_content internally, so no need for a separate requests call.
+
+    Returns on first success (content > 200 chars to avoid error pages).
+
+    Args:
+        url: URL to fetch.
+        max_chars: Maximum characters to return.
+        timeout: Request timeout in seconds.
+
+    Returns:
+        Tuple of (text_content or None, status_details).
+    """
+    # Strategy 1: Playwright (default timeout)
+    content, status = fetch_page_text_content_playwright(url, max_chars=max_chars, timeout=timeout)
+    if content and len(content.strip()) > 200:
+        return content, "OK (playwright)"
+
+    # Strategy 2: Playwright retry with longer timeout
+    content, status = fetch_page_text_content_playwright(url, max_chars=max_chars, timeout=timeout * 2)
+    if content and len(content.strip()) > 200:
+        return content, "OK (playwright-retry)"
+
+    # Strategy 3: Wayback Machine archived snapshot
+    try:
+        wb_api = f"https://archive.org/wayback/available?url={url}"
+        resp = requests.get(wb_api, timeout=10)
+        snapshot = resp.json().get('archived_snapshots', {}).get('closest', {})
+        wb_url = snapshot.get('url', '')
+        if wb_url:
+            content, status = fetch_page_text_content(wb_url, timeout=timeout, max_chars=max_chars)
+            if content and len(content.strip()) > 200:
+                return content, "OK (wayback)"
+    except Exception:
+        pass
+
+    return None, "All fetch strategies failed"
+
+
 def fetch_page_title(url: str, timeout: int = 10, headers: Optional[Dict[str, str]] = None) -> Optional[str]:
     """Fetch page title from any webpage via HTML parsing.
 
@@ -363,6 +521,57 @@ def fetch_page_title(url: str, timeout: int = 10, headers: Optional[Dict[str, st
     except Exception as e:
         print(f"Error fetching page {url}: {e}")
         return None
+
+
+def normalize_url_for_comparison(url: str) -> str:
+    """Normalize URL for consistent comparison (e.g., with browsing history).
+
+    Removes common URL variations that don't affect content:
+    - Trailing slashes
+    - Query parameters
+    - URL fragments (#anchor)
+    - www. prefix
+    - Protocol differences (lowercased)
+
+    Args:
+        url: URL to normalize.
+
+    Returns:
+        Normalized URL string.
+
+    Examples:
+        >>> normalize_url_for_comparison('https://www.example.com/page?foo=bar#section')
+        'https://example.com/page'
+        >>> normalize_url_for_comparison('HTTP://Example.COM/page/')
+        'http://example.com/page'
+    """
+    if not url:
+        return ''
+
+    try:
+        parsed = urlparse(url)
+
+        # Normalize domain (remove www.)
+        domain = parsed.netloc.lower()
+        if domain.startswith('www.'):
+            domain = domain[4:]
+
+        # Rebuild URL without query params and fragments
+        normalized = urlunparse((
+            parsed.scheme.lower(),
+            domain,
+            parsed.path.rstrip('/'),
+            '',  # params
+            '',  # query
+            ''   # fragment
+        ))
+
+        return normalized
+
+    except Exception:
+        # Fallback: simple lowercase and strip trailing slash
+        return url.lower().rstrip('/')
+
 
 def fetch_url_content(url):
     """
