@@ -5,7 +5,8 @@ import re
 import requests
 import html2text
 from typing import Dict, List, Optional, Tuple
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urljoin, urlparse, urlunparse
+from bs4 import BeautifulSoup
 
 # Domains known to block programmatic image downloads (anti-hotlinking, bot protection, etc.)
 UNVERIFIABLE_DOMAINS = [
@@ -646,3 +647,107 @@ def fetch_url_content(url):
     except Exception as e:
         print(f"Error fetching {url} with Playwright: {e}")
         return None
+    
+def download_page_images(
+        url, 
+        folder,
+        timeout: int = 10,
+        headers: Optional[Dict[str, str]] = None
+    ):
+    """
+    Download all images from a webpage to a specified folder.
+
+    Args:
+        page_url (str): The URL of the webpage to download images from.
+        folder (str): The folder to save the downloaded images.
+
+    Returns:
+        list: A list of filenames of the downloaded images, or an empty list if no images are found.
+
+    Examples:
+        >>> downloaded_files = download_page_images("https://example.com", "./images")
+        >>> print(f"Downloaded {len(downloaded_files)} images")
+    """
+    from PIL import Image
+    # Only accept these image extensions
+    allowed_exts = {'png', 'jpg', 'jpeg', 'bmp', 'tiff'}
+    
+    # 1. Create the folder if it doesn't exist
+    os.makedirs(folder, exist_ok=True)
+
+    # 2. Get the HTML of the website
+    default_headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+    request_headers = headers or default_headers
+    response = requests.get(url, timeout=timeout, headers=request_headers)
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    # 3. Find all <img> tags
+    img_tags = soup.find_all('img')
+    # print(f"Found {len(img_tags)} images.")
+    downloaded_files = []
+    for i, img in enumerate(img_tags):
+        # Get the 'src' attribute
+        img_url = img.get('src')
+        if not img_url:
+            continue
+
+        # Handle relative URLs (e.g., /images/pic.jpg -> https://site.com/images/pic.jpg)
+        img_url = urljoin(url, img_url)
+
+        try:
+            # Extract extension from URL path
+            parsed = urlparse(img_url)
+            _, ext = os.path.splitext(parsed.path or "")
+            ext = ext.lower().lstrip('.') if ext else ''
+
+            # Download the image data
+            response = requests.get(img_url, timeout=10)
+            content_type = response.headers.get('Content-Type', '').lower()
+
+            # Prefer URL extension when valid
+            if ext and ext in allowed_exts:
+                chosen_ext = ext
+            else:
+                # Map common content-types to extensions
+                ct_map = {
+                    'image/png': 'png',
+                    'image/jpeg': 'jpg',
+                    'image/jpg': 'jpg',
+                    'image/bmp': 'bmp',
+                    'image/tiff': 'tiff',
+                    'image/x-tiff': 'tiff'
+                }
+                ct = content_type.split(';')[0].strip()
+                chosen_ext = ct_map.get(ct)
+
+            # Skip if extension is not allowed
+            if not chosen_ext or chosen_ext not in allowed_exts:
+                # print(f"Skipping {img_url} (unsupported type)")
+                continue
+            
+            # Create a filename
+            filename = os.path.basename(urlparse(img_url).path)
+            if not filename or '.' not in filename:
+                filename = f"image_{i}.{chosen_ext}"
+            else:
+                # Ensure correct extension
+                name_without_ext = os.path.splitext(filename)[0]
+                filename = f"{name_without_ext}.{chosen_ext}"
+                
+            filepath = os.path.join(folder, filename)
+            with open(filepath, 'wb') as f:
+                f.write(response.content)
+            # Validate that the file is a real image
+            try:
+                Image.open(filepath).verify()
+            except Exception:
+                os.remove(filepath)
+                continue
+            # print(f"Downloaded: {filename}")
+            downloaded_files.append(filename)
+        except Exception as e:
+            # print(f"Could not download {img_url}: {e}")
+            pass
+    return downloaded_files

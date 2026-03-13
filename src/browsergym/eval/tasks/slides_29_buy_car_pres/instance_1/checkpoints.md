@@ -1,0 +1,50 @@
+# Checkpoints
+
+This task has 63 points in total.
+
+## Checkpoint 1 (2pt):
+
+Title slide contains the correct text.
+
+### Outcome Evaluation:
+
+- Exact match on "Comparing Different Cool Cars to Buy" found.
+- The matched text has a font size of at least 30pt.
+
+# Checkpoint 2 (6pt):
+
+Car content slides exists and have correct cars.
+
+### Outcome Evaluation:
+
+- The browsing history contains a visit to the article talking about 2023 best minivans.
+- There are at least 5 slides, each contains the name of a car from the gold list (5pts total).
+
+# Checkpoint 3 (x5 minivans, 10 pts each):
+
+Car slides meet the requirements.
+
+### Outcome Evaluation (repeats for 5 minivans):
+
+- The browsing history contains a visit to the corresponding KBB vehicle page.
+- The make and model of the minivan are listed in the slide title.
+- A picture of the correct model is found.
+- The minivan picture takes up at least 50% of the slide.
+- Sticker price matches the price listed on Kelly Blue Book.
+- Fuel efficiency stat matches the listed value on Kelly Blue Book.
+- Horsepower stat matches the listed value on listed on Kelly Blue Book.
+- A URL to a user review platform is provided.
+- The browsing history contains a visit to the user review platform URL.
+- User average rating matches the listed value on the user review platform.
+
+# Checkpoint 4 (5pt):
+
+The last slide meets the requirements.
+
+### Outcome Evaluation:
+
+- The slide title denotes that the slide contains the best car stats.
+- The correct lowest-price car is listed.
+- The correct highest MPG car is listed.
+- The correct highest horsepower car is listed.
+- The most higly-rated car is listed.
