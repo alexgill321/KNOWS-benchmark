@@ -1,6 +1,5 @@
 """Utility functions for fetching and parsing Zillow and Craigslist listing data."""
 
-import json
 import os
 import re
 import tempfile
@@ -10,6 +9,11 @@ from typing import Dict, List, Optional, Any
 import requests
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
+
+from src.browsergym.eval.eval_utils.llm_utils import (
+    strip_markdown_code_blocks,
+    extract_json_from_llm_response,
+)
 
 
 
@@ -101,39 +105,10 @@ HTML Content:
     try:
         response = model(messages)
 
-        # Try to parse JSON from response
-        response_text = response.strip()
+        data = extract_json_from_llm_response(response, expect_type="array")
 
-        # Handle markdown code blocks
-        if "```" in response_text:
-            lines = response_text.split('\n')
-            json_lines = []
-            in_code_block = False
-            for line in lines:
-                if line.strip().startswith("```"):
-                    in_code_block = not in_code_block
-                    continue
-                if in_code_block:
-                    json_lines.append(line)
-            if json_lines:
-                response_text = '\n'.join(json_lines)
-
-        # Find JSON array in response
-        start_idx = response_text.find('[')
-        if start_idx != -1:
-            bracket_count = 0
-            end_idx = start_idx
-            for i, char in enumerate(response_text[start_idx:], start_idx):
-                if char == '[':
-                    bracket_count += 1
-                elif char == ']':
-                    bracket_count -= 1
-                    if bracket_count == 0:
-                        end_idx = i
-                        break
-            response_text = response_text[start_idx:end_idx + 1]
-
-        data = json.loads(response_text)
+        if data is None:
+            return None
 
         # Ensure we return a list
         if isinstance(data, dict):
@@ -141,10 +116,6 @@ HTML Content:
 
         return data if data else None
 
-    except json.JSONDecodeError as e:
-        print(f"Failed to parse LLM response as JSON: {e}")
-        print(f"Response was: {response[:500]}...")
-        return None
     except Exception as e:
         print(f"Error in LLM extraction: {e}")
         return None
@@ -440,39 +411,10 @@ If there is only ONE unit, still return an array with a single object."""}
     try:
         response = model(messages)
 
-        # Try to parse JSON from response
-        response_text = response.strip()
+        data = extract_json_from_llm_response(response, expect_type="array")
 
-        # Handle markdown code blocks
-        if "```" in response_text:
-            lines = response_text.split('\n')
-            json_lines = []
-            in_code_block = False
-            for line in lines:
-                if line.strip().startswith("```"):
-                    in_code_block = not in_code_block
-                    continue
-                if in_code_block:
-                    json_lines.append(line)
-            if json_lines:
-                response_text = '\n'.join(json_lines)
-
-        # Find JSON array in response
-        start_idx = response_text.find('[')
-        if start_idx != -1:
-            bracket_count = 0
-            end_idx = start_idx
-            for i, char in enumerate(response_text[start_idx:], start_idx):
-                if char == '[':
-                    bracket_count += 1
-                elif char == ']':
-                    bracket_count -= 1
-                    if bracket_count == 0:
-                        end_idx = i
-                        break
-            response_text = response_text[start_idx:end_idx + 1]
-
-        data = json.loads(response_text)
+        if data is None:
+            return None
 
         # Ensure we return a list
         if isinstance(data, dict):
@@ -480,10 +422,6 @@ If there is only ONE unit, still return an array with a single object."""}
 
         return data if data else None
 
-    except json.JSONDecodeError as e:
-        print(f"Failed to parse LLM response as JSON: {e}")
-        print(f"Response was: {response[:500]}...")
-        return None
     except Exception as e:
         print(f"Error in LLM extraction from screenshot: {e}")
         return None
@@ -626,36 +564,9 @@ Always respond with valid JSON only, no other text."""
     try:
         response = model(messages)
 
-        # Try to parse JSON from response
-        response_text = response.strip()
-
-        # Handle markdown code blocks
-        if "```" in response_text:
-            lines = response_text.split('\n')
-            json_lines = []
-            in_code_block = False
-            for line in lines:
-                if line.strip().startswith("```"):
-                    in_code_block = not in_code_block
-                    continue
-                if in_code_block:
-                    json_lines.append(line)
-            if json_lines:
-                response_text = '\n'.join(json_lines)
-
-        # Find JSON object in response
-        start_idx = response_text.find('{')
-        end_idx = response_text.rfind('}')
-        if start_idx != -1 and end_idx != -1:
-            response_text = response_text[start_idx:end_idx + 1]
-
-        data = json.loads(response_text)
+        data = extract_json_from_llm_response(response, expect_type="object")
         return data if data else None
 
-    except json.JSONDecodeError as e:
-        print(f"Failed to parse LLM response as JSON: {e}")
-        print(f"Response was: {response[:500]}...")
-        return None
     except Exception as e:
         print(f"Error in LLM extraction: {e}")
         return None

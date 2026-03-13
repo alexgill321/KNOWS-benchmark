@@ -5,14 +5,16 @@ These helpers use existing eval_utils functions where possible and add
 small, task-specific utilities (loading gold devices, checking title bold,
 parsing simple slide tables and colors, etc.).
 """
-from cmath import exp
 import os
-import json
 from typing import List, Literal, Optional, Tuple, Dict, Any, Union
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
+from src.browsergym.eval.eval_utils.llm_utils import (
+    extract_json_with_llm as _extract_json_with_llm,
+    evaluate_with_llm as _evaluate_with_llm,
+)
 from src.browsergym.eval.eval_utils.text_utils import keyword_exact_match
 
 BASE_DIR = os.path.dirname(__file__)
@@ -20,12 +22,10 @@ DATA_DIR = os.path.join(BASE_DIR, "instance_1", "data")
 GOLD_DEVICES_PATH = os.path.join(DATA_DIR, "gold_devices.txt")
 
 
-
-
 def extract_device_info_with_llm(task_text: str, model: Any) -> Optional[Dict[str, Any]]:
     """
     Extract device summaries and recommendations from slide text using an LLM.
-    
+
     Args:
         slide_text (str): Raw text extracted from a slide.
         model (Any): Callable LLM interface.
@@ -38,110 +38,21 @@ def extract_device_info_with_llm(task_text: str, model: Any) -> Optional[Dict[st
                 "recommendation":[["MacBook Air","Recommended for ..."], ["Dell XPS 13", "Recommended for ..."]]
             }
     """
-    
-    messages = [
-        {
-            "role": "system",
-            "content": [{"type": "text", "text": f"""You are a data extraction assistant. Extract the information in the provided text and format it as specified. 
-            
-Always respond with valid JSON only, no other text."""}]
-        },
-        {
-            "role": "user",
-            "content": [{"type": "text", "text": task_text}]
-        }
-    ]
-        
-    try:
-        # Prase JSON from response
-        response = model(messages).strip().lower()
-        
-        # Handle markdown code blocks
-        if "```" in response:
-            lines = response.split('\n')
-            json_lines = []
-            in_code_block = False
-            for line in lines:
-                if line.strip().startswith("```"):
-                    in_code_block = not in_code_block
-                    continue
-                if in_code_block:
-                    json_lines.append(line)
-            if json_lines:
-                response = "\n".join(json_lines)
-                
-        json_data = json.loads(response)
-        return json_data
+    return _extract_json_with_llm(task_text, model)
 
-    except json.JSONDecodeError as e:
-        print(f"Failed to parse LLM response as JSON: {e}")
-        print(f"Response was: {response[:500]}...")
-        return None
-    except Exception as e:
-        print(f"Error in LLM extraction: {e}")
-        return None
-    
-def evaluate_device_info_with_llm(task_text: str, model: Any, return_type: Literal["bool", "str", "json"]="bool") -> Optional[Union[bool, str, Any]]:
+
+def evaluate_device_info_with_llm(task_text: str, model: Any, return_type: Literal["bool", "str", "json"] = "bool") -> Optional[Union[bool, str, Any]]:
     """Quick boolean check using an LLM to validate task text.
 
     Args:
         task_text (str): The text to validate.
         model (Any): Callable LLM interface.
+        return_type (str): Format of the returned result: 'bool', 'str', or 'json'.
 
     Returns:
-        bool: True if model indicates the text is valid (contains "yes");
-        False on any other response or error.
+        Optional[Union[bool, str, Any]]: Result in the specified format, or None on error.
     """
-    if return_type not in ["bool", "str", "json"]:
-        print(f"Error: return_type must have the follow in values: 'bool', 'str', or 'json'. Got: {return_type}")
-        return None
-    
-    return_type_instruction = {
-        "bool": "Response with ONLY 'yes' or 'no'.",
-        "str": "Format your response strictly as specified in the task instructions.",
-        "json": "Respond with the JSON format specified in the task instructions."
-    }
-    
-    messages = [
-        {
-            "role": "system",
-            "content": [{"type": "text", "text": f"""You are a helpful assistant who evaluates whether a text satisfies the requirements of the task. 
-                         
-            {return_type_instruction.get(return_type, "")}"""}]
-        },
-        {
-            "role": "user",
-            "content": [{"type": "text", "text": f"{task_text}"}]
-        }
-    ]
-    try:
-        response = model(messages).strip().lower()
-        
-        if return_type == "bool":
-            return "yes" in response
-        elif return_type == "str":
-            return response
-        else:
-            # Handle markdown code blocks
-            if "```" in response:
-                lines = response.split('\n')
-                json_lines = []
-                in_code_block = False
-                for line in lines:
-                    if line.strip().startswith("```"):
-                        in_code_block = not in_code_block
-                        continue
-                    if in_code_block:
-                        json_lines.append(line)
-                if json_lines:
-                    response = "\n".join(json_lines)
-                    
-            data_json = json.loads(response)
-            return data_json
-        
-    except Exception as e:
-            print(f"LLM failed to evaluate slide text: {e}")
-            return None
+    return _evaluate_with_llm(task_text, model, return_type=return_type)
 
 
 def detect_color_name(color: Dict, threshold: float = 0.2) -> str:

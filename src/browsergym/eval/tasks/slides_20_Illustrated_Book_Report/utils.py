@@ -6,6 +6,7 @@ to verify that bullet point characteristics are direct quotes from sources.
 """
 
 import html2text
+from src.browsergym.eval.eval_utils.llm_utils import parse_yes_no
 from src.browsergym.eval.eval_utils.text_utils import text_fuzzy_match_contained_long
 
 
@@ -144,8 +145,8 @@ Do NOT answer Yes if the content is paraphrased or summarized."""
     ]
 
     try:
-        response = model(messages).strip().lower()
-        result = 'yes' in response
+        response = model(messages)
+        result = parse_yes_no(response) or False
 
         if result:
             print(f"LLM validated quote: {bullet_text[:50]}...")

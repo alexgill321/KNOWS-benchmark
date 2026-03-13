@@ -5,7 +5,6 @@ These helpers provide task-specific utilities for extracting and validating
 car comparison presentation data, including LLM-based extraction, image
 coverage calculation, and browsing history URL matching.
 """
-import json
 import os
 import re
 from typing import Any, Dict, List, Literal, Optional, Union
@@ -13,6 +12,10 @@ from urllib.parse import urlparse
 import time
 
 from src.browsergym.eval.eval_utils.image_utils import binary_judge_image
+from src.browsergym.eval.eval_utils.llm_utils import (
+    extract_json_with_llm as _extract_json_with_llm,
+    evaluate_with_llm as _evaluate_with_llm,
+)
 from src.browsergym.eval.eval_utils.slides_utils import extract_title_text, get_image_area_percentage_from_api
 from src.browsergym.eval.eval_utils.text_utils import keywords_match_robust
 
@@ -28,47 +31,7 @@ def extract_info_with_llm(task_text: str, model: Any) -> Optional[Dict[str, Any]
     Returns:
         Optional[Dict[str, Any]]: Parsed JSON dict, or None on failure.
     """
-    messages = [
-        {
-            "role": "system",
-            "content": [{"type": "text", "text": "You are a data extraction assistant. Extract the information in the provided text and format it as specified.\n\nAlways respond with valid JSON only, no other text."}]
-        },
-        {
-            "role": "user",
-            "content": [{"type": "text", "text": task_text}]
-        }
-    ]
-
-    try:
-        response = model(messages)
-        if response is None:
-            print("LLM returned None response")
-            return None
-        response = response.strip()
-
-        # Handle markdown code blocks
-        if "```" in response:
-            lines = response.split('\n')
-            json_lines = []
-            in_code_block = False
-            for line in lines:
-                if line.strip().startswith("```"):
-                    in_code_block = not in_code_block
-                    continue
-                if in_code_block:
-                    json_lines.append(line)
-            if json_lines:
-                response = "\n".join(json_lines)
-
-        return json.loads(response)
-
-    except json.JSONDecodeError as e:
-        print(f"Failed to parse LLM response as JSON: {e}")
-        print(f"Response was: {response[:500]}...")
-        return None
-    except Exception as e:
-        print(f"Error in LLM extraction: {e}")
-        return None
+    return _extract_json_with_llm(task_text, model)
 
 
 def evaluate_with_llm(task_text: str, model: Any, return_type: Literal["bool", "str", "json"] = "bool") -> Optional[Union[bool, str, Any]]:
@@ -83,57 +46,7 @@ def evaluate_with_llm(task_text: str, model: Any, return_type: Literal["bool", "
     Returns:
         Optional[Union[bool, str, Any]]: Result in the specified format, or None on error.
     """
-    if return_type not in ["bool", "str", "json"]:
-        print(f"Error: return_type must be 'bool', 'str', or 'json'. Got: {return_type}")
-        return None
-
-    return_type_instruction = {
-        "bool": "Respond with ONLY 'yes' or 'no'.",
-        "str": "Format your response strictly as specified in the task instructions.",
-        "json": "Respond with the JSON format specified in the task instructions."
-    }
-
-    messages = [
-        {
-            "role": "system",
-            "content": [{"type": "text", "text": f"You are a helpful assistant who evaluates whether a text satisfies the requirements of the task.\n\n{return_type_instruction[return_type]}"}]
-        },
-        {
-            "role": "user",
-            "content": [{"type": "text", "text": task_text}]
-        }
-    ]
-
-    try:
-        response = model(messages)
-        if response is None:
-            print("LLM returned None response")
-            return None
-        response = response.strip().lower()
-
-        if return_type == "bool":
-            return "yes" in response
-        elif return_type == "str":
-            return response
-        else:
-            # Handle markdown code blocks
-            if "```" in response:
-                lines = response.split('\n')
-                json_lines = []
-                in_code_block = False
-                for line in lines:
-                    if line.strip().startswith("```"):
-                        in_code_block = not in_code_block
-                        continue
-                    if in_code_block:
-                        json_lines.append(line)
-                if json_lines:
-                    response = "\n".join(json_lines)
-            return json.loads(response)
-
-    except Exception as e:
-        print(f"LLM evaluation failed: {e}")
-        return None
+    return _evaluate_with_llm(task_text, model, return_type=return_type)
 
 def find_kbb_url_for_car(browsing_history: List[str], make_model: str) -> Optional[str]:
     """
