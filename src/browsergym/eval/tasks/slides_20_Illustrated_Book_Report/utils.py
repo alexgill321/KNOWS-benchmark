@@ -5,81 +5,29 @@ This module provides helper functions for fetching and validating URL content
 to verify that bullet point characteristics are direct quotes from sources.
 """
 
-import html2text
 from src.browsergym.eval.eval_utils.llm_utils import parse_yes_no
 from src.browsergym.eval.eval_utils.text_utils import text_fuzzy_match_contained_long
+from src.browsergym.eval.eval_utils.web_utils import fetch_with_fallbacks
 
 
 def fetch_url_content(url):
     """
-    Fetch and convert URL to markdown text using Playwright for JavaScript rendering.
+    Fetch and convert URL to markdown text with multiple fallback strategies.
 
-    Uses Playwright to render JavaScript-heavy pages (like Fandom wikis) before
-    extracting content. Falls back to requests for simpler pages.
+    Uses fetch_with_fallbacks which tries Playwright, Playwright retry with
+    longer timeout, and Wayback Machine as a last resort.
 
     Args:
         url (str): The URL to fetch content from.
 
     Returns:
         str: Markdown content (truncated to 60k chars), or None if fetch fails.
-
-    Examples:
-        >>> content = fetch_url_content("https://example.com/character-info")
-        >>> if content:
-        ...     print(f"Fetched {len(content)} characters of content")
     """
-    try:
-        from playwright.sync_api import sync_playwright
-
-        with sync_playwright() as p:
-            # Launch headless browser
-            browser = p.chromium.launch(headless=True)
-            context = browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            )
-
-            page = context.new_page()
-
-            # Navigate: try domcontentloaded, fallback to load
-            try:
-                page.goto(url, wait_until="domcontentloaded", timeout=10000)
-            except Exception:
-                page.goto(url, wait_until="load", timeout=5000)
-
-            # Wait for selector (only reached if navigation succeeded)
-            try:
-                page.wait_for_selector("main, article, .mw-parser-output, #content", timeout=3000)
-            except Exception:
-                page.wait_for_timeout(500)
-                try:
-                    page.wait_for_load_state("networkidle", timeout=3000)
-                except Exception:
-                    raise Exception(f"Timeout waiting for content from {url}: selector not found and networkidle (3s) exceeded")
-           
-            # Get the rendered HTML
-            html_content = page.content()
-
-            browser.close()
-
-        if "JavaScript is disabled" in html_content:
-            print(f"JavaScript appears to be disabled for {url}")
-            return None
-        
-        # Convert HTML to Markdown
-        h = html2text.HTML2Text()
-        h.ignore_links = True  # Don't convert hyperlinks to markdown format
-        h.ignore_images = True  # Skip image references
-        h.body_width = 0  # Don't wrap lines
-        markdown = h.handle(html_content)
-
-        # Truncate to ~60k chars (~15k tokens) to prevent excessive LLM usage
-        if len(markdown) > 60000:
-            markdown = markdown[:60000]
-        return markdown
-
-    except Exception as e:
-        print(f"Error fetching {url} with Playwright: {e}")
-        return None
+    content, status = fetch_with_fallbacks(url, max_chars=60000, timeout=15)
+    if content:
+        return content
+    print(f"All fetch strategies failed for {url}: {status}")
+    return None
 
 
 def validate_bullet_in_content(bullet_text, markdown_content, model):
