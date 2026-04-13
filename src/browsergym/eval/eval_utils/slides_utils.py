@@ -1116,3 +1116,174 @@ def _get_table_cell_background_color(cell: Dict[str, Any]) -> Dict:
                 return _parse_color(color)
 
     return None
+
+
+def extract_speaker_notes_text(slide: Dict[str, Any]) -> str:
+    """Extract all text from the speaker notes of a slide.
+
+    Args:
+        slide (dict): Slide object from Google Slides API.
+
+    Returns:
+        str: Combined text from speaker notes, or empty string if none.
+    """
+    notes_page = slide.get('slideProperties', {}).get('notesPage', {})
+    text_parts = []
+    for element in notes_page.get('pageElements', []):
+        if 'shape' in element and 'text' in element['shape']:
+            for text_elem in element['shape']['text'].get('textElements', []):
+                if 'textRun' in text_elem:
+                    content = text_elem['textRun'].get('content', '')
+                    text_parts.append(content)
+    return ''.join(text_parts).strip()
+
+
+def resolve_theme_color(theme_color_name: str, presentation: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Resolve a theme color name to RGB values using the presentation's color scheme.
+
+    Args:
+        theme_color_name (str): Theme color name (e.g., 'DARK2', 'ACCENT1').
+        presentation (dict): Full presentation object from Google Slides API.
+
+    Returns:
+        dict: RGB color dict with 'r', 'g', 'b' keys (0-1 range), or None.
+    """
+    for master in presentation.get('masters', []):
+        color_scheme = master.get('pageProperties', {}).get('colorScheme', {})
+        for color_entry in color_scheme.get('colors', []):
+            if color_entry.get('type') == theme_color_name:
+                color_obj = color_entry.get('color', {})
+                if 'rgbColor' in color_obj:
+                    rgb = color_obj['rgbColor']
+                else:
+                    rgb = color_obj
+                return {
+                    'r': rgb.get('red', 0),
+                    'g': rgb.get('green', 0),
+                    'b': rgb.get('blue', 0)
+                }
+    return None
+
+
+def get_shape_background_fill(element: Dict[str, Any], presentation: Dict[str, Any] = None) -> Optional[Dict[str, Any]]:
+    """Extract solid fill color from a shape element's background.
+
+    Handles both explicit RGB colors and theme colors (resolved via
+    presentation color scheme when provided).
+
+    Args:
+        element (dict): Page element from Google Slides API.
+        presentation (dict): Full presentation object, needed to resolve theme colors.
+
+    Returns:
+        dict: RGB color dict with 'r', 'g', 'b' keys (0-1 range), or None.
+    """
+    if 'shape' not in element:
+        return None
+    shape_props = element['shape'].get('shapeProperties', {})
+    bg_fill = shape_props.get('shapeBackgroundFill', {})
+    if bg_fill.get('propertyState') == 'NOT_RENDERED':
+        return None
+    if 'solidFill' in bg_fill:
+        color = bg_fill['solidFill'].get('color', {})
+        if 'rgbColor' in color:
+            rgb = color['rgbColor']
+            return {
+                'r': rgb.get('red', 0),
+                'g': rgb.get('green', 0),
+                'b': rgb.get('blue', 0)
+            }
+        if 'themeColor' in color and presentation:
+            return resolve_theme_color(color['themeColor'], presentation)
+    return None
+
+
+def is_grey_color(color: Optional[Dict[str, Any]], min_val: float = 0.2, max_val: float = 0.95) -> bool:
+    """Check if a color represents grey (R ~= G ~= B, not black, not white).
+
+    Args:
+        color (dict): RGB color dict with 'r', 'g', 'b' keys (0-1 range).
+        min_val (float): Minimum average brightness to exclude near-black.
+        max_val (float): Maximum average brightness to exclude near-white.
+
+    Returns:
+        bool: True if color is grey.
+    """
+    if not color:
+        return False
+    r, g, b = color.get('r', 0), color.get('g', 0), color.get('b', 0)
+    max_diff = max(abs(r - g), abs(r - b), abs(g - b))
+    avg = (r + g + b) / 3
+    return max_diff < 0.15 and min_val < avg < max_val
+
+
+def get_paragraph_alignment(shape: Dict[str, Any]) -> Optional[str]:
+    """Extract the dominant paragraph alignment from a shape's text.
+
+    Reads the first explicit alignment value found in paragraphMarker style.
+
+    Args:
+        shape (dict): Shape object from Google Slides API containing 'text'.
+
+    Returns:
+        str: Alignment value ('LEFT', 'CENTER', 'RIGHT', 'JUSTIFIED', 'START',
+            'END'), or None if not set.
+    """
+    if 'text' not in shape:
+        return None
+    for text_elem in shape['text'].get('textElements', []):
+        if 'paragraphMarker' in text_elem:
+            alignment = text_elem['paragraphMarker'].get('style', {}).get('alignment')
+            if alignment:
+                return alignment
+    return None
+
+
+def is_text_centered(shape: Dict[str, Any], bbox: Dict[str, float], slide_width: float,
+                     tolerance: float = 0.15) -> bool:
+    """Check if text in a shape appears horizontally centered on a slide.
+
+    Passes if EITHER:
+    1. The bounding box center is within ``tolerance`` of the slide center
+       (positional centering — works regardless of paragraph alignment), OR
+    2. The paragraph alignment is explicitly set to CENTER.
+
+    This handles all practical centering patterns: full-width boxes with CENTER
+    alignment, narrow boxes positioned at the slide center, and combinations.
+
+    Args:
+        shape (dict): Shape object from Google Slides API containing 'text'.
+        bbox (dict): Bounding box with 'x' and 'width' keys (EMUs).
+        slide_width (float): Slide width in EMUs.
+        tolerance (float): Fraction of slide width allowed as center offset (default 0.15).
+
+    Returns:
+        bool: True if text appears centered on the slide.
+    """
+    box_center_x = bbox['x'] + bbox['width'] / 2
+    geometric_centered = abs(box_center_x - slide_width / 2) < slide_width * tolerance
+    alignment = get_paragraph_alignment(shape)
+    return geometric_centered or alignment == 'CENTER'
+
+
+def is_text_left_aligned(shape: Dict[str, Any], bbox: Dict[str, float], slide_width: float) -> bool:
+    """Check if text in a shape is left-aligned on a slide.
+
+    Uses paragraph alignment as the primary signal. Falls back to bounding box
+    position only when no explicit alignment is set.
+
+    Args:
+        shape (dict): Shape object from Google Slides API containing 'text'.
+        bbox (dict): Bounding box with 'x' key (EMUs).
+        slide_width (float): Slide width in EMUs.
+
+    Returns:
+        bool: True if text is left-aligned.
+    """
+    alignment = get_paragraph_alignment(shape)
+    if alignment in ('LEFT', 'START'):
+        return True
+    if alignment in ('CENTER', 'RIGHT', 'END', 'JUSTIFIED'):
+        return False
+    # No explicit alignment set: fall back to bbox position
+    return bbox['x'] < slide_width * 0.25
