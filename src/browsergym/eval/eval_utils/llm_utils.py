@@ -43,16 +43,20 @@ def strip_markdown_code_blocks(text: str) -> str:
 def parse_yes_no(response: str) -> Optional[bool]:
     """Parse a yes/no answer from an LLM response.
 
-    Looks for 'yes' or 'no' in the lowercased response text.
+    Looks for 'yes', 'no', or uncertainty markers in the lowercased response.
+    Checks for 'unsure'/'don't know' first so uncertain responses return None
+    rather than matching a stray 'no' inside 'don't know'.
 
     Args:
         response (str): Raw LLM response text.
 
     Returns:
         Optional[bool]: True if response contains 'yes', False if 'no',
-            None if neither is found.
+            None if unsure or neither is found.
     """
-    response_lower = response.lower()
+    response_lower = response.strip().lower()
+    if "unsure" in response_lower or "don't know" in response_lower or "do not know" in response_lower:
+        return None
     if "yes" in response_lower:
         return True
     elif "no" in response_lower:

@@ -454,20 +454,24 @@ def get_row_background_color(sheet_raw: Dict, row_idx: int) -> Optional[Dict]:
 
 
 def classify_row_color(color_dict: Optional[Dict]) -> str:
-    """Classify a row color as yellow, blue, or none.
+    """Classify a row color as yellow, blue, green, red, or none.
 
     Args:
-        color_dict: Color dictionary with 'red', 'green', 'blue' keys.
+        color_dict: Color dictionary with 'red', 'green', 'blue' keys (0-1 scale).
 
     Returns:
-        'yellow', 'blue', or 'none'.
+        'yellow', 'blue', 'green', 'red', or 'none'.
     """
     if not color_dict:
         return 'none'
 
-    red = color_dict.get('red', 1)
-    green = color_dict.get('green', 1)
-    blue = color_dict.get('blue', 1)
+    red = color_dict.get('red', 0)
+    green = color_dict.get('green', 0)
+    blue = color_dict.get('blue', 0)
+
+    # White or near-white (check first to avoid false positives)
+    if red > 0.95 and green > 0.95 and blue > 0.95:
+        return 'none'
 
     # Yellow: high red, high green, low blue
     if red > 0.8 and green > 0.8 and blue < 0.5:
@@ -485,9 +489,13 @@ def classify_row_color(color_dict: Optional[Dict]) -> str:
     if red > 0.6 and red < 0.9 and green > 0.8 and blue > 0.9:
         return 'blue'
 
-    # White or near-white
-    if red > 0.95 and green > 0.95 and blue > 0.95:
-        return 'none'
+    # Green: green channel dominates
+    if green > red and green > blue and green > 0.3:
+        return 'green'
+
+    # Red: red channel dominates
+    if red > green and red > blue and red > 0.3:
+        return 'red'
 
     return 'none'
 

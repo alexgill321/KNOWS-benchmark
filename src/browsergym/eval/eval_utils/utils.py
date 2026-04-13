@@ -7,6 +7,7 @@ import numpy as np
 # Set to False by default for headless environments
 GUI_AVAILABLE = False
 
+
 class location(object):
     def __init__(self, page_number, x, y, width, height):
         self.page_number = page_number
