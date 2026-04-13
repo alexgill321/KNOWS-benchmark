@@ -39,7 +39,7 @@ def is_unverifiable_url(url: str) -> bool:
         return False
 
 
-def download_image_from_url(url: str, temp_dir: str, timeout: int = 15) -> str:
+def download_image_from_url(url: str, temp_dir: str, timeout: int = 15, headers: Optional[Dict[str, str]] = None) -> str:
     """Download image from URL to temp directory.
 
     Args:
@@ -51,7 +51,11 @@ def download_image_from_url(url: str, temp_dir: str, timeout: int = 15) -> str:
         Path to downloaded image, or None if download failed.
     """
     try:
-        response = requests.get(url, timeout=timeout, allow_redirects=True)
+        default_headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        request_headers = headers or default_headers
+        response = requests.get(url, timeout=timeout, allow_redirects=True, headers=request_headers)
         if response.status_code == 200:
             content_type = response.headers.get('Content-Type', '')
             if content_type.startswith('image/'):
@@ -145,7 +149,11 @@ def fetch_api_with_retry(
 
     for attempt in range(max_retries):
         try:
-            response = requests.get(url, timeout=timeout, headers=headers)
+            default_headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            request_headers = headers or default_headers
+            response = requests.get(url, timeout=timeout, headers=request_headers)
 
             if response.status_code == 200:
                 return response.json()
