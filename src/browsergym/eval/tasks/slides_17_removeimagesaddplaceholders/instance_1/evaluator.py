@@ -44,7 +44,7 @@ from src.browsergym.eval.eval_utils.slides_utils import (
     extract_slide_links_with_positions,
     extract_text_boxes_from_slide,
     get_text_style_from_shape,
-    is_text_red,
+    is_text_color,
     is_text_big,
     find_url_below_image
 )
@@ -553,7 +553,7 @@ def grade_checkpoint_2():
         element = matched_textbox.get('element', {})
         if 'shape' in element:
             text_style = get_text_style_from_shape(element['shape'])
-            if is_text_red(text_style) and is_text_big(text_style, min_pt=18):
+            if is_text_color(text_style, r=1.0, g=0.0, b=0.0, tolerance=0.42) and is_text_big(text_style, min_pt=18):
                 text_style_correct_count += 1
 
     # Calculate scores for each step (percentage-based, 10pt max each)

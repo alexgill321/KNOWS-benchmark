@@ -818,27 +818,33 @@ def get_text_style_from_shape(shape: Dict[str, Any]) -> Dict[str, Any]:
 
     return result
 
-def is_text_red(text_style: Dict[str, Any], threshold: float = 0.7) -> bool:
-    """
-    Check if text foreground color is red.
+def is_text_color(text_style: Dict[str, Any], r: float, g: float, b: float, tolerance: float = 0.25) -> bool:
+    """Check if text foreground color is close to the given RGB target.
+
+    Compares the text's foreground color against a target RGB value using
+    Euclidean distance in RGB space (0-1 range per channel).
 
     Args:
         text_style (dict): Text style from get_text_style_from_shape().
-        threshold (float): Minimum red value and maximum green/blue values.
-            Default 0.7 means red > 0.7 and green < 0.3 and blue < 0.3.
+        r (float): Target red value (0.0 to 1.0).
+        g (float): Target green value (0.0 to 1.0).
+        b (float): Target blue value (0.0 to 1.0).
+        tolerance (float): Maximum Euclidean distance to consider a match.
+            Default 0.25 allows moderate variation.
 
     Returns:
-        bool: True if text color is red, False otherwise.
+        bool: True if text color is within tolerance of the target.
     """
-    fg_color = text_style.get('foregroundColor')
-    if not fg_color:
+    fg = text_style.get('foregroundColor')
+    if not fg:
         return False
 
-    red = fg_color.get('red', 0)
-    green = fg_color.get('green', 0)
-    blue = fg_color.get('blue', 0)
+    dr = fg.get('red', 0) - r
+    dg = fg.get('green', 0) - g
+    db = fg.get('blue', 0) - b
 
-    return red > threshold and green < (1 - threshold) and blue < (1 - threshold)
+    distance = (dr ** 2 + dg ** 2 + db ** 2) ** 0.5
+    return distance <= tolerance
 
 
 def is_text_big(text_style: Dict[str, Any], min_pt: float = 18) -> bool:
