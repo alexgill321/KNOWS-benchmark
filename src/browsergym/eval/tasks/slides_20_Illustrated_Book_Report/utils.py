@@ -10,6 +10,56 @@ from src.browsergym.eval.eval_utils.text_utils import text_fuzzy_match_contained
 from src.browsergym.eval.eval_utils.web_utils import fetch_with_fallbacks
 
 
+def contains_preserving_diacritics(needle, haystack):
+    """
+    Case-insensitive substring check that preserves diacritics.
+
+    Unlike fuzzy matching (e.g., rapidfuzz partial_ratio), this rejects
+    ASCII-stripped variants such as "Perisic" as a match for "Perišić",
+    so the evaluator penalizes outputs that omit diacritics from gold names.
+
+    Args:
+        needle (str): The expected string (may contain diacritics).
+        haystack (str): The text to search within.
+
+    Returns:
+        bool: True if needle appears in haystack with diacritics preserved.
+    """
+    if not needle or not haystack:
+        return False
+    return needle.casefold() in haystack.casefold()
+
+
+def load_gold_characters(path):
+    """
+    Load gold characters from a TSV file.
+
+    Each line is an alias group. The first entry on a line is the canonical
+    name; any tab-separated entries after it are aliases that refer to the
+    same character. Lines with no tabs represent a single-alias character.
+
+    Args:
+        path (str): Path to gold_characters.txt.
+
+    Returns:
+        tuple[list[str], dict[str, str]]: (all_aliases, alias_to_canonical).
+        all_aliases is a flat list of every alias (suitable for fuzzy matching),
+        and alias_to_canonical maps each alias back to its canonical name.
+    """
+    all_aliases = []
+    alias_to_canonical = {}
+    with open(path, 'r') as f:
+        for line in f:
+            parts = [p.strip() for p in line.split('\t') if p.strip()]
+            if not parts:
+                continue
+            canonical = parts[0]
+            for alias in parts:
+                all_aliases.append(alias)
+                alias_to_canonical[alias] = canonical
+    return all_aliases, alias_to_canonical
+
+
 def fetch_url_content(url):
     """
     Fetch and convert URL to markdown text with multiple fallback strategies.

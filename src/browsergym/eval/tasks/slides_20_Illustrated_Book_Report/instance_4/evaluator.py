@@ -42,7 +42,7 @@ from src.browsergym.eval.eval_utils.slides_utils import (
 from src.browsergym.eval.tasks.slides_20_Illustrated_Book_Report.utils import *
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/slides_20_Illustrated_Book_Report/instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/slides_20_Illustrated_Book_Report/instance_4/")
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
@@ -135,9 +135,9 @@ def grade_checkpoint_1():
     Checkpoint 1 (6pt): Title slide has all required elements.
 
     Outcome Evaluation:
-    - Exact match on name "Stacey Johnson"
+    - Exact match on name "Charlotte Currer Bell"
     - Title of book present
-    - Photo of book cover present and valid (Red Rising book cover verified by LLM)
+    - Photo of book cover present and valid (The Eyre Affair book cover verified by LLM)
     - Structural Location match for name at bottom of slide (bottom 25%), below title and photo.
     - Structural Location match for title above name and below photo.
     - Photo is above both title and name.
@@ -157,32 +157,32 @@ def grade_checkpoint_1():
     title_slide = presentation_data['slides'][0]
     slide_text = extract_slide_text(title_slide)
 
-    # Step 1: Check for "Stacey Johnson" (exact match)
+    # Step 1: Check for "Charlotte Currer Bell" (exact match)
     step_start = time.time()
-    name_found = text_exact_match_contained("Stacey Johnson", slide_text)
+    name_found = text_exact_match_contained("Charlotte Currer Bell", slide_text)
     step_time = time.time() - step_start
 
     if name_found:
         checkpoint.add_step("Name Match", True, 1,
-                          "Found 'Stacey Johnson' in title slide",
+                          "Found 'Charlotte Currer Bell' in title slide",
                           execution_time=step_time)
     else:
         checkpoint.add_step("Name Match", False, 1,
-                          "'Stacey Johnson' not found in title slide",
+                          "'Charlotte Currer Bell' not found in title slide",
                           execution_time=step_time)
 
-    # Step 2: Check for book title "Red Rising"
+    # Step 2: Check for book title "The Eyre Affair"
     step_start = time.time()
-    title_found = text_fuzzy_match_contained_short("Red Rising", slide_text)
+    title_found = text_fuzzy_match_contained_short("The Eyre Affair", slide_text)
     step_time = time.time() - step_start
 
     if title_found:
         checkpoint.add_step("Book Title Match", True, 2,
-                          "Found 'Red Rising' in title slide",
+                          "Found 'The Eyre Affair' in title slide",
                           execution_time=step_time)
     else:
         checkpoint.add_step("Book Title Match", False, 2,
-                          "Book title 'Red Rising' not found in title slide",
+                          "Book title 'The Eyre Affair' not found in title slide",
                           execution_time=step_time)
 
     # Step 3: Check for book cover photo using LLM-as-judge
@@ -191,7 +191,7 @@ def grade_checkpoint_1():
 
     book_cover_valid = False
     if len(images) > 0:
-        # Use LLM to verify it's the Red Rising book cover
+        # Use LLM to verify it's the The Eyre Affair book cover
         global model
         if model is None:
             model = load_model(model_id)
@@ -209,12 +209,12 @@ def grade_checkpoint_1():
                         temp_img_path = os.path.join(temp_dir, f"temp_image_{idx}.png")
                         img.save(temp_img_path)
 
-            # Use binary_judge_image to check if any image is the Red Rising book cover
+            # Use binary_judge_image to check if any image is the book cover
             if os.listdir(temp_dir):
                 matching_image = binary_judge_image(
                     model,
                     temp_dir,
-                    "Is this an image of the book cover for 'Red Rising' by Pierce Brown? The cover typically shows red/orange colors and the title 'Red Rising'."
+                    "Is this an image of the book cover for 'The Eyre Affair' by Jasper Fforde? The cover should show the title 'The Eyre Affair' and credit Jasper Fforde. Covers typically use the novel's distinctive typography and may feature a surreal or literary motif."
                 )
 
                 if matching_image:
@@ -229,11 +229,11 @@ def grade_checkpoint_1():
 
     if book_cover_valid:
         checkpoint.add_step("Book Cover Photo", True, 3,
-                          f"Found valid Red Rising book cover image in title slide",
+                          f"Found valid 'The Eyre Affair' book cover image in title slide",
                           execution_time=step_time)
     else:
         checkpoint.add_step("Book Cover Photo", False, 3,
-                          "No valid Red Rising book cover image found in title slide",
+                          "No valid 'The Eyre Affair' book cover image found in title slide",
                           execution_time=step_time)
 
     # Steps 4-6: Structural location checks using bounding box positions
@@ -251,7 +251,7 @@ def grade_checkpoint_1():
             if 'shape' in element and 'text' in element['shape']:
                 element_text = _extract_text_from_text_element(element['shape']['text'])
 
-                if "Stacey Johnson" in element_text:
+                if "Charlotte Currer Bell" in element_text:
                     transform = element.get('transform', {})
                     name_y_position = transform.get('translateY', 0)
 
@@ -263,7 +263,7 @@ def grade_checkpoint_1():
 
     if name_at_bottom:
         checkpoint.add_step("Name at Bottom", True, 4,
-                          f"Name 'Stacey Johnson' correctly positioned in bottom 25% at y={name_y_position}",
+                          f"Name 'Charlotte Currer Bell' correctly positioned in bottom 25% at y={name_y_position}",
                           execution_time=step_time)
     else:
         if name_y_position is not None:
@@ -285,7 +285,7 @@ def grade_checkpoint_1():
             if 'shape' in element and 'text' in element['shape']:
                 element_text = _extract_text_from_text_element(element['shape']['text'])
 
-                if "Red Rising" in element_text:
+                if "The Eyre Affair" in element_text:
                     transform = element.get('transform', {})
                     title_y_position = transform.get('translateY', 0)
 
@@ -338,7 +338,7 @@ def grade_checkpoint_1():
 
 def grade_checkpoint_2(browsing_history=None):
     """
-    Checkpoint 2 (40 pt) x5: The character slides meet the requirements.
+    Checkpoint 2 (25 pt) x5: The character slides meet the requirements.
 
     Outcome Evaluation:
     - The character chosen is among the list of the top 20 characters from the book (based on a predefined list).
@@ -380,7 +380,7 @@ def grade_checkpoint_2(browsing_history=None):
         matched_char_name, match_score = match_text_in_list(title_text, gold_characters, threshold=80)
 
         # Reject fuzzy matches that strip diacritics from the gold name
-        # (e.g., title "Perisic" must not pass as gold "Perišić").
+        # (e.g., title "Adele" must not pass as gold "Adèle").
         if matched_char_name and not contains_preserving_diacritics(matched_char_name, title_text):
             print(f"Rejecting '{matched_char_name}' for slide {idx}: diacritics missing in title '{title_text}'")
             matched_char_name = None
@@ -399,11 +399,11 @@ def grade_checkpoint_2(browsing_history=None):
                 messages = [
                     {
                         "role": "system",
-                        "content": [{"type": "text", "text": "You are a helpful assistant that identifies character names from the Red Rising book series. Respond with ONLY the character name from the provided list, or 'NONE' if no character is mentioned."}]
+                        "content": [{"type": "text", "text": "You are a helpful assistant that identifies character names from 'The Eyre Affair' by Jasper Fforde. Respond with ONLY the character name from the provided list, or 'NONE' if no character is mentioned."}]
                     },
                     {
                         "role": "user",
-                        "content": [{"type": "text", "text": f"Is this slide title any of these Red Rising characters: {char_list}?\n\nSlide title: {title_text}"}]
+                        "content": [{"type": "text", "text": f"Is this slide title any of these 'The Eyre Affair' characters: {char_list}?\n\nSlide title: {title_text}"}]
                     }
                 ]
 
@@ -424,7 +424,7 @@ def grade_checkpoint_2(browsing_history=None):
         # Add to character slides if we found a match (store canonical name).
         # Skip slides whose canonical character has already been seen — the
         # task calls for 5 distinct characters, so duplicates (e.g., a slide
-        # titled "Miu" plus another titled "cat") don't earn extra credit.
+        # titled "Thursday Next" plus another titled "Thursday") don't earn extra credit.
         if matched_char_name:
             canonical = alias_to_canonical.get(matched_char_name, matched_char_name)
             if canonical in seen_canonicals:
@@ -521,9 +521,6 @@ def grade_checkpoint_2(browsing_history=None):
         step_num_base = i * 5  # Each character gets 5 steps
 
         # Step 1: Character in gold list AND name as title
-        # Character is already verified to be in gold list AND title matches character name
-        # (that's how we found it - by matching title text against gold list)
-        # So this step always passes for found character slides
         checkpoint.add_step(f"Character {i+1} - Valid Character and Name as Title", True, step_num_base + 1,
                           f"Character '{char_name}' is in gold list and slide title matches character",
                           execution_time=0)
@@ -550,18 +547,15 @@ def grade_checkpoint_2(browsing_history=None):
                               execution_time=step_time)
 
         # Step 3: At least 3 bullet points that describe characteristics
-        # Use pre-computed results from parallel validation
         has_bullets, bullet_count = validate_bullet_points(slide, min_count=3)
         bullet_texts = slide_bullet_texts.get(i, [])
 
-        # Count valid characteristics from pre-computed results
         valid_characteristics_count = 0
         slide_bullet_results = bullet_validation_results.get(i, {})
         for bullet_j, is_valid in slide_bullet_results.items():
             if is_valid:
                 valid_characteristics_count += 1
 
-        # Require at least 3 bullet points that are valid characteristics
         passes_bullet_check = has_bullets and valid_characteristics_count >= 3
 
         if passes_bullet_check:
@@ -579,11 +573,9 @@ def grade_checkpoint_2(browsing_history=None):
                                   execution_time=0)
 
         # Step 4: Source link at bottom of slide
-        # Use pre-computed slide_links from parallelization phase
         slide_links = all_slide_links.get(i, [])
         has_source_links = len(slide_links) > 0
 
-        # Check if ALL source links are at the bottom
         all_links_at_bottom = False
         links_at_bottom_count = 0
 
@@ -608,42 +600,35 @@ def grade_checkpoint_2(browsing_history=None):
                               execution_time=0)
 
         # Step 5: Characteristics are direct quotes from source links
-        # Use pre-fetched URL contents from parallel download
-
         characteristics_validated = False
         validation_details = []
         validated_bullets = []
 
         if has_source_links and bullet_texts:
-            # Get URL contents from cache (already fetched in parallel)
             url_contents = {}
             for link in slide_links:
                 if link in url_contents_cache:
                     url_contents[link] = url_contents_cache[link]
 
             if not url_contents:
-                # Failed to fetch any URLs
                 validation_details.append("Could not fetch any source URLs")
             else:
-                # Track which bullets are validated
                 for bullet_text in bullet_texts:
                     if not bullet_text or bullet_text.strip() == "":
                         continue
 
-                    # Check if this bullet appears in ANY source
                     found_in_source = False
                     for url, content in url_contents.items():
                         if validate_bullet_in_content(bullet_text, content, model):
                             found_in_source = True
-                            validation_details.append(f"✓ Found in {url[:50]}...")
+                            validation_details.append(f"Found in {url[:50]}...")
                             break
 
                     if found_in_source:
                         validated_bullets.append(bullet_text)
                     else:
-                        validation_details.append(f"✗ Not found: {bullet_text[:50]}...")
+                        validation_details.append(f"Not found: {bullet_text[:50]}...")
 
-                # Need at least 3 validated bullets
                 characteristics_validated = len(validated_bullets) >= 3
 
         if characteristics_validated:
@@ -720,14 +705,14 @@ def grade_checkpoint_3():
 
     slides = presentation_data['slides']
 
-    # Author slide should be second to last (before references)
-    # Try to find it by looking for "Pierce Brown"
+    # Author slide should be second to last (before references).
+    # Try to find it by looking for "Jasper Fforde".
     author_slide = None
     for idx in range(len(slides) - 2, max(0, len(slides) - 4), -1):  # Check last few slides
         slide = slides[idx]
         slide_text = extract_slide_text(slide)
 
-        if text_fuzzy_match_contained_short("Pierce Brown", slide_text):
+        if text_fuzzy_match_contained_short("Jasper Fforde", slide_text):
             author_slide = slide
             break
 
@@ -747,18 +732,18 @@ def grade_checkpoint_3():
 
     slide_text = extract_slide_text(author_slide)
 
-    # Step 1: Check for "Pierce Brown"
+    # Step 1: Check for "Jasper Fforde" (exact match).
     step_start = time.time()
-    author_found = text_exact_match_contained("Pierce Brown", slide_text)
+    author_found = text_exact_match_contained("Jasper Fforde", slide_text)
     step_time = time.time() - step_start
 
     if author_found:
         checkpoint.add_step("Author Name", True, 1,
-                          "Found 'Pierce Brown' in author slide",
+                          "Found 'Jasper Fforde' in author slide",
                           execution_time=step_time)
     else:
         checkpoint.add_step("Author Name", False, 1,
-                          "'Pierce Brown' not found in author slide",
+                          "'Jasper Fforde' not found in author slide",
                           execution_time=step_time)
 
     # Step 2: Check for author photo
@@ -847,12 +832,10 @@ def grade_checkpoint_4(browsing_history=None):
     step_start = time.time()
 
     if browsing_history and unique_links:
-        # Normalize URLs for comparison
         browsing_set = set(browsing_history)
 
         links_in_history = 0
         for link in unique_links:
-            # Check if link or a variant is in browsing history
             if link in browsing_set or any(link in history_url or history_url in link for history_url in browsing_set):
                 links_in_history += 1
 
@@ -952,7 +935,7 @@ if __name__ == "__main__":
     for checkpoint in detailed_report["checkpoints"]:
         print(f"\n{checkpoint['name']}: {checkpoint['score']}")
         for step in checkpoint["steps"]:
-            status = "" if step["success"] else ""
+            status = "" if step["success"] else ""
             print(f"  {status} {step['name']}: {step['details'] or 'No details'}")
     end_time = time.time()
     print(f"\nTotal time taken: {end_time - start_time:.2f} seconds")
