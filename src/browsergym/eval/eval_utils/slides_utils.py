@@ -847,6 +847,35 @@ def is_text_color(text_style: Dict[str, Any], r: float, g: float, b: float, tole
     return distance <= tolerance
 
 
+def is_text_color(text_style: Dict[str, Any], r: float, g: float, b: float, tolerance: float = 0.25) -> bool:
+    """Check if text foreground color is close to the given RGB target.
+
+    Compares the text's foreground color against a target RGB value using
+    Euclidean distance in RGB space (0-1 range per channel).
+
+    Args:
+        text_style (dict): Text style from get_text_style_from_shape().
+        r (float): Target red value (0.0 to 1.0).
+        g (float): Target green value (0.0 to 1.0).
+        b (float): Target blue value (0.0 to 1.0).
+        tolerance (float): Maximum Euclidean distance to consider a match.
+            Default 0.25 allows moderate variation.
+
+    Returns:
+        bool: True if text color is within tolerance of the target.
+    """
+    fg = text_style.get('foregroundColor')
+    if not fg:
+        return False
+
+    dr = fg.get('red', 0) - r
+    dg = fg.get('green', 0) - g
+    db = fg.get('blue', 0) - b
+
+    distance = (dr ** 2 + dg ** 2 + db ** 2) ** 0.5
+    return distance <= tolerance
+
+
 def is_text_big(text_style: Dict[str, Any], min_pt: float = 18) -> bool:
     """
     Check if font size is at least the specified minimum in points.

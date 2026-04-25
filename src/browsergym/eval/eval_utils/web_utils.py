@@ -39,36 +39,69 @@ def is_unverifiable_url(url: str) -> bool:
         return False
 
 
-def download_image_from_url(url: str, temp_dir: str, timeout: int = 15, headers: Optional[Dict[str, str]] = None) -> str:
+def download_image_from_url(url: str, temp_dir: str, timeout: int = 15, headers: Optional[Dict[str, str]] = None, wayback_fallback: bool = False) -> str:
     """Download image from URL to temp directory.
+
+    Attempts a direct download first. If that fails and wayback_fallback is
+    enabled, tries fetching an archived copy from the Wayback Machine.
 
     Args:
         url: The URL to download the image from.
         temp_dir: Directory to save the downloaded image.
         timeout: Request timeout in seconds.
+        headers: Optional HTTP headers (e.g. Referer for hotlink protection).
+        wayback_fallback: If True, try the Wayback Machine when direct download fails.
 
     Returns:
         Path to downloaded image, or None if download failed.
     """
+    def _save_image_response(response, source_url):
+        """Save a successful image response to disk and return the path."""
+        content_type = response.headers.get('Content-Type', '')
+        if content_type.startswith('image/'):
+            ext = content_type.split('/')[-1].split(';')[0]
+            if ext not in ['png', 'jpg', 'jpeg', 'gif', 'webp']:
+                ext = 'png'
+            temp_path = os.path.join(temp_dir, f"url_image_{hash(source_url)}.{ext}")
+            with open(temp_path, 'wb') as f:
+                f.write(response.content)
+            return temp_path
+        return None
+
+    default_headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    }
+    request_headers = headers or default_headers
+
+    # Strategy 1: Direct download
     try:
-        default_headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-        request_headers = headers or default_headers
         response = requests.get(url, timeout=timeout, allow_redirects=True, headers=request_headers)
         if response.status_code == 200:
-            content_type = response.headers.get('Content-Type', '')
-            if content_type.startswith('image/'):
-                # Determine extension from content type
-                ext = content_type.split('/')[-1].split(';')[0]
-                if ext not in ['png', 'jpg', 'jpeg', 'gif', 'webp']:
-                    ext = 'png'
-                temp_path = os.path.join(temp_dir, f"url_image_{hash(url)}.{ext}")
-                with open(temp_path, 'wb') as f:
-                    f.write(response.content)
-                return temp_path
+            result = _save_image_response(response, url)
+            if result:
+                return result
     except Exception as e:
         print(f"Failed to download image from {url}: {e}")
+
+    # Strategy 2: Wayback Machine archived image
+    if wayback_fallback:
+        try:
+            wb_api = f"https://archive.org/wayback/available?url={url}"
+            resp = requests.get(wb_api, timeout=10)
+            snapshot = resp.json().get('archived_snapshots', {}).get('closest', {})
+            wb_url = snapshot.get('url')
+            if wb_url:
+                # Rewrite to raw-image variant (im_ flag) so wayback returns
+                # original image bytes instead of an HTML viewer page
+                wb_url = re.sub(r"(/web/\d+)/", r"\1im_/", wb_url, count=1)
+                wb_resp = requests.get(wb_url, timeout=timeout, headers=request_headers)
+                if wb_resp.status_code == 200:
+                    result = _save_image_response(wb_resp, url)
+                    if result:
+                        return result
+        except Exception as e:
+            print(f"Wayback fallback failed for {url}: {e}")
+
     return None
 
 
