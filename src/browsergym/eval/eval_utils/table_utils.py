@@ -454,13 +454,13 @@ def get_row_background_color(sheet_raw: Dict, row_idx: int) -> Optional[Dict]:
 
 
 def classify_row_color(color_dict: Optional[Dict]) -> str:
-    """Classify a row color as yellow, blue, green, red, or none.
+    """Classify a row color as yellow, orange, blue, green, red, or none.
 
     Args:
         color_dict: Color dictionary with 'red', 'green', 'blue' keys (0-1 scale).
 
     Returns:
-        'yellow', 'blue', 'green', 'red', or 'none'.
+        'yellow', 'orange', 'blue', 'green', 'red', or 'none'.
     """
     if not color_dict:
         return 'none'
@@ -480,6 +480,10 @@ def classify_row_color(color_dict: Optional[Dict]) -> str:
     # Light yellow (Google Sheets default yellow)
     if red > 0.9 and green > 0.9 and blue > 0.6 and blue < 0.9:
         return 'yellow'
+
+    # Orange: high red, moderate green, low blue (must come after yellow)
+    if red > 0.7 and 0.3 < green < 0.85 and blue < 0.5:
+        return 'orange'
 
     # Blue: low red, low green, high blue
     if red < 0.5 and green < 0.7 and blue > 0.7:
