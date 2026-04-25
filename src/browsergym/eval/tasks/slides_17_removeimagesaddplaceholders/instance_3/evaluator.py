@@ -63,13 +63,13 @@ from src.browsergym.eval.eval_utils.parallel_utils import (
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/slides_17_removeimagesaddplaceholders/instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/slides_17_removeimagesaddplaceholders/instance_3/")
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 GOLD_IMAGES_DIR = os.path.join(DATA_DIR, "gold_images/")
 GOLD_DESCRIPTIONS_CSV = os.path.join(DATA_DIR, "gold_descriptions.csv")
 ORIGINAL_LOCATIONS_JSON = os.path.join(DATA_DIR, "original_image_locations.json")
 ORIGINAL_TEXTBOX_LOCATIONS_JSON = os.path.join(DATA_DIR,"original_textbox_locations.json")
-DRIVE_FOLDER_ID = "19hN98W-JWHjwpoRGg5tT4z75oKMM5i9G"
+DRIVE_FOLDER_ID = "1ZWlBfRO48joOLT6_NwyFf5HtCqwrOWeh"
 
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
@@ -566,6 +566,7 @@ def grade_checkpoint_2():
                 text_style_correct_count += 1
             else:
                 print(f"  Text style mismatch for {task['gold_filename']}")
+
 
     # Calculate scores for each step (percentage-based, 10pt max each)
     step_start = time.time()

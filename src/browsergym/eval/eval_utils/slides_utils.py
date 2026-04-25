@@ -942,7 +942,7 @@ def find_url_below_image(image_bbox: dict, links_with_positions: list, tolerance
             continue  # Link is not horizontally aligned with image
 
         # Calculate distance from image bottom to link top
-        distance = link_top - img_bottom
+        distance = abs(link_top - img_bottom)
 
         # Prefer the closest link below the image
         if distance < best_distance:
