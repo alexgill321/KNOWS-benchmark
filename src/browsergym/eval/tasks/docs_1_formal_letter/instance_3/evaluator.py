@@ -21,7 +21,7 @@ sys.path.append(BASE_PATH)
 
 from src.browsergym.eval.eval_utils.scoring import Checkpoint, Result # type: ignore
 from src.browsergym.eval.eval_utils.google_services_utils import * # type: ignore
-from src.browsergym.eval.eval_utils.text_utils import extract_text_from_pdf, text_exact_match_contained, extract_text_location # type: ignore
+from src.browsergym.eval.eval_utils.text_utils import extract_text_from_pdf, text_exact_match_contained, extract_text_location, get_smallest_x_position # type: ignore
 from src.browsergym.eval.eval_utils.image_utils import * # type: ignore
 from src.browsergym.eval.eval_utils.utils import layout, image_id_from_path # type: ignore
 from src.browsergym.eval.eval_utils.models import load_model # type: ignore
@@ -36,9 +36,9 @@ CLEANUP_ENABLED = os.environ.get("CLEANUP", "True").lower() == "true"
 PDF_DPI = 150  # Lower DPI for faster OCR while maintaining text recognition quality
 
 model = None
-model_id = "gemma-google-ai" # Using AI API instead of cloud service
+model_id = "gemini-2.5-flash-google-ai" # Using AI API instead of cloud service
 
-DRIVE_SERVICE, DOCS_SERVICE = initialize_google_services()
+DRIVE_SERVICE, DOCS_SERVICE = initialize_google_services(service_type="docs")
 
 # Global variables that will be set by setup_document
 doc_id = None
@@ -105,7 +105,7 @@ def setup_document(workspace_doc_id):
   Args:
     workspace_doc_id (str): The Google Docs document ID (gold instance ID) to use
   """
-  global doc_id, gold_text, text_ocr, doc_structure
+  global doc_id, gold_text, text_ocr, doc_structure, smallest_x
 
   if not workspace_doc_id:
     raise ValueError("workspace_doc_id is required")
@@ -137,6 +137,7 @@ def setup_document(workspace_doc_id):
 
     text_ocr = ocr_future.result()
     gold_text, doc_structure = api_future.result()
+    smallest_x = get_smallest_x_position(text_ocr)
 
 def is_first_page_text(loc) -> bool:
     return loc is not None and getattr(loc, "page_number", None) == 0
@@ -177,7 +178,12 @@ def grade_checkpoint_1(gold_text, text_ocr):
     if name_found and location and location.is_upper_left():
         print("Name match successful")
         checkpoint.add_step("Name Text Match", True, 1, f"Found '{name}' in document", execution_time=step_time)
-        checkpoint.add_step("Name Location", True, 2, f"Name correctly positioned in upper left at {location}", execution_time=step_time)
+
+        if int(location.x) < int(smallest_x) + 6:
+            checkpoint.add_step("Name Location", True, 2, f"Name correctly positioned in upper left at {location}", execution_time=step_time)
+        else:
+            print("Name location failed - not aligned")
+            checkpoint.add_step("Name Location", False, 2, f"Name not aligned with left margin, found at {location}", execution_time=step_time)
     else:
         print("Name match failed (header exact)")
         checkpoint.add_step("Name Text Match", False, 1, f"Header name '{name}' not found as standalone line", execution_time=step_time)
@@ -206,7 +212,7 @@ def grade_checkpoint_1(gold_text, text_ocr):
         if location and not is_first_page_text(location):
             print(f"Rejecting title location: wrong page_number={location.page_number}")
             location = None
-        if location and location.is_upper_left():
+        if location and location.is_upper_left() and int(location.x) < int(smallest_x) + 6:
             checkpoint.add_step("Title Location", True, 4, f"Title correctly positioned in upper left at {location}", execution_time=step_time)
         else:
             print("Title location failed")
@@ -239,7 +245,7 @@ def grade_checkpoint_1(gold_text, text_ocr):
         if location and not is_first_page_text(location):
             print(f"Rejecting institution location: wrong page_number={location.page_number}")
             location = None
-        if location and location.is_upper_left():
+        if location and location.is_upper_left() and int(location.x) < int(smallest_x) + 6:
             checkpoint.add_step("Institution Location", True, 6, f"Institution correctly positioned in upper left at {location}", execution_time=step_time)
         else:
             print("Institution location failed")
@@ -271,7 +277,7 @@ def grade_checkpoint_1(gold_text, text_ocr):
         if location and not is_first_page_text(location):
             print(f"Rejecting email location: wrong page number at {location.page_number}")
             location = None
-        if location and location.is_upper_left():
+        if location and location.is_upper_left() and int(location.x) < int(smallest_x) + 6:
             checkpoint.add_step("Email Location", True, 8, f"Email correctly positioned in upper left at {location}", execution_time=step_time)
         else:
             print("Email location failed")
@@ -311,7 +317,7 @@ def grade_checkpoint_2():
         if exact_size_location and not is_first_page_img(exact_size_location):
             print(f"Rejecting logo location: wrong page_number={exact_size_location.page_number}")
             exact_size_location = None
-        if exact_size_location and exact_size_location.is_upper_left():
+        if exact_size_location and exact_size_location.is_upper_left() and int(exact_size_location.x) < int(smallest_x) + 6:
             print("Image location match successful")
             checkpoint.add_step("Logo Location", True, 10, f"Logo correctly positioned in upper left at {exact_size_location}", execution_time=step_time)
         else:
@@ -354,7 +360,7 @@ def grade_checkpoint_2():
                 if exact_size_location and not is_first_page_img(exact_size_location):
                     print(f"Rejecting logo location: wrong page_number={exact_size_location.page_number}")
                     exact_size_location = None
-                if exact_size_location and exact_size_location.is_upper_left():
+                if exact_size_location and exact_size_location.is_upper_left() and int(exact_size_location.x) < int(smallest_x) + 6:
                     print("Image location match successful")
                     checkpoint.add_step("Logo Location", True, 10, f"Logo correctly positioned in upper left at {exact_size_location}", execution_time=step_time)
                 else:

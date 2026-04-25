@@ -39,7 +39,7 @@ CLEANUP_ENABLED = os.environ.get("CLEANUP", "True").lower() == "true"
 PDF_DPI = 150  # Lower DPI for faster OCR while maintaining text recognition quality
 
 model = None
-model_id = "gemma-google-ai"
+model_id = "gemini-2.5-flash-google-ai"
 
 DRIVE_SERVICE, DOCS_SERVICE = initialize_google_services(service_type="docs")
 

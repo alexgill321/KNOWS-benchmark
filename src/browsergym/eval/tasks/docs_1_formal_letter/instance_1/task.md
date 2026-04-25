@@ -7,4 +7,3 @@ Include the following information in the letter header:
 - My Job/Position Title
 
 Take the photo of my signature from the drive folder here: https://drive.google.com/drive/folders/1Fonh_b2Gj9bsDl_J8Yu9C7OFI7GhdIHo?usp=drive_link and add it to the end of the letter.
-Save the completed letter as "<first_name>_<last_name>_formal_letter" in the "WebAgentsShared -> Task Outputs" directory in Google Drive.

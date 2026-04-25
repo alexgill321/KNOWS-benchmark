@@ -1,7 +1,7 @@
 # Checkpoints
-This task has 37 points in total. 
+This task has 37 points in total.
 
-## Checkpoint 1 (2 pt): 
+## Checkpoint 1 (2 pt):
 5 different papers were looked at and placed into the google docs.
 
 ### Outcome Evaluation:
@@ -12,8 +12,8 @@ This task has 37 points in total.
 The papers meet the requirements for citation counts and recency.
 
 ### Outcome Evaluation:
-- Each paper has at least 50 citations (1pt each).
-- Each paper is from the last 3 years (1pt each).
+- Each paper has at least 20 citations (1pt each).
+- Each paper is from the last 5 years (1pt each).
 
 ## Checkpoint 3 (20 pt):
 The doc structure for each paper is correct.
@@ -28,5 +28,4 @@ The doc structure for each paper is correct.
 The papers are from the correct relevant domain.
 
 ### Outcome Evaluation:
-- LLM as Judge for the relevance of each paper abstract to high quality dataset creation for Large 
-Language Models.
+- LLM as Judge for the relevance of each paper abstract to quantum error correction (QEC).

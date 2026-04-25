@@ -1,0 +1,7 @@
+Ingredient,Link,Carbohydrates (g),Fat (g),Fiber (g),Protein (g),Sugar (g),Calcium (mg),Iron (mg),Potassium (mg),Sodium (mg),Vitamin A (µg),Vitamin C (mg)
+Avocados,https://fdc.nal.usda.gov/food-details/2710824/nutrients,34.8,85.2,0,7.59,0,58.8,2.562,2418,7.47,0,12
+red onion,https://fdc.nal.usda.gov/food-details/790577/nutrients,3.98,0.04,0.879,0.376,2.294,6.802,0.096,78.782,0.4,0,3.249
+cilantro,https://fdc.nal.usda.gov/food-details/169997/nutrients,0.147,0.021,0.112,0.085,0.035,2.68,0.071,20.8,1.84,13.5,1.08
+lime juice,https://fdc.nal.usda.gov/food-details/168156/nutrients,7.4,0.062,0.352,0.37,1.488,12.32,0.08,103,1.76,1.76,26.4
+jalapeno pepper,https://fdc.nal.usda.gov/food-details/2747661/nutrients,0.7112,0.021,0.238,0.0868,0.378,1.4,0.0056,23.38,0.35,0,12.586
+sea salt,https://fdc.nal.usda.gov/food-details/746775/nutrients,0,0,0,0,0,1.525,0,0.061,1180,0,0

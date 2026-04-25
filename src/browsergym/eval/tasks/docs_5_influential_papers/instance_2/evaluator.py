@@ -27,10 +27,17 @@ from src.browsergym.eval.eval_utils.parallel_utils import fast_parallel_vlm_call
 from src.browsergym.eval.tasks.docs_5_influential_papers.utils import *
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/docs_5_influential_papers/instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/docs_5_influential_papers/instance_2/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 CLEANUP_ENABLED = os.environ.get("CLEANUP", "True").lower() == "true"
 PDF_IMAGES_DIR = os.path.join(TASK_DIR, "data/pdf_images/")
+
+# Instance-specific parameters
+NUM_PAPERS = 5
+MIN_CITATIONS = 100
+RECENCY_YEARS = 3
+TOPIC = "parameter-efficient fine-tuning (PEFT)"
+RELEVANCE_QUESTION = "Is this paper highly relevant to parameter-efficient fine-tuning (PEFT) methods for language models or other deep learning models?"
 
 # Model setup
 model = None
@@ -47,7 +54,6 @@ cached_arxiv_papers = None  # Cache arXiv paper info to avoid redundant API call
 
 def cleanup_generated_files():
     """Clean up generated files and directories created during evaluation."""
-    # Similar to other evaluators - clean PDFs, images, temp files
     pass
 
 
@@ -62,8 +68,8 @@ def prefetch_arxiv_papers():
     paper_links = [normalize_arxiv_url(url) for url in paper_links if normalize_arxiv_url(url)]
     paper_links = list(set(paper_links))  # Unique IDs
 
-    if len(paper_links) < 5:
-        print(f"Warning: Only found {len(paper_links)} unique arxiv paper links in document, expected at least 5.")
+    if len(paper_links) < NUM_PAPERS:
+        print(f"Warning: Only found {len(paper_links)} unique arxiv paper links in document, expected at least {NUM_PAPERS}.")
 
     if not paper_links:
         print("Warning: No arXiv paper links found in document.")
@@ -82,21 +88,18 @@ def prefetch_arxiv_papers():
 def setup_document(workspace_doc_id):
     """
     Setup document processing and browsing history analysis.
-    
+
     Args:
         workspace_doc_id (str): Direct Google Docs document ID to use
-        browsing_history (list): List of URLs/pages visited during task
     """
     global gold_text, doc_structure
-    # Extract document content
     gold_text = extract_text_from_doc(workspace_doc_id, DOCS_SERVICE)
     doc_structure = extract_structure_from_doc(workspace_doc_id, DOCS_SERVICE)
-    # text_ocr = extract_text_from_pdf(PDF_IMAGES_DIR)
 
 def grade_checkpoint_1(browsing_history):
     """
     Checkpoint 1 (2pt): 5 different papers were looked at and placed into the google docs.
-    
+
     Outcome Evaluation:
     - Paper website was accessed at least 5 times for different papers.
     - Links in the google docs lines up with the pages that were accessed.
@@ -104,31 +107,27 @@ def grade_checkpoint_1(browsing_history):
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=2, result=0, name="Paper Research and Documentation")
 
-    # Handle None browsing_history
     if browsing_history is None:
         browsing_history = []
 
-    # Step 1: Check if paper websites were accessed (analyze browsing history)
+    # Step 1: Check if paper websites were accessed
     step_start = time.time()
     arxiv_visits = [url for url in browsing_history if 'arxiv.org' in url]
-    unique_papers_visited = len(set(arxiv_visits))  # Count unique arxiv papers visited
+    unique_papers_visited = len(set(arxiv_visits))
     step_time = time.time() - step_start
 
-    if unique_papers_visited >= 5:
+    if unique_papers_visited >= NUM_PAPERS:
         checkpoint.add_step("Paper Website Access", True, 1,
                         f"Accessed {unique_papers_visited} different paper websites",
                         execution_time=step_time)
     else:
         checkpoint.add_step("Paper Website Access", False, 1,
-                        f"Only accessed {unique_papers_visited} paper websites, need 5",
+                        f"Only accessed {unique_papers_visited} paper websites, need {NUM_PAPERS}",
                         execution_time=step_time)
 
     # Step 2: Check if links in document match visited pages
     step_start = time.time()
-
-    # Use helper function to match document links with browsing history
     links_match, doc_paper_ids, visited_paper_ids, matched_count = match_document_links_with_browsing_history(gold_text, browsing_history)
-
     step_time = time.time() - step_start
 
     if links_match:
@@ -148,29 +147,26 @@ def grade_checkpoint_1(browsing_history):
 def grade_checkpoint_2():
     """
     Checkpoint 2 (10pt): The papers meet the requirements for citation counts and recency.
-    
+
     Outcome Evaluation:
-    - Each paper has at least 50 citations (1pt each).
-    - Each paper is from the last 3 years (1pt each).
+    - Each paper has at least MIN_CITATIONS citations (1pt each).
+    - Each paper is from the last RECENCY_YEARS years (1pt each).
     """
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=10, result=0, name="Paper Requirements Validation")
 
-    # Step 1: Check citation counts (would need to parse paper metadata or use AI)
     step_start = time.time()
     arxiv_ids = extract_arxiv_links_from_text(gold_text)
     arxiv_ids = [normalize_arxiv_url(url) for url in arxiv_ids if normalize_arxiv_url(url)]
-    arxiv_ids = list(set(arxiv_ids))  # Unique IDs
-    if len(arxiv_ids) < 5:
-        print(f"Warning: Only found {len(arxiv_ids)} unique arxiv paper links in document, expected at least 5.")
+    arxiv_ids = list(set(arxiv_ids))
+    if len(arxiv_ids) < NUM_PAPERS:
+        print(f"Warning: Only found {len(arxiv_ids)} unique arxiv paper links in document, expected at least {NUM_PAPERS}.")
 
     if not arxiv_ids:
         print("Error: No valid arxiv paper links found.")
-        # Fail with explanation
         checkpoint.add_step("Paper Requirements", False, 0, "No valid arxiv paper links found to check requirements against.", score=0, max_score=10)
         return checkpoint
 
-    # papers_info = arxiv.Search(id_list=arxiv_ids).results()
     import requests
     try:
         response = requests.post(
@@ -179,10 +175,7 @@ def grade_checkpoint_2():
             json={"ids": [f"ARXIV:{arxiv_id}" for arxiv_id in arxiv_ids]}
         )
         papers_info = response.json()
-        
-        # Validate response structure - should be a list
-        # Reason: Semantic Scholar API may return error messages as strings or dicts instead of a list
-        # This prevents 'str' object has no attribute 'get' errors
+
         if not isinstance(papers_info, list):
             error_msg = f"Unexpected API response format: {type(papers_info).__name__}"
             if isinstance(papers_info, dict):
@@ -199,34 +192,31 @@ def grade_checkpoint_2():
 
     for i, paper in enumerate(papers_info):
         paper_step_start = time.time()
-        # Check if paper is a dictionary before calling .get()
-        # Reason: API may return None or non-dict objects in the list, causing 'str' object has no attribute 'get' errors
         if paper is not None and isinstance(paper, dict):
             title = paper.get('title', 'Unknown')
             total_citations = paper.get("citationCount", 0)
             publication_date = paper.get("publicationDate", "1900-01-01")
-            
+
             # Citation Check (1pt)
-            if total_citations >= 50:
+            if total_citations >= MIN_CITATIONS:
                 checkpoint.add_step(f"Citation Check {i+1}", True, 1,
-                                f"Paper '{title}' has {total_citations} citations (>= 50)",
+                                f"Paper '{title}' has {total_citations} citations (>= {MIN_CITATIONS})",
                                 execution_time=time.time() - paper_step_start)
             else:
                 checkpoint.add_step(f"Citation Check {i+1}", False, 1,
-                                f"Paper '{title}' has only {total_citations} citations, need 50",
+                                f"Paper '{title}' has only {total_citations} citations, need {MIN_CITATIONS}",
                                 execution_time=time.time() - paper_step_start)
-            
+
             # Recency Check (1pt)
-            if is_within_x_years(publication_date, 3):
+            if is_within_x_years(publication_date, RECENCY_YEARS):
                 checkpoint.add_step(f"Recency Check {i+1}", True, 1,
-                                f"Paper '{title}' published on {publication_date} is within 3 years",
+                                f"Paper '{title}' published on {publication_date} is within {RECENCY_YEARS} years",
                                 execution_time=time.time() - paper_step_start)
             else:
                 checkpoint.add_step(f"Recency Check {i+1}", False, 1,
-                                f"Paper '{title}' published on {publication_date} is older than 3 years",
+                                f"Paper '{title}' published on {publication_date} is older than {RECENCY_YEARS} years",
                                 execution_time=time.time() - paper_step_start)
         else:
-            # Paper not found in Semantic Scholar or invalid format
             arxiv_id = arxiv_ids[i] if i < len(arxiv_ids) else "Unknown"
             if paper is not None and not isinstance(paper, dict):
                 error_type = type(paper).__name__
@@ -239,12 +229,11 @@ def grade_checkpoint_2():
             checkpoint.add_step(f"Recency Check {i+1}", False, 1,
                             error_msg,
                             execution_time=time.time() - paper_step_start)
-            
-    # Handle missing papers if fewer than 5
-    if len(papers_info) < 5:
-        for j in range(len(papers_info), 5):
-            checkpoint.add_step(f"Citation Check {j+1}", False, 1, "Missing paper (fewer than 5 found)", execution_time=0)
-            checkpoint.add_step(f"Recency Check {j+1}", False, 1, "Missing paper (fewer than 5 found)", execution_time=0)
+
+    if len(papers_info) < NUM_PAPERS:
+        for j in range(len(papers_info), NUM_PAPERS):
+            checkpoint.add_step(f"Citation Check {j+1}", False, 1, f"Missing paper (fewer than {NUM_PAPERS} found)", execution_time=0)
+            checkpoint.add_step(f"Recency Check {j+1}", False, 1, f"Missing paper (fewer than {NUM_PAPERS} found)", execution_time=0)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -265,7 +254,6 @@ def grade_checkpoint_3():
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=20, result=0, name="Document Structure Validation")
 
-    # Use cached papers instead of fetching again
     step_start = time.time()
 
     if cached_arxiv_papers is None or len(cached_arxiv_papers) == 0:
@@ -280,10 +268,6 @@ def grade_checkpoint_3():
         abstract_match, abstract_score = text_fuzzy_match_contained_long(abstract, gold_text)
         title_match = text_fuzzy_match_contained_short(paper.title, gold_text)
         links_match = text_fuzzy_match_contained_short(paper.entry_id, gold_text)
-        abstract_location = None
-        title_location = None
-        link_location = None
-        # Check if abstracts, titles, and links are included
         found_elements_for_ordering = []
 
         if abstract_match:
@@ -315,34 +299,30 @@ def grade_checkpoint_3():
             checkpoint.add_step(f"Link Inclusion {i+1}", False, (i*5)+3,
                             f"Link for paper {paper.title} not found in document",
                             execution_time=time.time() - step_start)
-            
-        # Check structure using the new helper
+
         expected_components = [
             ("Title", title_match),
             ("Link", links_match),
             ("Abstract", abstract_match)
         ]
-        
-        # Identify what is missing
+
         missing_component_names = [name for name, match in expected_components if match is None]
 
-        if not missing_component_names: # All expected elements were found
+        if not missing_component_names:
             expected_text_order = [match for _, match in expected_components]
             ordered_elements = get_structural_element_order(doc_structure, expected_text_order)
-            
-            # Compare the ordered elements with the expected order
+
             if ordered_elements == expected_text_order:
                 checkpoint.add_step(f"Structure Check {i+1}", True, (i*5)+4,
                                     f"Correct structure for paper {paper.title}: Title -> Link -> Abstract",
                                     execution_time=time.time() - step_start)
             else:
-                actual_order_titles = [text.split(':')[0] for text in ordered_elements] # For better display in details
+                actual_order_titles = [text.split(':')[0] for text in ordered_elements]
                 expected_order_titles = [text.split(':')[0] for text in expected_text_order]
                 checkpoint.add_step(f"Structure Check {i+1}", False, (i*5)+4,
                                     f"Incorrect structure for paper {paper.title}. Expected order: {expected_order_titles}, Actual order: {actual_order_titles}",
                                     execution_time=time.time() - step_start)
         else:
-            # If not all elements were found, we can't fully check the structure
             checkpoint.add_step(f"Structure Check {i+1}", False, (i*5)+4,
                                 f"Cannot verify structure for paper {paper.title} due to missing elements: {', '.join(missing_component_names)}",
                                 execution_time=time.time() - step_start)
@@ -355,8 +335,7 @@ def grade_checkpoint_4():
     Checkpoint 4 (5pt): The papers are from the correct relevant domain.
 
     Outcome Evaluation:
-    - LLM as Judge for the relevance of each paper abstract to high quality dataset creation for Large
-Language Models.
+    - LLM as Judge for the relevance of each paper abstract to the topic.
     - 1 point for each relevant paper.
 
     PARALLELIZED: Uses cached arXiv papers and parallel LLM calls for relevance checking.
@@ -365,14 +344,12 @@ Language Models.
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=5, result=0, name="Domain Relevance Validation")
 
-    # Use AI model to judge relevance
     global model
     if model is None:
         model = load_model(model_id)
 
     step_start = time.time()
 
-    # Use cached papers instead of fetching again
     if cached_arxiv_papers is None or len(cached_arxiv_papers) == 0:
         checkpoint.add_step("Paper Data", False, 5,
                           "No arXiv papers found or prefetch failed.",
@@ -382,7 +359,6 @@ Language Models.
 
     papers_info = cached_arxiv_papers
 
-    # Build VLM tasks for parallel execution
     vlm_tasks = []
     for i, paper in enumerate(papers_info):
         abstract = paper.summary
@@ -392,9 +368,9 @@ Language Models.
         Paper Title: {title}
         Abstract: {abstract}
 
-        Is this paper highly relevant to high quality dataset creation for Large Language Models?
+        {RELEVANCE_QUESTION}
 
-        i.e. Does this paper discuss how to create datasets that improve the performance, safety, or capabilities of Large Language Models?
+        i.e. Does this paper discuss {TOPIC}?
 
         Answer with exactly "YES" or "NO".
         """
@@ -406,13 +382,11 @@ Language Models.
             'title': title
         })
 
-    # Run all relevance checks in parallel
     print(f"  Running {len(vlm_tasks)} relevance checks in parallel...")
     vlm_results = fast_parallel_vlm_calls(vlm_tasks, model, max_workers=5)
     vlm_time = time.time() - step_start
     print(f"  Parallel relevance checks completed in {vlm_time:.2f}s")
 
-    # Process results
     for i, paper in enumerate(papers_info):
         task_id = f'paper_{i}'
         title = paper.title
@@ -427,9 +401,8 @@ Language Models.
                             f"Paper '{title}' judged NOT relevant.",
                             execution_time=0)
 
-    # Handle case where fewer than 5 papers are found
-    if len(papers_info) < 5:
-        for j in range(len(papers_info), 5):
+    if len(papers_info) < NUM_PAPERS:
+        for j in range(len(papers_info), NUM_PAPERS):
             checkpoint.add_step(f"Relevance Check {j+1}", False, j+1,
                             "Missing paper (fewer than 5 found).",
                             execution_time=0)
@@ -452,16 +425,13 @@ def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history=Non
     total_start_time = time.time()
 
     try:
-        # Setup document processing
         setup_document(workspace_doc_id)
 
-        # Use cached model if available
         global model
         if cached_models and model_id in cached_models:
             model = cached_models[model_id]
             print(f"Using preloaded model {model_id}")
 
-        # Prefetch arXiv papers for checkpoints 3 and 4 (avoids redundant API calls)
         print("Prefetching arXiv papers...")
         prefetch_arxiv_papers()
 
@@ -478,7 +448,6 @@ def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history=Non
         return result
 
     finally:
-        # Always attempt cleanup, even if evaluation failed
         try:
             cleanup_generated_files()
         except Exception as cleanup_error:
