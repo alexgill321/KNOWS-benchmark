@@ -108,14 +108,6 @@ def grade_checkpoint_1():
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=10, result=0, name="Spreadsheet Structure")
 
-    if not table_data or df is None or df.empty:
-        checkpoint.add_step("Table Data Extraction", False, 1,
-                          "No table data found in spreadsheet",
-                          execution_time=time.time() - checkpoint_start)
-        checkpoint.execution_time = time.time() - checkpoint_start
-        return checkpoint
-
-    # Required columns with keywords for matching
     required_columns = [
         ("Address", ["address", "location", "property", "street"]),
         ("Price/Rent", ["price", "rent", "monthly", "cost", "$/month", "per month"]),
@@ -128,6 +120,14 @@ def grade_checkpoint_1():
         ("Positive Features", ["positive", "pros", "features", "highlights", "amenities", "interesting"]),
         ("Dealbreakers", ["dealbreaker", "cons", "negatives", "issues", "concerns"])
     ]
+
+    if not table_data or df is None or df.empty:
+        for step_num, col in enumerate(required_columns, start=1):
+            checkpoint.add_step(f"{col[0]} Column", False, step_num,
+                              "No table data found in spreadsheet",
+                              execution_time=0)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
 
     original_columns = [str(col) for col in df.columns]
 
@@ -174,23 +174,37 @@ def grade_checkpoint_2():
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=35, result=0, name="Listing Data Accuracy")
 
+    step_names = [
+        "URL Valid",
+        "Price Match",
+        "Bedrooms Match",
+        "Bathrooms Match",
+        "Address Match",
+        "Laundry Match",
+        "Pet-Friendly Match",
+    ]
+
     if df is None or df.empty:
-        checkpoint.add_step("Data Available", False, 1,
-                          "No listing data found in spreadsheet",
-                          execution_time=time.time() - checkpoint_start)
+        step_id = 0
+        for listing_num in range(1, 6):
+            for step_name in step_names:
+                step_id += 1
+                checkpoint.add_step(f"Listing {listing_num} - {step_name}", False, step_id,
+                                  "No listing data found in spreadsheet", execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    # Load model if needed
     if model is None:
         model = load_model(model_id)
 
-    # Get URL column
     url_col = matched_columns.get("Listing URL")
     if not url_col:
-        checkpoint.add_step("URL Column Found", False, 1,
-                          "No URL column identified in spreadsheet",
-                          execution_time=time.time() - checkpoint_start)
+        step_id = 0
+        for listing_num in range(1, 6):
+            for step_name in step_names:
+                step_id += 1
+                checkpoint.add_step(f"Listing {listing_num} - {step_name}", False, step_id,
+                                  "No URL column identified in spreadsheet", execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -278,9 +292,9 @@ def grade_checkpoint_2():
             checkpoint.add_step(f"Listing {listing_num} - URL Valid", False, step_num,
                               invalid_urls[listing_idx],
                               execution_time=0)
-            for skip_step in range(6):
+            for step_name in step_names[1:]:
                 step_num += 1
-                checkpoint.add_step(f"Listing {listing_num} - Skipped", False, step_num,
+                checkpoint.add_step(f"Listing {listing_num} - {step_name}", False, step_num,
                                   "Skipped due to invalid URL",
                                   execution_time=0)
             continue
@@ -293,9 +307,9 @@ def grade_checkpoint_2():
             checkpoint.add_step(f"Listing {listing_num} - URL Valid", False, step_num,
                               f"Could not fetch page: {url[:50]}...",
                               execution_time=0)
-            for skip_step in range(6):
+            for step_name in step_names[1:]:
                 step_num += 1
-                checkpoint.add_step(f"Listing {listing_num} - Skipped", False, step_num,
+                checkpoint.add_step(f"Listing {listing_num} - {step_name}", False, step_num,
                                   "Skipped due to page fetch failure",
                                   execution_time=0)
             continue
@@ -307,9 +321,9 @@ def grade_checkpoint_2():
         # Check if extraction failed
         extracted_data = extracted_data_map.get(listing_idx)
         if not extracted_data:
-            for skip_step in range(6):
+            for step_name in step_names[1:]:
                 step_num += 1
-                checkpoint.add_step(f"Listing {listing_num} - Extraction Failed", False, step_num,
+                checkpoint.add_step(f"Listing {listing_num} - {step_name}", False, step_num,
                                   "Could not extract data from Craigslist page",
                                   execution_time=0)
             continue
@@ -856,9 +870,16 @@ def grade_checkpoint_6():
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=4, result=0, name="Text Visibility and Formatting")
 
+    step_names = [
+        "Headers Visible",
+        "Data Cells Adequate",
+        "Summary Text Visible",
+        "No Overflow Issues",
+    ]
+
     if not sheet_raw:
-        for i in range(1, 5):
-            checkpoint.add_step(f"Visibility Check {i}", False, i,
+        for i, step_name in enumerate(step_names, start=1):
+            checkpoint.add_step(step_name, False, i,
                               "Could not access raw sheet data",
                               execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
@@ -867,8 +888,8 @@ def grade_checkpoint_6():
     try:
         sheets = sheet_raw.get('sheets', [])
         if not sheets:
-            for i in range(1, 5):
-                checkpoint.add_step(f"Visibility Check {i}", False, i,
+            for i, step_name in enumerate(step_names, start=1):
+                checkpoint.add_step(step_name, False, i,
                                   "No sheets found",
                                   execution_time=0)
             checkpoint.execution_time = time.time() - checkpoint_start
@@ -882,8 +903,8 @@ def grade_checkpoint_6():
         CHAR_WIDTH = 7
 
     except Exception as e:
-        for i in range(1, 5):
-            checkpoint.add_step(f"Visibility Check {i}", False, i,
+        for i, step_name in enumerate(step_names, start=1):
+            checkpoint.add_step(step_name, False, i,
                               f"Error accessing sheet structure: {str(e)[:50]}",
                               execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start

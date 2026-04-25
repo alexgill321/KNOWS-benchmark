@@ -1,4 +1,4 @@
-"""Evaluator for the Apartment Finder Google Sheets task - Instance 3 (4 bed 2 bath, Houston)."""
+"""Evaluator for the Apartment Finder Google Sheets task - Instance 5 (3 bed 2 bath unit, Chicago)."""
 
 import os
 import sys
@@ -43,7 +43,7 @@ from src.browsergym.eval.tasks.sheets_38_apartment_finder.utils import (
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_38_apartment_finder/instance_3/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_38_apartment_finder/instance_5/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 model = None
@@ -87,9 +87,9 @@ def setup(workspace_doc_id: str):
 
 def grade_checkpoint_1():
     """
-    Checkpoint 1: Spreadsheet Structure (10 pts)
+    Checkpoint 1: Spreadsheet Structure (9 pts)
     Validates that the spreadsheet contains columns for all required features
-    and at least 5 listings.
+    and at least 6 listings.
 
     Outcome Evaluation:
     - There is a column for the listing address.
@@ -97,8 +97,7 @@ def grade_checkpoint_1():
     - There is a column for the number of bedrooms.
     - There is a column for the number of bathrooms.
     - There is a column for square footage.
-    - There is a column indicating no application fee availability.
-    - There is a column indicating off-street parking availability.
+    - There is a column indicating air conditioning availability.
     - There is a column containing a link/URL to each listing.
     - There is a column for positive features.
     - There is a column for dealbreakers.
@@ -106,7 +105,7 @@ def grade_checkpoint_1():
     print("----------------- CHECKPOINT 1 ----------------")
     global model, matched_columns, df
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=10, result=0, name="Spreadsheet Structure")
+    checkpoint = Checkpoint(total=9, result=0, name="Spreadsheet Structure")
 
     required_columns = [
         ("Address", ["address", "location", "property", "street"]),
@@ -114,8 +113,7 @@ def grade_checkpoint_1():
         ("Bedrooms", ["bed", "bedroom", "br", "beds"]),
         ("Bathrooms", ["bath", "bathroom", "ba", "baths"]),
         ("Square Footage", ["sq ft", "sqft", "square", "size", "sq. ft", "square feet"]),
-        ("No App Fee", ["no app", "no application fee", "no fee", "no application"]),
-        ("Off-Street Parking", ["parking", "off-road", "off-street", "offstreet", "offroad", "garage", "private", "lot", "on-site"]),
+        ("Air Conditioning", ["air conditioning", "a/c", " ac ", "ac ", " ac", "cooling", "hvac", "central air"]),
         ("Listing URL", ["url", "link", "craigslist", "listing"]),
         ("Positive Features", ["positive", "pros", "features", "highlights", "amenities", "interesting"]),
         ("Dealbreakers", ["dealbreaker", "cons", "negatives", "issues", "concerns"])
@@ -155,24 +153,23 @@ def grade_checkpoint_1():
 
 def grade_checkpoint_2():
     """
-    Checkpoint 2: Listing Data Accuracy (35 pts = 5 listings × 7 pts each)
+    Checkpoint 2: Listing Data Accuracy (36 pts = 6 listings × 6 pts each)
     Each listing's data is verified against the actual Craigslist listing page.
 
-    Outcome Evaluation (repeated for each of 5 listings):
+    Outcome Evaluation (repeated for each of 6 listings):
     - The listing URL is valid and accessible.
     - The price matches the extracted value (within 5% tolerance).
     - The bedroom count matches.
     - The bathroom count matches.
     - The address matches or is contained in the extracted address.
-    - The no application fee status matches.
-    - The off-street parking status matches.
+    - The air conditioning status matches.
 
     PARALLELIZED: Phase 1 fetches all URLs in parallel, Phase 2 extracts data in parallel.
     """
     print("----------------- CHECKPOINT 2 ----------------")
     global model, matched_columns, df
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=35, result=0, name="Listing Data Accuracy")
+    checkpoint = Checkpoint(total=36, result=0, name="Listing Data Accuracy")
 
     step_names = [
         "URL Valid",
@@ -180,13 +177,12 @@ def grade_checkpoint_2():
         "Bedrooms Match",
         "Bathrooms Match",
         "Address Match",
-        "No App Fee Match",
-        "Parking Match",
+        "Air Conditioning Match",
     ]
 
     if df is None or df.empty:
         step_id = 0
-        for listing_num in range(1, 6):
+        for listing_num in range(1, 7):
             for step_name in step_names:
                 step_id += 1
                 checkpoint.add_step(f"Listing {listing_num} - {step_name}", False, step_id,
@@ -200,7 +196,7 @@ def grade_checkpoint_2():
     url_col = matched_columns.get("Listing URL")
     if not url_col:
         step_id = 0
-        for listing_num in range(1, 6):
+        for listing_num in range(1, 7):
             for step_name in step_names:
                 step_id += 1
                 checkpoint.add_step(f"Listing {listing_num} - {step_name}", False, step_id,
@@ -213,11 +209,10 @@ def grade_checkpoint_2():
     bed_col = matched_columns.get("Bedrooms")
     bath_col = matched_columns.get("Bathrooms")
     addr_col = matched_columns.get("Address")
-    no_fee_col = matched_columns.get("No App Fee")
-    parking_col = matched_columns.get("Off-Street Parking")
+    ac_col = matched_columns.get("Air Conditioning")
 
-    # Process up to 5 listings
-    listings_to_check = min(5, len(df))
+    # Process up to 6 listings
+    listings_to_check = min(6, len(df))
 
     # ============ PHASE 1: Parallel URL fetching ============
     print(f"  Phase 1: Fetching {listings_to_check} Craigslist pages in parallel...")
@@ -268,10 +263,9 @@ For this listing, extract:
 2. Number of bedrooms (use 0 for studio)
 3. Number of bathrooms
 4. Full address (if available)
-5. Does it have no application fee? (Yes/No/Unknown)
-6. Does it have off-street parking? (Yes/No/Unknown)
-7. Square footage (number only)
-8. Any other notable amenities or features
+5. Does it have air conditioning? (Yes/No/Unknown)
+6. Square footage (number only)
+7. Any other notable amenities or features
 
 Respond ONLY with this exact JSON format:
 {{
@@ -279,8 +273,7 @@ Respond ONLY with this exact JSON format:
     "bedrooms": <number or null>,
     "bathrooms": <number or null>,
     "address": "<string or null>",
-    "no_app_fee": "<Yes/No/Unknown>",
-    "off_street_parking": "<Yes/No/Unknown>",
+    "air_conditioning": "<Yes/No/Unknown>",
     "sqft": <number or null>,
     "amenities": ["list", "of", "amenities"]
 }}
@@ -444,60 +437,32 @@ Respond ONLY with this exact JSON format:
                               f"Error comparing addresses: {str(e)[:50]}",
                               execution_time=0)
 
-        # Step 6: No application fee status matches
+        # Step 6: Air conditioning status matches
         step_num += 1
         try:
-            user_no_fee = normalize_boolean_value(str(row.get(no_fee_col, ""))) if no_fee_col else None
-            craigslist_no_fee_str = extracted_data.get("no_app_fee", "Unknown")
-            craigslist_no_fee = normalize_boolean_value(craigslist_no_fee_str)
+            user_ac = normalize_boolean_value(str(row.get(ac_col, ""))) if ac_col else None
+            craigslist_ac_str = extracted_data.get("air_conditioning", "Unknown")
+            craigslist_ac = normalize_boolean_value(craigslist_ac_str)
 
             # Unknown is acceptable if user also has unknown or if Craigslist doesn't specify
-            if user_no_fee == craigslist_no_fee:
-                status = "Yes" if user_no_fee else "No"
-                checkpoint.add_step(f"Listing {listing_num} - No App Fee Match", True, step_num,
-                                  f"No app fee status: {status}",
+            if user_ac == craigslist_ac:
+                status = "Yes" if user_ac else "No"
+                checkpoint.add_step(f"Listing {listing_num} - Air Conditioning Match", True, step_num,
+                                  f"Air conditioning: {status}",
                                   execution_time=0)
-            elif craigslist_no_fee is None:
-                checkpoint.add_step(f"Listing {listing_num} - No App Fee Match", True, step_num,
-                                  f"Craigslist fee status unclear, skipping check",
-                                  execution_time=0)
-            else:
-                user_status = "Yes" if user_no_fee else "No"
-                cl_status = "Yes" if craigslist_no_fee else "No"
-                checkpoint.add_step(f"Listing {listing_num} - No App Fee Match", False, step_num,
-                                  f"Fee mismatch: spreadsheet says {user_status}, Craigslist says {cl_status}",
-                                  execution_time=0)
-        except Exception as e:
-            checkpoint.add_step(f"Listing {listing_num} - No App Fee Match", False, step_num,
-                              f"Error comparing no app fee status: {str(e)[:50]}",
-                              execution_time=0)
-
-        # Step 7: Off-street parking status matches
-        step_num += 1
-        try:
-            user_parking = normalize_boolean_value(str(row.get(parking_col, ""))) if parking_col else None
-            craigslist_parking_str = extracted_data.get("off_street_parking", "Unknown")
-            craigslist_parking = normalize_boolean_value(craigslist_parking_str)
-
-            # Unknown is acceptable
-            if user_parking == craigslist_parking:
-                status = "Yes" if user_parking else "No"
-                checkpoint.add_step(f"Listing {listing_num} - Parking Match", True, step_num,
-                                  f"Off-street parking: {status}",
-                                  execution_time=0)
-            elif craigslist_parking is None:
-                checkpoint.add_step(f"Listing {listing_num} - Parking Match", True, step_num,
-                                  f"Craigslist parking status unclear, skipping check",
+            elif craigslist_ac is None:
+                checkpoint.add_step(f"Listing {listing_num} - Air Conditioning Match", True, step_num,
+                                  f"Craigslist A/C status unclear, skipping check",
                                   execution_time=0)
             else:
-                user_status = "Yes" if user_parking else "No"
-                cl_status = "Yes" if craigslist_parking else "No"
-                checkpoint.add_step(f"Listing {listing_num} - Parking Match", False, step_num,
-                                  f"Parking mismatch: spreadsheet says {user_status}, Craigslist says {cl_status}",
+                user_status = "Yes" if user_ac else "No"
+                cl_status = "Yes" if craigslist_ac else "No"
+                checkpoint.add_step(f"Listing {listing_num} - Air Conditioning Match", False, step_num,
+                                  f"A/C mismatch: spreadsheet says {user_status}, Craigslist says {cl_status}",
                                   execution_time=0)
         except Exception as e:
-            checkpoint.add_step(f"Listing {listing_num} - Parking Match", False, step_num,
-                              f"Error comparing parking status: {str(e)[:50]}",
+            checkpoint.add_step(f"Listing {listing_num} - Air Conditioning Match", False, step_num,
+                              f"Error comparing A/C status: {str(e)[:50]}",
                               execution_time=0)
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -736,11 +701,11 @@ def grade_checkpoint_5():
     """
     Checkpoint 5: Summary Statistics Table (2 pts)
     Validates that a summary statistics table exists with auto-updating formulas.
-    
-    For instance_3, the summary table starts at column M (same as instance_2).
+
+    For instance_5, the summary table starts at column L.
 
     Outcome Evaluation:
-    - A summary statistics table exists starting at column M (top-right area of sheet).
+    - A summary statistics table exists starting at column L (top-right area of sheet).
     - The summary table contains formulas/equations that reference the main listing data.
     """
     print("----------------- CHECKPOINT 5 ----------------")
@@ -748,8 +713,8 @@ def grade_checkpoint_5():
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=2, result=0, name="Summary Statistics Table")
 
-    # Column M is index 12 (0-indexed)
-    MIN_SUMMARY_COL = 12
+    # Column L is index 11 (0-indexed)
+    MIN_SUMMARY_COL = 11
 
     if not table_data:
         checkpoint.add_step("Summary Table Exists", False, 1,
@@ -761,13 +726,13 @@ def grade_checkpoint_5():
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    # Step 1: Check if a second table exists at column M or later
+    # Step 1: Check if a second table exists at column L or later
     step_start = time.time()
     summary_start_col = None
     summary_end_col = None
 
     try:
-        # Find a table that starts at column M (index 12) or later
+        # Find a table that starts at column L (index 11) or later
         summary_sheet_table = None
         for sheet_table in table_data:
             if sheet_table.start_col >= MIN_SUMMARY_COL:
@@ -784,10 +749,10 @@ def grade_checkpoint_5():
                               execution_time=step_time)
         else:
             checkpoint.add_step("Summary Table Exists", False, 1,
-                              f"No table found starting at column M or later (found {len(table_data)} table(s))",
+                              f"No table found starting at column L or later (found {len(table_data)} table(s))",
                               execution_time=step_time)
             checkpoint.add_step("Contains Formulas", False, 2,
-                              "Cannot check - no summary table at column M+",
+                              "Cannot check - no summary table at column L+",
                               execution_time=0)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
@@ -838,9 +803,9 @@ def grade_checkpoint_5():
 
                     if formula:
                         formula_cells.append(formula)
-                        # Check if formula references columns A-L (main data)
+                        # Check if formula references columns A-K (main data)
                         formula_upper = formula.upper()
-                        if any(f'{col}' in formula_upper for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']):
+                        if any(f'{col}' in formula_upper for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']):
                             main_data_refs += 1
 
         step_time = time.time() - step_start
@@ -851,7 +816,7 @@ def grade_checkpoint_5():
                               execution_time=step_time)
         elif formula_cells:
             checkpoint.add_step("Contains Formulas", False, 2,
-                              f"Found {len(formula_cells)} formulas but none reference main data (columns A-L)",
+                              f"Found {len(formula_cells)} formulas but none reference main data (columns A-K)",
                               execution_time=step_time)
         else:
             checkpoint.add_step("Contains Formulas", False, 2,
@@ -971,7 +936,7 @@ def grade_checkpoint_6():
                           f"Error checking headers: {str(e)[:50]}",
                           execution_time=step_time)
 
-    # Step 2: Check data cells in main table (columns A-L)
+    # Step 2: Check data cells in main table (columns A-K)
     step_start = time.time()
     try:
         hidden_cells = 0
@@ -980,7 +945,7 @@ def grade_checkpoint_6():
         for r_idx, row in enumerate(rows[1:], 1):  # Skip header
             row_values = row.get('values', [])
             for c_idx, cell in enumerate(row_values):
-                if c_idx >= 12:  # Only main table (columns A-L)
+                if c_idx >= 11:  # Only main table (columns A-K)
                     continue
 
                 content = cell.get('formattedValue', '')
@@ -1016,7 +981,7 @@ def grade_checkpoint_6():
                           f"Error checking data cells: {str(e)[:50]}",
                           execution_time=step_time)
 
-    # Step 3: Check summary table text (column M+, index 12+)
+    # Step 3: Check summary table text (column L+, index 11+)
     step_start = time.time()
     try:
         summary_hidden = 0
@@ -1025,7 +990,7 @@ def grade_checkpoint_6():
         for r_idx, row in enumerate(rows):
             row_values = row.get('values', [])
             for c_idx, cell in enumerate(row_values):
-                if c_idx < 12:  # Only summary area (column M+)
+                if c_idx < 11:  # Only summary area (column L+)
                     continue
 
                 content = cell.get('formattedValue', '')
@@ -1105,7 +1070,7 @@ def grade_checkpoint_6():
 
 def grade_checkpoints(workspace_doc_id: str = None, browsing_history: List[str] = None):
     """
-    Grade all checkpoints for the apartment finder task (Instance 3).
+    Grade all checkpoints for the apartment finder task (Instance 5).
 
     Args:
         workspace_doc_id: Google Sheets document ID to evaluate.
@@ -1150,7 +1115,7 @@ def grade_checkpoints(workspace_doc_id: str = None, browsing_history: List[str] 
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Evaluate apartment finder spreadsheet (Instance 3)")
+    parser = argparse.ArgumentParser(description="Evaluate apartment finder spreadsheet (Instance 5)")
     parser.add_argument("--workspace_doc_id", type=str, help="Google Sheets document ID to evaluate")
     parser.add_argument("--browsing_history", nargs='+', help="List of URLs visited during task")
     args = parser.parse_args()

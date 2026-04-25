@@ -1,4 +1,4 @@
-"""Evaluator for the Apartment Finder Google Sheets task - Instance 3 (4 bed 2 bath, Houston)."""
+"""Evaluator for the Apartment Finder Google Sheets task - Instance 4 (studio, Seattle)."""
 
 import os
 import sys
@@ -43,7 +43,7 @@ from src.browsergym.eval.tasks.sheets_38_apartment_finder.utils import (
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_38_apartment_finder/instance_3/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_38_apartment_finder/instance_4/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 model = None
@@ -89,7 +89,7 @@ def grade_checkpoint_1():
     """
     Checkpoint 1: Spreadsheet Structure (10 pts)
     Validates that the spreadsheet contains columns for all required features
-    and at least 5 listings.
+    and at least 4 listings.
 
     Outcome Evaluation:
     - There is a column for the listing address.
@@ -97,8 +97,8 @@ def grade_checkpoint_1():
     - There is a column for the number of bedrooms.
     - There is a column for the number of bathrooms.
     - There is a column for square footage.
-    - There is a column indicating no application fee availability.
-    - There is a column indicating off-street parking availability.
+    - There is a column indicating if the unit is fully furnished.
+    - There is a column indicating on-site laundry availability.
     - There is a column containing a link/URL to each listing.
     - There is a column for positive features.
     - There is a column for dealbreakers.
@@ -114,8 +114,8 @@ def grade_checkpoint_1():
         ("Bedrooms", ["bed", "bedroom", "br", "beds"]),
         ("Bathrooms", ["bath", "bathroom", "ba", "baths"]),
         ("Square Footage", ["sq ft", "sqft", "square", "size", "sq. ft", "square feet"]),
-        ("No App Fee", ["no app", "no application fee", "no fee", "no application"]),
-        ("Off-Street Parking", ["parking", "off-road", "off-street", "offstreet", "offroad", "garage", "private", "lot", "on-site"]),
+        ("Fully Furnished", ["fully furnished", "fully-furnished", "furnished", "furnishing", "furniture"]),
+        ("On-Site Laundry", ["on-site laundry", "on site laundry", "onsite laundry", "on-site", "shared laundry", "laundry", "laundry room", "laundry on-site"]),
         ("Listing URL", ["url", "link", "craigslist", "listing"]),
         ("Positive Features", ["positive", "pros", "features", "highlights", "amenities", "interesting"]),
         ("Dealbreakers", ["dealbreaker", "cons", "negatives", "issues", "concerns"])
@@ -155,24 +155,24 @@ def grade_checkpoint_1():
 
 def grade_checkpoint_2():
     """
-    Checkpoint 2: Listing Data Accuracy (35 pts = 5 listings × 7 pts each)
+    Checkpoint 2: Listing Data Accuracy (28 pts = 4 listings × 7 pts each)
     Each listing's data is verified against the actual Craigslist listing page.
 
-    Outcome Evaluation (repeated for each of 5 listings):
+    Outcome Evaluation (repeated for each of 4 listings):
     - The listing URL is valid and accessible.
     - The price matches the extracted value (within 5% tolerance).
     - The bedroom count matches.
     - The bathroom count matches.
     - The address matches or is contained in the extracted address.
-    - The no application fee status matches.
-    - The off-street parking status matches.
+    - The fully furnished status matches.
+    - The on-site laundry status matches.
 
     PARALLELIZED: Phase 1 fetches all URLs in parallel, Phase 2 extracts data in parallel.
     """
     print("----------------- CHECKPOINT 2 ----------------")
     global model, matched_columns, df
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=35, result=0, name="Listing Data Accuracy")
+    checkpoint = Checkpoint(total=28, result=0, name="Listing Data Accuracy")
 
     step_names = [
         "URL Valid",
@@ -180,13 +180,13 @@ def grade_checkpoint_2():
         "Bedrooms Match",
         "Bathrooms Match",
         "Address Match",
-        "No App Fee Match",
-        "Parking Match",
+        "Fully Furnished Match",
+        "On-Site Laundry Match",
     ]
 
     if df is None or df.empty:
         step_id = 0
-        for listing_num in range(1, 6):
+        for listing_num in range(1, 5):
             for step_name in step_names:
                 step_id += 1
                 checkpoint.add_step(f"Listing {listing_num} - {step_name}", False, step_id,
@@ -200,7 +200,7 @@ def grade_checkpoint_2():
     url_col = matched_columns.get("Listing URL")
     if not url_col:
         step_id = 0
-        for listing_num in range(1, 6):
+        for listing_num in range(1, 5):
             for step_name in step_names:
                 step_id += 1
                 checkpoint.add_step(f"Listing {listing_num} - {step_name}", False, step_id,
@@ -213,11 +213,11 @@ def grade_checkpoint_2():
     bed_col = matched_columns.get("Bedrooms")
     bath_col = matched_columns.get("Bathrooms")
     addr_col = matched_columns.get("Address")
-    no_fee_col = matched_columns.get("No App Fee")
-    parking_col = matched_columns.get("Off-Street Parking")
+    furnished_col = matched_columns.get("Fully Furnished")
+    laundry_col = matched_columns.get("On-Site Laundry")
 
-    # Process up to 5 listings
-    listings_to_check = min(5, len(df))
+    # Process up to 4 listings
+    listings_to_check = min(4, len(df))
 
     # ============ PHASE 1: Parallel URL fetching ============
     print(f"  Phase 1: Fetching {listings_to_check} Craigslist pages in parallel...")
@@ -268,8 +268,8 @@ For this listing, extract:
 2. Number of bedrooms (use 0 for studio)
 3. Number of bathrooms
 4. Full address (if available)
-5. Does it have no application fee? (Yes/No/Unknown)
-6. Does it have off-street parking? (Yes/No/Unknown)
+5. Is the unit fully furnished? (Yes/No/Unknown)
+6. Does it have on-site laundry (in-building/shared or in-unit)? (Yes/No/Unknown)
 7. Square footage (number only)
 8. Any other notable amenities or features
 
@@ -279,8 +279,8 @@ Respond ONLY with this exact JSON format:
     "bedrooms": <number or null>,
     "bathrooms": <number or null>,
     "address": "<string or null>",
-    "no_app_fee": "<Yes/No/Unknown>",
-    "off_street_parking": "<Yes/No/Unknown>",
+    "fully_furnished": "<Yes/No/Unknown>",
+    "on_site_laundry": "<Yes/No/Unknown>",
     "sqft": <number or null>,
     "amenities": ["list", "of", "amenities"]
 }}
@@ -444,60 +444,60 @@ Respond ONLY with this exact JSON format:
                               f"Error comparing addresses: {str(e)[:50]}",
                               execution_time=0)
 
-        # Step 6: No application fee status matches
+        # Step 6: Fully furnished status matches
         step_num += 1
         try:
-            user_no_fee = normalize_boolean_value(str(row.get(no_fee_col, ""))) if no_fee_col else None
-            craigslist_no_fee_str = extracted_data.get("no_app_fee", "Unknown")
-            craigslist_no_fee = normalize_boolean_value(craigslist_no_fee_str)
+            user_furnished = normalize_boolean_value(str(row.get(furnished_col, ""))) if furnished_col else None
+            craigslist_furnished_str = extracted_data.get("fully_furnished", "Unknown")
+            craigslist_furnished = normalize_boolean_value(craigslist_furnished_str)
 
             # Unknown is acceptable if user also has unknown or if Craigslist doesn't specify
-            if user_no_fee == craigslist_no_fee:
-                status = "Yes" if user_no_fee else "No"
-                checkpoint.add_step(f"Listing {listing_num} - No App Fee Match", True, step_num,
-                                  f"No app fee status: {status}",
+            if user_furnished == craigslist_furnished:
+                status = "Yes" if user_furnished else "No"
+                checkpoint.add_step(f"Listing {listing_num} - Fully Furnished Match", True, step_num,
+                                  f"Fully furnished: {status}",
                                   execution_time=0)
-            elif craigslist_no_fee is None:
-                checkpoint.add_step(f"Listing {listing_num} - No App Fee Match", True, step_num,
-                                  f"Craigslist fee status unclear, skipping check",
+            elif craigslist_furnished is None:
+                checkpoint.add_step(f"Listing {listing_num} - Fully Furnished Match", True, step_num,
+                                  f"Craigslist furnished status unclear, skipping check",
                                   execution_time=0)
             else:
-                user_status = "Yes" if user_no_fee else "No"
-                cl_status = "Yes" if craigslist_no_fee else "No"
-                checkpoint.add_step(f"Listing {listing_num} - No App Fee Match", False, step_num,
-                                  f"Fee mismatch: spreadsheet says {user_status}, Craigslist says {cl_status}",
+                user_status = "Yes" if user_furnished else "No"
+                cl_status = "Yes" if craigslist_furnished else "No"
+                checkpoint.add_step(f"Listing {listing_num} - Fully Furnished Match", False, step_num,
+                                  f"Furnished mismatch: spreadsheet says {user_status}, Craigslist says {cl_status}",
                                   execution_time=0)
         except Exception as e:
-            checkpoint.add_step(f"Listing {listing_num} - No App Fee Match", False, step_num,
-                              f"Error comparing no app fee status: {str(e)[:50]}",
+            checkpoint.add_step(f"Listing {listing_num} - Fully Furnished Match", False, step_num,
+                              f"Error comparing furnished status: {str(e)[:50]}",
                               execution_time=0)
 
-        # Step 7: Off-street parking status matches
+        # Step 7: On-site laundry status matches
         step_num += 1
         try:
-            user_parking = normalize_boolean_value(str(row.get(parking_col, ""))) if parking_col else None
-            craigslist_parking_str = extracted_data.get("off_street_parking", "Unknown")
-            craigslist_parking = normalize_boolean_value(craigslist_parking_str)
+            user_laundry = normalize_boolean_value(str(row.get(laundry_col, ""))) if laundry_col else None
+            craigslist_laundry_str = extracted_data.get("on_site_laundry", "Unknown")
+            craigslist_laundry = normalize_boolean_value(craigslist_laundry_str)
 
             # Unknown is acceptable
-            if user_parking == craigslist_parking:
-                status = "Yes" if user_parking else "No"
-                checkpoint.add_step(f"Listing {listing_num} - Parking Match", True, step_num,
-                                  f"Off-street parking: {status}",
+            if user_laundry == craigslist_laundry:
+                status = "Yes" if user_laundry else "No"
+                checkpoint.add_step(f"Listing {listing_num} - On-Site Laundry Match", True, step_num,
+                                  f"On-site laundry: {status}",
                                   execution_time=0)
-            elif craigslist_parking is None:
-                checkpoint.add_step(f"Listing {listing_num} - Parking Match", True, step_num,
-                                  f"Craigslist parking status unclear, skipping check",
+            elif craigslist_laundry is None:
+                checkpoint.add_step(f"Listing {listing_num} - On-Site Laundry Match", True, step_num,
+                                  f"Craigslist laundry status unclear, skipping check",
                                   execution_time=0)
             else:
-                user_status = "Yes" if user_parking else "No"
-                cl_status = "Yes" if craigslist_parking else "No"
-                checkpoint.add_step(f"Listing {listing_num} - Parking Match", False, step_num,
-                                  f"Parking mismatch: spreadsheet says {user_status}, Craigslist says {cl_status}",
+                user_status = "Yes" if user_laundry else "No"
+                cl_status = "Yes" if craigslist_laundry else "No"
+                checkpoint.add_step(f"Listing {listing_num} - On-Site Laundry Match", False, step_num,
+                                  f"Laundry mismatch: spreadsheet says {user_status}, Craigslist says {cl_status}",
                                   execution_time=0)
         except Exception as e:
-            checkpoint.add_step(f"Listing {listing_num} - Parking Match", False, step_num,
-                              f"Error comparing parking status: {str(e)[:50]}",
+            checkpoint.add_step(f"Listing {listing_num} - On-Site Laundry Match", False, step_num,
+                              f"Error comparing laundry status: {str(e)[:50]}",
                               execution_time=0)
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -736,8 +736,8 @@ def grade_checkpoint_5():
     """
     Checkpoint 5: Summary Statistics Table (2 pts)
     Validates that a summary statistics table exists with auto-updating formulas.
-    
-    For instance_3, the summary table starts at column M (same as instance_2).
+
+    For instance_4, the summary table starts at column M.
 
     Outcome Evaluation:
     - A summary statistics table exists starting at column M (top-right area of sheet).
@@ -1105,7 +1105,7 @@ def grade_checkpoint_6():
 
 def grade_checkpoints(workspace_doc_id: str = None, browsing_history: List[str] = None):
     """
-    Grade all checkpoints for the apartment finder task (Instance 3).
+    Grade all checkpoints for the apartment finder task (Instance 4).
 
     Args:
         workspace_doc_id: Google Sheets document ID to evaluate.
@@ -1150,7 +1150,7 @@ def grade_checkpoints(workspace_doc_id: str = None, browsing_history: List[str] 
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Evaluate apartment finder spreadsheet (Instance 3)")
+    parser = argparse.ArgumentParser(description="Evaluate apartment finder spreadsheet (Instance 4)")
     parser.add_argument("--workspace_doc_id", type=str, help="Google Sheets document ID to evaluate")
     parser.add_argument("--browsing_history", nargs='+', help="List of URLs visited during task")
     args = parser.parse_args()
