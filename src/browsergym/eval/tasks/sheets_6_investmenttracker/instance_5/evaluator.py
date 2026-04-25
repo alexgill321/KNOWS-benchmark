@@ -39,18 +39,18 @@ from src.browsergym.eval.eval_utils.chart_utils import (
 )
 
 # Constants
-GOLD_LABELS_SHEET_ID = "1fMgea9HgO4ikaO3ZZBcK9WvhUgcjvsw5XDeqB_pPfpY"
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_6_investmenttracker/instance_1/")
+GOLD_LABELS_SHEET_ID = "1lea8l7xbTCa_2enkg_llh6VelXr-mq4etUMGfZN2txk"
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_6_investmenttracker/instance_5/")
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 # Instance-specific parameters
-NUM_STOCKS = 10
-NUM_SHARES = 100
-CHART_TYPE = "BAR"
-SECTOR = "tech"
-DATE_LABEL = "end of Q2 2023"
-PAST_PRICE_KEYWORDS = ["06/30/2023", "06-30-2023", "past", "past price", "q2 2023", "q2 2023 price", "q2 2023 price ($)", "june 2023", "jun 2023", "june 30 2023", "historical", "initial", "closing price"]
+NUM_STOCKS = 6
+NUM_SHARES = 250
+CHART_TYPE = "PIE"  # Expected chart type
+SECTOR = "pharmaceutical"
+DATE_LABEL = "05-19-2025"
+PAST_PRICE_KEYWORDS = ["05-19-2025", "05/19/2025","past", "past price", "may 2025", "may 19 2025", "may 2025 price", "may 2025 price ($)", "historical", "initial", "closing price"]
 
 model = None
 model_id = "gemini-3-flash-google-ai"
@@ -106,7 +106,7 @@ def preprocess_browsing_history(browsing_history):
 
     relevant_keywords = [
         'companiesmarketcap', 'finance', 'market', 'stock', 'investing', 'bloomberg', 'nasdaq', 'wsj', 'cnbc',
-        'tech', 'technology'
+        'pharma', 'pharmaceutical', 'drug', 'biotech'
     ]
     sorted_urls = sorted(list(set(browsing_history)),
                         key=lambda u: any(k in u.lower() for k in relevant_keywords),
@@ -141,7 +141,7 @@ def grade_checkpoint_1_and_2():
     - There is a column/row with the total value of each stock.
 
     Checkpoint 2 Outcome Evaluation:
-    - The stocks are the top 10 highest market cap stocks in tech from the end of Q2 2023.
+    - The stocks are the top 6 pharmaceutical companies by market cap from the end of Q2 2021.
     - The past price of each stock is correct.
     - The current price of each stock is correct.
     - The gain/loss of each stock is correct.
@@ -203,8 +203,8 @@ def grade_checkpoint_1_and_2():
         ("Stock Name", ["name", "stock", "company"]),
         ("Ticker Symbol", ["ticker", "symbol", "ticker symbol"]),
         ("Current Price", ["current", "current price", "market price", "current price ($)"]),
-        ("Past Price", ["past", "past price", "q2 2023", "q2 2023 price", "q2 2023 price ($)", "historical", "initial"]),
-        ("Gain/Loss", ["gain", "loss", "gain/loss", "change", "profit"]),
+        ("Past Price", PAST_PRICE_KEYWORDS),
+        ("Gain/Loss", ["gain", "loss", "gain/loss", "change", "profit", "profit/loss"]),
         ("Number of shares owned", ["shares", "quantity", "owned", "holdings"]),
         ("Total value of each stock", ["total", "value", "total value", "position"])
     ]
@@ -250,7 +250,7 @@ def grade_checkpoint_1_and_2():
 
         # For non-matching reference stocks, try LLM-based fuzzy matching
         llm_matches = []
-        if exact_match_count < 10:
+        if exact_match_count < NUM_STOCKS:
             unmatched_refs = [(name, ticker) for name, ticker in zip(reference_names, reference_tickers)
                              if ticker not in matching_tickers]
 
@@ -293,7 +293,6 @@ def grade_checkpoint_1_and_2():
                                 # Check if this user ticker was already matched exactly
                                 if user_ticker in matching_tickers:
                                     print(f"LLM matched {ref_ticker} to already-matched ticker {user_ticker} at row {row_idx} - counting as failure")
-                                    # Don't add to matches or mapping
                                 else:
                                     llm_matches.append((ref_ticker, row_idx))
                                     gold_to_user_ticker_map[ref_ticker] = user_ticker
@@ -306,7 +305,7 @@ def grade_checkpoint_1_and_2():
         total_match_count = exact_match_count + len(llm_matches)
         step_time = time.time() - step_start
 
-        if total_match_count == 10:
+        if total_match_count == NUM_STOCKS:
             match_details = f"{exact_match_count} exact"
             if llm_matches:
                 match_details += f", {len(llm_matches)} LLM-matched"
@@ -509,7 +508,6 @@ def grade_checkpoint_1_and_2():
                           execution_time=step_time)
 
     # Step 4 (checkpoint2): Verify gain/loss calculations are correct
-    # Calculate expected gain/loss from actual current and past prices, then compare
     step_start = time.time()
     if "Gain/Loss" in matched_columns and "Current Price" in matched_columns and "Past Price" in matched_columns:
         gainloss_col = matched_columns["Gain/Loss"]
@@ -533,7 +531,7 @@ def grade_checkpoint_1_and_2():
                 # Calculate expected gain/loss from actual prices
                 expected_gainloss = current_price - past_price
 
-                # Use numerical matching with 5% error
+                # Use numerical matching with 1% error
                 is_match, diff = numerical_match_with_error(expected_gainloss, user_gainloss, error_percent=1.0)
                 total_comparisons += 1
 
@@ -574,7 +572,7 @@ def grade_checkpoint_3(browsing_history=None):
     Checkpoint 3: A website containing the information was visited.
 
     Outcome Evaluation:
-    - The website trace contains a URL that has information about the top 10 highest market cap stocks in tech.
+    - The website trace contains a URL that has information about the top 6 pharmaceutical companies by market cap.
     - The website trace contains a URL that has information about the past price of each stock.
     """
     print("----------------- CHECKPOINT 3 ----------------")
@@ -632,7 +630,7 @@ def grade_checkpoint_3(browsing_history=None):
             {markdown_content}
 
             Task Criteria:
-            1. Does this website content list the current top highest market cap {SECTOR} stocks and their current prices (specifically matching the stocks and current prices in the User's Spreadsheet)?
+            1. Does this website content list the current top highest market cap {SECTOR} companies and their current prices (specifically matching the stocks and current prices in the User's Spreadsheet)?
             2. Does this website content contain the past/historical price information for these stocks from the {DATE_LABEL} (matching the values in the User's Spreadsheet)?
 
             Evaluate strictly based on the provided Website Content. If most of the information is present but not all details match exactly (~75%), still consider it a match.
@@ -708,25 +706,24 @@ def grade_checkpoint_3(browsing_history=None):
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
-
 def grade_checkpoint_4():
     """
-    Checkpoint 4: A bar chart showing each of the stocks and their total value as a percentage of the overall portfolio was created.
+    Checkpoint 4: A pie chart showing each stock's current value as a percentage of the overall portfolio was created.
 
     Outcome Evaluation:
-    - A bar chart was created in the spreadsheet.
-    - The bar chart contains each of the stocks.
-    - The bar chart correctly shows the total value of each stock as a percentage of the overall portfolio.
+    - A pie chart was created in the spreadsheet.
+    - The pie chart contains each of the stocks.
+    - The pie chart correctly shows the current value of each stock as a percentage of the overall portfolio.
     """
     print("----------------- CHECKPOINT 4 ----------------")
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=3, result=0, name="Bar Chart Validation")
+    checkpoint = Checkpoint(total=3, result=0, name="Pie Chart Validation")
 
-    # Step 1: Check if bar/column chart exists
+    # Step 1: Check if pie chart exists
     step_start = time.time()
     if not chart_data or len(chart_data) == 0:
         step_time = time.time() - step_start
-        checkpoint.add_step("Bar Chart Exists", False, 1,
+        checkpoint.add_step("Pie Chart Exists", False, 1,
                           "No charts found in spreadsheet",
                           execution_time=step_time)
         checkpoint.add_step("Chart Contains Stocks", False, 2,
@@ -738,33 +735,33 @@ def grade_checkpoint_4():
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    # Find bar/column charts
-    bar_charts = [c for c in chart_data if c.get('chart_type', '').upper() in ['COLUMN', 'BAR']]
+    # Find pie charts
+    pie_charts = [c for c in chart_data if c.get('chart_type', '').upper() == CHART_TYPE]
 
     step_time = time.time() - step_start
-    if not bar_charts:
+    if not pie_charts:
         found_types = [c.get('chart_type', 'unknown') for c in chart_data]
-        checkpoint.add_step("Bar Chart Exists", False, 1,
-                          f"No bar/column chart found. Found chart types: {', '.join(found_types)}",
+        checkpoint.add_step("Pie Chart Exists", False, 1,
+                          f"No pie chart found. Found chart types: {', '.join(found_types)}",
                           execution_time=step_time)
         checkpoint.add_step("Chart Contains Stocks", False, 2,
-                          "Cannot validate - no bar chart found",
+                          "Cannot validate - no pie chart found",
                           execution_time=0)
         checkpoint.add_step("Chart Shows Percentages", False, 3,
-                          "Cannot validate - no bar chart found",
+                          "Cannot validate - no pie chart found",
                           execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    chart = bar_charts[0]  # Use the first bar chart found
+    chart = pie_charts[0]  # Use the first pie chart found
     chart_title = chart.get('title', 'Untitled')
 
     # Debug: Print chart structure to understand what we're working with
     if DEBUG:
         debug_chart_structure(chart)
 
-    checkpoint.add_step("Bar Chart Exists", True, 1,
-                      f"Found bar/column chart: '{chart_title}'",
+    checkpoint.add_step("Pie Chart Exists", True, 1,
+                      f"Found pie chart: '{chart_title}'",
                       execution_time=step_time)
 
     # Step 2: Validate chart contains all stocks
@@ -816,7 +813,7 @@ def grade_checkpoint_4():
                               execution_time=0)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
-        
+
         # Check for duplicate stocks in table data
         stock_unique = set(expected_stocks)
         if len(stock_unique) != len(expected_stocks):
@@ -897,7 +894,7 @@ def grade_checkpoint_4():
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
-        # Validate chart values match expected percentages (5% tolerance)
+        # Validate chart values match expected percentages (2% tolerance)
         match_count, total_count, mismatches = validate_chart_values_match(
             chart_values, expected_percentages, error_percent=2.0
         )
@@ -929,7 +926,6 @@ def grade_checkpoints(workspace_doc_id=None, browsing_history=None):
 
     Args:
         workspace_doc_id (str, optional): Direct Google Sheets document ID to use
-        cached_models (dict, optional): Dictionary of preloaded models by model_id
         browsing_history (list, optional): List of URLs visited during task execution
 
     Returns:
@@ -991,7 +987,7 @@ if __name__ == "__main__":
     for checkpoint in detailed_report["checkpoints"]:
         print(f"\n{checkpoint['name']}: {checkpoint['score']}")
         for step in checkpoint["steps"]:
-            status = "✓" if step["success"] else "✗"
+            status = "PASS" if step["success"] else "FAIL"
             print(f"  {status} {step['name']}: {step['details'] or 'No details'}")
     end_time = time.time()
     print(f"\nTotal time taken: {end_time - start_time:.2f} seconds")

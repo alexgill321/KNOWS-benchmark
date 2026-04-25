@@ -2,11 +2,43 @@
 
 import requests
 import os
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 from datetime import datetime
 from bs4 import BeautifulSoup
 import re
 import pandas as pd
+
+
+def parse_currency_value(value: Union[str, int, float]) -> Optional[float]:
+    """Strip currency symbols/commas and convert to float.
+
+    Handles values like "$109.99", "€1,234.56", "-$5.00", "($5.00)".
+
+    Args:
+        value: Raw value from a spreadsheet cell.
+
+    Returns:
+        float or None if unparseable.
+    """
+    if isinstance(value, (int, float)):
+        return float(value)
+    if not isinstance(value, str):
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    # Handle accounting-style negatives: ($5.00) -> -5.00
+    negative = False
+    if s.startswith('(') and s.endswith(')'):
+        negative = True
+        s = s[1:-1]
+    # Strip currency symbols and commas
+    s = re.sub(r'[^\d.\-+]', '', s)
+    try:
+        result = float(s)
+        return -result if negative else result
+    except ValueError:
+        return None
 
 
 def load_alpha_vantage_api_key() -> Optional[str]:
@@ -958,6 +990,52 @@ def get_historical_stock_price(symbol: str, date_str: str) -> Optional[float]:
     return None
 
 
+def verify_past_prices_with_web_content(
+    failed_stocks: List[Dict],
+    cached_url_contents: Dict[str, str], price_source_url: str, model,
+) -> Dict[str, Optional[float]]:
+    """Batch fallback price extraction from web content via LLM.
+
+    Args:
+        failed_stocks: List of dicts with keys 'ticker', 'company_name'.
+        cached_url_contents: Dict mapping URL -> markdown page content.
+        price_source_urls: List of URLs to check against.
+        model: Loaded LLM model callable.
+
+    Returns:
+        Dict mapping ticker -> extracted price as float, or None if not found.
+    """
+    from src.browsergym.eval.eval_utils.llm_utils import extract_json_with_llm
+
+    if not failed_stocks:
+        return {}
+
+    tickers = [s['ticker'] for s in failed_stocks]
+    stocks_to_evaluate = "\n".join(f"{s['company_name']} ({s['ticker']})" for s in failed_stocks)
+    example_json = "{" + ", ".join(f'"{t}": <price>' for t in tickers) + "}"
+    results = {t: None for t in tickers}
+
+    if price_source_url:
+        content = cached_url_contents.get(price_source_url, '')
+        if content:
+
+            prompt = (
+                f"From the web page content below, extract the stock price "
+                f"for each of these stocks.\n\n"
+                f"Stocks:\n{stocks_to_evaluate}\n\n"
+                f"Web page content:\n{content}\n\n"
+                f"Respond ONLY with a JSON object mapping each ticker to its price as a number. "
+                f"Use null if the price is not found:\n{example_json}"
+            )
+            extracted = extract_json_with_llm(prompt, model, expect_type="object")
+            if extracted:
+                for t in tickers:
+                    if results[t] is None and extracted.get(t) is not None:
+                        results[t] = extracted[t]
+
+    return results
+
+
 def calculate_portfolio_performance(stocks: List[Dict], shares_per_stock: int = 100) -> Dict:
     """
     Calculate portfolio performance metrics.
@@ -1056,3 +1134,63 @@ if __name__ == "__main__":
     print("\nIndividual Stock Performance:")
     for stock in portfolio['stocks']:
         print(f"{stock['symbol']}: ${stock['current_value']:,.2f} ({stock['portfolio_percentage']:.1f}% of portfolio)")
+        
+def calculate_expected_stock_values(df_data, matched_cols, ticker_map, num_shares, as_percentage=False):
+    """
+    Calculate expected per-stock portfolio values from table data.
+
+    Per-stock total values are derived from the Current Price column multiplied
+    by `num_shares` (rather than read from any "Total value" column on the
+    sheet), so the result is independent of whatever total-value formula the
+    agent used.
+
+    Args:
+        df_data (pd.DataFrame): DataFrame containing the stock data
+        matched_cols (dict): Dictionary mapping column names to actual column names in df
+        ticker_map (dict): Mapping from gold ticker to user ticker
+        num_shares (int): Number of shares owned per stock, per task spec
+        as_percentage (bool): If True, return each stock's value as a percentage
+            of the overall portfolio total. If False (default), return the raw
+            total dollar value per stock.
+
+    Returns:
+        list: List of expected values for each stock in the order they appear
+              in df (either raw totals or percentages depending on
+              `as_percentage`), or empty list if required columns not found.
+    """
+    if not matched_cols or "Current Price" not in matched_cols:
+        print("Warning: Cannot calculate expected values - Current Price column not found")
+        return []
+
+    if not ticker_map:
+        print("Warning: Cannot calculate expected values - no ticker mapping available")
+        return []
+
+    try:
+        current_price_col = matched_cols["Current Price"]
+        ticker_col = matched_cols.get("Ticker Symbol")
+
+        if not ticker_col:
+            print("Warning: Ticker Symbol column not found for ordering")
+            return []
+
+        # Derive per-stock total values from current price * num_shares
+        current_prices = df_data[current_price_col].apply(parse_currency_value)
+        if current_prices.isna().any():
+            print("Warning: Some current prices could not be parsed")
+            return []
+        total_values = current_prices * num_shares
+
+        if not as_percentage:
+            return total_values.tolist()
+
+        overall_total = total_values.sum()
+        if overall_total == 0:
+            print("Warning: Overall portfolio total is 0")
+            return []
+
+        return (total_values / overall_total * 100).tolist()
+
+    except Exception as e:
+        print(f"Error calculating expected stock values: {e}")
+        return []

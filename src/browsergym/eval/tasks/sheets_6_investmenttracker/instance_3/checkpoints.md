@@ -1,8 +1,8 @@
 # Checkpoints
 
-This task has 16 points in total. 
+This task has 16 points in total.
 
-## Checkpoint 1 (7pts): 
+## Checkpoint 1 (7pts):
 There is a spreadsheet with the requested information.
 
 ### Outcome Evaluation:
@@ -18,7 +18,7 @@ There is a spreadsheet with the requested information.
 The stocks and information are correct and match the task requirements.
 
 ### Outcome Evaluation:
-- The stocks are the top 10 highest market cap stocks in tech from the end of Q2 2023.
+- The stocks are the top 8 highest market cap banks recorded at the end of Q1 2024.
 - The past price of each stock is correct.
 - The current price of each stock is correct.
 - The gain/loss of each stock is correct.
@@ -27,13 +27,13 @@ The stocks and information are correct and match the task requirements.
 A website containing the information was visited.
 
 ### Outcome Evaluation:
-- The website trace contains a URL that has information about the top 10 highest market cap stocks in tech from the end of Q2 2023.
+- The website trace contains a URL that has information about the top 8 highest market cap banks recorded at the end of Q1 2024.
 - The website trace contains a URL that has information about the past price of each stock.
 
 ## Checkpoint 4 (3 pts):
-A bar chart showing each of the stocks and their total value as a percentage of the overall portfolio was created.
+A bar chart showing the specific dollar value of each holding in the portfolio was created.
 
 ### Outcome Evaluation:
 - A bar chart was created in the spreadsheet.
 - The bar chart contains each of the stocks.
-- The bar chart correctly shows the total value of each stock as a percentage of the overall portfolio.
+- The bar chart correctly shows the dollar value of each holding in the portfolio.

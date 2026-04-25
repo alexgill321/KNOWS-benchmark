@@ -6,8 +6,38 @@ chart data against expected values.
 """
 
 import pandas as pd
-from typing import List, Tuple, Optional, Dict, Any
+import re
+from typing import List, Tuple, Optional, Dict, Any, Union
 from .text_utils import numerical_match_with_error, keywords_match_robust
+
+
+def _parse_numeric_cell(value: Union[str, int, float, None]) -> Optional[float]:
+    """Parse a cell value into a float, stripping common formatting.
+
+    Handles currency symbols ($, €, £, ¥), percent signs, thousands commas,
+    and accounting-style parentheses for negatives like "($5.00)".
+    Returns None for null/empty/unparseable values.
+    """
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        if pd.isna(value):
+            return None
+        return float(value)
+    if not isinstance(value, str):
+        return None
+    s = value.strip()
+    if not s:
+        return None
+    negative = s.startswith('(') and s.endswith(')')
+    if negative:
+        s = s[1:-1]
+    s = re.sub(r'[^\d.\-+]', '', s)
+    try:
+        result = float(s)
+        return -result if negative else result
+    except ValueError:
+        return None
 
 
 def debug_chart_structure(chart: Dict[str, Any]) -> None:
@@ -93,7 +123,7 @@ def extract_chart_domain_data(chart: Dict[str, Any], table_data: pd.DataFrame) -
             elif 'pieChart' in chart_spec:
                 pie_chart = chart_spec['pieChart']
                 if 'domain' in pie_chart:
-                    domain_source = pie_chart['domain'].get('sourceRange', {})
+                    domain_source = pie_chart['domain'].get('sourceRange', {}).get('sources', [{}])[0]
                     if domain_source:
                         domain_range = {
                             'start_row': domain_source.get('startRowIndex'),
@@ -178,59 +208,61 @@ def extract_chart_series_data(chart: Dict[str, Any], table_data: pd.DataFrame) -
         # Returns: [15.3, 12.8, 10.5, ...]
     """
     try:
-        series_list = chart.get('series', [])
+        # series_list = chart.get('series', [])
+        
+        # Use the first series (most common case for simple bar charts)
+        # series = series_list[0]
+        # source_range = series.get('source_range')
+
+        # if not source_range:
+        #     print("Warning: No source_range found in chart series")
+        #     print(f"Series structure: {list(series.keys())}")
+        #     return []
 
         # If no series in pre-parsed structure, try parsing from raw_chart
-        if series_list[0].get('type')=='UNKNOWN':
-            print("Warning: No series found in parsed chart data, attempting raw_chart fallback")
-            raw_chart = chart.get('raw_chart', {})
-            chart_spec = raw_chart.get('spec', {})
+        # if series_list[0].get('type')=='UNKNOWN':
+        #     print("Warning: No series found in parsed chart data, attempting raw_chart fallback")
+        raw_chart = chart.get('raw_chart', {})
+        chart_spec = raw_chart.get('spec', {})
 
-            # Try basicChart (for COLUMN, BAR, LINE, etc.)
-            if 'basicChart' in chart_spec:
-                basic_chart = chart_spec['basicChart']
-                raw_series = basic_chart.get('series', [])
-                if raw_series:
-                    # Extract first series source range
-                    first_series = raw_series[0].get('series', {})
-                    if 'sourceRange' in first_series:
-                        source_range_raw = first_series['sourceRange'].get('sources', [{}])[0]
-                        source_range = {
-                            'start_row': source_range_raw.get('startRowIndex'),
-                            'end_row': source_range_raw.get('endRowIndex'),
-                            'start_col': source_range_raw.get('startColumnIndex'),
-                            'end_col': source_range_raw.get('endColumnIndex')
-                        }
-                        series_list = [{'source_range': source_range}]
-                        print(f"Extracted series source_range from raw_chart: {source_range}")
+        # Try basicChart (for COLUMN, BAR, LINE, etc.)
+        if 'basicChart' in chart_spec:
+            basic_chart = chart_spec['basicChart']
+            raw_series = basic_chart.get('series', [])
+            if raw_series:
+                # Extract first series source range
+                first_series = raw_series[0].get('series', {})
+                if 'sourceRange' in first_series:
+                    source_range_raw = first_series['sourceRange'].get('sources', [{}])[0]
+                    source_range = {
+                        'start_row': source_range_raw.get('startRowIndex'),
+                        'end_row': source_range_raw.get('endRowIndex'),
+                        'start_col': source_range_raw.get('startColumnIndex'),
+                        'end_col': source_range_raw.get('endColumnIndex')
+                    }
+                    series_list = [{'source_range': source_range}]
+                    print(f"Extracted series source_range from raw_chart: {source_range}")
 
-            # Try pieChart
-            elif 'pieChart' in chart_spec:
-                pie_chart = chart_spec['pieChart']
-                if 'series' in pie_chart:
-                    source_range_raw = pie_chart['series'].get('sourceRange', {})
-                    if source_range_raw:
-                        source_range = {
-                            'start_row': source_range_raw.get('startRowIndex'),
-                            'end_row': source_range_raw.get('endRowIndex'),
-                            'start_col': source_range_raw.get('startColumnIndex'),
-                            'end_col': source_range_raw.get('endColumnIndex')
-                        }
-                        series_list = [{'source_range': source_range}]
-                        print(f"Extracted series source_range from raw_chart pieChart: {source_range}")
+        # Try pieChart
+        elif 'pieChart' in chart_spec:
+            pie_chart = chart_spec['pieChart']
+            if 'series' in pie_chart:
+                source_range_raw = pie_chart['series'].get('sourceRange', {}).get('sources', [{}])[0]
+                if source_range_raw:
+                    source_range = {
+                        'start_row': source_range_raw.get('startRowIndex'),
+                        'end_row': source_range_raw.get('endRowIndex'),
+                        'start_col': source_range_raw.get('startColumnIndex'),
+                        'end_col': source_range_raw.get('endColumnIndex')
+                    }
+                    series_list = [{'source_range': source_range}]
+                    print(f"Extracted series source_range from raw_chart pieChart: {source_range}")
 
-            if not series_list:
-                print("Warning: Could not extract series from raw_chart either")
-                return []
-
-        # Use the first series (most common case for simple bar charts)
-        series = series_list[0]
-        source_range = series.get('source_range')
-
-        if not source_range:
-            print("Warning: No source_range found in chart series")
-            print(f"Series structure: {list(series.keys())}")
+        if not series_list:
+            print("Warning: Could not extract series from raw_chart either")
             return []
+
+        
 
         # Get range values, handling None
         start_row = source_range.get('start_row')-1
@@ -257,37 +289,18 @@ def extract_chart_series_data(chart: Dict[str, Any], table_data: pd.DataFrame) -
             if col_idx < len(table_data.columns):
                 raw_values = table_data.iloc[start_row:end_row, col_idx]
                 for val in raw_values:
-                    try:
-                        # Convert to float, handling various formats
-                        if pd.isna(val):
-                            continue
-
-                        # Handle string percentages like "15.3%"
-                        if isinstance(val, str):
-                            val = val.strip().rstrip('%')
-
-                        numeric_val = float(val)
+                    numeric_val = _parse_numeric_cell(val)
+                    if numeric_val is not None:
                         values.append(numeric_val)
-                    except (ValueError, TypeError):
-                        # Skip non-numeric values
-                        continue
                 return values
         else:
             # Multiple columns - extract all numeric values
             for row_idx in range(start_row, min(end_row, len(table_data))):
                 for col_idx in range(start_col, min(end_col, len(table_data.columns))):
                     val = table_data.iloc[row_idx, col_idx]
-                    try:
-                        if pd.isna(val):
-                            continue
-
-                        if isinstance(val, str):
-                            val = val.strip().rstrip('%')
-
-                        numeric_val = float(val)
+                    numeric_val = _parse_numeric_cell(val)
+                    if numeric_val is not None:
                         values.append(numeric_val)
-                    except (ValueError, TypeError):
-                        continue
             return values
 
     except Exception as e:

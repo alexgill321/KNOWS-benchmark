@@ -28,8 +28,8 @@ from src.browsergym.eval.eval_utils.google_services_utils import *
 from src.browsergym.eval.eval_utils.table_utils import *
 from src.browsergym.eval.eval_utils.models import load_model
 from src.browsergym.eval.eval_utils.text_utils import keywords_match_robust, numerical_match_with_error
-from src.browsergym.eval.tasks.sheets_6_investmenttracker.utils import calculate_expected_stock_values, verify_past_prices_with_web_content, parse_currency_value
 from src.browsergym.eval.eval_utils.parallel_utils import parallel_download, parallel_execute
+from src.browsergym.eval.tasks.sheets_6_investmenttracker.utils import calculate_expected_stock_values, verify_past_prices_with_web_content, parse_currency_value
 from src.browsergym.eval.eval_utils.chart_utils import (
     debug_chart_structure,
     extract_chart_domain_data,
@@ -39,18 +39,18 @@ from src.browsergym.eval.eval_utils.chart_utils import (
 )
 
 # Constants
-GOLD_LABELS_SHEET_ID = "1fMgea9HgO4ikaO3ZZBcK9WvhUgcjvsw5XDeqB_pPfpY"
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_6_investmenttracker/instance_1/")
+GOLD_LABELS_SHEET_ID = "15f1dL5mHyGryA-Da-atXAbHG3f9nduZsF-QH0d5Lur0"
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_6_investmenttracker/instance_3/")
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 # Instance-specific parameters
-NUM_STOCKS = 10
-NUM_SHARES = 100
-CHART_TYPE = "BAR"
-SECTOR = "tech"
-DATE_LABEL = "end of Q2 2023"
-PAST_PRICE_KEYWORDS = ["06/30/2023", "06-30-2023", "past", "past price", "q2 2023", "q2 2023 price", "q2 2023 price ($)", "june 2023", "jun 2023", "june 30 2023", "historical", "initial", "closing price"]
+NUM_STOCKS = 8
+NUM_SHARES = 1000
+CHART_TYPE = "BAR"  # Expected chart type (accepts BAR or COLUMN)
+SECTOR = "banks"
+DATE_LABEL = "end of Q1 2024"
+PAST_PRICE_KEYWORDS = ["03/31/2024", "03-31-2024", "past", "past price", "q1 2024", "q1 2024 price", "q1 2024 price ($)", "march 2024", "mar 2024", "march 31 2024", "historical", "initial", "closing price"]
 
 model = None
 model_id = "gemini-3-flash-google-ai"
@@ -94,6 +94,7 @@ def setup(workspace_doc_id):
         if isinstance(df, dict):
             df = pd.DataFrame(df)
 
+
 def preprocess_browsing_history(browsing_history):
     """Fetch and cache page content from browsing history URLs for reuse across checkpoints."""
     global cached_url_contents, cached_price_source_urls, model
@@ -106,7 +107,7 @@ def preprocess_browsing_history(browsing_history):
 
     relevant_keywords = [
         'companiesmarketcap', 'finance', 'market', 'stock', 'investing', 'bloomberg', 'nasdaq', 'wsj', 'cnbc',
-        'tech', 'technology'
+        'bank', 'financial', 'banking'
     ]
     sorted_urls = sorted(list(set(browsing_history)),
                         key=lambda u: any(k in u.lower() for k in relevant_keywords),
@@ -141,7 +142,7 @@ def grade_checkpoint_1_and_2():
     - There is a column/row with the total value of each stock.
 
     Checkpoint 2 Outcome Evaluation:
-    - The stocks are the top 10 highest market cap stocks in tech from the end of Q2 2023.
+    - The stocks are the top 8 highest market cap banks recorded at the end of Q1 2024.
     - The past price of each stock is correct.
     - The current price of each stock is correct.
     - The gain/loss of each stock is correct.
@@ -200,11 +201,11 @@ def grade_checkpoint_1_and_2():
 
     # Check for required columns and store matches
     required_columns = [
-        ("Stock Name", ["name", "stock", "company"]),
+        ("Stock Name", ["name", "stock", "company", "bank"]),
         ("Ticker Symbol", ["ticker", "symbol", "ticker symbol"]),
         ("Current Price", ["current", "current price", "market price", "current price ($)"]),
-        ("Past Price", ["past", "past price", "q2 2023", "q2 2023 price", "q2 2023 price ($)", "historical", "initial"]),
-        ("Gain/Loss", ["gain", "loss", "gain/loss", "change", "profit"]),
+        ("Past Price", PAST_PRICE_KEYWORDS),
+        ("Gain/Loss", ["gain", "loss", "gain/loss", "change", "profit", "profit/loss"]),
         ("Number of shares owned", ["shares", "quantity", "owned", "holdings"]),
         ("Total value of each stock", ["total", "value", "total value", "position"])
     ]
@@ -250,7 +251,7 @@ def grade_checkpoint_1_and_2():
 
         # For non-matching reference stocks, try LLM-based fuzzy matching
         llm_matches = []
-        if exact_match_count < 10:
+        if exact_match_count < NUM_STOCKS:
             unmatched_refs = [(name, ticker) for name, ticker in zip(reference_names, reference_tickers)
                              if ticker not in matching_tickers]
 
@@ -306,7 +307,7 @@ def grade_checkpoint_1_and_2():
         total_match_count = exact_match_count + len(llm_matches)
         step_time = time.time() - step_start
 
-        if total_match_count == 10:
+        if total_match_count == NUM_STOCKS:
             match_details = f"{exact_match_count} exact"
             if llm_matches:
                 match_details += f", {len(llm_matches)} LLM-matched"
@@ -390,6 +391,7 @@ def grade_checkpoint_1_and_2():
                 failed_stocks, cached_url_contents, search_url, model
             )
             for stock in failed_stocks:
+                
                 is_match, diff = numerical_match_with_error(web_results.get(stock['ticker'], stock['gold_price']), stock['user_price'], error_percent=5.0)
                 if is_match:
                     match_count += 1
@@ -479,6 +481,7 @@ def grade_checkpoint_1_and_2():
                 failed_stocks, cached_url_contents, search_url, model
             )
             for stock in failed_stocks:
+                
                 is_match, diff = numerical_match_with_error(web_results.get(stock['ticker'], stock['gold_price']), stock['user_price'], error_percent=5.0)
                 if is_match:
                     match_count += 1
@@ -533,7 +536,7 @@ def grade_checkpoint_1_and_2():
                 # Calculate expected gain/loss from actual prices
                 expected_gainloss = current_price - past_price
 
-                # Use numerical matching with 5% error
+                # Use numerical matching with 1% error
                 is_match, diff = numerical_match_with_error(expected_gainloss, user_gainloss, error_percent=1.0)
                 total_comparisons += 1
 
@@ -574,7 +577,7 @@ def grade_checkpoint_3(browsing_history=None):
     Checkpoint 3: A website containing the information was visited.
 
     Outcome Evaluation:
-    - The website trace contains a URL that has information about the top 10 highest market cap stocks in tech.
+    - The website trace contains a URL that has information about the top 8 highest market cap banks recorded at the end of Q1 2024.
     - The website trace contains a URL that has information about the past price of each stock.
     """
     print("----------------- CHECKPOINT 3 ----------------")
@@ -632,7 +635,7 @@ def grade_checkpoint_3(browsing_history=None):
             {markdown_content}
 
             Task Criteria:
-            1. Does this website content list the current top highest market cap {SECTOR} stocks and their current prices (specifically matching the stocks and current prices in the User's Spreadsheet)?
+            1. Does this website content list the current top highest market cap {SECTOR} and their current prices (specifically matching the stocks and current prices in the User's Spreadsheet)?
             2. Does this website content contain the past/historical price information for these stocks from the {DATE_LABEL} (matching the values in the User's Spreadsheet)?
 
             Evaluate strictly based on the provided Website Content. If most of the information is present but not all details match exactly (~75%), still consider it a match.
@@ -711,12 +714,12 @@ def grade_checkpoint_3(browsing_history=None):
 
 def grade_checkpoint_4():
     """
-    Checkpoint 4: A bar chart showing each of the stocks and their total value as a percentage of the overall portfolio was created.
+    Checkpoint 4: A bar chart showing the specific dollar value of each holding in the portfolio was created.
 
     Outcome Evaluation:
     - A bar chart was created in the spreadsheet.
     - The bar chart contains each of the stocks.
-    - The bar chart correctly shows the total value of each stock as a percentage of the overall portfolio.
+    - The bar chart correctly shows the dollar value of each holding in the portfolio.
     """
     print("----------------- CHECKPOINT 4 ----------------")
     checkpoint_start = time.time()
@@ -732,7 +735,7 @@ def grade_checkpoint_4():
         checkpoint.add_step("Chart Contains Stocks", False, 2,
                           "Cannot validate - no chart found",
                           execution_time=0)
-        checkpoint.add_step("Chart Shows Percentages", False, 3,
+        checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                           "Cannot validate - no chart found",
                           execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
@@ -750,7 +753,7 @@ def grade_checkpoint_4():
         checkpoint.add_step("Chart Contains Stocks", False, 2,
                           "Cannot validate - no bar chart found",
                           execution_time=0)
-        checkpoint.add_step("Chart Shows Percentages", False, 3,
+        checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                           "Cannot validate - no bar chart found",
                           execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
@@ -776,7 +779,7 @@ def grade_checkpoint_4():
         checkpoint.add_step("Chart Contains Stocks", False, 2,
                           "Cannot validate - required data from checkpoint 1 not available",
                           execution_time=step_time)
-        checkpoint.add_step("Chart Shows Percentages", False, 3,
+        checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                           "Cannot validate - required data not available",
                           execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
@@ -791,7 +794,7 @@ def grade_checkpoint_4():
             checkpoint.add_step("Chart Contains Stocks", False, 2,
                               "Could not extract category data from chart",
                               execution_time=step_time)
-            checkpoint.add_step("Chart Shows Percentages", False, 3,
+            checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                               "Cannot validate - chart categories not found",
                               execution_time=0)
             checkpoint.execution_time = time.time() - checkpoint_start
@@ -811,12 +814,12 @@ def grade_checkpoint_4():
             checkpoint.add_step("Chart Contains Stocks", False, 2,
                               "Could not determine expected stocks from table data",
                               execution_time=step_time)
-            checkpoint.add_step("Chart Shows Percentages", False, 3,
+            checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                               "Cannot validate - expected stocks not found",
                               execution_time=0)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
-        
+
         # Check for duplicate stocks in table data
         stock_unique = set(expected_stocks)
         if len(stock_unique) != len(expected_stocks):
@@ -824,7 +827,7 @@ def grade_checkpoint_4():
             checkpoint.add_step("Chart Contains Stocks", False, 2,
                               f"Duplicate stocks detected in table. Expected {len(expected_stocks)} unique stocks but found {len(stock_unique)} unique.",
                               execution_time=step_time)
-            checkpoint.add_step("Chart Shows Percentages", False, 3,
+            checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                               "Cannot validate - duplicate stocks in table.",
                               execution_time=0)
             checkpoint.execution_time = time.time() - checkpoint_start
@@ -837,7 +840,7 @@ def grade_checkpoint_4():
             checkpoint.add_step("Chart Contains Stocks", False, 2,
                               "Duplicate labels detected in chart domain. Chart should show each stock exactly once.",
                               execution_time=step_time)
-            checkpoint.add_step("Chart Shows Percentages", False, 3,
+            checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                               "Cannot validate - duplicate stocks in chart.",
                               execution_time=0)
             checkpoint.execution_time = time.time() - checkpoint_start
@@ -865,59 +868,59 @@ def grade_checkpoint_4():
         checkpoint.add_step("Chart Contains Stocks", False, 2,
                           f"Error validating chart stocks: {str(e)}",
                           execution_time=step_time)
-        checkpoint.add_step("Chart Shows Percentages", False, 3,
+        checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                           "Cannot validate - error in stock validation",
                           execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    # Step 3: Validate percentage values are correct
+    # Step 3: Validate dollar values are correct
     step_start = time.time()
 
     try:
-        # Extract chart values (y-axis - should be percentages)
+        # Extract chart values (y-axis - should be dollar values)
         chart_values = extract_chart_series_data(chart, df)
 
         if not chart_values:
             step_time = time.time() - step_start
-            checkpoint.add_step("Chart Shows Percentages", False, 3,
+            checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                               "Could not extract value data from chart",
                               execution_time=step_time)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
-        # Calculate expected percentages from table data
-        expected_percentages = calculate_expected_stock_values(df, matched_columns, gold_to_user_ticker_map, NUM_SHARES, as_percentage=True)
+        # Calculate expected total values from table data
+        expected_values = calculate_expected_stock_values(df, matched_columns, gold_to_user_ticker_map, NUM_SHARES)
 
-        if not expected_percentages:
+        if not expected_values:
             step_time = time.time() - step_start
-            checkpoint.add_step("Chart Shows Percentages", False, 3,
-                              "Could not calculate expected percentages from table data",
+            checkpoint.add_step("Chart Shows Dollar Values", False, 3,
+                              "Could not calculate expected dollar values from table data",
                               execution_time=step_time)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
-        # Validate chart values match expected percentages (5% tolerance)
+        # Validate chart values match expected dollar values (2% tolerance)
         match_count, total_count, mismatches = validate_chart_values_match(
-            chart_values, expected_percentages, error_percent=2.0
+            chart_values, expected_values, error_percent=2.0
         )
 
         step_time = time.time() - step_start
 
         if match_count == total_count and total_count >= NUM_STOCKS:
-            checkpoint.add_step("Chart Shows Percentages", True, 3,
-                              f"All {match_count}/{total_count} percentage values match expected values within 2% tolerance",
+            checkpoint.add_step("Chart Shows Dollar Values", True, 3,
+                              f"All {match_count}/{total_count} dollar values match expected values within 2% tolerance",
                               execution_time=step_time)
         else:
             mismatch_str = '; '.join(mismatches[:3]) + ('...' if len(mismatches) > 3 else '')
-            checkpoint.add_step("Chart Shows Percentages", False, 3,
-                              f"Only {match_count}/{total_count} percentage values match. Mismatches: {mismatch_str}",
+            checkpoint.add_step("Chart Shows Dollar Values", False, 3,
+                              f"Only {match_count}/{total_count} dollar values match. Mismatches: {mismatch_str}",
                               execution_time=step_time)
 
     except Exception as e:
         step_time = time.time() - step_start
-        checkpoint.add_step("Chart Shows Percentages", False, 3,
-                          f"Error validating chart percentages: {str(e)}",
+        checkpoint.add_step("Chart Shows Dollar Values", False, 3,
+                          f"Error validating chart dollar values: {str(e)}",
                           execution_time=step_time)
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -929,7 +932,6 @@ def grade_checkpoints(workspace_doc_id=None, browsing_history=None):
 
     Args:
         workspace_doc_id (str, optional): Direct Google Sheets document ID to use
-        cached_models (dict, optional): Dictionary of preloaded models by model_id
         browsing_history (list, optional): List of URLs visited during task execution
 
     Returns:
@@ -947,7 +949,6 @@ def grade_checkpoints(workspace_doc_id=None, browsing_history=None):
 
         checkpoints: List[Checkpoint] = []
 
-        # Preprocess browsing history first (caches URL content for CP2 fallback and CP3)
         preprocess_browsing_history(browsing_history)
 
         checkpoint1, checkpoint2 = grade_checkpoint_1_and_2()
@@ -991,7 +992,7 @@ if __name__ == "__main__":
     for checkpoint in detailed_report["checkpoints"]:
         print(f"\n{checkpoint['name']}: {checkpoint['score']}")
         for step in checkpoint["steps"]:
-            status = "✓" if step["success"] else "✗"
+            status = "PASS" if step["success"] else "FAIL"
             print(f"  {status} {step['name']}: {step['details'] or 'No details'}")
     end_time = time.time()
     print(f"\nTotal time taken: {end_time - start_time:.2f} seconds")
