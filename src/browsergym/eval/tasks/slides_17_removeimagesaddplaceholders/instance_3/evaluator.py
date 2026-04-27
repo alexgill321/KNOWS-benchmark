@@ -158,9 +158,10 @@ def prefetch_slide_data(temp_dir: str):
 
     slides = presentation_data.get('slides', [])
 
-    # Get unique slide indices we need to process
+    # Get unique slide indices (union of image and textbox slides)
     slide_indices = set()
-    #possible error here, was originally only adding the indices where a image is at, it is now for textboxes, which had one in every slide. If there is no textboxes in the slide an error might arise here.
+    for loc_info in original_locations.values():
+        slide_indices.add(loc_info.get('slide_index', 0))
     for loc_info in original_textbox_locations:
         slide_indices.add(loc_info.get('slide_index', 0))
 
@@ -231,170 +232,203 @@ def grade_checkpoint_1():
 
     global model
 
-    # Get list of files in the Drive folder
-    step_start = time.time()
-    drive_files = list_drive_folder_files(DRIVE_FOLDER_ID, DRIVE_SERVICE)
+    try:
+        # Get list of files in the Drive folder
+        step_start = time.time()
+        drive_files = list_drive_folder_files(DRIVE_FOLDER_ID, DRIVE_SERVICE)
 
-    if not drive_files:
-        checkpoint.add_step(
-            "All Images in Drive",
-            False,
-            1,
-            "No files found in Drive folder",
-            score=0,
-            max_score=10,
-            execution_time=time.time() - step_start
-        )
-        checkpoint.execution_time = time.time() - checkpoint_start
-        return checkpoint
+        if not drive_files:
+            checkpoint.add_step(
+                "All Images in Drive",
+                False,
+                1,
+                "No files found in Drive folder",
+                score=0,
+                max_score=10,
+                execution_time=time.time() - step_start
+            )
+            checkpoint.execution_time = time.time() - checkpoint_start
+            return checkpoint
 
-    print(f"Found {len(drive_files)} files in Drive folder")
+        print(f"Found {len(drive_files)} files in Drive folder")
 
-    # Create temp directory for downloaded images
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # Download all Drive images in parallel
-        drive_images = []
-        image_files = [f for f in drive_files if f.get('mimeType', '').startswith('image/')]
+        # Create temp directory for downloaded images
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Download all Drive images in parallel
+            drive_images = []
+            image_files = [f for f in drive_files if f.get('mimeType', '').startswith('image/')]
 
-        # Get token safely for thread-safe downloads
-        token = None
-        if hasattr(DRIVE_SERVICE, '_http') and hasattr(DRIVE_SERVICE._http, 'credentials'):
-             token = DRIVE_SERVICE._http.credentials.token
-        elif hasattr(DRIVE_SERVICE, 'credentials'):
-             token = DRIVE_SERVICE.credentials.token
-        
-        if not token:
-            print("WARNING: Could not find OAuth token, parallel downloads may fail.")
+            # Get token safely for thread-safe downloads
+            token = None
+            try:
+                if hasattr(DRIVE_SERVICE, '_http') and hasattr(DRIVE_SERVICE._http, 'credentials'):
+                     token = DRIVE_SERVICE._http.credentials.token
+                elif hasattr(DRIVE_SERVICE, 'credentials'):
+                     token = DRIVE_SERVICE.credentials.token
+            except Exception as e:
+                print(f"ERROR: Failed to extract OAuth token: {e}")
 
-        print(f"  Downloading {len(image_files)} images in parallel...")
-        download_tasks = [
-            {
-                'id': file_info['id'],
-                'func': download_drive_image_threadsafe,
-                'args': (file_info['id'], token)
-            }
-            for file_info in image_files
-        ]
+            if not token:
+                checkpoint.add_step(
+                    "All Images in Drive", False, 1,
+                    "Could not extract OAuth token for parallel Drive downloads",
+                    score=0, max_score=10, execution_time=time.time() - step_start
+                )
+                checkpoint.execution_time = time.time() - checkpoint_start
+                return checkpoint
 
-        # Use requests-based download, so we can skip the strict API client semaphore
-        download_results = parallel_download(download_tasks, max_workers=5, use_rate_limit=False)
+            print(f"  Downloading {len(image_files)} images in parallel...")
+            download_tasks = [
+                {
+                    'id': file_info['id'],
+                    'func': download_drive_image_threadsafe,
+                    'args': (file_info['id'], token)
+                }
+                for file_info in image_files
+            ]
 
-        # Save downloaded images to temp files
-        for file_id, img in download_results.items():
-            if img:
-                temp_path = os.path.join(temp_dir, f"drive_{file_id}.png")
-                img.save(temp_path)
-                drive_images.append(temp_path)
+            # Use requests-based download, so we can skip the strict API client semaphore
+            download_results = parallel_download(download_tasks, max_workers=5, use_rate_limit=False)
 
-        print(f"Downloaded {len(drive_images)} images from Drive")
+            # Save downloaded images to temp files
+            for file_id, img in download_results.items():
+                if img:
+                    temp_path = os.path.join(temp_dir, f"drive_{file_id}.png")
+                    img.save(temp_path)
+                    drive_images.append(temp_path)
 
-        # Get all gold image files
-        gold_image_files = [f for f in os.listdir(GOLD_IMAGES_DIR)
-                           if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff'))]
+            print(f"Downloaded {len(drive_images)} images from Drive")
 
-        # Track matches: gold_filename -> (matched, match_method, drive_path)
-        matched_gold = {}
-        unmatched_gold = set(gold_image_files)
+            # Get all gold image files
+            if not os.path.isdir(GOLD_IMAGES_DIR):
+                checkpoint.add_step(
+                    "All Images in Drive", False, 1,
+                    f"Gold images directory not found: {GOLD_IMAGES_DIR}",
+                    score=0, max_score=10, execution_time=time.time() - step_start
+                )
+                checkpoint.execution_time = time.time() - checkpoint_start
+                return checkpoint
 
-        # ============ PARALLEL TIERED MATCHING (Exact + Perceptual Hash) ============
-        # Build all match tasks for parallel execution
-        print("  Building match tasks for parallel execution...")
-        match_tasks = []
-        for gold_filename in gold_image_files:
-            gold_path = os.path.join(GOLD_IMAGES_DIR, gold_filename)
-            for drive_path in drive_images:
-                match_tasks.append({
-                    'id': f"{gold_filename}|{os.path.basename(drive_path)}",
-                    'gold_filename': gold_filename,
-                    'candidate_path': drive_path,
-                    'gold_path': gold_path
-                })
+            gold_image_files = [f for f in os.listdir(GOLD_IMAGES_DIR)
+                               if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff'))]
 
-        print(f"  Running {len(match_tasks)} match comparisons in parallel...")
-        match_results = parallel_image_match(match_tasks, max_workers=8)
+            if len(gold_image_files) == 0:
+                checkpoint.add_step(
+                    "All Images in Drive", False, 1,
+                    "No gold images found to compare against",
+                    score=0, max_score=10, execution_time=time.time() - step_start
+                )
+                checkpoint.execution_time = time.time() - checkpoint_start
+                return checkpoint
 
-        # Process results - find first match for each gold file
-        for task_id, (matched, method) in match_results.items():
-            if matched:
-                gold_filename = task_id.split('|')[0]
-                if gold_filename in unmatched_gold:
-                    # Find the drive path from the task
-                    for task in match_tasks:
-                        if task['id'] == task_id:
-                            print(f"    Matched {gold_filename} via {method}")
-                            matched_gold[gold_filename] = (method, task['candidate_path'])
-                            unmatched_gold.discard(gold_filename)
-                            break
+            # Track matches: gold_filename -> (matched, match_method, drive_path)
+            matched_gold = {}
+            unmatched_gold = set(gold_image_files)
 
-        print(f"  After parallel matching: {len(matched_gold)} matched, {len(unmatched_gold)} remaining")
+            # ============ PARALLEL TIERED MATCHING (Exact + Perceptual Hash) ============
+            # Build all match tasks for parallel execution
+            print("  Building match tasks for parallel execution...")
+            match_tasks = []
+            for gold_filename in gold_image_files:
+                gold_path = os.path.join(GOLD_IMAGES_DIR, gold_filename)
+                for drive_path in drive_images:
+                    match_tasks.append({
+                        'id': f"{gold_filename}|{os.path.basename(drive_path)}",
+                        'gold_filename': gold_filename,
+                        'candidate_path': drive_path,
+                        'gold_path': gold_path
+                    })
 
-        # ============ TIER 3: VLM for remaining (PARALLELIZED) ============
-        if unmatched_gold:
-            print("  Tier 3: Using VLM for remaining unmatched images (parallel search)...")
-            if model is None:
-                model = load_model(model_id)
+            print(f"  Running {len(match_tasks)} match comparisons in parallel...")
+            match_results = parallel_image_match(match_tasks, max_workers=8)
 
-            from concurrent.futures import ThreadPoolExecutor, as_completed
+            # Process results - find first match for each gold file
+            for task_id, (matched, method) in match_results.items():
+                if matched:
+                    gold_filename = task_id.split('|')[0]
+                    if gold_filename in unmatched_gold:
+                        # Find the drive path from the task
+                        for task in match_tasks:
+                            if task['id'] == task_id:
+                                print(f"    Matched {gold_filename} via {method}")
+                                matched_gold[gold_filename] = (method, task['candidate_path'])
+                                unmatched_gold.discard(gold_filename)
+                                break
 
-            def find_match_vlm(gold_file):
-                # Search through all drive images for a match with this gold file
-                gold_p = os.path.join(GOLD_IMAGES_DIR, gold_file)
-                desc = gold_descriptions.get(gold_file, "")
-                
-                # Check each drive image
-                for d_path in drive_images:
-                    try:
-                        is_match = binary_judge_image(
-                            model,
-                            d_path,
-                            f"Is this the same image or very similar to: {desc}"
-                        )
-                        if is_match:
-                            return gold_file, d_path
-                    except Exception:
-                        continue
-                return gold_file, None
+            print(f"  After parallel matching: {len(matched_gold)} matched, {len(unmatched_gold)} remaining")
 
-            # Run VLM search in parallel for each unmatched gold file
-            with ThreadPoolExecutor(max_workers=5) as executor:
-                futures = [executor.submit(find_match_vlm, gf) for gf in unmatched_gold]
-                
-                for future in as_completed(futures):
-                    gf, match_path = future.result()
-                    if match_path:
-                        print(f"    Matched {gf} via VLM")
-                        matched_gold[gf] = ("vlm", match_path)
-                        unmatched_gold.discard(gf)
+            # ============ TIER 3: VLM for remaining (PARALLELIZED) ============
+            if unmatched_gold:
+                print("  Tier 3: Using VLM for remaining unmatched images (parallel search)...")
+                if model is None:
+                    model = load_model(model_id)
 
-            print(f"  After VLM: {len(matched_gold)} matched, {len(unmatched_gold)} remaining")
+                from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    step_time = time.time() - step_start
-    total_gold = len(gold_image_files)
-    matched_count = len(matched_gold)
-    all_matched = matched_count == total_gold
+                def find_match_vlm(gold_file):
+                    # Search through all drive images for a match with this gold file
+                    gold_p = os.path.join(GOLD_IMAGES_DIR, gold_file)
+                    desc = gold_descriptions.get(gold_file, "")
 
-    if all_matched:
-        checkpoint.add_step(
-            "All Images in Drive",
-            True,
-            1,
-            f"All {total_gold} gold images found in Drive folder",
-            score=10,
-            max_score=10,
-            execution_time=step_time
-        )
-    else:
-        unmatched_list = list(unmatched_gold)
-        checkpoint.add_step(
-            "All Images in Drive",
-            False,
-            1,
-            f"Only {matched_count}/{total_gold} images found. Missing: {', '.join(unmatched_list[:5])}{'...' if len(unmatched_list) > 5 else ''}",
-            score=0,
-            max_score=10,
-            execution_time=step_time
-        )
+                    # Check each drive image
+                    for d_path in drive_images:
+                        try:
+                            is_match = binary_judge_image(
+                                model,
+                                d_path,
+                                f"Is this the same image or very similar to: {desc}"
+                            )
+                            if is_match:
+                                return gold_file, d_path
+                        except Exception:
+                            continue
+                    return gold_file, None
 
+                # Run VLM search in parallel for each unmatched gold file
+                with ThreadPoolExecutor(max_workers=5) as executor:
+                    futures = [executor.submit(find_match_vlm, gf) for gf in unmatched_gold]
+
+                    for future in as_completed(futures):
+                        try:
+                            gf, match_path = future.result()
+                            if match_path:
+                                print(f"    Matched {gf} via VLM")
+                                matched_gold[gf] = ("vlm", match_path)
+                                unmatched_gold.discard(gf)
+                        except Exception as e:
+                            print(f"    VLM match future error: {e}")
+
+                print(f"  After VLM: {len(matched_gold)} matched, {len(unmatched_gold)} remaining")
+
+        step_time = time.time() - step_start
+        total_gold = len(gold_image_files)
+        matched_count = len(matched_gold)
+        all_matched = matched_count == total_gold
+
+        if all_matched:
+            checkpoint.add_step(
+                "All Images in Drive",
+                True,
+                1,
+                f"All {total_gold} gold images found in Drive folder",
+                score=10,
+                max_score=10,
+                execution_time=step_time
+            )
+        else:
+            unmatched_list = list(unmatched_gold)
+            checkpoint.add_step(
+                "All Images in Drive",
+                False,
+                1,
+                f"Only {matched_count}/{total_gold} images found. Missing: {', '.join(unmatched_list[:5])}{'...' if len(unmatched_list) > 5 else ''}",
+                score=0,
+                max_score=10,
+                execution_time=step_time
+            )
+    except Exception as e:
+        checkpoint.add_step("Error", False, 1, f"Checkpoint failed: {e}",
+                            score=0, max_score=10, execution_time=time.time() - checkpoint_start)
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
@@ -417,208 +451,210 @@ def grade_checkpoint_2():
 
     global model
 
-    step_names = [
-        "Images Removed",
-        "Text Boxes at Locations",
-        "Text Matches Description",
-        "Text is Red and Big",
-    ]
+    try:
+        step_names = [
+            "Images Removed",
+            "Text Boxes at Locations",
+            "Text Matches Description",
+            "Text is Red and Big",
+        ]
 
-    if not original_locations:
-        for step_num, step_name in enumerate(step_names, start=1):
-            checkpoint.add_step(
-                step_name,
-                False,
-                step_num,
-                "Original image locations not available",
-                score=0,
-                max_score=10,
-                execution_time=0
-            )
-        checkpoint.execution_time = time.time() - checkpoint_start
-        return checkpoint
+        if not original_locations:
+            for step_num, step_name in enumerate(step_names, start=1):
+                checkpoint.add_step(
+                    step_name,
+                    False,
+                    step_num,
+                    "Original image locations not available",
+                    score=0,
+                    max_score=10,
+                    execution_time=0
+                )
+            checkpoint.execution_time = time.time() - checkpoint_start
+            return checkpoint
 
-    slides = presentation_data.get('slides', [])
-    total_images = len(original_locations)
+        slides = presentation_data.get('slides', [])
+        total_images = len(original_locations)
 
-    # Track results for each step
-    images_removed_count = 0
-    textbox_at_location_count = 0
-    text_matches_count = 0
-    text_style_correct_count = 0
+        # Track results for each step
+        images_removed_count = 0
+        textbox_at_location_count = 0
+        text_matches_count = 0
+        text_style_correct_count = 0
 
-    # Store matched text boxes for use in checkpoint 3
-    matched_textboxes = {}
+        # Store matched text boxes for use in checkpoint 3
+        matched_textboxes = {}
 
-    # Collect data for parallel LLM calls
-    llm_comparison_tasks = []
+        # Collect data for parallel LLM calls
+        llm_comparison_tasks = []
 
-    # ============ STEP 1 & 2: Use cached data, build parallel match tasks ============
-    match_tasks = []
+        # ============ STEP 1 & 2: Use cached data, build parallel match tasks ============
+        match_tasks = []
 
-    for gold_filename, loc_info in original_locations.items():
-        slide_index = loc_info.get('slide_index', 0)
-        original_bbox = loc_info.get('bbox', {})
-        expected_description = loc_info.get('description', '')
+        for gold_filename, loc_info in original_locations.items():
+            slide_index = loc_info.get('slide_index', 0)
+            original_bbox = loc_info.get('bbox', {})
+            expected_description = loc_info.get('description', '')
 
-        if slide_index >= len(slides):
-            print(f"Slide index {slide_index} out of range for {gold_filename}")
-            continue
+            if slide_index >= len(slides):
+                print(f"Slide index {slide_index} out of range for {gold_filename}")
+                continue
 
-        gold_path = os.path.join(GOLD_IMAGES_DIR, gold_filename)
+            gold_path = os.path.join(GOLD_IMAGES_DIR, gold_filename)
 
-        # Step 1: Build match tasks for checking if original image is removed
-        # Use cached slide images instead of downloading again
-        cached_images = cached_slide_images.get(slide_index, [])
-        for img_info, local_path in cached_images:
-            match_tasks.append({
-                'id': f"{gold_filename}|{os.path.basename(local_path)}",
-                'gold_filename': gold_filename,
-                'candidate_path': local_path,
-                'gold_path': gold_path
-            })
+            # Step 1: Build match tasks for checking if original image is removed
+            # Use cached slide images instead of downloading again
+            cached_images = cached_slide_images.get(slide_index, [])
+            for img_info, local_path in cached_images:
+                match_tasks.append({
+                    'id': f"{gold_filename}|{os.path.basename(local_path)}",
+                    'gold_filename': gold_filename,
+                    'candidate_path': local_path,
+                    'gold_path': gold_path
+                })
 
-        # Step 2: Check text box at location (using cached text boxes)
-        text_boxes = cached_text_boxes.get(slide_index, [])
-        matched_textbox = None
+            # Step 2: Check text box at location (using cached text boxes)
+            text_boxes = cached_text_boxes.get(slide_index, [])
+            matched_textbox = None
 
-        for tb in text_boxes:
-            tb_bbox = tb.get('bbox', {})
-            if is_bbox_mostly_inside(tb_bbox, original_bbox, threshold=0.8):
-                matched_textbox = tb
-                break
+            for tb in text_boxes:
+                tb_bbox = tb.get('bbox', {})
+                if is_bbox_mostly_inside(tb_bbox, original_bbox, threshold=0.8):
+                    matched_textbox = tb
+                    break
 
-        if matched_textbox:
-            textbox_at_location_count += 1
-            matched_textboxes[gold_filename] = matched_textbox
+            if matched_textbox:
+                textbox_at_location_count += 1
+                matched_textboxes[gold_filename] = matched_textbox
 
-            # Prepare for Step 3: Collect LLM comparison task
-            text_content = matched_textbox.get('text', '')
-            llm_comparison_tasks.append({
-                'gold_filename': gold_filename,
-                'expected_description': expected_description,
-                'text_content': text_content,
-                'matched_textbox': matched_textbox
-            })
-        else:
-            print(f"    No matching text box for {gold_filename}")
-
-    # ============ STEP 1: Run parallel image matching ============
-    print(f"  Running {len(match_tasks)} image removal checks in parallel...")
-    match_results = parallel_image_match(match_tasks, max_workers=8)
-
-    # Check which gold images are still present (not removed)
-    gold_images_found = set()
-    for task_id, (matched, method) in match_results.items():
-        if matched:
-            gold_filename = task_id.split('|')[0]
-            gold_images_found.add(gold_filename)
-
-    # Count images that were successfully removed
-    for gold_filename in original_locations.keys():
-        if gold_filename not in gold_images_found:
-            images_removed_count += 1
-
-    print(f"  {images_removed_count}/{total_images} original images removed")
-
-    # ============ STEP 3: Parallel LLM text comparison ============
-    if llm_comparison_tasks:
-        if model is None:
-            model = load_model(model_id)
-
-        print(f"  Running {len(llm_comparison_tasks)} text comparisons in parallel...")
-
-        # Build VLM tasks for parallel execution
-        vlm_tasks = []
-        for task in llm_comparison_tasks:
-            messages = [
-                {
-                    "role": "system",
-                    "content": [{"type": "text", "text": "You are comparing two image descriptions to see if they refer to the same subject. Be lenient—answer 'Yes' if they describe similar content, the same main subject, or could plausibly be describing the same image, unless they contain a direct factual contradiction like a different color."}]
-                },
-                {
-                    "role": "user",
-                    "content": [{"type": "text", "text": f"Could these two descriptions be referring to the same image? Be lenient with wording differences.\n\nExpected description: {task['expected_description']}\n\nActual text found: {task['text_content']}"}]
-                }
-            ]
-            vlm_tasks.append({
-                'id': task['gold_filename'],
-                'messages': messages
-            })
-
-        # Use faster parallel VLM calls with more workers
-        vlm_results = fast_parallel_vlm_calls(vlm_tasks, model, max_workers=10)
-
-        for task in llm_comparison_tasks:
-            gold_filename = task['gold_filename']
-            if vlm_results.get(gold_filename, False):
-                text_matches_count += 1
+                # Prepare for Step 3: Collect LLM comparison task
+                text_content = matched_textbox.get('text', '')
+                llm_comparison_tasks.append({
+                    'gold_filename': gold_filename,
+                    'expected_description': expected_description,
+                    'text_content': text_content,
+                    'matched_textbox': matched_textbox
+                })
             else:
-                print(f"  Text mismatch for {gold_filename}")
+                print(f"    No matching text box for {gold_filename}")
 
-    # ============ STEP 4: Check text style (red and big) ============
-    for task in llm_comparison_tasks:
-        matched_textbox = task['matched_textbox']
-        element = matched_textbox.get('element', {})
-        if 'shape' in element:
-            text_style = get_text_style_from_shape(element['shape'])
-            if is_text_color(text_style, r=1.0, g=0.0, b=0.0, tolerance=0.42) and is_text_big(text_style, min_pt=18):
-                text_style_correct_count += 1
-            else:
-                print(f"  Text style mismatch for {task['gold_filename']}")
+        # ============ STEP 1: Run parallel image matching ============
+        print(f"  Running {len(match_tasks)} image removal checks in parallel...")
+        match_results = parallel_image_match(match_tasks, max_workers=8)
 
+        # Check which gold images are still present (not removed)
+        gold_images_found = set()
+        for task_id, (matched, method) in match_results.items():
+            if matched:
+                gold_filename = task_id.split('|')[0]
+                gold_images_found.add(gold_filename)
 
-    # Calculate scores for each step (percentage-based, 10pt max each)
-    step_start = time.time()
+        # Count images that were successfully removed
+        for gold_filename in original_locations.keys():
+            if gold_filename not in gold_images_found:
+                images_removed_count += 1
 
-    # Step 1: Images removed
-    step1_score = calculate_percentage_score(images_removed_count, total_images, 10)
-    checkpoint.add_step(
-        "Images Removed",
-        images_removed_count == total_images,
-        1,
-        f"{images_removed_count}/{total_images} original image locations have no image",
-        score=step1_score,
-        max_score=10,
-        execution_time=0
-    )
+        print(f"  {images_removed_count}/{total_images} original images removed")
 
-    # Step 2: Text boxes at locations
-    step2_score = calculate_percentage_score(textbox_at_location_count, total_images, 10)
-    checkpoint.add_step(
-        "Text Boxes at Locations",
-        textbox_at_location_count == total_images,
-        2,
-        f"{textbox_at_location_count}/{total_images} locations have text boxes (80% overlap required)",
-        score=step2_score,
-        max_score=10,
-        execution_time=0
-    )
+        # ============ STEP 3: Parallel LLM text comparison ============
+        if llm_comparison_tasks:
+            if model is None:
+                model = load_model(model_id)
 
-    # Step 3: Text matches descriptions
-    step3_score = calculate_percentage_score(text_matches_count, total_images, 10)
-    checkpoint.add_step(
-        "Text Matches Description",
-        text_matches_count == total_images,
-        3,
-        f"{text_matches_count}/{total_images} text boxes match expected descriptions",
-        score=step3_score,
-        max_score=10,
-        execution_time=0
-    )
+            print(f"  Running {len(llm_comparison_tasks)} text comparisons in parallel...")
 
-    # Step 4: Text style (red and big)
-    step4_score = calculate_percentage_score(text_style_correct_count, total_images, 10)
-    checkpoint.add_step(
-        "Text is Red and Big",
-        text_style_correct_count == total_images,
-        4,
-        f"{text_style_correct_count}/{total_images} text boxes have red text >= 18pt",
-        score=step4_score,
-        max_score=10,
-        execution_time=time.time() - step_start
-    )
+            # Build VLM tasks for parallel execution
+            vlm_tasks = []
+            for task in llm_comparison_tasks:
+                messages = [
+                    {
+                        "role": "system",
+                        "content": [{"type": "text", "text": "You are comparing two image descriptions to see if they refer to the same subject. Be lenient—answer 'Yes' if they describe similar content, the same main subject, or could plausibly be describing the same image, unless they contain a direct factual contradiction like a different color."}]
+                    },
+                    {
+                        "role": "user",
+                        "content": [{"type": "text", "text": f"Could these two descriptions be referring to the same image? Be lenient with wording differences.\n\nExpected description: {task['expected_description']}\n\nActual text found: {task['text_content']}"}]
+                    }
+                ]
+                vlm_tasks.append({
+                    'id': task['gold_filename'],
+                    'messages': messages
+                })
 
+            # Use faster parallel VLM calls with more workers
+            vlm_results = fast_parallel_vlm_calls(vlm_tasks, model, max_workers=10)
+
+            for task in llm_comparison_tasks:
+                gold_filename = task['gold_filename']
+                if vlm_results.get(gold_filename, False):
+                    text_matches_count += 1
+                else:
+                    print(f"  Text mismatch for {gold_filename}")
+
+        # ============ STEP 4: Check text style (red and big) ============
+        for task in llm_comparison_tasks:
+            matched_textbox = task['matched_textbox']
+            element = matched_textbox.get('element', {})
+            if 'shape' in element:
+                text_style = get_text_style_from_shape(element['shape'])
+                if is_text_color(text_style, r=1.0, g=0.0, b=0.0, tolerance=0.42) and is_text_big(text_style, min_pt=18):
+                    text_style_correct_count += 1
+                else:
+                    print(f"  Text style mismatch for {task['gold_filename']}")
+
+        # Calculate scores for each step (percentage-based, 10pt max each)
+        step_start = time.time()
+
+        # Step 1: Images removed
+        step1_score = calculate_percentage_score(images_removed_count, total_images, 10)
+        checkpoint.add_step(
+            "Images Removed",
+            images_removed_count == total_images,
+            1,
+            f"{images_removed_count}/{total_images} original image locations have no image",
+            score=step1_score,
+            max_score=10,
+            execution_time=0
+        )
+
+        # Step 2: Text boxes at locations
+        step2_score = calculate_percentage_score(textbox_at_location_count, total_images, 10)
+        checkpoint.add_step(
+            "Text Boxes at Locations",
+            textbox_at_location_count == total_images,
+            2,
+            f"{textbox_at_location_count}/{total_images} locations have text boxes (80% overlap required)",
+            score=step2_score,
+            max_score=10,
+            execution_time=0
+        )
+
+        # Step 3: Text matches descriptions
+        step3_score = calculate_percentage_score(text_matches_count, total_images, 10)
+        checkpoint.add_step(
+            "Text Matches Description",
+            text_matches_count == total_images,
+            3,
+            f"{text_matches_count}/{total_images} text boxes match expected descriptions",
+            score=step3_score,
+            max_score=10,
+            execution_time=0
+        )
+
+        # Step 4: Text style (red and big)
+        step4_score = calculate_percentage_score(text_style_correct_count, total_images, 10)
+        checkpoint.add_step(
+            "Text is Red and Big",
+            text_style_correct_count == total_images,
+            4,
+            f"{text_style_correct_count}/{total_images} text boxes have red text >= 18pt",
+            score=step4_score,
+            max_score=10,
+            execution_time=time.time() - step_start
+        )
+    except Exception as e:
+        checkpoint.add_step("Error", False, 1, f"Checkpoint failed: {e}",
+                            score=0, max_score=40, execution_time=time.time() - checkpoint_start)
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
@@ -642,309 +678,315 @@ def grade_checkpoint_3():
 
     global model
 
-    step_names = [
-        "New Images at Locations",
-        "URL Credit on Slide Under Image",
-        "URL Points to Correct Image",
-        "Replacement Matches Original",
-        "Image Covers Text Box",
-    ]
+    try:
+        step_names = [
+            "New Images at Locations",
+            "URL Credit on Slide Under Image",
+            "URL Points to Correct Image",
+            "Replacement Matches Original",
+            "Image Covers Text Box",
+        ]
 
-    if not original_locations:
-        for step_num, step_name in enumerate(step_names, start=1):
-            checkpoint.add_step(
-                step_name,
-                False,
-                step_num,
-                "Original image locations not available",
-                score=0,
-                max_score=10,
-                execution_time=0
-            )
-        checkpoint.execution_time = time.time() - checkpoint_start
-        return checkpoint
+        if not original_locations:
+            for step_num, step_name in enumerate(step_names, start=1):
+                checkpoint.add_step(
+                    step_name,
+                    False,
+                    step_num,
+                    "Original image locations not available",
+                    score=0,
+                    max_score=10,
+                    execution_time=0
+                )
+            checkpoint.execution_time = time.time() - checkpoint_start
+            return checkpoint
 
-    slides = presentation_data.get('slides', [])
-    total_images = len(original_locations)
+        slides = presentation_data.get('slides', [])
+        total_images = len(original_locations)
 
-    # Track results for each step
-    new_image_count = 0
-    url_on_slide_count = 0
-    url_valid_count = 0
-    image_similar_count = 0
-    image_covers_text_count = 0
+        # Track results for each step
+        new_image_count = 0
+        url_on_slide_count = 0
+        url_valid_count = 0
+        image_similar_count = 0
+        image_covers_text_count = 0
 
-    # Collect data for parallel processing
-    image_data = {}  # gold_filename -> {new_image_bbox, replacement_path, matched_url, etc.}
-    url_download_tasks = []  # URLs to download in parallel
-    vlm_comparison_tasks = []  # VLM tasks to run in parallel
+        # Collect data for parallel processing
+        image_data = {}  # gold_filename -> {new_image_bbox, replacement_path, matched_url, etc.}
+        url_download_tasks = []  # URLs to download in parallel
+        vlm_comparison_tasks = []  # VLM tasks to run in parallel
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # ============ PHASE 1: Collect all data using cached images ============
-        for gold_filename, loc_info in original_locations.items():
-            slide_index = loc_info.get('slide_index', 0)
-            original_bbox = loc_info.get('bbox', {})
-            expected_description = loc_info.get('description', '')
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # ============ PHASE 1: Collect all data using cached images ============
+            for gold_filename, loc_info in original_locations.items():
+                slide_index = loc_info.get('slide_index', 0)
+                original_bbox = loc_info.get('bbox', {})
+                expected_description = loc_info.get('description', '')
 
-            if slide_index >= len(slides):
-                continue
+                if slide_index >= len(slides):
+                    continue
 
-            slide = slides[slide_index]
+                slide = slides[slide_index]
 
-            # Initialize data for this image
-            image_data[gold_filename] = {
-                'slide_index': slide_index,
-                'original_bbox': original_bbox,
-                'expected_description': expected_description,
-                'new_image': None,
-                'new_image_bbox': None,
-                'replacement_path': None,
-                'matched_url': None
-            }
-
-            # Step 1: Check if new image exists at location (using cached images)
-            cached_images = cached_slide_images.get(slide_index, [])
-            for img_info, local_path in cached_images:
-                transform = img_info.get('transform', {})
-                size = img_info.get('size', {})
-
-                raw_width = size.get('width', {}).get('magnitude', 0)
-                raw_height = size.get('height', {}).get('magnitude', 0)
-                scale_x = transform.get('scaleX', 1)
-                scale_y = transform.get('scaleY', 1)
-
-                img_bbox = {
-                    'x': transform.get('translateX', 0),
-                    'y': transform.get('translateY', 0),
-                    'width': raw_width * abs(scale_x),
-                    'height': raw_height * abs(scale_y)
+                # Initialize data for this image
+                image_data[gold_filename] = {
+                    'slide_index': slide_index,
+                    'original_bbox': original_bbox,
+                    'expected_description': expected_description,
+                    'new_image': None,
+                    'new_image_bbox': None,
+                    'replacement_path': None,
+                    'matched_url': None
                 }
 
-                if is_bbox_mostly_inside(img_bbox, original_bbox, threshold=0.6):
-                    image_data[gold_filename]['new_image'] = img_info
-                    image_data[gold_filename]['new_image_bbox'] = img_bbox
-                    image_data[gold_filename]['replacement_path'] = local_path
-                    new_image_count += 1
-                    break
+                # Step 1: Check if new image exists at location (using cached images)
+                cached_images = cached_slide_images.get(slide_index, [])
+                for img_info, local_path in cached_images:
+                    transform = img_info.get('transform', {})
+                    size = img_info.get('size', {})
 
-            # Step 2: Find URL below the new image
-            new_image_bbox = image_data[gold_filename]['new_image_bbox']
-            if new_image_bbox:
-                slide_links_with_pos = extract_slide_links_with_positions(slide)
-                matched_url = find_url_below_image(new_image_bbox, slide_links_with_pos)
-                if matched_url:
-                    image_data[gold_filename]['matched_url'] = matched_url
-                    url_on_slide_count += 1
-                    print(f"  URL found below new image for {gold_filename}: {matched_url}")
-                    # Prepare URL download task (if not unverifiable)
-                    if not is_unverifiable_url(matched_url):
-                        url_download_tasks.append({
-                            'id': gold_filename,
-                            'func': download_image_from_url,
-                            'args': (matched_url, temp_dir)
-                        })
-                else:
-                    print(f"  No URL found below new image for {gold_filename}")
+                    raw_width = size.get('width', {}).get('magnitude', 0)
+                    raw_height = size.get('height', {}).get('magnitude', 0)
+                    scale_x = transform.get('scaleX', 1)
+                    scale_y = transform.get('scaleY', 1)
 
-            # Step 5: Check if new image covers text box (using cached text boxes)
-            if new_image_bbox:
-                text_boxes = cached_text_boxes.get(slide_index, [])
-                for tb in text_boxes:
-                    tb_bbox = tb.get('bbox', {})
-                    if is_bbox_mostly_inside(tb_bbox, new_image_bbox, threshold=0.8):
-                        image_covers_text_count += 1
+                    img_bbox = {
+                        'x': transform.get('translateX', 0),
+                        'y': transform.get('translateY', 0),
+                        'width': raw_width * abs(scale_x),
+                        'height': raw_height * abs(scale_y)
+                    }
+
+                    if is_bbox_mostly_inside(img_bbox, original_bbox, threshold=0.6):
+                        image_data[gold_filename]['new_image'] = img_info
+                        image_data[gold_filename]['new_image_bbox'] = img_bbox
+                        image_data[gold_filename]['replacement_path'] = local_path
+                        new_image_count += 1
                         break
 
-        # ============ PHASE 2: Parallel URL downloads ============
-        url_download_results = {}
-        if url_download_tasks:
-            print(f"  Downloading {len(url_download_tasks)} URL images in parallel...")
-            url_download_results = parallel_download(url_download_tasks, max_workers=5, use_rate_limit=False)
+                # Step 2: Find URL below the new image
+                new_image_bbox = image_data[gold_filename]['new_image_bbox']
+                if new_image_bbox:
+                    slide_links_with_pos = extract_slide_links_with_positions(slide)
+                    matched_url = find_url_below_image(new_image_bbox, slide_links_with_pos)
+                    if matched_url:
+                        image_data[gold_filename]['matched_url'] = matched_url
+                        url_on_slide_count += 1
+                        print(f"  URL found below new image for {gold_filename}: {matched_url}")
+                        # Prepare URL download task (if not unverifiable)
+                        if not is_unverifiable_url(matched_url):
+                            url_download_tasks.append({
+                                'id': gold_filename,
+                                'func': download_image_from_url,
+                                'args': (matched_url, temp_dir)
+                            })
+                    else:
+                        print(f"  No URL found below new image for {gold_filename}")
 
-        # ============ PHASE 3: Build VLM comparison tasks ============
-        if model is None:
-            model = load_model(model_id)
+                # Step 5: Check if new image covers text box (using cached text boxes)
+                if new_image_bbox:
+                    text_boxes = cached_text_boxes.get(slide_index, [])
+                    for tb in text_boxes:
+                        tb_bbox = tb.get('bbox', {})
+                        if is_bbox_mostly_inside(tb_bbox, new_image_bbox, threshold=0.9):
+                            image_covers_text_count += 1
+                            break
 
-        for gold_filename, data in image_data.items():
-            replacement_path = data['replacement_path']
-            if replacement_path:
-                original_path = os.path.join(GOLD_IMAGES_DIR, gold_filename)
-                messages = [
-                    {
-                        "role": "system",
-                        "content": [{"type": "text", "text": "You are comparing two images to determine if one is a reasonable replacement for the other. Answer 'Yes' if the replacement image retains the key important details and subject matter of the original image, even if the style, quality, or minor details differ. Answer 'No' only if the replacement is clearly showing something completely different or unrelated."}]
-                    },
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": "Here is the original image:"},
-                            {"type": "image", "image": original_path},
-                            {"type": "text", "text": "Here is the replacement image:"},
-                            {"type": "image", "image": replacement_path},
-                            {"type": "text", "text": "Is the replacement image a reasonable substitute that retains the key important details of the original image?"}
-                        ]
-                    }
-                ]
-                vlm_comparison_tasks.append({
-                    'id': gold_filename,
-                    'messages': messages,
-                    'expected_description': data['expected_description'],
-                    'replacement_path': replacement_path
-                })
+            # ============ PHASE 2: Parallel URL downloads ============
+            url_download_results = {}
+            if url_download_tasks:
+                print(f"  Downloading {len(url_download_tasks)} URL images in parallel...")
+                url_download_results = parallel_download(url_download_tasks, max_workers=5, use_rate_limit=False)
 
-        # ============ PHASE 4: Run VLM comparisons in parallel ============
-        print(f"  Running {len(vlm_comparison_tasks)} VLM image comparisons in parallel...")
-        # Use faster parallel VLM calls with more workers
-        vlm_results = fast_parallel_vlm_calls(
-            [{'id': t['id'], 'messages': t['messages']} for t in vlm_comparison_tasks],
-            model,
-            max_workers=10
+            # ============ PHASE 3: Build VLM comparison tasks ============
+            if model is None:
+                model = load_model(model_id)
+
+            for gold_filename, data in image_data.items():
+                replacement_path = data['replacement_path']
+                if replacement_path:
+                    original_path = os.path.join(GOLD_IMAGES_DIR, gold_filename)
+                    messages = [
+                        {
+                            "role": "system",
+                            "content": [{"type": "text", "text": "You are comparing two images to determine if one is a reasonable replacement for the other. Answer 'Yes' if the replacement image retains the key important details and subject matter of the original image, even if the style, quality, or minor details differ. Answer 'No' only if the replacement is clearly showing something completely different or unrelated."}]
+                        },
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": "Here is the original image:"},
+                                {"type": "image", "image": original_path},
+                                {"type": "text", "text": "Here is the replacement image:"},
+                                {"type": "image", "image": replacement_path},
+                                {"type": "text", "text": "Is the replacement image a reasonable substitute that retains the key important details of the original image?"}
+                            ]
+                        }
+                    ]
+                    vlm_comparison_tasks.append({
+                        'id': gold_filename,
+                        'messages': messages,
+                        'expected_description': data['expected_description'],
+                        'replacement_path': replacement_path
+                    })
+
+            # ============ PHASE 4: Run VLM comparisons in parallel ============
+            print(f"  Running {len(vlm_comparison_tasks)} VLM image comparisons in parallel...")
+            # Use faster parallel VLM calls with more workers
+            vlm_results = fast_parallel_vlm_calls(
+                [{'id': t['id'], 'messages': t['messages']} for t in vlm_comparison_tasks],
+                model,
+                max_workers=10
+            )
+
+            # Process VLM results with fallback for failures
+            for task in vlm_comparison_tasks:
+                gold_filename = task['id']
+                if vlm_results.get(gold_filename, False):
+                    print(f"  VLM: Replacement for {gold_filename} matched via image comparison")
+                    image_similar_count += 1
+                else:
+                    # Try description fallback
+                    expected_description = task['expected_description']
+                    replacement_path = task['replacement_path']
+                    if expected_description:
+                        try:
+                            fallback_result = binary_judge_image(
+                                model,
+                                replacement_path,
+                                f"Could this image be a reasonable replacement for an original image with the following description? Minor differences in details are acceptable. Description: {expected_description}"
+                            )
+                            if fallback_result:
+                                print(f"  VLM: Replacement for {gold_filename} matched via description fallback")
+                                image_similar_count += 1
+                            else:
+                                print(f"  VLM: Description fallback also failed for {gold_filename}")
+                        except Exception as e:
+                            print(f"  VLM fallback error for {gold_filename}: {e}")
+
+            # ============ PHASE 5: Validate URLs against replacement images ============
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+
+            def validate_url_image(task_data):
+                g_filename = task_data['gold_filename']
+                m_url = task_data['matched_url']
+                r_path = task_data['replacement_path']
+                desc = task_data['expected_description']
+
+                if is_unverifiable_url(m_url):
+                    print(f"  URL validation: {g_filename} URL is from unverifiable domain, treating as valid")
+                    return True
+
+                url_img_path = url_download_results.get(g_filename)
+                if url_img_path:
+                    try:
+                        match_res, match_meth = match_image_tiered(
+                            url_img_path,
+                            r_path,
+                            model=model,
+                            description=desc
+                        )
+                        if match_res:
+                            print(f"  URL validation: {g_filename} URL matches replacement via {match_meth}")
+                            return True
+                        else:
+                            print(f"  URL validation: {g_filename} URL does not match replacement image")
+                            return False
+                    except Exception as ex:
+                        print(f"  URL validation failed for {g_filename}: {ex}")
+                        return False
+                else:
+                    print(f"  URL validation: Failed to download image from {m_url}")
+                    return False
+
+            # Build tasks for parallel execution
+            validation_tasks = []
+            for gold_filename, data in image_data.items():
+                if data['matched_url'] and data['replacement_path']:
+                    validation_tasks.append({
+                        'gold_filename': gold_filename,
+                        'matched_url': data['matched_url'],
+                        'replacement_path': data['replacement_path'],
+                        'expected_description': data['expected_description']
+                    })
+
+            print(f"  Validating {len(validation_tasks)} URLs in parallel...")
+
+            # Execute validation in parallel
+            if validation_tasks:
+                with ThreadPoolExecutor(max_workers=8) as executor:
+                    futures = [executor.submit(validate_url_image, t) for t in validation_tasks]
+                    for future in as_completed(futures):
+                        try:
+                            if future.result():
+                                url_valid_count += 1
+                        except Exception as e:
+                            print(f"  URL validation future error: {e}")
+
+        # Calculate scores for each step (percentage-based, 10pt max each)
+        step_start = time.time()
+
+        # Step 1: New images at locations
+        step1_score = calculate_percentage_score(new_image_count, total_images, 10)
+        checkpoint.add_step(
+            "New Images at Locations",
+            new_image_count == total_images,
+            1,
+            f"{new_image_count}/{total_images} locations have new images (60% overlap required)",
+            score=step1_score,
+            max_score=10,
+            execution_time=0
         )
 
-        # Process VLM results with fallback for failures
-        for task in vlm_comparison_tasks:
-            gold_filename = task['id']
-            if vlm_results.get(gold_filename, False):
-                print(f"  VLM: Replacement for {gold_filename} matched via image comparison")
-                image_similar_count += 1
-            else:
-                # Try description fallback
-                expected_description = task['expected_description']
-                replacement_path = task['replacement_path']
-                if expected_description:
-                    try:
-                        fallback_result = binary_judge_image(
-                            model,
-                            replacement_path,
-                            f"Could this image be a reasonable replacement for an original image with the following description? Minor differences in details are acceptable. Description: {expected_description}"
-                        )
-                        if fallback_result:
-                            print(f"  VLM: Replacement for {gold_filename} matched via description fallback")
-                            image_similar_count += 1
-                        else:
-                            print(f"  VLM: Description fallback also failed for {gold_filename}")
-                    except Exception as e:
-                        print(f"  VLM fallback error for {gold_filename}: {e}")
+        # Step 2: URL on slide
+        step2_score = calculate_percentage_score(url_on_slide_count, total_images, 10)
+        checkpoint.add_step(
+            "URL Credit on Slide Under Image",
+            url_on_slide_count == total_images,
+            2,
+            f"{url_on_slide_count}/{total_images} images have URL credits in the right location",
+            score=step2_score,
+            max_score=10,
+            execution_time=0
+        )
 
-        # ============ PHASE 5: Validate URLs against replacement images ============
-        from concurrent.futures import ThreadPoolExecutor, as_completed
+        # Step 3: URL is valid link to image
+        step3_score = calculate_percentage_score(url_valid_count, total_images, 10)
+        checkpoint.add_step(
+            "URL Points to Correct Image",
+            url_valid_count == total_images,
+            3,
+            f"{url_valid_count}/{total_images} URLs point to the correct replacement images as well in the correct locations.",
+            score=step3_score,
+            max_score=10,
+            execution_time=0
+        )
 
-        def validate_url_image(task_data):
-            g_filename = task_data['gold_filename']
-            m_url = task_data['matched_url']
-            r_path = task_data['replacement_path']
-            desc = task_data['expected_description']
-            
-            if is_unverifiable_url(m_url):
-                print(f"  URL validation: {g_filename} URL is from unverifiable domain, treating as valid")
-                return True
-                
-            url_img_path = url_download_results.get(g_filename)
-            if url_img_path:
-                try:
-                    match_res, match_meth = match_image_tiered(
-                        url_img_path,
-                        r_path,
-                        model=model,
-                        description=desc
-                    )
-                    if match_res:
-                        print(f"  URL validation: {g_filename} URL matches replacement via {match_meth}")
-                        return True
-                    else:
-                        print(f"  URL validation: {g_filename} URL does not match replacement image")
-                        return False
-                except Exception as ex:
-                    print(f"  URL validation failed for {g_filename}: {ex}")
-                    return False
-            else:
-                print(f"  URL validation: Failed to download image from {m_url}")
-                return False
+        # Step 4: VLM similarity check (compares original and replacement images directly)
+        step4_score = calculate_percentage_score(image_similar_count, total_images, 10)
+        checkpoint.add_step(
+            "Replacement Matches Original",
+            image_similar_count == total_images,
+            4,
+            f"{image_similar_count}/{total_images} replacement images are reasonable substitutes for originals as well in the correct locations.",
+            score=step4_score,
+            max_score=10,
+            execution_time=0
+        )
 
-        # Build tasks for parallel execution
-        validation_tasks = []
-        for gold_filename, data in image_data.items():
-            if data['matched_url'] and data['replacement_path']:
-                validation_tasks.append({
-                    'gold_filename': gold_filename,
-                    'matched_url': data['matched_url'],
-                    'replacement_path': data['replacement_path'],
-                    'expected_description': data['expected_description']
-                })
-        
-        print(f"  Validating {len(validation_tasks)} URLs in parallel...")
-        
-        # Execute validation in parallel
-        if validation_tasks:
-            with ThreadPoolExecutor(max_workers=8) as executor:
-                futures = [executor.submit(validate_url_image, t) for t in validation_tasks]
-                for future in as_completed(futures):
-                    if future.result():
-                        url_valid_count += 1
-
-    # Calculate scores for each step (percentage-based, 10pt max each)
-    step_start = time.time()
-
-    # Step 1: New images at locations
-    step1_score = calculate_percentage_score(new_image_count, total_images, 10)
-    checkpoint.add_step(
-        "New Images at Locations",
-        new_image_count == total_images,
-        1,
-        f"{new_image_count}/{total_images} locations have new images (60% overlap required)",
-        score=step1_score,
-        max_score=10,
-        execution_time=0
-    )
-
-    # Step 2: URL on slide
-    step2_score = calculate_percentage_score(url_on_slide_count, total_images, 10)
-    checkpoint.add_step(
-        "URL Credit on Slide Under Image",
-        url_on_slide_count == total_images,
-        2,
-        f"{url_on_slide_count}/{total_images} images have URL credits in the right location",
-        score=step2_score,
-        max_score=10,
-        execution_time=0
-    )
-
-    # Step 3: URL is valid link to image
-    step3_score = calculate_percentage_score(url_valid_count, total_images, 10)
-    checkpoint.add_step(
-        "URL Points to Correct Image",
-        url_valid_count == total_images,
-        3,
-        f"{url_valid_count}/{total_images} URLs point to the correct replacement images as well in the correct locations.",
-        score=step3_score,
-        max_score=10,
-        execution_time=0
-    )
-
-    # Step 4: VLM similarity check (compares original and replacement images directly)
-    step4_score = calculate_percentage_score(image_similar_count, total_images, 10)
-    checkpoint.add_step(
-        "Replacement Matches Original",
-        image_similar_count == total_images,
-        4,
-        f"{image_similar_count}/{total_images} replacement images are reasonable substitutes for originals as well in the correct locations.",
-        score=step4_score,
-        max_score=10,
-        execution_time=0
-    )
-
-    # Step 5: Image covers text box
-    step5_score = calculate_percentage_score(image_covers_text_count, total_images, 10)
-    checkpoint.add_step(
-        "Image Covers Text Box",
-        image_covers_text_count == total_images,
-        5,
-        f"{image_covers_text_count}/{total_images} new images fully cover text placeholders (90% required)",
-        score=step5_score,
-        max_score=10,
-        execution_time=time.time() - step_start
-    )
-
+        # Step 5: Image covers text box
+        step5_score = calculate_percentage_score(image_covers_text_count, total_images, 10)
+        checkpoint.add_step(
+            "Image Covers Text Box",
+            image_covers_text_count == total_images,
+            5,
+            f"{image_covers_text_count}/{total_images} new images fully cover text placeholders (90% required)",
+            score=step5_score,
+            max_score=10,
+            execution_time=time.time() - step_start
+        )
+    except Exception as e:
+        checkpoint.add_step("Error", False, 1, f"Checkpoint failed: {e}",
+                            score=0, max_score=50, execution_time=time.time() - checkpoint_start)
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
@@ -954,7 +996,7 @@ def grade_checkpoint_4():
 
     Steps (10pt each, percentage-based):
     1. Extra Images (Checks for any extra images that were added to the slides)
-    2. Extra Textboxes (Checks for any extra textboxes that were addes to the slides)
+    2. Extra Textboxes (Checks for any extra textboxes that were added to the slides)
 
     Higher Scores mean that the agent did not add extra images or textboxes
     """
@@ -964,128 +1006,139 @@ def grade_checkpoint_4():
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total = 20, result = 0, name="Formatting Check")
 
-    slides = presentation_data.get('slides',[])
+    try:
+        if not original_locations:
+            checkpoint.add_step("Images Amount in Slides is Equal", False, 1,
+                                "Original image locations not available", score=0, max_score=10, execution_time=0)
+            checkpoint.add_step("Extra textbox check", False, 2,
+                                "Original image locations not available", score=0, max_score=10, execution_time=0)
+            checkpoint.execution_time = time.time() - checkpoint_start
+            return checkpoint
 
-    #get the total of textboxes and images in the orignal slides
-    total_images_of_original_slides= len(original_locations) 
-    total_textboxes_of_original_slides = len(original_textbox_locations)
+        slides = presentation_data.get('slides',[])
 
-    #get the total of textboxes and images in the new slides
-    new_total_images_of_new_slides = sum(len(imgs) for imgs in cached_slide_images.values())
-    new_total_textboxes = sum(len(txt) for txt in cached_text_boxes.values())
+        #get the total of textboxes and images in the orignal slides
+        total_images_of_original_slides= len(original_locations)
+        total_textboxes_of_original_slides = len(original_textbox_locations)
 
-    step_start = time.time()
+        #get the total of textboxes and images in the new slides
+        new_total_images_of_new_slides = sum(len(imgs) for imgs in cached_slide_images.values())
+        new_total_textboxes = sum(len(txt) for txt in cached_text_boxes.values())
 
-    #dictionarys for slide specific totals
-    new_tb_count = {}
-    img_box_count = {}
-    original_textbox_count = {}
-    original_image_count = {}
+        step_start = time.time()
 
-    # Get the amount of images and textboxes in each slide in the new presentation
-    for slide_index in range(len(slides)):
-        images = cached_slide_images.get(slide_index, [])
-        img_box_count[slide_index] = len(images)
+        #dictionaries for slide specific totals
+        new_tb_count = {}
+        img_box_count = {}
+        original_textbox_count = {}
+        original_image_count = {}
 
-        tb = cached_text_boxes.get(slide_index, [])
-        new_tb_count[slide_index] = len(tb)
+        # Get the amount of images and textboxes in each slide in the new presentation
+        for slide_index in range(len(slides)):
+            images = cached_slide_images.get(slide_index, [])
+            img_box_count[slide_index] = len(images)
 
-    # Get the amount of images in original slides
-    for info in original_locations.values():
-        slide = info.get('slide_index',0)
+            tb = cached_text_boxes.get(slide_index, [])
+            new_tb_count[slide_index] = len(tb)
 
-        if(slide in original_image_count):
-            original_image_count[slide] +=1
-        else:
-            original_image_count[slide] = 1
-    
-    # Get the amount of original textboxes
-    for info in original_textbox_locations:
-        slide = info.get('slide_index',0)
+        # Get the amount of images in original slides
+        for info in original_locations.values():
+            slide = info.get('slide_index',0)
 
-        if(slide in original_textbox_count):
-            original_textbox_count[slide] += 1
-        else:
-            original_textbox_count[slide] = 1
+            if(slide in original_image_count):
+                original_image_count[slide] +=1
+            else:
+                original_image_count[slide] = 1
 
-    
-    #if slide count matches, max points assigned, otherwise the amount of slides with extra images deduct  points from the score
-    extra_img_slides = []
-    if(total_images_of_original_slides == new_total_images_of_new_slides):
-        checkpoint.add_step(
-            "Images Amount in Slides is Equal",
-            True,
-            1,
-            "No extra images were added",
-            score = 10,
-            max_score=10,
-            execution_time= time.time() - step_start
-        )
-    else:
-        # Compare the amount of images in each slide
-        for slide_number in original_image_count:
-            if original_image_count.get(slide_number, 0) != img_box_count.get(slide_number, 0):
-                extra_img_slides.append(slide_number)
-        
-        total_slides = len(original_image_count.keys())
-        
-        #This score will be higher if there are less slides with extra images
-        step_1_percentage_score = ((total_slides - len(extra_img_slides))/total_slides) * 10
+        # Get the amount of original textboxes
+        for info in original_textbox_locations:
+            slide = info.get('slide_index',0)
 
-        checkpoint.add_step(
-            "Images Amount in Slides is Equal",
-            False,
-            1,
-            "Extra images were added",
-            score = step_1_percentage_score,
-            max_score=10,
-            execution_time= time.time() - step_start
-        )
+            if(slide in original_textbox_count):
+                original_textbox_count[slide] += 1
+            else:
+                original_textbox_count[slide] = 1
 
-    #text-box checkpoint
-    #expected needs the original images times 2 because it will add the  underneath textboxes and the textboxes for the link
-    expected_textboxcount = total_images_of_original_slides*2 + total_textboxes_of_original_slides
-    if(new_total_textboxes == expected_textboxcount):
-        checkpoint.add_step(
-            "Extra textbox check",
-            True,
-            2,
-            "No extra Textboxes were added",
-            score = 10,
-            max_score=10,
-            execution_time= time.time() - step_start
-        )
-    else:
-        extra_textbox_slides = []
-        total_slides = len(original_image_count.keys())
-        
-        #compare each slide's textbox
-        for slide_number in original_textbox_count:
-            if original_textbox_count.get(slide_number, 0) + original_image_count.get(slide_number, 0) * 2 != new_tb_count.get(slide_number, 0):
-                extra_textbox_slides.append(slide_number)
-
-        #this score will be higher if less slides have missing or extra textboxes
-        step_2_percentage_score = ((total_slides - len(extra_textbox_slides))/total_slides) * 10
-        if(new_total_textboxes > expected_textboxcount):
+        #if slide count matches, max points assigned, otherwise the amount of slides with extra images deduct  points from the score
+        extra_img_slides = []
+        if(total_images_of_original_slides == new_total_images_of_new_slides):
             checkpoint.add_step(
-                "Extra textbox check",
-                False,
-                2,
-                f"There is more textboxes then expected",
-                score = step_2_percentage_score,
+                "Images Amount in Slides is Equal",
+                True,
+                1,
+                "No extra images were added",
+                score = 10,
                 max_score=10,
                 execution_time= time.time() - step_start
             )
         else:
+            # Compare the amount of images in each slide
+            for slide_number in set(original_image_count.keys()) | set(img_box_count.keys()):
+                if original_image_count.get(slide_number, 0) != img_box_count.get(slide_number, 0):
+                    extra_img_slides.append(slide_number)
+
+            total_slides = len(original_image_count.keys())
+
+            #This score will be higher if there are less slides with extra images
+            step_1_percentage_score = ((total_slides - len(extra_img_slides))/total_slides) * 10
+
             checkpoint.add_step(
-                "Extra textbox check",
+                "Images Amount in Slides is Equal",
                 False,
-                2,
-                f"There is less textboxes then expected",
-                score = step_2_percentage_score,
+                1,
+                "Extra images were added",
+                score = step_1_percentage_score,
                 max_score=10,
                 execution_time= time.time() - step_start
             )
+
+        #text-box checkpoint
+        #expected needs the original images times 2 because it will add the  underneath textboxes and the textboxes for the link
+        expected_textboxcount = total_images_of_original_slides*2 + total_textboxes_of_original_slides
+        if(new_total_textboxes == expected_textboxcount):
+            checkpoint.add_step(
+                "Extra textbox check",
+                True,
+                2,
+                "No extra Textboxes were added",
+                score = 10,
+                max_score=10,
+                execution_time= time.time() - step_start
+            )
+        else:
+            extra_textbox_slides = []
+            total_slides = len(original_textbox_count.keys())
+
+            #compare each slide's textbox
+            for slide_number in original_textbox_count:
+                if original_textbox_count.get(slide_number, 0) + original_image_count.get(slide_number, 0) * 2 != new_tb_count.get(slide_number, 0):
+                    extra_textbox_slides.append(slide_number)
+
+            #this score will be higher if less slides have missing or extra textboxes
+            step_2_percentage_score = ((total_slides - len(extra_textbox_slides))/total_slides) * 10
+            if(new_total_textboxes > expected_textboxcount):
+                checkpoint.add_step(
+                    "Extra textbox check",
+                    False,
+                    2,
+                    f"There are more textboxes than expected",
+                    score = step_2_percentage_score,
+                    max_score=10,
+                    execution_time= time.time() - step_start
+                )
+            else:
+                checkpoint.add_step(
+                    "Extra textbox check",
+                    False,
+                    2,
+                    f"There are fewer textboxes than expected",
+                    score = step_2_percentage_score,
+                    max_score=10,
+                    execution_time= time.time() - step_start
+                )
+    except Exception as e:
+        checkpoint.add_step("Error", False, 1, f"Checkpoint failed: {e}",
+                            score=0, max_score=20, execution_time=time.time() - checkpoint_start)
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
         
@@ -1113,6 +1166,8 @@ def grade_checkpoints(workspace_doc_id, cached_models=None):
         if cached_models and model_id in cached_models:
             model = cached_models[model_id]
             print(f"Using preloaded model {model_id}")
+        elif model is None:
+            model = load_model(model_id)
 
         checkpoints: List[Checkpoint] = []
 

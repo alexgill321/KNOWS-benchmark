@@ -467,6 +467,183 @@ def fetch_craigslist_page(url: str, raw: bool = False) -> Optional[str]:
         return None
 
 
+def extract_craigslist_data_structured(html_content: str) -> Optional[Dict]:
+    """
+    Extract listing data from Craigslist HTML using DOM parsing and regex.
+
+    Extracts all fields needed across all sheets_38 instances:
+    - Core: price, bedrooms, bathrooms, address, sqft
+    - Instance 1: in_unit_laundry, pet_friendly
+    - Instance 2/4: furnished
+    - Instance 3: no_app_fee, off_street_parking
+    - Instance 4: on_site_laundry
+    - Instance 5: air_conditioning
+
+    Args:
+        html_content: Raw or cleaned HTML from a Craigslist listing page.
+
+    Returns:
+        Dictionary with extracted listing data, or None if parsing fails entirely.
+    """
+    try:
+        soup = BeautifulSoup(html_content, 'html.parser')
+    except Exception:
+        return None
+
+    data = {
+        "price": None,
+        "bedrooms": None,
+        "bathrooms": None,
+        "address": None,
+        "sqft": None,
+        # Boolean fields: "Yes" / "No" / "Unknown"
+        "in_unit_laundry": "Unknown",
+        "on_site_laundry": "Unknown",
+        "pet_friendly": "Unknown",
+        "furnished": "Unknown",
+        "no_app_fee": "Unknown",
+        "off_street_parking": "Unknown",
+        "air_conditioning": "Unknown",
+    }
+
+    # --- Price: <span class="price">$1,100</span> ---
+    price_el = soup.select_one('.price')
+    if price_el:
+        price_text = price_el.get_text(strip=True)
+        price_match = re.search(r'[\$]?([\d,]+)', price_text)
+        if price_match:
+            try:
+                data["price"] = float(price_match.group(1).replace(',', ''))
+            except ValueError:
+                pass
+
+    # --- Beds/Baths/Sqft from first .attrgroup ---
+    # Typical format: "2BR / 1Ba", "900ft2"
+    first_attrgroup = soup.select_one('.attrgroup')
+    if first_attrgroup:
+        for span in first_attrgroup.select('span'):
+            text = span.get_text(strip=True)
+
+            # Bedrooms/Bathrooms: "2BR / 1Ba" or "0BR / 1Ba" (studio)
+            bed_bath_match = re.search(r'(\d+)\s*BR\s*/\s*(\d+(?:\.\d+)?)\s*Ba', text, re.IGNORECASE)
+            if bed_bath_match:
+                try:
+                    data["bedrooms"] = float(bed_bath_match.group(1))
+                    data["bathrooms"] = float(bed_bath_match.group(2))
+                except ValueError:
+                    pass
+
+            # Square footage: "900ft2" or "1073ft2"
+            sqft_match = re.search(r'(\d+)\s*ft2', text, re.IGNORECASE)
+            if sqft_match:
+                try:
+                    data["sqft"] = float(sqft_match.group(1))
+                except ValueError:
+                    pass
+
+    # --- Address: .mapaddress element ---
+    mapaddr = soup.select_one('.mapaddress')
+    if mapaddr:
+        addr_text = mapaddr.get_text(strip=True)
+        if addr_text:
+            data["address"] = addr_text
+
+    # --- Scan all .attrgroup spans for amenity/boolean fields ---
+    # Craigslist uses consistent span text in later attrgroups for amenities.
+    # Known span values (from live inspection across SLC, LA, Houston, Seattle, Chicago):
+    #   pets:      "cats are OK - purrr", "dogs are OK - wooof"
+    #   laundry:   "w/d in unit", "laundry in bldg", "laundry on site", "no laundry on site"
+    #   parking:   "off-street parking", "attached garage", "detached garage", "carport", "street parking"
+    #   ac:        "air conditioning"
+    #   furnished: "furnished" (rare in attrgroups, more common in body text)
+    #   ev:        "EV charging"
+    for attrgroup in soup.select('.attrgroup'):
+        for span in attrgroup.select('span'):
+            text_lower = span.get_text(strip=True).lower()
+
+            # -- Pet-friendly --
+            if 'cats are ok' in text_lower or 'dogs are ok' in text_lower:
+                data["pet_friendly"] = "Yes"
+
+            # -- In-unit laundry --
+            if 'w/d in unit' in text_lower:
+                data["in_unit_laundry"] = "Yes"
+                # If w/d in unit, on_site_laundry is also effectively yes
+                if data["on_site_laundry"] == "Unknown":
+                    data["on_site_laundry"] = "Yes"
+            elif 'laundry in bldg' in text_lower or 'laundry on site' in text_lower:
+                data["on_site_laundry"] = "Yes"
+                if data["in_unit_laundry"] == "Unknown":
+                    data["in_unit_laundry"] = "No"
+            elif 'no laundry' in text_lower:
+                data["in_unit_laundry"] = "No"
+                data["on_site_laundry"] = "No"
+
+            # -- Off-street parking --
+            if text_lower in ('off-street parking', 'attached garage', 'detached garage', 'carport'):
+                data["off_street_parking"] = "Yes"
+            elif text_lower == 'street parking':
+                if data["off_street_parking"] == "Unknown":
+                    data["off_street_parking"] = "No"
+
+            # -- Air conditioning --
+            if text_lower == 'air conditioning':
+                data["air_conditioning"] = "Yes"
+
+            # -- Furnished (rare in attrgroups but possible) --
+            if text_lower == 'furnished':
+                data["furnished"] = "Yes"
+
+    # --- Posting body fallback for fields not found in attrgroups ---
+    body = soup.select_one('#postingbody')
+    body_lower = body.get_text().lower() if body else ""
+
+    # Pet-friendly fallback
+    if data["pet_friendly"] == "Unknown" and body_lower:
+        if 'no pets' in body_lower or 'pets not allowed' in body_lower:
+            data["pet_friendly"] = "No"
+        elif 'pet friendly' in body_lower or 'pets welcome' in body_lower or 'pets ok' in body_lower:
+            data["pet_friendly"] = "Yes"
+
+    # Furnished fallback (commonly mentioned in body text)
+    if data["furnished"] == "Unknown" and body_lower:
+        # Check for "unfurnished" first to avoid false positive from substring match
+        if 'unfurnished' in body_lower:
+            data["furnished"] = "No"
+        elif 'fully furnished' in body_lower or 'comes furnished' in body_lower:
+            data["furnished"] = "Yes"
+        elif re.search(r'\bfurnished\b', body_lower):
+            data["furnished"] = "Yes"
+
+    # No application fee fallback
+    if data["no_app_fee"] == "Unknown" and body_lower:
+        if re.search(r'no\s+(application|app)\s+fee', body_lower):
+            data["no_app_fee"] = "Yes"
+        elif re.search(r'(application|app)\s+fee', body_lower):
+            data["no_app_fee"] = "No"
+
+    # Air conditioning fallback
+    if data["air_conditioning"] == "Unknown" and body_lower:
+        if re.search(r'\b(central\s+air|a/?c\b|air\s+condition)', body_lower):
+            data["air_conditioning"] = "Yes"
+
+    # Off-street parking fallback
+    if data["off_street_parking"] == "Unknown" and body_lower:
+        if re.search(r'(garage|carport|off[- ]street\s+parking|covered\s+parking|parking\s+included)', body_lower):
+            data["off_street_parking"] = "Yes"
+
+    # On-site laundry fallback
+    if data["on_site_laundry"] == "Unknown" and body_lower:
+        if re.search(r'(laundry\s+(room|facility|on[- ]site|in\s+bldg|in\s+building)|washer.*dryer)', body_lower):
+            data["on_site_laundry"] = "Yes"
+
+    # Return None only if we got absolutely nothing useful
+    if all(v is None or v == "Unknown" for v in data.values()):
+        return None
+
+    return data
+
+
 def is_valid_craigslist_url(url: str) -> bool:
     """
     Check if a URL is a valid Craigslist listing URL.
@@ -595,3 +772,78 @@ def fetch_and_extract_craigslist_listing(url: str, model: Any) -> Optional[Dict]
         return None
 
     return extract_craigslist_data_with_llm(html_content, model)
+
+
+def extract_craigslist_data_with_fallback(
+    html_content: str,
+    model: Any,
+    required_fields: List[str],
+    llm_prompt: str = "",
+) -> Optional[Dict]:
+    """
+    Extract listing data using structured parsing first, LLM as fallback.
+
+    Runs extract_craigslist_data_structured() first (fast, deterministic).
+    If any of the required_fields come back as None or "Unknown", runs the
+    LLM extraction and merges results — structured values take priority,
+    LLM fills in the gaps.
+
+    Args:
+        html_content: Raw HTML from a Craigslist listing page.
+        model: Loaded LLM model (only called if structured extraction has gaps).
+        required_fields: List of field keys that must be resolved (e.g.
+            ["price", "bedrooms", "bathrooms", "address", "in_unit_laundry"]).
+        llm_prompt: Optional custom prompt text for the LLM extraction.
+
+    Returns:
+        Dictionary with extracted listing data, or None if both methods fail.
+    """
+    # Field aliases: maps evaluator key -> structured extractor key
+    # (structured extractor uses canonical names; some evaluators use variants)
+    FIELD_ALIASES = {
+        "fully_furnished": "furnished",
+    }
+
+    # Phase 1: Structured extraction (fast, no LLM)
+    structured = extract_craigslist_data_structured(html_content)
+
+    if structured is None:
+        structured = {}
+
+    # Copy aliased fields so evaluators can access by their expected key
+    for alias, canonical in FIELD_ALIASES.items():
+        if canonical in structured and alias not in structured:
+            structured[alias] = structured[canonical]
+
+    # Check if all required fields are resolved
+    missing_fields = []
+    for field in required_fields:
+        val = structured.get(field)
+        if val is None or val == "Unknown":
+            missing_fields.append(field)
+
+    if not missing_fields:
+        # All required fields resolved — no need for LLM
+        return structured
+
+    # Phase 2: LLM fallback for missing fields
+    print(f"    Structured extraction missing {len(missing_fields)} required fields: {missing_fields}")
+    print(f"    Running LLM fallback...")
+
+    try:
+        llm_result = extract_craigslist_data_with_llm(html_content, model, text=llm_prompt)
+    except Exception as e:
+        print(f"    LLM fallback failed: {e}")
+        llm_result = None
+
+    if not llm_result:
+        return structured if structured else None
+
+    # Merge: structured values take priority, LLM fills gaps
+    merged = dict(structured)
+    for field in missing_fields:
+        llm_val = llm_result.get(field)
+        if llm_val is not None:
+            merged[field] = llm_val
+
+    return merged if merged else None

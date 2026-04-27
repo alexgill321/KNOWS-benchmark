@@ -36,7 +36,7 @@ from src.browsergym.eval.eval_utils.parallel_utils import parallel_download, par
 # Local utils
 from src.browsergym.eval.tasks.sheets_38_apartment_finder.utils import (
     fetch_craigslist_page,
-    extract_craigslist_data_with_llm,
+    extract_craigslist_data_with_fallback,
     normalize_boolean_value,
     compare_addresses,
     is_valid_craigslist_url
@@ -49,7 +49,18 @@ DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 model = None
 model_id = "gemini-2.5-flash-google-ai"
 
-DRIVE_SERVICE, SHEETS_SERVICE = initialize_google_services(service_type="sheets")
+try:
+    DRIVE_SERVICE, SHEETS_SERVICE = initialize_google_services(service_type="sheets")
+    if SHEETS_SERVICE is None:
+        raise RuntimeError(
+            "Google Sheets service returned None. "
+            "Check service account credentials and ensure the Sheets API is enabled."
+        )
+except Exception as e:
+    raise RuntimeError(
+        f"FATAL: Failed to initialize Google services. "
+        f"The evaluator cannot run without API access. Error: {e}"
+    ) from e
 
 # Global variables
 sheet_id = None
@@ -68,21 +79,44 @@ def setup(workspace_doc_id: str):
     """
     global sheet_id, table_data, sheet_raw, df
 
-    if workspace_doc_id:
-        print(f"Using workspace document ID: {workspace_doc_id}")
-        sheet_id = workspace_doc_id
+    try:
+        if workspace_doc_id:
+            print(f"Using workspace document ID: {workspace_doc_id}")
+            sheet_id = workspace_doc_id
 
-    # Extract data from the spreadsheet
-    # table_data is list of SheetTable objects
-    table_data = extract_tables_from_sheet(sheet_id, SHEETS_SERVICE)
-    sheet_raw = get_sheet_content(sheet_id, SHEETS_SERVICE)
+        # Extract data from the spreadsheet
+        # table_data is list of SheetTable objects
+        table_data = extract_tables_from_sheet(sheet_id, SHEETS_SERVICE)
+        sheet_raw = get_sheet_content(sheet_id, SHEETS_SERVICE)
 
-    # Initialize df for use across checkpoints (first table's DataFrame)
-    if table_data:
-        first_table = table_data[0]
-        df = first_table.df if hasattr(first_table, 'df') else first_table
-        if isinstance(df, dict):
-            df = pd.DataFrame(df)
+        # Validate extracted table data
+        if table_data is not None:
+            if not isinstance(table_data, list):
+                print(f"WARNING: extract_tables_from_sheet returned {type(table_data)}, expected list")
+                table_data = None
+            elif table_data:
+                first = table_data[0]
+                test_df = first.df if hasattr(first, 'df') else first
+                if isinstance(test_df, dict):
+                    test_df = pd.DataFrame(test_df)
+                if not isinstance(test_df, pd.DataFrame) or test_df.empty:
+                    print("WARNING: First table has invalid/empty DataFrame")
+                    table_data = None
+
+        # Initialize df for use across checkpoints (first table's DataFrame)
+        if table_data:
+            first_table = table_data[0]
+            df = first_table.df if hasattr(first_table, 'df') else first_table
+            if isinstance(df, dict):
+                df = pd.DataFrame(df)
+
+    except Exception as e:
+        print(f"WARNING: setup() failed: {e}. Globals set to None for graceful degradation.")
+        import traceback
+        traceback.print_exc()
+        table_data = None
+        sheet_raw = None
+        df = None
 
 
 def grade_checkpoint_1():
@@ -133,8 +167,26 @@ def grade_checkpoint_1():
 
     # Use standardized match_columns() - keyword matching first, then LLM fallback
     if model is None:
-        model = load_model(model_id)
-    matched_columns = match_columns(df, required_columns, model=model, parallel=True)
+        try:
+            model = load_model(model_id)
+        except Exception as e:
+            raise RuntimeError(
+                f"FATAL: Failed to load model '{model_id}'. "
+                f"Ensure model ID is correct and API keys are configured. Error: {e}"
+            ) from e
+    try:
+        matched_columns = match_columns(df, required_columns, model=model, parallel=True)
+    except Exception as e:
+        print(f"WARNING: match_columns failed: {e}. Setting matched_columns to None.")
+        matched_columns = None
+
+    if matched_columns is None:
+        for step_num, (col_name, keywords) in enumerate(required_columns, start=1):
+            checkpoint.add_step(f"{col_name} Column", False, step_num,
+                              "Column matching failed - unable to identify columns",
+                              execution_time=0)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
 
     # Add checkpoint steps for each required column
     for step_num, (col_name, keywords) in enumerate(required_columns, start=1):
@@ -195,7 +247,23 @@ def grade_checkpoint_2():
         return checkpoint
 
     if model is None:
-        model = load_model(model_id)
+        try:
+            model = load_model(model_id)
+        except Exception as e:
+            raise RuntimeError(
+                f"FATAL: Failed to load model '{model_id}'. "
+                f"Ensure model ID is correct and API keys are configured. Error: {e}"
+            ) from e
+
+    if matched_columns is None:
+        step_id = 0
+        for listing_num in range(1, 6):
+            for step_name in step_names:
+                step_id += 1
+                checkpoint.add_step(f"Listing {listing_num} - {step_name}", False, step_id,
+                                  "Column matching failed - cannot verify listings", execution_time=0)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
 
     url_col = matched_columns.get("Listing URL")
     if not url_col:
@@ -240,13 +308,23 @@ def grade_checkpoint_2():
             fetch_tasks.append({
                 'id': f'listing_{listing_idx}',
                 'func': fetch_craigslist_page,
-                'args': (url,)
+                'args': (url, True)  # raw=True for structured parsing
             })
 
     # Fetch all URLs in parallel
     html_contents = {}
     if fetch_tasks:
-        fetch_results = parallel_download(fetch_tasks, max_workers=5, use_rate_limit=False)
+        try:
+            fetch_results = parallel_download(fetch_tasks, max_workers=5, use_rate_limit=False)
+        except Exception as e:
+            print(f"WARNING: parallel_download failed ({e}). Falling back to sequential.")
+            fetch_results = {}
+            for task in fetch_tasks:
+                try:
+                    fetch_results[task['id']] = task['func'](*task.get('args', ()))
+                except Exception as inner_e:
+                    print(f"  Sequential fetch failed for {task['id']}: {inner_e}")
+                    fetch_results[task['id']] = None
         for task_id, html in fetch_results.items():
             listing_idx = int(task_id.split('_')[1])
             html_contents[listing_idx] = html
@@ -254,14 +332,10 @@ def grade_checkpoint_2():
     fetch_time = time.time() - fetch_start
     print(f"  Phase 1 complete: {len(html_contents)} pages fetched in {fetch_time:.2f}s")
 
-    # ============ PHASE 2: Parallel LLM extraction ============
-    print(f"  Phase 2: Extracting data from {len(html_contents)} pages in parallel...")
-    extract_start = time.time()
+    # ============ PHASE 2: Structured extraction + LLM fallback ============
+    required_fields = ["price", "bedrooms", "bathrooms", "address", "no_app_fee", "off_street_parking"]
 
-    extraction_tasks = []
-    for listing_idx, html in html_contents.items():
-        if html:
-            task_text = f"""Extract rental listing information from this Craigslist HTML.
+    llm_prompt = """Extract rental listing information from this Craigslist HTML.
 
 For this listing, extract:
 1. Monthly rent price in USD (number only, no $ sign)
@@ -274,7 +348,7 @@ For this listing, extract:
 8. Any other notable amenities or features
 
 Respond ONLY with this exact JSON format:
-{{
+{
     "price": <number or null>,
     "bedrooms": <number or null>,
     "bathrooms": <number or null>,
@@ -283,17 +357,34 @@ Respond ONLY with this exact JSON format:
     "off_street_parking": "<Yes/No/Unknown>",
     "sqft": <number or null>,
     "amenities": ["list", "of", "amenities"]
-}}
+}
 """
+
+    print(f"  Phase 2: Extracting data from {len(html_contents)} pages (structured first, LLM fallback)...")
+    extract_start = time.time()
+
+    extraction_tasks = []
+    for listing_idx, html in html_contents.items():
+        if html:
             extraction_tasks.append({
                 'id': f'listing_{listing_idx}',
-                'func': extract_craigslist_data_with_llm,
-                'args': (html, model, task_text)
+                'func': extract_craigslist_data_with_fallback,
+                'args': (html, model, required_fields, llm_prompt)
             })
 
     extracted_data_map = {}
     if extraction_tasks:
-        extraction_results = parallel_execute(extraction_tasks, max_workers=5)
+        try:
+            extraction_results = parallel_execute(extraction_tasks, max_workers=5)
+        except Exception as e:
+            print(f"WARNING: parallel_execute failed ({e}). Falling back to sequential.")
+            extraction_results = {}
+            for task in extraction_tasks:
+                try:
+                    extraction_results[task['id']] = task['func'](*task.get('args', ()))
+                except Exception as inner_e:
+                    print(f"  Sequential extraction failed for {task['id']}: {inner_e}")
+                    extraction_results[task['id']] = None
         for task_id, data in extraction_results.items():
             listing_idx = int(task_id.split('_')[1])
             extracted_data_map[listing_idx] = data
@@ -384,7 +475,7 @@ Respond ONLY with this exact JSON format:
             craigslist_beds = extracted_data.get("bedrooms")
 
             if craigslist_beds is not None:
-                if abs(user_beds == craigslist_beds):
+                if user_beds == craigslist_beds:
                     checkpoint.add_step(f"Listing {listing_num} - Bedrooms Match", True, step_num,
                                       f"Bedrooms match: {int(user_beds)}",
                                       execution_time=0)
@@ -408,7 +499,7 @@ Respond ONLY with this exact JSON format:
             craigslist_baths = extracted_data.get("bathrooms")
 
             if craigslist_baths is not None:
-                if abs(user_baths == craigslist_baths):
+                if user_baths == craigslist_baths:
                     checkpoint.add_step(f"Listing {listing_num} - Bathrooms Match", True, step_num,
                                       f"Bathrooms match: {user_baths}",
                                       execution_time=0)
@@ -553,7 +644,7 @@ def grade_checkpoint_3(browsing_history: Optional[List[str]] = None):
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    url_col = matched_columns.get("Listing URL")
+    url_col = matched_columns.get("Listing URL") if matched_columns else None
     if not url_col:
         step_time = time.time() - step_start
         checkpoint.add_step("Listings in History", False, 2,
@@ -1116,37 +1207,44 @@ def grade_checkpoints(workspace_doc_id: str = None, browsing_history: List[str] 
     """
     total_start_time = time.time()
 
+    # Setup — graceful degradation (sets globals to None on failure)
+    setup(workspace_doc_id)
+
+    # Load model — fail fast with clear error if this fails
+    global model
     try:
-        # Setup document processing
-        setup(workspace_doc_id)
-
-        # Load model
-        global model
         model = load_model(model_id)
-
-        checkpoints: List[Checkpoint] = []
-
-        checkpoints.append(grade_checkpoint_1())
-        checkpoints.append(grade_checkpoint_2())
-        checkpoints.append(grade_checkpoint_3(browsing_history))
-        checkpoints.append(grade_checkpoint_4())
-        checkpoints.append(grade_checkpoint_5())
-        checkpoints.append(grade_checkpoint_6())
-
-        total_execution_time = time.time() - total_start_time
-        result = Result(checkpoints, total_execution_time=total_execution_time)
-
-        return result
-
     except Exception as e:
-        print(f"Error during evaluation: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        raise RuntimeError(
+            f"FATAL: Failed to load model '{model_id}'. "
+            f"Ensure model ID is correct and API keys are configured. Error: {e}"
+        ) from e
 
-        # Return a failed result
-        failed_checkpoint = Checkpoint(total=1, result=0, name="Evaluation Error")
-        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0)
-        return Result([failed_checkpoint], total_execution_time=time.time() - total_start_time)
+    checkpoints: List[Checkpoint] = []
+
+    # Run each checkpoint independently so one failure doesn't prevent others
+    checkpoint_funcs = [
+        ("Checkpoint 1", grade_checkpoint_1),
+        ("Checkpoint 2", grade_checkpoint_2),
+        ("Checkpoint 3", lambda: grade_checkpoint_3(browsing_history)),
+        ("Checkpoint 4", grade_checkpoint_4),
+        ("Checkpoint 5", grade_checkpoint_5),
+        ("Checkpoint 6", grade_checkpoint_6),
+    ]
+
+    for name, func in checkpoint_funcs:
+        try:
+            checkpoints.append(func())
+        except Exception as e:
+            print(f"ERROR: {name} failed unexpectedly: {e}")
+            import traceback
+            traceback.print_exc()
+            failed = Checkpoint(total=1, result=0, name=f"{name} Error")
+            failed.add_step("Execution", False, 1,
+                          f"Unexpected error: {str(e)[:100]}", execution_time=0)
+            checkpoints.append(failed)
+
+    return Result(checkpoints, total_execution_time=time.time() - total_start_time)
 
 
 if __name__ == "__main__":
