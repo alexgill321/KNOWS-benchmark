@@ -2,9 +2,9 @@
 Utility functions for docs_11_personal_recipe_ocr evaluator.
 
 This module provides functions to:
-- Extract content by section name
+- Discover recipes and their boundaries in a document (Phase 1)
+- Extract content from individual recipes (Phase 2)
 - Compare ingredient and preparation lists
-- Isolate content to first recipe only (page 1)
 - Document setup and cleanup utilities
 """
 
@@ -12,11 +12,406 @@ import os
 import re
 import shutil
 import glob
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple, Any
 from rapidfuzz import fuzz
 
-# Re-export from shared utils so existing imports continue to work
-from src.browsergym.eval.eval_utils.google_services_utils import extract_hyperlinks_from_doc
+
+# ============================================================================
+# RECIPE DISCOVERY CONSTANTS AND DATA STRUCTURES
+# ============================================================================
+
+REQUIRED_SECTIONS = ['ingredients', 'preparation', 'tips']
+
+# Section headers used to detect section boundaries within a recipe
+SECTION_HEADERS = ['ingredients', 'preparation', 'tips', 'ready in', 'serves', 'calories']
+
+# Default template content (from Coral Recipe template doc)
+# Used to detect if sections have been modified from the template
+TEMPLATE_DEFAULT_CONTENT = {
+    'ingredients': (
+        "Lorem ipsum dolor sit amet\n"
+        "Consectetuer adipiscing elit\n"
+        "Suspendisse scelerisque\n"
+        "Libero interdum auctor"
+    ),
+    'preparation': (
+        "Lorem ipsum dolor sit amet consectetuer adipiscing elit sed do tempor incididunt ut labore et dolore magna aliqua.\n"
+        "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\n"
+        "Suspendisse scelerisque mi a mi. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed dolore eiusmod tempor.\n"
+        "Vestibulum ante ipsum primis elementum, libero interdum auctor cursus, sapien enim dictum quam.\n"
+        "Phasellus vehicula nonummy nunc. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut enim ad minim veniam, quis nostrud exercitation.\n"
+        "Ullamco laboris nisi ut aliquip ex ea commodo consequat."
+    ),
+    'tips': (
+        "Lorem ipsum dolor sit amet consectetuer adipiscing elit sed do tempor incididunt ut labore et dolore magna aliqua."
+    ),
+}
+
+
+@dataclass
+class Recipe:
+    """Represents a single recipe extracted from the document."""
+    recipe_num: int                                        # 1-based: 1 = original, 2-4 = additional
+    text: str                                              # Raw text content for this recipe
+    structure: List[Dict] = field(default_factory=list)    # Structure elements scoped to this recipe
+    start_index: int = 0                                   # Char offset in full doc_text
+    end_index: int = 0                                     # Char offset in full doc_text
+    title: str = ""                                        # Populated eagerly during discovery
+    sections_found: List[str] = field(default_factory=list)  # Which required sections exist
+    structure_indices: Tuple[int, int] = (0, 0)            # (start, end) indices in doc_structure
+    pdf_pages: List[int] = field(default_factory=list)     # 0-indexed PDF page numbers for this recipe
+
+
+def map_recipes_to_pdf_pages(recipes: List['Recipe'], pdf_path: str) -> None:
+    """
+    Map each recipe to its PDF page(s) by extracting text from each page
+    and matching RECIPE headers.
+
+    Uses PyMuPDF to extract text per page, finds pages containing "RECIPE"
+    headers, and assigns page ranges to each recipe. Mutates recipes in-place.
+
+    Args:
+        recipes: List of Recipe objects with titles set.
+        pdf_path: Path to the PDF file.
+    """
+    try:
+        import fitz  # PyMuPDF
+    except ImportError:
+        print("Warning: PyMuPDF not available, cannot map recipes to PDF pages")
+        return
+
+    if not recipes or not os.path.exists(pdf_path):
+        return
+
+    try:
+        doc = fitz.open(pdf_path)
+    except Exception as e:
+        print(f"Warning: Failed to open PDF for page mapping: {e}")
+        return
+
+    num_pages = doc.page_count
+
+    # Find which pages contain a RECIPE header (case-sensitive)
+    recipe_start_pages = []  # List of 0-indexed page numbers
+    for page_idx in range(num_pages):
+        page_text = doc[page_idx].get_text()
+        if 'RECIPE' in page_text:
+            recipe_start_pages.append(page_idx)
+
+    doc.close()
+
+    # Assign page ranges: each recipe spans from its start page to
+    # the page before the next recipe's start (or end of document)
+    for i, recipe in enumerate(recipes):
+        if i < len(recipe_start_pages):
+            start_page = recipe_start_pages[i]
+            if i + 1 < len(recipe_start_pages):
+                end_page = recipe_start_pages[i + 1] - 1
+            else:
+                end_page = num_pages - 1
+            recipe.pdf_pages = list(range(start_page, end_page + 1))
+        else:
+            print(f"Warning: No PDF page found for recipe {recipe.recipe_num}")
+            recipe.pdf_pages = []
+
+    print("Recipe to PDF page mapping:")
+    for r in recipes:
+        print(f"  Recipe {r.recipe_num} ('{r.title}'): pages {[p+1 for p in r.pdf_pages]} (1-indexed)")
+
+
+def discover_recipes(doc_text: str, doc_structure: List[Dict]) -> List[Recipe]:
+    """
+    Discover all recipes in the document and validate their structure.
+
+    Phase 1 of the 2-phase recipe processing approach:
+    1. Find candidate RECIPE headers in doc_structure
+    2. Validate each candidate has all required sections (Ingredients, Preparation, Tips)
+    3. Validate no overlapping boundaries between adjacent recipes
+    4. Build Recipe objects with text, structure, title, and section info
+
+    Args:
+        doc_text: Full document text content.
+        doc_structure: Full document structure from extract_structure_from_doc().
+
+    Returns:
+        List of Recipe objects, ordered by position in the document.
+    """
+    if not doc_text or not doc_structure:
+        return []
+
+    # Step 1: Find candidate RECIPE headers in doc_structure
+    candidates = []  # List of (structure_index, content) tuples
+    for idx, item in enumerate(doc_structure):
+        if item.get('type') != 'text':
+            continue
+        content = item.get('content', '').strip()
+        # Case-sensitive match per BUG-009: avoid matching lowercase "recipe" in body text
+        # Use \b word boundary to match "RECIPE" but not "RECIPES"
+        # Also handles concatenated titles like "RECIPEPumpkin Soup"
+        if re.match(r'^RECIPE\b', content):
+            candidates.append((idx, content))
+
+    if not candidates:
+        print("Warning: No RECIPE headers found in document structure")
+        return []
+
+    # Step 2: Validate each candidate has required sections
+    validated = []  # List of dicts with header_idx, end_idx, sections_found, section_indices, candidate_idx
+
+    for i, (header_idx, header_content) in enumerate(candidates):
+        # Determine the range of structure elements for this candidate
+        if i + 1 < len(candidates):
+            next_header_idx = candidates[i + 1][0]
+        else:
+            next_header_idx = len(doc_structure)
+
+        # Scan for required section headers within this range
+        sections_found = []
+        section_indices = {}  # section_name -> structure_index
+
+        for scan_idx in range(header_idx + 1, next_header_idx):
+            item = doc_structure[scan_idx]
+            if item.get('type') != 'text':
+                continue
+            content = item.get('content', '').strip()
+            content_lower = content.lower()
+
+            # Check if this is a section header (short text matching a known section name)
+            if len(content) < 50:
+                for section in REQUIRED_SECTIONS:
+                    if content_lower == section and section not in sections_found:
+                        sections_found.append(section)
+                        section_indices[section] = scan_idx
+                        break
+
+        # Only accept candidates with all required sections
+        if set(REQUIRED_SECTIONS).issubset(set(sections_found)):
+            validated.append({
+                'header_idx': header_idx,
+                'end_idx': next_header_idx,
+                'sections_found': sections_found,
+                'section_indices': section_indices,
+                'candidate_idx': i,  # Track which candidate this was for text marker mapping
+            })
+        else:
+            missing = set(REQUIRED_SECTIONS) - set(sections_found)
+            print(f"Warning: RECIPE header at structure index {header_idx} "
+                  f"('{header_content[:30]}') missing required sections: {missing}. Skipping.")
+
+    if not validated:
+        print("Warning: No valid recipes found (all candidates missing required sections)")
+        return []
+
+    # Step 3: Validate no overlapping boundaries
+    for i in range(len(validated) - 1):
+        current = validated[i]
+        next_recipe = validated[i + 1]
+
+        if current['end_idx'] > next_recipe['header_idx']:
+            print(f"Warning: Overlapping boundaries between recipe at index "
+                  f"{current['header_idx']} and recipe at index {next_recipe['header_idx']}")
+
+        # Check that no section indices in current overlap with next recipe's range
+        for section, sec_idx in current['section_indices'].items():
+            if sec_idx >= next_recipe['header_idx']:
+                print(f"Warning: Section '{section}' at index {sec_idx} in recipe "
+                      f"{i + 1} overlaps with recipe {i + 2} starting at index "
+                      f"{next_recipe['header_idx']}")
+
+    # Step 4: Build Recipe objects
+    # Find text markers for slicing doc_text (same case-sensitive pattern)
+    text_markers = list(re.finditer(r'\bRECIPE\b', doc_text))
+    recipes = []
+
+    for recipe_idx, v in enumerate(validated):
+        recipe_num = recipe_idx + 1
+        candidate_idx = v['candidate_idx']
+
+        # Determine text boundaries using candidate_idx to map to text_markers
+        if recipe_num == 1:
+            # First recipe starts at beginning of document
+            text_start = 0
+        elif candidate_idx < len(text_markers):
+            text_start = text_markers[candidate_idx].start()
+        else:
+            print(f"Warning: No text marker for candidate {candidate_idx}, using end of previous recipe")
+            text_start = recipes[-1].end_index if recipes else 0
+
+        # Find the end: next validated recipe's text marker, or end of document
+        if recipe_idx + 1 < len(validated):
+            next_candidate_idx = validated[recipe_idx + 1]['candidate_idx']
+            if next_candidate_idx < len(text_markers):
+                text_end = text_markers[next_candidate_idx].start()
+            else:
+                text_end = len(doc_text)
+        else:
+            text_end = len(doc_text)
+
+        recipe_text = doc_text[text_start:text_end].strip()
+
+        # Extract structure elements for this recipe
+        structure_start = v['header_idx']
+        structure_end = v['end_idx']
+        recipe_structure = []
+        for s_idx in range(structure_start, structure_end):
+            item = doc_structure[s_idx]
+            # Skip the RECIPE header element itself from the structure
+            # Skip the RECIPE header element itself from the scoped structure
+            if s_idx == structure_start:
+                content = item.get('content', '').strip()
+                if item.get('type') == 'text' and re.match(r'^RECIPE\b', content):
+                    continue
+            recipe_structure.append(item)
+
+        # Extract title
+        title = extract_recipe_title(recipe_text)
+
+        recipe = Recipe(
+            recipe_num=recipe_num,
+            text=recipe_text,
+            structure=recipe_structure,
+            start_index=text_start,
+            end_index=text_end,
+            title=title,
+            sections_found=v['sections_found'],
+            structure_indices=(structure_start, structure_end),
+        )
+        recipes.append(recipe)
+
+    print(f"Discovered {len(recipes)} valid recipes in document")
+    for r in recipes:
+        print(f"  Recipe {r.recipe_num}: title='{r.title}', sections={r.sections_found}, "
+              f"structure_indices={r.structure_indices}")
+
+    return recipes
+
+
+def extract_hyperlinks(
+    doc_id: str,
+    service,
+    recipe_num: Optional[int] = None
+) -> List[Dict[str, str]]:
+    """
+    Extract hyperlinks from a Google Doc, optionally filtered to a specific recipe.
+
+    Extracts both embedded hyperlinks (textStyle.link.url) and plain text URLs.
+    Uses RECIPE headers as boundaries to scope extraction to a specific recipe.
+
+    Args:
+        doc_id: The Google Doc ID.
+        service: The Google Docs API service instance.
+        recipe_num: If specified (1-4), extract links only from that recipe.
+                    If None, extract all links from the entire document.
+
+    Returns:
+        List of dicts with 'url' and 'text' keys.
+    """
+    document = service.documents().get(documentId=doc_id).execute()
+    body = document.get('body', {})
+    content = body.get('content', [])
+
+    links = []
+    url_pattern = re.compile(
+        r'https?://[^\s<>"\'}\])\u200b\u00a0]+',
+        re.IGNORECASE
+    )
+
+    recipe_count = 0
+    collecting = recipe_num is None  # If no filter, collect from the start
+
+    def process_paragraph(paragraph) -> List[Dict[str, str]]:
+        """Process a paragraph element for hyperlinks."""
+        para_links = []
+        para_elements = paragraph.get('elements', [])
+
+        for elem in para_elements:
+            if 'textRun' in elem:
+                text_run = elem['textRun']
+                content_text = text_run.get('content', '')
+                text_style = text_run.get('textStyle', {})
+
+                # Check for embedded hyperlink
+                if 'link' in text_style:
+                    url = text_style['link'].get('url', '')
+                    if url:
+                        para_links.append({
+                            'url': url,
+                            'text': content_text.strip()
+                        })
+
+                # Also check for plain text URLs
+                plain_urls = url_pattern.findall(content_text)
+                for plain_url in plain_urls:
+                    if not any(l['url'] == plain_url for l in para_links):
+                        para_links.append({
+                            'url': plain_url,
+                            'text': plain_url
+                        })
+
+        return para_links
+
+    def is_recipe_header(paragraph) -> bool:
+        """Check if a paragraph is a RECIPE header."""
+        para_elements = paragraph.get('elements', [])
+        for elem in para_elements:
+            if 'textRun' in elem:
+                content_text = elem['textRun'].get('content', '').strip()
+                # Case-sensitive match consistent with discover_recipes
+                if re.match(r'^RECIPE\b', content_text):
+                    return True
+        return False
+
+    def process_table(table) -> Tuple[List[Dict[str, str]], bool]:
+        """Process a table element for hyperlinks. Returns (links, recipe_header_found)."""
+        table_links = []
+        for row in table.get('tableRows', []):
+            for cell in row.get('tableCells', []):
+                cell_content = cell.get('content', [])
+                for elem in cell_content:
+                    if 'paragraph' in elem:
+                        if is_recipe_header(elem['paragraph']):
+                            return table_links, True
+                        if collecting:
+                            table_links.extend(process_paragraph(elem['paragraph']))
+        return table_links, False
+
+    def handle_recipe_header() -> bool:
+        """Handle encountering a RECIPE header. Returns True if we should stop processing."""
+        nonlocal recipe_count, collecting
+
+        recipe_count += 1
+
+        if recipe_num is None:
+            # No filtering — always collecting, never stop
+            return False
+
+        if recipe_count == recipe_num:
+            collecting = True
+        elif recipe_count > recipe_num:
+            collecting = False
+            return True  # Past our target recipe, stop
+
+        return False
+
+    # Process content elements
+    for element in content:
+        if 'paragraph' in element:
+            if is_recipe_header(element['paragraph']):
+                if handle_recipe_header():
+                    break
+                continue
+            if collecting:
+                links.extend(process_paragraph(element['paragraph']))
+        elif 'table' in element:
+            table_links, found_header = process_table(element['table'])
+            if collecting:
+                links.extend(table_links)
+            if found_header:
+                if handle_recipe_header():
+                    break
+
+    return links
 
 
 # ============================================================================
@@ -80,7 +475,7 @@ def setup_document(
         pdf_dpi: DPI for PDF conversion.
 
     Returns:
-        Dict with keys: doc_id, doc_text, doc_structure, text_ocr
+        Dict with keys: doc_id, doc_text, doc_structure
     """
     from src.browsergym.eval.eval_utils.google_services_utils import (
         download_doc_as_pdf,
@@ -90,7 +485,6 @@ def setup_document(
         extract_images_from_doc_with_cropping,
     )
     from src.browsergym.eval.eval_utils.image_utils import convert_pdf_to_pngs
-    from src.browsergym.eval.eval_utils.text_utils import extract_text_from_pdf
 
     if not workspace_doc_id:
         raise ValueError("workspace_doc_id is required")
@@ -120,14 +514,10 @@ def setup_document(
     extract_images_from_doc(workspace_doc_id, docs_service, doc_images_dir)
     extract_images_from_doc_with_cropping(workspace_doc_id, docs_service, doc_images_cropped_dir)
 
-    # Run OCR on PDF images
-    text_ocr = extract_text_from_pdf(pdf_images_dir)
-
     return {
         'doc_id': workspace_doc_id,
         'doc_text': doc_text,
         'doc_structure': doc_structure,
-        'text_ocr': text_ocr
     }
 
 
@@ -156,308 +546,6 @@ def load_gold_data(golds_dir: str) -> Tuple[List[str], List[str]]:
             gold_prepsteps = [line.strip() for line in f if line.strip()]
 
     return gold_ingredients, gold_prepsteps
-
-
-# ============================================================================
-# PAGE 1 / FIRST RECIPE ISOLATION FUNCTIONS
-# ============================================================================
-
-def get_first_recipe_text(doc_text: str) -> str:
-    """
-    Extract only the first recipe's text content from the full document.
-
-    The document contains multiple recipe pages, each starting with "RECIPE" header.
-    This function extracts text from the beginning up to the second "RECIPE" marker.
-
-    Args:
-        doc_text: Full document text content.
-
-    Returns:
-        Text content of only the first recipe (page 1).
-    """
-    if not doc_text:
-        return ""
-
-    # Find all occurrences of "RECIPE" (case-insensitive)
-    # The pattern matches standalone "RECIPE" headers
-    recipe_markers = list(re.finditer(r'\bRECIPE\b', doc_text, re.IGNORECASE))
-
-    if len(recipe_markers) < 2:
-        # Only one or no "RECIPE" marker - return full text
-        return doc_text
-
-    # Extract text from start up to the second "RECIPE" marker
-    second_recipe_start = recipe_markers[1].start()
-    first_recipe_text = doc_text[:second_recipe_start].strip()
-
-    return first_recipe_text
-
-
-def get_first_recipe_structure(doc_structure: List[Dict]) -> List[Dict]:
-    """
-    Extract only the first recipe's structure elements from the full document.
-
-    Args:
-        doc_structure: Full document structure from extract_structure_from_doc().
-
-    Returns:
-        Structure elements of only the first recipe (page 1).
-    """
-    if not doc_structure:
-        return []
-
-    first_recipe_elements = []
-    recipe_count = 0
-
-    for item in doc_structure:
-        if item.get('type') != 'text':
-            first_recipe_elements.append(item)
-            continue
-
-        content = item.get('content', '').strip()
-
-        # Check if this is a "RECIPE" header (standalone word, not part of longer text)
-        if re.match(r'^RECIPE\s*$', content, re.IGNORECASE):
-            recipe_count += 1
-            if recipe_count >= 2:
-                # Stop at second recipe
-                break
-
-        first_recipe_elements.append(item)
-
-    return first_recipe_elements
-
-
-def extract_section_content_first_recipe(
-    doc_structure: List[Dict],
-    section_name: str
-) -> str:
-    """
-    Extract text content from a named section in the FIRST RECIPE only.
-
-    This is the page-1-isolated version of extract_section_content().
-
-    Args:
-        doc_structure: Document structure from extract_structure_from_doc().
-        section_name: The section header to find (e.g., "Ingredients", "Preparation").
-
-    Returns:
-        The text content of that section from first recipe only, or empty string if not found.
-    """
-    # First, isolate to first recipe structure
-    first_recipe_structure = get_first_recipe_structure(doc_structure)
-
-    # Then extract section content from the isolated structure
-    section_content = []
-    in_section = False
-    section_name_lower = section_name.lower().strip()
-
-    # Common section headers to detect section boundaries
-    section_headers = ['ingredients', 'preparation', 'tips', 'ready in', 'serves', 'calories']
-
-    for item in first_recipe_structure:
-        if item.get('type') != 'text':
-            continue
-
-        content = item.get('content', '').strip()
-        content_lower = content.lower()
-
-        # Check if this is the start of our target section
-        if section_name_lower in content_lower and len(content) < 50:
-            in_section = True
-            continue
-
-        # Check if we've hit another section header (end of our section)
-        if in_section:
-            is_new_section = any(
-                header in content_lower and len(content) < 50
-                for header in section_headers if header != section_name_lower
-            )
-            if is_new_section:
-                break
-
-            # Add content if not empty/whitespace
-            if content and content not in section_headers:
-                section_content.append(content)
-
-    return '\n'.join(section_content)
-
-
-def extract_hyperlinks_first_recipe(doc_id: str, service) -> List[Dict[str, str]]:
-    """
-    Extract hyperlinks from only the first recipe (page 1) of a Google Doc.
-
-    This filters hyperlinks to only those appearing in the first recipe's content,
-    determined by finding content before the second "RECIPE" header.
-
-    Args:
-        doc_id: The Google Doc ID.
-        service: The Google Docs API service instance.
-
-    Returns:
-        List of dicts with 'url' and 'text' keys for first recipe only.
-    """
-    document = service.documents().get(documentId=doc_id).execute()
-    body = document.get('body', {})
-    content = body.get('content', [])
-
-    links = []
-    url_pattern = re.compile(
-        r'https?://[^\s<>"\'}\])\u200b\u00a0]+',
-        re.IGNORECASE
-    )
-
-    recipe_count = 0
-
-    def process_paragraph(paragraph):
-        """Process a paragraph element for hyperlinks."""
-        para_links = []
-        para_elements = paragraph.get('elements', [])
-
-        for elem in para_elements:
-            if 'textRun' in elem:
-                text_run = elem['textRun']
-                content_text = text_run.get('content', '')
-                text_style = text_run.get('textStyle', {})
-
-                # Check for embedded hyperlink
-                if 'link' in text_style:
-                    url = text_style['link'].get('url', '')
-                    if url:
-                        para_links.append({
-                            'url': url,
-                            'text': content_text.strip()
-                        })
-
-                # Also check for plain text URLs
-                plain_urls = url_pattern.findall(content_text)
-                for plain_url in plain_urls:
-                    if not any(l['url'] == plain_url for l in para_links):
-                        para_links.append({
-                            'url': plain_url,
-                            'text': plain_url
-                        })
-
-        return para_links
-
-    def is_recipe_header(paragraph) -> bool:
-        """Check if a paragraph is a RECIPE header."""
-        para_elements = paragraph.get('elements', [])
-        for elem in para_elements:
-            if 'textRun' in elem:
-                content_text = elem['textRun'].get('content', '').strip()
-                if re.match(r'^RECIPE\s*$', content_text, re.IGNORECASE):
-                    return True
-        return False
-
-    def process_table(table):
-        """Process a table element for hyperlinks."""
-        table_links = []
-        for row in table.get('tableRows', []):
-            for cell in row.get('tableCells', []):
-                cell_content = cell.get('content', [])
-                for elem in cell_content:
-                    if 'paragraph' in elem:
-                        # Check for recipe header in table cell
-                        if is_recipe_header(elem['paragraph']):
-                            return table_links, True  # Signal to stop
-                        table_links.extend(process_paragraph(elem['paragraph']))
-        return table_links, False
-
-    # Process content elements until we hit the second recipe
-    for element in content:
-        if 'paragraph' in element:
-            if is_recipe_header(element['paragraph']):
-                recipe_count += 1
-                if recipe_count >= 2:
-                    break  # Stop at second recipe
-                continue
-            links.extend(process_paragraph(element['paragraph']))
-        elif 'table' in element:
-            table_links, should_stop = process_table(element['table'])
-            links.extend(table_links)
-            if should_stop:
-                recipe_count += 1
-                if recipe_count >= 2:
-                    break
-
-    return links
-
-
-def extract_hyperlinks_from_doc(doc_id: str, service) -> List[Dict[str, str]]:
-    """
-    Extract all hyperlinks from a Google Doc.
-
-    Extracts both embedded hyperlinks (textStyle.link.url) and plain text URLs.
-
-    Args:
-        doc_id: The Google Doc ID.
-        service: The Google Docs API service instance.
-
-    Returns:
-        List of dicts with 'url' and 'text' (the linked text) keys.
-    """
-    document = service.documents().get(documentId=doc_id).execute()
-    body = document.get('body', {})
-    content = body.get('content', [])
-
-    links = []
-    url_pattern = re.compile(
-        r'https?://[^\s<>"\'}\])\u200b\u00a0]+',
-        re.IGNORECASE
-    )
-
-    def process_paragraph(paragraph):
-        """Process a paragraph element for hyperlinks."""
-        para_links = []
-        para_elements = paragraph.get('elements', [])
-
-        for elem in para_elements:
-            if 'textRun' in elem:
-                text_run = elem['textRun']
-                content_text = text_run.get('content', '')
-                text_style = text_run.get('textStyle', {})
-
-                # Check for embedded hyperlink
-                if 'link' in text_style:
-                    url = text_style['link'].get('url', '')
-                    if url:
-                        para_links.append({
-                            'url': url,
-                            'text': content_text.strip()
-                        })
-
-                # Also check for plain text URLs
-                plain_urls = url_pattern.findall(content_text)
-                for plain_url in plain_urls:
-                    # Don't duplicate if already found as hyperlink
-                    if not any(l['url'] == plain_url for l in para_links):
-                        para_links.append({
-                            'url': plain_url,
-                            'text': plain_url
-                        })
-
-        return para_links
-
-    def process_table(table):
-        """Process a table element for hyperlinks."""
-        table_links = []
-        for row in table.get('tableRows', []):
-            for cell in row.get('tableCells', []):
-                cell_content = cell.get('content', [])
-                for elem in cell_content:
-                    if 'paragraph' in elem:
-                        table_links.extend(process_paragraph(elem['paragraph']))
-        return table_links
-
-    # Process all content elements
-    for element in content:
-        if 'paragraph' in element:
-            links.extend(process_paragraph(element['paragraph']))
-        elif 'table' in element:
-            links.extend(process_table(element['table']))
-
-    return links
 
 
 def extract_section_content(doc_structure: List[Dict], section_name: str) -> str:
@@ -554,11 +642,9 @@ def compare_ingredient_lists(
     """
     Compare document ingredients against gold standard with strict 1:1 matching.
 
-    This function performs bidirectional matching:
-    1. Each gold ingredient must match exactly one doc ingredient
-    2. Each doc ingredient can only match one gold ingredient (1:1)
-    3. Extra ingredients beyond gold are flagged as failures
-    4. No substring matching - prevents "Onions and Garlic" from matching both
+    Uses fuzzy_match_text from shared utils for each comparison.
+    Each gold ingredient must match exactly one doc ingredient (1:1, no reuse).
+    Extra ingredients beyond gold are flagged if they exceed max_extra_allowed.
 
     Args:
         doc_ingredients: List of ingredients from the document.
@@ -569,51 +655,31 @@ def compare_ingredient_lists(
     Returns:
         Tuple of (all_matched, details) where details is a list of match info.
     """
+    from src.browsergym.eval.eval_utils.text_utils import fuzzy_match_text
+
+    def _normalize(text: str) -> str:
+        """Normalize common variations for ingredient comparison."""
+        return text.replace('&', 'and').strip()
+
     details = []
-    used_doc_indices = set()  # Track which doc ingredients are already matched
+    remaining_doc = list(doc_ingredients)  # Mutable copy for 1:1 removal
 
-    # Phase 1: Match each gold ingredient to exactly one doc ingredient (1:1 mapping)
+    # Match each gold ingredient to the best remaining doc ingredient
     for gold in gold_ingredients:
-        gold_normalized = gold.lower().strip()
-
-        # Handle & vs "and" normalization for exact matching
-        gold_variants = [
-            gold_normalized,
-            gold_normalized.replace('&', 'and'),
-            gold_normalized.replace(' and ', ' & '),
-            gold_normalized.replace(' & ', ' and ')
-        ]
-
         best_match = None
         best_score = 0
         best_idx = -1
 
-        for idx, doc_ing in enumerate(doc_ingredients):
-            # Skip already-used doc ingredients (1:1 enforcement)
-            if idx in used_doc_indices:
-                continue
-
-            doc_normalized = doc_ing.lower().strip()
-
-            # Try EXACT match first (no substring - the entire doc_ing must equal gold)
-            if doc_normalized in gold_variants:
+        for idx, doc_ing in enumerate(remaining_doc):
+            _, score = fuzzy_match_text(_normalize(doc_ing), _normalize(gold), threshold=fuzzy_threshold)
+            if score > best_score:
+                best_score = score
                 best_match = doc_ing
-                best_score = 100
                 best_idx = idx
-                break
-
-            # Try fuzzy match on the WHOLE item (not substring)
-            # Use fuzz.ratio which compares full strings
-            for gold_var in gold_variants:
-                score = fuzz.ratio(doc_normalized, gold_var)
-                if score > best_score:
-                    best_score = score
-                    best_match = doc_ing
-                    best_idx = idx
 
         matched = best_score >= fuzzy_threshold
         if matched and best_idx >= 0:
-            used_doc_indices.add(best_idx)  # Mark this doc ingredient as used
+            remaining_doc.pop(best_idx)  # Remove matched item (1:1 enforcement)
 
         details.append({
             'gold': gold,
@@ -622,20 +688,12 @@ def compare_ingredient_lists(
             'matched': matched
         })
 
-    # Phase 2: Check for extra ingredients (bidirectional validation)
-    extra_ingredients = []
-    for idx, doc_ing in enumerate(doc_ingredients):
-        if idx not in used_doc_indices:
-            doc_normalized = doc_ing.lower().strip()
-            # Filter out empty or very short items
-            if len(doc_normalized) > 2:
-                extra_ingredients.append(doc_ing)
+    # Check for extra ingredients (bidirectional validation)
+    extra_ingredients = [ing for ing in remaining_doc if len(ing.strip()) > 2]
 
-    # Determine overall success
     all_gold_matched = all(d['matched'] for d in details)
     extra_within_limit = len(extra_ingredients) <= max_extra_allowed
 
-    # Add extra ingredient info to details if there are any
     if extra_ingredients:
         details.append({
             'gold': '[Extra ingredients check]',
@@ -645,8 +703,7 @@ def compare_ingredient_lists(
             'extra_count': len(extra_ingredients)
         })
 
-    all_matched = all_gold_matched and extra_within_limit
-    return all_matched, details
+    return all_gold_matched and extra_within_limit, details
 
 
 def extract_numbers_from_text(text: str) -> List[str]:
@@ -809,13 +866,28 @@ def extract_recipe_metadata(doc_text: str) -> Dict[str, Optional[str]]:
     }
 
     # Patterns for each field
-    ready_pattern = re.compile(r'ready\s*in[:\s]*(\d+(?:\s*-\s*\d+)?)\s*(?:min|minutes?)?', re.IGNORECASE)
+    # Ready In: handle "X hours Y minutes", "X hour Y minutes", "X minutes", or just "X"
+    ready_hour_min = re.compile(
+        r'ready\s*in[:\s]*(\d+)\s*hours?\s*(?:and\s*)?(\d+)\s*(?:min|minutes?)?',
+        re.IGNORECASE
+    )
+    ready_min_only = re.compile(
+        r'ready\s*in[:\s]*(\d+)\s*(?:min|minutes)',
+        re.IGNORECASE
+    )
     serves_pattern = re.compile(r'serves[:\s]*(\d+)', re.IGNORECASE)
     calories_pattern = re.compile(r'(\d+)\s*(?:cal|calories?)', re.IGNORECASE)
 
-    ready_match = ready_pattern.search(doc_text)
-    if ready_match:
-        result['ready_in'] = ready_match.group(1)
+    # Try hour+min format first, then minutes-only
+    hour_min_match = ready_hour_min.search(doc_text)
+    if hour_min_match:
+        hours = int(hour_min_match.group(1))
+        minutes = int(hour_min_match.group(2))
+        result['ready_in'] = str(hours * 60 + minutes)
+    else:
+        min_match = ready_min_only.search(doc_text)
+        if min_match:
+            result['ready_in'] = min_match.group(1)
 
     serves_match = serves_pattern.search(doc_text)
     if serves_match:
@@ -927,106 +999,6 @@ def verify_tip_is_quote(tip_text: str, webpage_content: str, threshold: int = 90
 # CHECKPOINT 2: ADDITIONAL RECIPE UTILITIES
 # ============================================================================
 
-def get_additional_recipes(doc_text: str, doc_structure: List[Dict]) -> List[Dict[str, Any]]:
-    """
-    Extract content for additional recipes (pages 2, 3, 4) from the document.
-
-    The document contains multiple recipe pages, each starting with "RECIPE" header.
-    This function extracts text and structure for recipes 2, 3, and 4.
-
-    Args:
-        doc_text: Full document text content.
-        doc_structure: Full document structure from extract_structure_from_doc().
-
-    Returns:
-        List of dicts, each with keys: 'text', 'structure', 'recipe_num' (2, 3, or 4).
-        Returns up to 3 recipes (pages 2-4).
-    """
-    if not doc_text or not doc_structure:
-        return []
-
-    # Find all occurrences of "RECIPE" headers (case-SENSITIVE to avoid matching
-    # lowercase "recipe" words in text like "this recipe)." - BUG-009 fix)
-    recipe_markers = list(re.finditer(r'\bRECIPE\b', doc_text))
-
-    if len(recipe_markers) < 2:
-        # Only one or no "RECIPE" marker - no additional recipes
-        return []
-
-    additional_recipes = []
-
-    # Extract text for recipes 2, 3, 4
-    for i in range(1, min(4, len(recipe_markers))):  # Start from index 1 (second recipe)
-        recipe_start = recipe_markers[i].start()
-
-        # Find the end of this recipe (next RECIPE marker or end of document)
-        if i + 1 < len(recipe_markers):
-            recipe_end = recipe_markers[i + 1].start()
-        else:
-            recipe_end = len(doc_text)
-
-        recipe_text = doc_text[recipe_start:recipe_end].strip()
-
-        additional_recipes.append({
-            'text': recipe_text,
-            'recipe_num': i + 1,  # Recipe 2, 3, or 4
-            'start_index': recipe_start,
-            'end_index': recipe_end
-        })
-
-    # Now extract structure elements for each recipe
-    for recipe in additional_recipes:
-        recipe['structure'] = _extract_recipe_structure(
-            doc_structure, recipe['recipe_num'], len(recipe_markers)
-        )
-
-    return additional_recipes
-
-
-def _extract_recipe_structure(
-    doc_structure: List[Dict],
-    recipe_num: int,
-    total_recipes: int
-) -> List[Dict]:
-    """
-    Extract structure elements for a specific recipe number.
-
-    Args:
-        doc_structure: Full document structure.
-        recipe_num: The recipe number to extract (2, 3, or 4).
-        total_recipes: Total number of recipes in document.
-
-    Returns:
-        List of structure elements for that recipe.
-    """
-    recipe_elements = []
-    recipe_count = 0
-    in_target_recipe = False
-
-    for item in doc_structure:
-        if item.get('type') != 'text':
-            if in_target_recipe:
-                recipe_elements.append(item)
-            continue
-
-        content = item.get('content', '').strip()
-
-        # Check if this is a "RECIPE" header (may have title appended, e.g., "RECIPEPumpkin Soup")
-        if re.match(r'^RECIPE', content, re.IGNORECASE):
-            recipe_count += 1
-            if recipe_count == recipe_num:
-                in_target_recipe = True
-            elif recipe_count > recipe_num:
-                # Past our target recipe
-                break
-            continue
-
-        if in_target_recipe:
-            recipe_elements.append(item)
-
-    return recipe_elements
-
-
 def extract_recipe_title(recipe_text: str) -> str:
     """
     Extract the title from a recipe's text content.
@@ -1038,7 +1010,7 @@ def extract_recipe_title(recipe_text: str) -> str:
     (e.g., "RECIPE\x0bPumpkin Soup" or "RECIPESoupe au Potiron").
 
     Args:
-        recipe_text: Text content of the recipe (from get_additional_recipes).
+        recipe_text: Text content of the recipe (from discover_recipes).
 
     Returns:
         The extracted title, or empty string if not found.
@@ -1088,170 +1060,6 @@ def extract_recipe_title(recipe_text: str) -> str:
     return ""
 
 
-def extract_hyperlinks_for_recipe(
-    doc_id: str,
-    service,
-    recipe_num: int
-) -> List[Dict[str, str]]:
-    """
-    Extract hyperlinks from a specific recipe (page) of a Google Doc.
-
-    Args:
-        doc_id: The Google Doc ID.
-        service: The Google Docs API service instance.
-        recipe_num: The recipe number to extract links from (2, 3, or 4).
-
-    Returns:
-        List of dicts with 'url' and 'text' keys for the specified recipe.
-    """
-    document = service.documents().get(documentId=doc_id).execute()
-    body = document.get('body', {})
-    content = body.get('content', [])
-
-    links = []
-    url_pattern = re.compile(
-        r'https?://[^\s<>"\'}\])\u200b\u00a0]+',
-        re.IGNORECASE
-    )
-
-    recipe_count = 0
-    in_target_recipe = False
-
-    def process_paragraph(paragraph) -> List[Dict[str, str]]:
-        """Process a paragraph element for hyperlinks."""
-        para_links = []
-        para_elements = paragraph.get('elements', [])
-
-        for elem in para_elements:
-            if 'textRun' in elem:
-                text_run = elem['textRun']
-                content_text = text_run.get('content', '')
-                text_style = text_run.get('textStyle', {})
-
-                # Check for embedded hyperlink
-                if 'link' in text_style:
-                    url = text_style['link'].get('url', '')
-                    if url:
-                        para_links.append({
-                            'url': url,
-                            'text': content_text.strip()
-                        })
-
-                # Also check for plain text URLs
-                plain_urls = url_pattern.findall(content_text)
-                for plain_url in plain_urls:
-                    if not any(l['url'] == plain_url for l in para_links):
-                        para_links.append({
-                            'url': plain_url,
-                            'text': plain_url
-                        })
-
-        return para_links
-
-    def is_recipe_header(paragraph) -> bool:
-        """Check if a paragraph is a RECIPE header."""
-        para_elements = paragraph.get('elements', [])
-        for elem in para_elements:
-            if 'textRun' in elem:
-                content_text = elem['textRun'].get('content', '').strip()
-                if re.match(r'^RECIPE\s*$', content_text, re.IGNORECASE):
-                    return True
-        return False
-
-    def process_table(table) -> Tuple[List[Dict[str, str]], bool]:
-        """Process a table element for hyperlinks. Returns (links, is_recipe_header_found)."""
-        table_links = []
-        for row in table.get('tableRows', []):
-            for cell in row.get('tableCells', []):
-                cell_content = cell.get('content', [])
-                for elem in cell_content:
-                    if 'paragraph' in elem:
-                        if is_recipe_header(elem['paragraph']):
-                            return table_links, True  # Signal recipe header found
-                        if in_target_recipe:
-                            table_links.extend(process_paragraph(elem['paragraph']))
-        return table_links, False
-
-    # Process content elements
-    for element in content:
-        if 'paragraph' in element:
-            if is_recipe_header(element['paragraph']):
-                recipe_count += 1
-                if recipe_count == recipe_num:
-                    in_target_recipe = True
-                elif recipe_count > recipe_num:
-                    break  # Past our target recipe
-                continue
-            if in_target_recipe:
-                links.extend(process_paragraph(element['paragraph']))
-        elif 'table' in element:
-            table_links, found_header = process_table(element['table'])
-            if in_target_recipe:
-                links.extend(table_links)
-            if found_header:
-                recipe_count += 1
-                if recipe_count == recipe_num:
-                    in_target_recipe = True
-                elif recipe_count > recipe_num:
-                    break
-
-    return links
-
-
-def extract_section_content_for_recipe(
-    recipe_structure: List[Dict],
-    section_name: str
-) -> str:
-    """
-    Extract text content from a named section in a specific recipe.
-
-    Args:
-        recipe_structure: Structure elements for a specific recipe
-                          (from get_additional_recipes()['structure']).
-        section_name: The section header to find (e.g., "Ingredients", "Preparation").
-
-    Returns:
-        The text content of that section, or empty string if not found.
-    """
-    section_content = []
-    in_section = False
-    section_name_lower = section_name.lower().strip()
-
-    # Common section headers to detect section boundaries
-    section_headers = ['ingredients', 'preparation', 'tips', 'ready in', 'serves', 'calories']
-
-    for item in recipe_structure:
-        if item.get('type') != 'text':
-            continue
-
-        content = item.get('content', '').strip()
-        content_lower = content.lower()
-
-        # Check if this is the start of our target section
-        if section_name_lower in content_lower and len(content) < 50:
-            in_section = True
-            continue
-
-        # Check if we've hit another section header (end of our section)
-        if in_section:
-            is_new_section = any(
-                header in content_lower and len(content) < 50
-                for header in section_headers if header != section_name_lower
-            )
-            if is_new_section:
-                break
-
-            # Also check for RECIPE header (end of this recipe)
-            if re.match(r'^RECIPE\s*$', content, re.IGNORECASE):
-                break
-
-            # Add content if not empty/whitespace
-            if content and content.lower() not in section_headers:
-                section_content.append(content)
-
-    return '\n'.join(section_content)
-
-
 def check_title_theme(title: str) -> Tuple[bool, str]:
     """
     Check if a recipe title relates to fall/autumn themes.
@@ -1293,7 +1101,9 @@ def check_content_modified_from_default(
     """
     Check if recipe content (ingredients, preparation, tips) is modified from template default.
 
-    The template default is "Strawberry Vanilla Pancakes" recipe.
+    Compares against the actual Coral Recipe template Lorem ipsum placeholder text
+    using fuzzy similarity. Content is considered unmodified if it has high overlap
+    with the template default.
 
     Args:
         content: The extracted content text.
@@ -1305,45 +1115,87 @@ def check_content_modified_from_default(
     if not content or len(content.strip()) < 10:
         return False, f"{content_type.capitalize()} section is empty or too short"
 
-    content_lower = content.lower()
+    default_content = TEMPLATE_DEFAULT_CONTENT.get(content_type, "")
+    if not default_content:
+        # No template default to compare against — assume modified if non-empty
+        return True, f"{content_type.capitalize()} has content (no template default to compare)"
 
-    # Default template keywords (Strawberry Vanilla Pancakes)
-    default_keywords = [
-        'strawberry', 'strawberries',
-        'vanilla', 'vanilla extract',
-        'pancake', 'pancakes',
-        'buttermilk',
-        'maple', 'maple syrup',
-        'flour', 'all-purpose flour',
-        'baking powder', 'baking soda',
-        'whipped cream',
-        'griddle',
-        'flip', 'flipping'
-    ]
+    # Compare using fuzzy ratio — high similarity means content is unchanged
+    similarity = fuzz.ratio(content.strip().lower(), default_content.strip().lower())
 
-    # Check how many default keywords are present
-    found_defaults = [kw for kw in default_keywords if kw in content_lower]
+    if similarity >= 70:
+        return False, f"{content_type.capitalize()} still matches template default ({similarity}% similar)"
 
-    # If more than 3 default keywords found, probably not modified
-    if len(found_defaults) >= 3:
-        return False, f"Content appears unchanged (found default keywords: {', '.join(found_defaults[:5])})"
-
-    # Check for minimum content length based on type
-    min_lengths = {
-        'ingredients': 50,
-        'preparation': 100,
-        'tips': 30
-    }
-
-    if len(content.strip()) < min_lengths.get(content_type, 30):
-        return False, f"{content_type.capitalize()} content too short ({len(content.strip())} chars)"
-
-    return True, f"{content_type.capitalize()} appears modified from default"
+    return True, f"{content_type.capitalize()} modified from default ({similarity}% similar to template)"
 
 
 # ============================================================================
 # CHECKPOINT 3: WEBPAGE CONTENT EXTRACTION UTILITIES
 # ============================================================================
+
+def extract_recipe_image_url(url: str, timeout: int = 15) -> Optional[str]:
+    """
+    Extract the main recipe image URL from a webpage.
+
+    Tries multiple strategies in order:
+    1. Schema.org Recipe structured data (ld+json) — most precise
+    2. Open Graph og:image meta tag — widely supported
+
+    Args:
+        url: The recipe webpage URL.
+        timeout: Request timeout in seconds.
+
+    Returns:
+        The image URL, or None if not found.
+    """
+    import requests
+    import json
+    from bs4 import BeautifulSoup
+
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    try:
+        resp = requests.get(url, headers=headers, timeout=timeout)
+        resp.raise_for_status()
+    except Exception as e:
+        print(f"Warning: Failed to fetch {url} for image extraction: {e}")
+        return None
+
+    soup = BeautifulSoup(resp.text, 'html.parser')
+
+    # Strategy 1: ld+json Recipe schema
+    for script in soup.find_all('script', type='application/ld+json'):
+        try:
+            data = json.loads(script.string)
+            # Handle both single object and @graph array formats
+            items = [data] if isinstance(data, dict) and '@type' in data else []
+            if isinstance(data, dict) and '@graph' in data:
+                items = data['@graph']
+            elif isinstance(data, list):
+                items = data
+
+            for item in items:
+                if item.get('@type') == 'Recipe':
+                    img = item.get('image', '')
+                    if isinstance(img, list):
+                        img = img[0] if img else ''
+                    if isinstance(img, dict):
+                        img = img.get('url', '')
+                    if isinstance(img, str) and img.startswith('http'):
+                        print(f"Found recipe image via ld+json: {img[:80]}")
+                        return img
+        except (json.JSONDecodeError, TypeError, KeyError):
+            continue
+
+    # Strategy 2: og:image meta tag
+    og_tag = soup.find('meta', property='og:image')
+    if og_tag:
+        img_url = og_tag.get('content', '')
+        if img_url and img_url.startswith('http'):
+            print(f"Found recipe image via og:image: {img_url[:80]}")
+            return img_url
+
+    return None
+
 
 def extract_ingredients_from_webpage(model, webpage_text: str, recipe_title: str) -> List[str]:
     """
@@ -1595,26 +1447,32 @@ def compare_lists_with_llm(model, doc_list: List[str], source_list: List[str], l
     if not doc_list or not source_list:
         return False, f"Empty list: doc has {len(doc_list)} items, source has {len(source_list)} items"
 
-    doc_text = '\n'.join(f"- {item}" for item in doc_list[:20])
-    source_text = '\n'.join(f"- {item}" for item in source_list[:20])
+    # Join as full text blocks rather than bullet lists — this avoids the LLM
+    # being misled by different item counts when content is condensed or split differently.
+    doc_text = ' '.join(doc_list)
+    source_text = ' '.join(source_list)
+
+    # Truncate to avoid token limits
+    doc_text = doc_text[:5000]
+    source_text = source_text[:5000]
 
     messages = [
         {
             "role": "system",
-            "content": [{"type": "text", "text": f"""You are comparing two {list_type} lists from a recipe.
+            "content": [{"type": "text", "text": f"""You are comparing two {list_type} texts from a recipe.
 
-Determine if the document list is substantially the same as the source list:
+Determine if the document text contains substantially the same content as the source text:
 - Minor formatting differences are OK (e.g., "1 cup" vs "1 c", "tbsp" vs "tablespoon")
-- Order differences are OK for ingredients (but not for steps)
+- The document may condense or merge multiple source steps into fewer combined steps — this is OK as long as the key content is preserved
 - Minor quantity variations are OK (e.g., "1-2 cups" vs "2 cups")
 - Extra clarifications are OK (e.g., "butter, melted" vs "melted butter")
 
-Answer 'Yes' if the lists contain substantially the same content.
-Answer 'No' if there are significant differences (missing items, wrong quantities, different items)."""}]
+Answer 'Yes' if the document contains substantially the same content as the source.
+Answer 'No' if there are significant differences (missing key content, wrong quantities, different items)."""}]
         },
         {
             "role": "user",
-            "content": [{"type": "text", "text": f"Do these {list_type} lists match?\n\nDocument {list_type}:\n{doc_text}\n\nSource {list_type}:\n{source_text}"}]
+            "content": [{"type": "text", "text": f"Does the document {list_type} match the source?\n\nDocument {list_type}:\n{doc_text}\n\nSource {list_type}:\n{source_text}"}]
         }
     ]
 
