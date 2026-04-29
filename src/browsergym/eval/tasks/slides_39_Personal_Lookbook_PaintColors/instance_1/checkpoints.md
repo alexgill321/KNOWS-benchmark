@@ -1,10 +1,11 @@
 # Checkpoints
-This task has 110 points in total.
+This task has 112 points in total.
 
-## Checkpoint 1 (10 pt, 4 steps):
+## Checkpoint 1 (12 pt, 5 steps):
 Check that the title slide contains an appropriate high-quality image of a room/project that fills most of the slide space.
 
 ### Outcome Evaluation:
+- Verify that the room/project is put as the title (2 pts)
 - Confirm that exactly one image was placed on the title slide (2 pt)
 - Check that the image covers at least 70% of the slide area (4 pt)
 - Verify that the agent searched for the room/project type in browsing history (2 pt)
@@ -16,7 +17,7 @@ Check that 5-10 color selection slides were created with appropriate color names
 ### Outcome Evaluation:
 - Count the number of color slides to ensure it falls within the 5-10 range (10 pt)
 - Verify each content slide has a color name as its title (10 pt, proportional)
-- Confirm that the color names are distinct and appropriate for interior design (LLM judge) (10 pt, proportional)
+- Confirm that the color names are distinct and appropriate for interior design of the room/project (LLM judge) (10 pt, proportional)
 
 ## Checkpoint 3 (60 pt, 6 steps × 10 pt each):
 Verify that each color slide contains two relevant images positioned correctly on the slide, with proper source attribution.

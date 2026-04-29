@@ -42,7 +42,7 @@ from src.browsergym.eval.tasks.slides_39_Personal_Lookbook_PaintColors.utils imp
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/slides_39_Personal_Lookbook_PaintColors/instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/slides_39_Personal_Lookbook_PaintColors/instance_2/")
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 
 try:

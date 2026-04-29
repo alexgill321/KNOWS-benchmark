@@ -1,5 +1,9 @@
 import os
+import re
 import shutil
+import time
+import uuid
+from urllib.parse import unquote, urlparse
 
 from src.browsergym.eval.eval_utils.slides_utils import (
     extract_slide_images,
@@ -11,6 +15,85 @@ from src.browsergym.eval.eval_utils.slides_utils import (
     download_slide_image,
 )
 from src.browsergym.eval.eval_utils.image_utils import binary_judge_image
+
+
+# Two-word room types that should survive adjective stripping. Anything not
+# in this set falls back to the last single word, so "a beautiful kitchen"
+# becomes "kitchen" but "a beautiful living room" stays "living room".
+_COMPOUND_ROOM_TYPES = {
+    'living room', 'dining room', 'family room', 'sun room', 'mud room',
+    'laundry room', 'powder room', 'game room', 'music room', 'sitting room',
+    'guest room', 'breakfast room', 'utility room', 'rec room', 'play room',
+    'home office', 'home gym', 'home theater', 'home theatre',
+    'guest house', 'pool house', 'guest bedroom', 'master bedroom',
+    'master bathroom', 'half bath', 'powder bath',
+}
+
+# Single-word room/space types; generic words (room, house, space) excluded.
+_KNOWN_ROOM_WORDS = {
+    'garage', 'kitchen', 'bedroom', 'bathroom', 'office', 'hallway',
+    'basement', 'attic', 'library', 'study', 'foyer', 'nursery',
+    'pantry', 'closet', 'lounge', 'den', 'parlor', 'conservatory',
+    'mudroom', 'sunroom', 'kitchenette', 'gym', 'theater', 'theatre',
+    # Outdoor / utility spaces
+    'shed', 'barn', 'carport', 'loft', 'cabana', 'patio', 'deck',
+    'porch', 'balcony', 'cellar', 'terrace', 'courtyard', 'workshop',
+    'studio', 'entryway',
+}
+
+
+def browser_headers(url):
+    """Chrome UA + image Accept + per-URL Referer; defeats most hotlink protection."""
+    parsed = urlparse(url)
+    return {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        ),
+        "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": f"{parsed.scheme}://{parsed.netloc}/",
+    }
+
+
+def _download_slide_image_with_retry(image_url, max_retries=2):
+    """Wrapper around `download_slide_image` with exponential-backoff retry.
+
+    Slides API content URLs are short-lived signed URLs that occasionally
+    return transient errors. `download_slide_image` upstream returns None on
+    failure with no retry; this helper retries a few times before giving up.
+    Returns a PIL.Image or None.
+    """
+    for attempt in range(max_retries + 1):
+        try:
+            img = download_slide_image(image_url)
+            if img is not None:
+                return img
+        except Exception as e:
+            if attempt == max_retries:
+                print(f"All retries failed for {image_url}: {e}")
+        if attempt < max_retries:
+            time.sleep(0.5 * (2 ** attempt))
+    return None
+
+
+def _clean_vlm_topic(response):
+    """Reduce a VLM 'what room is this?' response to the room noun(s)."""
+    text = re.sub(r'\*+', '', response).strip().lower()
+    # Strip punctuation per-word so internal commas/periods don't break matching.
+    words = [w.strip(',.!?;:') for w in text.split()]
+    words = [w for w in words if w]
+    if not words:
+        return ""
+    if len(words) >= 2 and ' '.join(words[-2:]) in _COMPOUND_ROOM_TYPES:
+        return ' '.join(words[-2:])
+    # Walk back; promote to compound if the preceding word forms one.
+    for i in range(len(words) - 1, -1, -1):
+        if words[i] in _KNOWN_ROOM_WORDS:
+            if i > 0 and f"{words[i-1]} {words[i]}" in _COMPOUND_ROOM_TYPES:
+                return f"{words[i-1]} {words[i]}"
+            return words[i]
+    return words[-1]
 
 
 def get_image_position(element, slide_width_emu, slide_height_emu):
@@ -130,7 +213,7 @@ def identify_image_subject_vlm(images, model, data_dir):
         temp_img_path = None
         for img_info in images:
             if img_info.get('contentUrl'):
-                img = download_slide_image(img_info['contentUrl'])
+                img = _download_slide_image_with_retry(img_info['contentUrl'])
                 if img:
                     temp_img_path = os.path.join(temp_dir, "temp_image.png")
                     img.save(temp_img_path)
@@ -153,10 +236,14 @@ def identify_image_subject_vlm(images, model, data_dir):
             }
         ]
 
-        response = model(messages)
-        if response:
-            return response.strip().strip('.').lower()
-        return ""
+        try:
+            response = model(messages)
+        except Exception as e:
+            print(f"VLM call failed in identify_image_subject_vlm: {e}")
+            return ""
+        if not response:
+            return ""
+        return _clean_vlm_topic(response)
 
     finally:
         if os.path.exists(temp_dir):
@@ -183,10 +270,10 @@ def evaluate_image_relevance_vlm(images, topic, model, data_dir):
     if not images:
         return False, 0, 0
 
-    # Create unique temp directory for downloaded images (safe for parallel calls)
-    import hashlib
-    dir_suffix = hashlib.md5(topic.encode()).hexdigest()[:8]
-    temp_dir = os.path.join(data_dir, f"temp_images_vlm_{dir_suffix}")
+    # Create unique temp directory for downloaded images (safe for parallel calls
+    # even when the topic string repeats — md5(topic) collided when two color
+    # slides had identical names).
+    temp_dir = os.path.join(data_dir, f"temp_images_vlm_{uuid.uuid4().hex[:8]}")
     os.makedirs(temp_dir, exist_ok=True)
 
     num_relevant = 0
@@ -197,7 +284,7 @@ def evaluate_image_relevance_vlm(images, topic, model, data_dir):
             if not img_info.get('contentUrl'):
                 continue
 
-            img = download_slide_image(img_info['contentUrl'])
+            img = _download_slide_image_with_retry(img_info['contentUrl'])
             if not img:
                 continue
 
@@ -206,11 +293,15 @@ def evaluate_image_relevance_vlm(images, topic, model, data_dir):
             total += 1
 
             # Check each image individually
-            result = binary_judge_image(
-                model,
-                temp_img_path,
-                f"Is this a high-quality image related to '{topic}'? The image should clearly depict or relate to '{topic}'."
-            )
+            try:
+                result = binary_judge_image(
+                    model,
+                    temp_img_path,
+                    f"Is this a high-quality image related to '{topic}'? The image should clearly depict or relate to '{topic}'."
+                )
+            except Exception as e:
+                print(f"VLM call failed for image {idx} in evaluate_image_relevance_vlm: {e}")
+                result = None
             if result:
                 num_relevant += 1
 
@@ -219,6 +310,24 @@ def evaluate_image_relevance_vlm(images, topic, model, data_dir):
             shutil.rmtree(temp_dir)
 
     return num_relevant == total and total > 0, num_relevant, total
+
+
+def get_title_text(slide):
+    """
+    Extract the title text from a slide by finding the first text box in
+    the title position.
+
+    Args:
+        slide (dict): Slide object from Google Slides API.
+
+    Returns:
+        str: Title text (stripped) or "" if no text box is in title position.
+    """
+    text_boxes = extract_text_boxes_from_slide(slide)
+    for tb in text_boxes:
+        if is_text_in_title_position(slide, tb['text']):
+            return tb['text'].strip()
+    return ""
 
 
 def find_color_slides(slides):
@@ -251,13 +360,7 @@ def find_color_slides(slides):
         if idx == recommendation_slide_idx:  # Skip recommendation slide
             continue
 
-        # Find title text using text boxes and title position check
-        text_boxes = extract_text_boxes_from_slide(slide)
-        title_text = ""
-        for tb in text_boxes:
-            if is_text_in_title_position(slide, tb['text']):
-                title_text = tb['text'].strip()
-                break
+        title_text = get_title_text(slide)
 
         # Accept any non-empty title as a color name
         if title_text:
@@ -298,7 +401,10 @@ def check_browsing_history(browsing_history, search_terms):
         url_lower = url.lower()
         if not any(keyword in url_lower for keyword in ['search', 'google.com', 'images', 'bing.com']):
             continue
-        if all(term in url_lower for term in terms_lower):
+        # Decode %xx and convert form-encoded '+' to space so multi-word terms
+        # like "living room" match URLs like "?q=living+room" or "?q=living%20room".
+        url_decoded = unquote(url_lower).replace('+', ' ')
+        if all(term in url_decoded for term in terms_lower):
             return True
 
     return False

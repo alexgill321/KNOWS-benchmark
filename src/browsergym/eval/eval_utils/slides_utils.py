@@ -79,10 +79,10 @@ def extract_title_text(slide):
 
             # Also check position - collect text from top elements
             transform = element.get('transform', {})
-            translate_y = transform.get('translateY', float('inf'))
+            translate_y = transform.get('translateY', 0)
             content_alignment = shape.get('shapeProperties', {}).get('contentAlignment', {})
             
-            if 'text' in shape and (translate_y < 1000000 or 'top' in content_alignment.lower()):  # Top ~20% of slide
+            if 'text' in shape and (translate_y < 1500000 or 'top' in content_alignment.lower()):  # Top ~20% of slide
                 text = _extract_text_from_text_element(shape['text'])
                 if text:
                     title_candidates.append((translate_y, text))
@@ -531,13 +531,13 @@ def is_text_in_title_position(slide: Dict[str, Any], text: str) -> bool:
 
             # Also check position - if text is in top ~20% of slide, consider it a title
             transform = element.get('transform', {})
-            translate_y = transform.get('translateY', float('inf'))
+            translate_y = transform.get('translateY', 0)
 
             if 'text' in shape:
                 element_text = _extract_text_from_text_element(shape['text'])
                 if text_lower in element_text.lower():
                     # Check if Y position is near top (measured in EMUs, typical slide height ~5143500)
-                    if translate_y < 1000000:  # Top ~20% of slide
+                    if translate_y < 1500000:  # Top ~20% of slide
                         return True
 
     return False
@@ -876,19 +876,28 @@ def is_text_color(text_style: Dict[str, Any], r: float, g: float, b: float, tole
     return distance <= tolerance
 
 
-def is_text_big(text_style: Dict[str, Any], min_pt: float = 18) -> bool:
+def is_text_big(text_style: Dict[str, Any], min_pt: float = 18, element: Dict[str, Any] = None) -> bool:
     """
     Check if font size is at least the specified minimum in points.
 
     Args:
         text_style (dict): Text style from get_text_style_from_shape().
         min_pt (float): Minimum font size in points. Default is 18pt.
+        element (dict): Optional page element dict. When provided and fontSize
+            is None, title/subtitle placeholders are assumed to inherit a large
+            font from the master layout and return True.
 
     Returns:
         bool: True if font size >= min_pt, False otherwise.
     """
     font_size = text_style.get('fontSize')
     if not font_size:
+        # Placeholder titles inherit fontSize from master/layout; the API
+        # doesn't include the inherited value. Assume it meets min_pt.
+        if element:
+            ph_type = element.get('shape', {}).get('placeholder', {}).get('type', '')
+            if ph_type in ('TITLE', 'CENTERED_TITLE', 'SUBTITLE'):
+                return True
         return False
 
     magnitude = font_size.get('magnitude', 0)
