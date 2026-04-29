@@ -325,8 +325,8 @@ def extract_tables_from_sheet(sheet_id: str, service) -> List[SheetTable]:
                 sheet_name=sheet_name
             ))
 
-    return tables
 
+    return tables
 
 def extract_sheet_data(
     sheet_id: str,
