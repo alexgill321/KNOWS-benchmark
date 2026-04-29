@@ -166,7 +166,14 @@ def grade_checkpoint_2():
     checkpoint = Checkpoint(total=10, result=0, name="Paper Requirements Validation")
 
     if cached_papers_info is None or not cached_papers_info:
-        checkpoint.add_step("Paper Requirements", False, 0, "No paper data available.", score=0, max_score=10)
+        detail = (
+            f"No paper data available. No links from accepted domains "
+            f"({', '.join(PAPER_DOMAINS)}) found in the document."
+        )
+        for i in range(NUM_PAPERS):
+            checkpoint.add_step(f"Citation Check {i+1}", False, 1, detail, execution_time=0)
+            checkpoint.add_step(f"Recency Check {i+1}", False, 1, detail, execution_time=0)
+        checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     for i, paper in enumerate(cached_papers_info):
@@ -228,7 +235,15 @@ def grade_checkpoint_3():
     step_start = time.time()
 
     if cached_papers_info is None or not cached_papers_info:
-        checkpoint.add_step("Paper Data", False, 1, "No paper data available.")
+        detail = (
+            f"No paper data available. No links from accepted domains "
+            f"({', '.join(PAPER_DOMAINS)}) found in the document."
+        )
+        for i in range(NUM_PAPERS):
+            checkpoint.add_step(f"Abstract Inclusion {i+1}", False, (i*5)+1, detail, execution_time=0)
+            checkpoint.add_step(f"Title Inclusion {i+1}", False, (i*5)+2, detail, execution_time=0)
+            checkpoint.add_step(f"Link Inclusion {i+1}", False, (i*5)+3, detail, execution_time=0)
+            checkpoint.add_step(f"Structure Check {i+1}", False, (i*5)+4, detail, execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -242,7 +257,11 @@ def grade_checkpoint_3():
 
     for i, paper in enumerate(cached_papers_info):
         if paper is None or not isinstance(paper, dict):
-            checkpoint.add_step(f"Paper {i+1} Data", False, 1, f"Paper {i+1} not found")
+            detail = f"Paper {i+1} not found in Semantic Scholar"
+            checkpoint.add_step(f"Abstract Inclusion {i+1}", False, (i*5)+1, detail, execution_time=0)
+            checkpoint.add_step(f"Title Inclusion {i+1}", False, (i*5)+2, detail, execution_time=0)
+            checkpoint.add_step(f"Link Inclusion {i+1}", False, (i*5)+3, detail, execution_time=0)
+            checkpoint.add_step(f"Structure Check {i+1}", False, (i*5)+4, detail, execution_time=0)
             continue
 
         title = paper.get('title', '')
@@ -315,6 +334,18 @@ def grade_checkpoint_3():
                                 f"Cannot verify structure for '{title}' due to missing: {', '.join(missing)}",
                                 execution_time=time.time() - step_start)
 
+    papers_processed = len(cached_papers_info)
+    if papers_processed < NUM_PAPERS:
+        detail = (
+            f"Missing paper (only {papers_processed}/{NUM_PAPERS} links from accepted "
+            f"domains ({', '.join(PAPER_DOMAINS)}) found in the document)."
+        )
+        for i in range(papers_processed, NUM_PAPERS):
+            checkpoint.add_step(f"Abstract Inclusion {i+1}", False, (i*5)+1, detail, execution_time=0)
+            checkpoint.add_step(f"Title Inclusion {i+1}", False, (i*5)+2, detail, execution_time=0)
+            checkpoint.add_step(f"Link Inclusion {i+1}", False, (i*5)+3, detail, execution_time=0)
+            checkpoint.add_step(f"Structure Check {i+1}", False, (i*5)+4, detail, execution_time=0)
+
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
@@ -338,8 +369,12 @@ def grade_checkpoint_4():
     step_start = time.time()
 
     if cached_papers_info is None or not cached_papers_info:
-        checkpoint.add_step("Paper Data", False, 5, "No paper data available.",
-                          execution_time=time.time() - step_start)
+        detail = (
+            f"No paper data available. No links from accepted domains "
+            f"({', '.join(PAPER_DOMAINS)}) found in the document."
+        )
+        for i in range(NUM_PAPERS):
+            checkpoint.add_step(f"Relevance Check {i+1}", False, i+1, detail, execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 

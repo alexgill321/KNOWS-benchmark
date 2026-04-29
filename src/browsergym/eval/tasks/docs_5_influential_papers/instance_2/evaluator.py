@@ -164,7 +164,11 @@ def grade_checkpoint_2():
 
     if not arxiv_ids:
         print("Error: No valid arxiv paper links found.")
-        checkpoint.add_step("Paper Requirements", False, 0, "No valid arxiv paper links found to check requirements against.", score=0, max_score=10)
+        detail = "No valid arxiv.org paper links found in the document."
+        for i in range(NUM_PAPERS):
+            checkpoint.add_step(f"Citation Check {i+1}", False, 1, detail, execution_time=0)
+            checkpoint.add_step(f"Recency Check {i+1}", False, 1, detail, execution_time=0)
+        checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     import requests
@@ -183,11 +187,19 @@ def grade_checkpoint_2():
             elif isinstance(papers_info, str):
                 error_msg += f" - {papers_info}"
             print(f"Error: {error_msg}")
-            checkpoint.add_step("Semantic Scholar API", False, 0, f"API Error: {error_msg}", score=0, max_score=10)
+            detail = f"Semantic Scholar API error: {error_msg}"
+            for i in range(NUM_PAPERS):
+                checkpoint.add_step(f"Citation Check {i+1}", False, 1, detail, execution_time=0)
+                checkpoint.add_step(f"Recency Check {i+1}", False, 1, detail, execution_time=0)
+            checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
     except Exception as e:
         print(f"Error fetching data from Semantic Scholar: {e}")
-        checkpoint.add_step("Semantic Scholar API", False, 0, f"API Error: {e}", score=0, max_score=10)
+        detail = f"Semantic Scholar API error: {e}"
+        for i in range(NUM_PAPERS):
+            checkpoint.add_step(f"Citation Check {i+1}", False, 1, detail, execution_time=0)
+            checkpoint.add_step(f"Recency Check {i+1}", False, 1, detail, execution_time=0)
+        checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     for i, paper in enumerate(papers_info):
@@ -257,7 +269,12 @@ def grade_checkpoint_3():
     step_start = time.time()
 
     if cached_arxiv_papers is None or len(cached_arxiv_papers) == 0:
-        checkpoint.add_step("Paper Data", False, 1, "No arXiv papers found or prefetch failed.")
+        detail = "No arXiv papers found or prefetch failed (no valid arxiv.org links in the document)."
+        for i in range(NUM_PAPERS):
+            checkpoint.add_step(f"Abstract Inclusion {i+1}", False, (i*5)+1, detail, execution_time=0)
+            checkpoint.add_step(f"Title Inclusion {i+1}", False, (i*5)+2, detail, execution_time=0)
+            checkpoint.add_step(f"Link Inclusion {i+1}", False, (i*5)+3, detail, execution_time=0)
+            checkpoint.add_step(f"Structure Check {i+1}", False, (i*5)+4, detail, execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -327,6 +344,15 @@ def grade_checkpoint_3():
                                 f"Cannot verify structure for paper {paper.title} due to missing elements: {', '.join(missing_component_names)}",
                                 execution_time=time.time() - step_start)
 
+    papers_processed = len(papers_info)
+    if papers_processed < NUM_PAPERS:
+        detail = f"Missing paper (only {papers_processed}/{NUM_PAPERS} valid arxiv.org links found in the document)."
+        for i in range(papers_processed, NUM_PAPERS):
+            checkpoint.add_step(f"Abstract Inclusion {i+1}", False, (i*5)+1, detail, execution_time=0)
+            checkpoint.add_step(f"Title Inclusion {i+1}", False, (i*5)+2, detail, execution_time=0)
+            checkpoint.add_step(f"Link Inclusion {i+1}", False, (i*5)+3, detail, execution_time=0)
+            checkpoint.add_step(f"Structure Check {i+1}", False, (i*5)+4, detail, execution_time=0)
+
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
@@ -351,9 +377,9 @@ def grade_checkpoint_4():
     step_start = time.time()
 
     if cached_arxiv_papers is None or len(cached_arxiv_papers) == 0:
-        checkpoint.add_step("Paper Data", False, 5,
-                          "No arXiv papers found or prefetch failed.",
-                          execution_time=time.time() - step_start)
+        detail = "No arXiv papers found or prefetch failed (no valid arxiv.org links in the document)."
+        for i in range(NUM_PAPERS):
+            checkpoint.add_step(f"Relevance Check {i+1}", False, i+1, detail, execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
