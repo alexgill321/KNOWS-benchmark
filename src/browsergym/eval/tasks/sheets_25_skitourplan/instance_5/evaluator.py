@@ -1,8 +1,8 @@
-"""Evaluator for the Ski Tour Plan Google Sheets task.
+"""Evaluator for the Ski Tour Plan Google Sheets task (Instance 5).
 
 This evaluator validates a spreadsheet containing ski run information:
-- 3 ski runs with slope angle <= 26 degrees from Wasatch Backcountry Ski Guide
-- Avalanche forecast data from Utah Avalanche Center
+- 3 ski runs with slope angle <= 32 degrees from Wasatch Backcountry Ski Guide
+- Avalanche forecast data from Utah Avalanche Center for 12/28/2024
 - Proper cell coloring based on danger ratings
 """
 
@@ -63,14 +63,14 @@ from src.browsergym.eval.tasks.sheets_25_skitourplan.utils import (
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_25_skitourplan/instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_25_skitourplan/instance_5/")
 DATA_DIR = os.path.join(TASK_DIR, "data")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 # Instance-specific parameters
-FORECAST_DATE = "02/05/2025"
-FORECAST_DATE_ALT = "2/5/2025"
-MAX_SLOPE_ANGLE = 26
+FORECAST_DATE = "12/28/2024"
+FORECAST_DATE_ALT = "12/28/2024"
+MAX_SLOPE_ANGLE = 32
 EXPECTED_RUN_COUNT = 3
 
 # Model configuration
@@ -95,10 +95,8 @@ BROWSING_HISTORY = None
 def setup(workspace_doc_id: str):
     """Setup function to initialize the evaluator.
 
-    Every external call is isolated so a single failure (Google API error,
-    missing file, malformed sheet) leaves the relevant global as None and
-    lets each checkpoint's existing early-exit path emit its full step list
-    rather than collapsing the whole evaluation.
+    Every external call is isolated so a single failure leaves the relevant
+    global as None and lets each checkpoint emit its full step list.
 
     Args:
         workspace_doc_id: Google Sheets document ID to evaluate.
@@ -116,16 +114,12 @@ def setup(workspace_doc_id: str):
         sheet_id = workspace_doc_id
 
     try:
-        gold_data = load_gold_runs()
+        gold_data = load_gold_runs(data_dir=DATA_DIR)
     except Exception as e:
         print(f"WARNING: load_gold_runs failed: {e}")
 
     if gold_data:
-        try:
-            valid_runs = get_valid_runs(gold_data)
-            print(f"Loaded {len(valid_runs)} valid runs from gold data")
-        except Exception as e:
-            print(f"WARNING: get_valid_runs failed: {e}")
+        print(f"Loaded gold data from {DATA_DIR}")
     else:
         print("WARNING: Could not load gold data")
 
@@ -166,26 +160,12 @@ def setup(workspace_doc_id: str):
 def grade_checkpoint_1():
     """Checkpoint 1: Spreadsheet Structure (10 pts).
 
-    Validates that the spreadsheet has correct column headers:
-    1. Run Name Column
-    2. Run Link Column
-    3. Starting Location Column
-    4. GPS Coordinates Column
-    5. Elevation Column (optional based on checkpoints.md)
-    6. Typical Vertical Column
-    7. Slope Aspect Column
-    8. Slope Angle Column
-    9. Forecast Date Column
-    10. Forecast Link Column
-
-    Uses keyword matching first, then falls back to VLM if needed.
+    Validates that the spreadsheet has correct column headers.
     """
     print("----------------- CHECKPOINT 1 ----------------")
     global matched_columns, df, model
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=10, result=0, name="Spreadsheet Structure")
-    # Step names emitted by the success path; used to populate a failed
-    # Checkpoint if the body raises.
     expected_steps = [f"{c} Column" for c in (
         "Run Name", "Run Link", "Starting Location", "GPS Coordinates",
         "Elevation", "Typical Vertical", "Slope Aspect", "Slope Angle",
@@ -200,8 +180,6 @@ def grade_checkpoint_1():
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
-        # Required columns with keywords for matching
-        # Order matters - more specific keywords first to avoid false matches
         required_columns = [
             ("Run Name", ["run name"]),
             ("Run Link", ["run link"]),
@@ -217,19 +195,16 @@ def grade_checkpoint_1():
 
         original_columns = [str(col) for col in df.columns]
 
-        # Use standardized match_columns() - keyword matching first, then LLM fallback
         if model is None:
             model = load_model(model_id)
         name_matches = match_columns(df, required_columns, model=model, parallel=True)
 
-        # Convert column names to indices (this evaluator uses indices for .iloc access)
         for col_name, matched_col_name in name_matches.items():
             try:
                 matched_columns[col_name] = original_columns.index(matched_col_name)
             except ValueError:
-                pass  # Column name not found
+                pass
 
-        # Record results for all columns
         for step_num, (col_name, keywords) in enumerate(required_columns, start=1):
             step_start = time.time()
 
@@ -261,13 +236,13 @@ def grade_checkpoint_2():
 
     Validates:
     1. Run Count - exactly 3 ski runs
-    2-4. Slope Angle Compliance for each run (<= 26 degrees)
+    2-4. Slope Angle Compliance for each run (<= 32 degrees)
     """
     print("----------------- CHECKPOINT 2 ----------------")
     global matched_columns, df
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=4, result=0, name="Run Selection Criteria")
-    expected_steps = ["Run Count"] + [f"Slope Angle Run {i+1}" for i in range(3)]
+    expected_steps = ["Run Count"] + [f"Slope Angle Run {i+1}" for i in range(EXPECTED_RUN_COUNT)]
 
     try:
         if df is None or df.empty:
@@ -279,14 +254,14 @@ def grade_checkpoint_2():
 
         run_count = len(df)
         step_start = time.time()
-        run_count_valid = run_count == 3
+        run_count_valid = run_count == EXPECTED_RUN_COUNT
         checkpoint.add_step("Run Count", run_count_valid, 1,
-                          f"Found {run_count} runs (expected 3)",
+                          f"Found {run_count} runs (expected {EXPECTED_RUN_COUNT})",
                           execution_time=time.time() - step_start)
 
         angle_col_idx = matched_columns.get('Slope Angle')
 
-        for i in range(3):
+        for i in range(EXPECTED_RUN_COUNT):
             step_start = time.time()
 
             if i >= len(df):
@@ -301,13 +276,13 @@ def grade_checkpoint_2():
                 angle_str = str(row.iloc[angle_col_idx])
                 angle = parse_slope_angle(angle_str)
 
-                if angle is not None and angle <= 26:
+                if angle is not None and angle <= MAX_SLOPE_ANGLE:
                     checkpoint.add_step(f"Slope Angle Run {i+1}", True, i + 2,
-                                      f"Angle: {angle}° (max 26°)",
+                                      f"Angle: {angle} (max {MAX_SLOPE_ANGLE})",
                                       execution_time=time.time() - step_start)
                 elif angle is not None:
                     checkpoint.add_step(f"Slope Angle Run {i+1}", False, i + 2,
-                                      f"Angle: {angle}° exceeds 26° limit",
+                                      f"Angle: {angle} exceeds {MAX_SLOPE_ANGLE} limit",
                                       execution_time=time.time() - step_start)
                 else:
                     checkpoint.add_step(f"Slope Angle Run {i+1}", False, i + 2,
@@ -333,14 +308,7 @@ def grade_checkpoint_2():
 def grade_checkpoint_3():
     """Checkpoint 3: Run Data Accuracy (21 pts).
 
-    For each of 3 runs, validates 7 fields:
-    1. Run Name Valid
-    2. Run Link Valid
-    3. Starting Location Correct
-    4. GPS Coordinates Correct
-    5. Typical Vertical Correct
-    6. Slope Aspect Correct
-    7. Slope Angle Correct
+    For each of 3 runs, validates 7 fields.
     """
     print("----------------- CHECKPOINT 3 ----------------")
     global matched_columns, df, gold_data
@@ -349,7 +317,9 @@ def grade_checkpoint_3():
     sub_fields = ("Name Valid", "Link Valid", "Starting Location",
                   "GPS Coordinates", "Typical Vertical", "Slope Aspect",
                   "Slope Angle")
-    expected_steps = [f"Run {r} - {f}" for r in range(1, 4) for f in sub_fields]
+    expected_steps = [f"Run {r} - {f}"
+                      for r in range(1, EXPECTED_RUN_COUNT + 1)
+                      for f in sub_fields]
 
     try:
         if df is None or df.empty or not gold_data:
@@ -369,10 +339,9 @@ def grade_checkpoint_3():
 
         step_num = 1
 
-        for run_idx in range(3):
+        for run_idx in range(EXPECTED_RUN_COUNT):
             run_num = run_idx + 1
 
-            # Pad missing rows so the step list always has 7 entries per run
             if run_idx >= len(df):
                 for f in sub_fields:
                     checkpoint.add_step(f"Run {run_num} - {f}", False, step_num,
@@ -383,11 +352,9 @@ def grade_checkpoint_3():
 
             row = df.iloc[run_idx]
 
-            # Get user values
             user_name = str(row.iloc[name_col]) if name_col is not None else ""
             user_link = str(row.iloc[link_col]) if link_col is not None else ""
 
-            # Find matching gold run
             gold_run = find_run_by_name_or_url(user_name, user_link, gold_data)
 
             # Step 1: Run Name Valid
@@ -426,8 +393,8 @@ def grade_checkpoint_3():
                                       f"No gold starting_location to validate against (benefit of the doubt)",
                                       execution_time=time.time() - step_start)
                 else:
-                    user_norm = user_start.lower().strip().replace("'", "").replace("'", "")
-                    gold_norm = gold_start.lower().strip().replace("'", "").replace("'", "")
+                    user_norm = user_start.lower().strip().replace("'", "").replace("\u2019", "")
+                    gold_norm = gold_start.lower().strip().replace("'", "").replace("\u2019", "")
 
                     if user_norm == gold_norm or user_norm in gold_norm or gold_norm in user_norm:
                         checkpoint.add_step(f"Run {run_num} - Starting Location", True, step_num,
@@ -475,7 +442,6 @@ def grade_checkpoint_3():
             step_num += 1
 
             # Step 5: Typical Vertical Correct
-            # Gold data may have a range (typical_vertical_min to typical_vertical)
             step_start = time.time()
             if vert_col is not None and gold_run:
                 user_vert_str = str(row.iloc[vert_col])
@@ -551,17 +517,17 @@ def grade_checkpoint_3():
                 user_angle = parse_slope_angle(user_angle_str)
                 gold_angle = gold_run.get('slope_angle')
 
-                if user_angle and gold_angle and user_angle == gold_angle and user_angle <= 26:
+                if user_angle and gold_angle and user_angle == gold_angle and user_angle <= MAX_SLOPE_ANGLE:
                     checkpoint.add_step(f"Run {run_num} - Slope Angle", True, step_num,
-                                      f"Angle: {user_angle}° (valid <= 26°)",
+                                      f"Angle: {user_angle} (valid <= {MAX_SLOPE_ANGLE})",
                                       execution_time=time.time() - step_start)
-                elif user_angle and user_angle <= 26:
+                elif user_angle and user_angle <= MAX_SLOPE_ANGLE:
                     checkpoint.add_step(f"Run {run_num} - Slope Angle", False, step_num,
-                                      f"User: {user_angle}°, Gold: {gold_angle}°",
+                                      f"User: {user_angle}, Gold: {gold_angle}",
                                       execution_time=time.time() - step_start)
                 elif user_angle:
                     checkpoint.add_step(f"Run {run_num} - Slope Angle", False, step_num,
-                                      f"Angle {user_angle}° exceeds 26° limit",
+                                      f"Angle {user_angle} exceeds {MAX_SLOPE_ANGLE} limit",
                                       execution_time=time.time() - step_start)
                 else:
                     checkpoint.add_step(f"Run {run_num} - Slope Angle", False, step_num,
@@ -586,14 +552,7 @@ def grade_checkpoint_3():
 
 
 def grade_checkpoint_4():
-    """Checkpoint 4: Website Visit Validation (4 pts).
-
-    Validates browsing history:
-    1. Wasatch Guide Visited (wbsguide.com)
-    2. Utah Avalanche Center Visited (utahavalanchecenter.org)
-    3. Run Links Visited (at least one run link)
-    4. Forecast Page Visited
-    """
+    """Checkpoint 4: Website Visit Validation (4 pts)."""
     print("----------------- CHECKPOINT 4 ----------------")
     global BROWSING_HISTORY, matched_columns, df
     checkpoint_start = time.time()
@@ -631,7 +590,7 @@ def grade_checkpoint_4():
         # Match the wbsguide.com run-id portion (e.g., "/2104.php"), not just any
         # substring overlap, so visiting wbsguide.com homepage doesn't credit this.
         if link_col is not None and df is not None:
-            for i in range(min(3, len(df))):
+            for i in range(min(EXPECTED_RUN_COUNT, len(df))):
                 user_link = str(df.iloc[i].iloc[link_col]).lower()
                 m = re.search(r'/(\d+\.php)', user_link)
                 if not m:
@@ -672,15 +631,7 @@ def grade_checkpoint_4():
 
 
 def grade_checkpoint_5():
-    """Checkpoint 5: Avalanche Forecast Data (5 pts).
-
-    Validates:
-    1. Forecast Date Correct (02/05/2025)
-    2. Forecast Link Valid
-    3. Merged Cells (forecast columns merged across run rows)
-    4. Danger Rose Screenshot Present
-    5. Danger Rose Image Valid (VLM validation)
-    """
+    """Checkpoint 5: Avalanche Forecast Data (5 pts)."""
     print("----------------- CHECKPOINT 5 ----------------")
     global matched_columns, gold_data, model
     checkpoint_start = time.time()
@@ -699,9 +650,9 @@ def grade_checkpoint_5():
         step_start = time.time()
         if forecast_date_col is not None:
             forecast_date = get_cell_value(sheet_raw, FIRST_DATA_ROW, forecast_date_col) or ""
-            date_valid = "02/05/2025" in forecast_date or "2/5/2025" in forecast_date
+            date_valid = FORECAST_DATE in forecast_date or FORECAST_DATE_ALT in forecast_date
             checkpoint.add_step("Forecast Date Correct", date_valid, 1,
-                              f"Date: '{forecast_date}' (expected 02/05/2025)",
+                              f"Date: '{forecast_date}' (expected {FORECAST_DATE})",
                               execution_time=time.time() - step_start)
         else:
             checkpoint.add_step("Forecast Date Correct", False, 1,
@@ -731,7 +682,7 @@ def grade_checkpoint_5():
 
         if cols_to_check:
             try:
-                merged = check_merged_cells(sheet_raw, cols_to_check, FIRST_DATA_ROW, FIRST_DATA_ROW + 2)
+                merged = check_merged_cells(sheet_raw, cols_to_check, FIRST_DATA_ROW, FIRST_DATA_ROW + EXPECTED_RUN_COUNT - 1)
                 checkpoint.add_step("Merged Cells", merged, 3,
                                   f"Columns {cols_to_check} {'are' if merged else 'are not'} merged vertically",
                                   execution_time=time.time() - step_start)
@@ -839,15 +790,17 @@ def grade_checkpoint_6():
     """Checkpoint 6: Danger Rating Cell Coloring (6 pts).
 
     For each of 3 runs:
-    1. Danger Rating Determined - correct based on aspect
-    2. Cell Color Applied - run name cell has correct background color
+    1. Danger Rating Determined
+    2. Cell Color Applied
     """
     print("----------------- CHECKPOINT 6 ----------------")
     global matched_columns, df, gold_data
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=6, result=0, name="Danger Rating Cell Coloring")
     sub_fields = ("Rating Determined", "Cell Colored")
-    expected_steps = [f"Run {r} - {f}" for r in range(1, 4) for f in sub_fields]
+    expected_steps = [f"Run {r} - {f}"
+                      for r in range(1, EXPECTED_RUN_COUNT + 1)
+                      for f in sub_fields]
 
     try:
         if df is None or df.empty or not gold_data:
@@ -864,7 +817,7 @@ def grade_checkpoint_6():
 
         step_num = 1
 
-        for run_idx in range(3):
+        for run_idx in range(EXPECTED_RUN_COUNT):
             run_num = run_idx + 1
 
             if run_idx >= len(df):
@@ -960,16 +913,13 @@ def grade_checkpoints(workspace_doc_id: str = None,
 
     total_start_time = time.time()
 
-    # Set browsing history for use in checkpoint 4
     BROWSING_HISTORY = browsing_history or []
 
     try:
-        # Setup document processing
         setup(workspace_doc_id)
 
         checkpoints: List[Checkpoint] = []
 
-        # Grade each checkpoint
         checkpoints.append(grade_checkpoint_1())
         checkpoints.append(grade_checkpoint_2())
         checkpoints.append(grade_checkpoint_3())
@@ -987,7 +937,6 @@ def grade_checkpoints(workspace_doc_id: str = None,
         import traceback
         traceback.print_exc()
 
-        # Return a failed result
         failed_checkpoint = Checkpoint(total=1, result=0, name="Evaluation Error")
         failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0)
         return Result([failed_checkpoint], total_execution_time=time.time() - total_start_time)
@@ -1013,7 +962,7 @@ if __name__ == "__main__":
     for checkpoint in detailed_report["checkpoints"]:
         print(f"\n{checkpoint['name']}: {checkpoint['score']}")
         for step in checkpoint["steps"]:
-            status = "✓" if step["success"] else "✗"
+            status = "+" if step["success"] else "x"
             print(f"  {status} {step['name']}: {step['details'] or 'No details'}")
     end_time = time.time()
     print(f"\nTotal time taken: {end_time - start_time:.2f} seconds")

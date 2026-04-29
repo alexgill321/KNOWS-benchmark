@@ -1,35 +1,35 @@
 {
   "metadata": {
-    "generated_at": "2026-04-27 14:50:44",
+    "generated_at": "2026-04-27 13:44:53",
     "source": "https://wbsguide.com",
-    "forecast_date": "02/05/2025",
-    "max_slope_angle": 26,
+    "forecast_date": "01/15/2025",
+    "max_slope_angle": 30,
     "total_runs_processed": 106,
     "runs_with_slope_angle": 90,
-    "valid_runs_le_26": 20,
+    "valid_runs_le_30": 36,
     "failed_fetches": 0
   },
   "forecast": {
-    "date": "02/05/2025",
-    "url": "https://utahavalanchecenter.org/forecast/salt-lake/2/5/2025",
+    "date": "01/15/2025",
+    "url": "https://utahavalanchecenter.org/forecast/salt-lake/1/15/2025",
     "region": "salt-lake",
-    "overall_rating": "Considerable",
-    "danger_rose_image_url": "https://utahavalanchecenter.org/sites/default/files/forecast/202502/20250206-005608-7.png",
+    "overall_rating": "Moderate",
+    "danger_rose_image_url": "https://utahavalanchecenter.org/sites/default/files/forecast/202501/20250116-005606-6.png",
     "danger_rose": {
       "N": {
-        "upper": "orange",
-        "mid": "orange",
-        "lower": "yellow"
+        "upper": "yellow",
+        "mid": "yellow",
+        "lower": "green"
       },
       "NE": {
-        "upper": "orange",
-        "mid": "orange",
-        "lower": "yellow"
+        "upper": "yellow",
+        "mid": "yellow",
+        "lower": "green"
       },
       "E": {
-        "upper": "orange",
-        "mid": "orange",
-        "lower": "yellow"
+        "upper": "yellow",
+        "mid": "yellow",
+        "lower": "green"
       },
       "SE": {
         "upper": "yellow",
@@ -54,7 +54,7 @@
       "NW": {
         "upper": "yellow",
         "mid": "yellow",
-        "lower": "yellow"
+        "lower": "green"
       }
     }
   },
@@ -74,7 +74,7 @@
       "slope_aspect": "N",
       "slope_angle": 32,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2163,
@@ -159,7 +159,7 @@
       "slope_aspect": "NE",
       "slope_angle": 30,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 3158,
@@ -244,7 +244,7 @@
       "slope_aspect": "NE",
       "slope_angle": 43,
       "difficulty": "expert",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2558,
@@ -261,7 +261,7 @@
       "slope_aspect": "E",
       "slope_angle": 32,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2442,
@@ -278,7 +278,7 @@
       "slope_aspect": "N",
       "slope_angle": 45,
       "difficulty": "expert",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2074,
@@ -295,7 +295,7 @@
       "slope_aspect": "NE",
       "slope_angle": 32,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2687,
@@ -312,7 +312,7 @@
       "slope_aspect": "NE",
       "slope_angle": null,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2688,
@@ -329,7 +329,7 @@
       "slope_aspect": "NE",
       "slope_angle": 38,
       "difficulty": "expert",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2616,
@@ -346,7 +346,7 @@
       "slope_aspect": "NE",
       "slope_angle": null,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2307,
@@ -363,7 +363,7 @@
       "slope_aspect": "E",
       "slope_angle": 38,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2541,
@@ -414,7 +414,7 @@
       "slope_aspect": "E",
       "slope_angle": 38,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2794,
@@ -448,7 +448,7 @@
       "slope_aspect": "N",
       "slope_angle": null,
       "difficulty": "unknown",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 3159,
@@ -550,7 +550,7 @@
       "slope_aspect": "NE",
       "slope_angle": 38,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 1163,
@@ -567,7 +567,7 @@
       "slope_aspect": "N",
       "slope_angle": 40,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 3168,
@@ -601,7 +601,7 @@
       "slope_aspect": "NE",
       "slope_angle": 32,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 1184,
@@ -618,7 +618,7 @@
       "slope_aspect": "E",
       "slope_angle": null,
       "difficulty": "unknown",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2806,
@@ -635,7 +635,7 @@
       "slope_aspect": "NE",
       "slope_angle": 36,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 3515,
@@ -652,7 +652,7 @@
       "slope_aspect": "N",
       "slope_angle": null,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 5531,
@@ -686,7 +686,7 @@
       "slope_aspect": "N",
       "slope_angle": 30,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 4508,
@@ -703,7 +703,7 @@
       "slope_aspect": "NE",
       "slope_angle": 44,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2622,
@@ -720,7 +720,7 @@
       "slope_aspect": "E",
       "slope_angle": 34,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2598,
@@ -737,7 +737,7 @@
       "slope_aspect": "N",
       "slope_angle": 30,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2601,
@@ -771,7 +771,7 @@
       "slope_aspect": "N",
       "slope_angle": 38,
       "difficulty": "expert",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 5617,
@@ -788,7 +788,7 @@
       "slope_aspect": "E",
       "slope_angle": 38,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 3521,
@@ -805,7 +805,7 @@
       "slope_aspect": "E",
       "slope_angle": 36,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2189,
@@ -839,7 +839,7 @@
       "slope_aspect": "NE",
       "slope_angle": null,
       "difficulty": "unknown",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2055,
@@ -856,7 +856,7 @@
       "slope_aspect": "E",
       "slope_angle": 38,
       "difficulty": "expert",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2187,
@@ -907,7 +907,7 @@
       "slope_aspect": "E",
       "slope_angle": 32,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 3200,
@@ -975,7 +975,7 @@
       "slope_aspect": "NE",
       "slope_angle": 30,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2191,
@@ -1009,7 +1009,7 @@
       "slope_aspect": "NE",
       "slope_angle": 40,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 5257,
@@ -1026,7 +1026,7 @@
       "slope_aspect": "E",
       "slope_angle": 42,
       "difficulty": "expert",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 1165,
@@ -1111,7 +1111,7 @@
       "slope_aspect": "N",
       "slope_angle": 38,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 3267,
@@ -1128,7 +1128,7 @@
       "slope_aspect": "N",
       "slope_angle": 30,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 3265,
@@ -1162,7 +1162,7 @@
       "slope_aspect": "E",
       "slope_angle": 32,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2306,
@@ -1179,7 +1179,7 @@
       "slope_aspect": "N",
       "slope_angle": 45,
       "difficulty": "expert",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2120,
@@ -1196,7 +1196,7 @@
       "slope_aspect": "N",
       "slope_angle": 26,
       "difficulty": "beginner",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2122,
@@ -1230,7 +1230,7 @@
       "slope_aspect": "N",
       "slope_angle": null,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2229,
@@ -1247,7 +1247,7 @@
       "slope_aspect": "N",
       "slope_angle": 26,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 5258,
@@ -1264,7 +1264,7 @@
       "slope_aspect": "E",
       "slope_angle": 38,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 3613,
@@ -1281,7 +1281,7 @@
       "slope_aspect": "N",
       "slope_angle": null,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2104,
@@ -1298,7 +1298,7 @@
       "slope_aspect": "N",
       "slope_angle": 26,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 5271,
@@ -1315,7 +1315,7 @@
       "slope_aspect": "NE",
       "slope_angle": 40,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2192,
@@ -1349,7 +1349,7 @@
       "slope_aspect": "NE",
       "slope_angle": 40,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 1164,
@@ -1366,7 +1366,7 @@
       "slope_aspect": "N",
       "slope_angle": 32,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2124,
@@ -1400,7 +1400,7 @@
       "slope_aspect": "NE",
       "slope_angle": 36,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 1119,
@@ -1451,7 +1451,7 @@
       "slope_aspect": "N",
       "slope_angle": null,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 3105,
@@ -1468,7 +1468,7 @@
       "slope_aspect": "E",
       "slope_angle": 38,
       "difficulty": "expert",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 3666,
@@ -1485,7 +1485,7 @@
       "slope_aspect": "N",
       "slope_angle": 24,
       "difficulty": "beginner",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2450,
@@ -1502,7 +1502,7 @@
       "slope_aspect": "E",
       "slope_angle": 38,
       "difficulty": "expert",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 5581,
@@ -1519,7 +1519,7 @@
       "slope_aspect": "NE",
       "slope_angle": 36,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 5582,
@@ -1536,7 +1536,7 @@
       "slope_aspect": "NE",
       "slope_angle": 36,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2373,
@@ -1553,7 +1553,7 @@
       "slope_aspect": "E",
       "slope_angle": 46,
       "difficulty": "expert",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2417,
@@ -1570,7 +1570,7 @@
       "slope_aspect": "N",
       "slope_angle": null,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2449,
@@ -1587,7 +1587,7 @@
       "slope_aspect": "NE",
       "slope_angle": 48,
       "difficulty": "extreme",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 4509,
@@ -1604,7 +1604,7 @@
       "slope_aspect": "NE",
       "slope_angle": 44,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 4047,
@@ -1689,7 +1689,7 @@
       "slope_aspect": "NE",
       "slope_angle": 26,
       "difficulty": "beginner",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2380,
@@ -1706,7 +1706,7 @@
       "slope_aspect": "N",
       "slope_angle": null,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2604,
@@ -1723,7 +1723,7 @@
       "slope_aspect": "NE",
       "slope_angle": 32,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2206,
@@ -1757,7 +1757,7 @@
       "slope_aspect": "E",
       "slope_angle": 24,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2304,
@@ -1791,7 +1791,7 @@
       "slope_aspect": "E",
       "slope_angle": 28,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2548,
@@ -1808,7 +1808,7 @@
       "slope_aspect": "E",
       "slope_angle": 32,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 5223,
@@ -1825,7 +1825,7 @@
       "slope_aspect": "NE",
       "slope_angle": 38,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2185,
@@ -1859,10 +1859,27 @@
       "slope_aspect": "NE",
       "slope_angle": 28,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     }
   ],
-  "valid_runs_le_26": [
+  "valid_runs_le_30": [
+    {
+      "id": 2163,
+      "name": "Beartrap Aspens",
+      "url": "https://wbsguide.com/2163.php",
+      "area": "Big Cottonwood Canyon",
+      "starting_location": null,
+      "gps_lat": 40.6449,
+      "gps_lon": -111.6084,
+      "upper_elevation": null,
+      "lower_elevation": null,
+      "typical_vertical": 800,
+      "typical_vertical_min": 800,
+      "slope_aspect": "W",
+      "slope_angle": 28,
+      "difficulty": "intermediate",
+      "expected_danger_rating": "yellow"
+    },
     {
       "id": 2162,
       "name": "Beartrap Glades",
@@ -1898,6 +1915,57 @@
       "expected_danger_rating": "yellow"
     },
     {
+      "id": 5544,
+      "name": "Big Daddy's",
+      "url": "https://wbsguide.com/5544.php",
+      "area": "Wasatch County",
+      "starting_location": null,
+      "gps_lat": 40.5789,
+      "gps_lon": -111.5584,
+      "upper_elevation": 9900,
+      "lower_elevation": 8300,
+      "typical_vertical": 1600,
+      "typical_vertical_min": 600,
+      "slope_aspect": "SE",
+      "slope_angle": 30,
+      "difficulty": "intermediate",
+      "expected_danger_rating": "yellow"
+    },
+    {
+      "id": 1169,
+      "name": "Big Water Gulch (run)",
+      "url": "https://wbsguide.com/1169.php",
+      "area": "Mill Creek Canyon",
+      "starting_location": null,
+      "gps_lat": 40.6705,
+      "gps_lon": -111.6476,
+      "upper_elevation": null,
+      "lower_elevation": null,
+      "typical_vertical": 800,
+      "typical_vertical_min": 800,
+      "slope_aspect": "NE",
+      "slope_angle": 30,
+      "difficulty": "intermediate",
+      "expected_danger_rating": "yellow"
+    },
+    {
+      "id": 3217,
+      "name": "Black Bess (Grizzly)",
+      "url": "https://wbsguide.com/3217.php",
+      "area": "Little Cottonwood Canyon",
+      "starting_location": "Grizzly Gulch",
+      "gps_lat": 40.5964,
+      "gps_lon": -111.6122,
+      "upper_elevation": null,
+      "lower_elevation": null,
+      "typical_vertical": null,
+      "typical_vertical_min": null,
+      "slope_aspect": "S",
+      "slope_angle": 28,
+      "difficulty": "intermediate",
+      "expected_danger_rating": "yellow"
+    },
+    {
       "id": 2193,
       "name": "Blue Bunny",
       "url": "https://wbsguide.com/2193.php",
@@ -1912,6 +1980,91 @@
       "slope_aspect": "S",
       "slope_angle": 20,
       "difficulty": "beginner",
+      "expected_danger_rating": "yellow"
+    },
+    {
+      "id": 2794,
+      "name": "East Fork (Mineral)",
+      "url": "https://wbsguide.com/2794.php",
+      "area": "Big Cottonwood Canyon",
+      "starting_location": null,
+      "gps_lat": 40.6107,
+      "gps_lon": -111.6702,
+      "upper_elevation": null,
+      "lower_elevation": null,
+      "typical_vertical": null,
+      "typical_vertical_min": null,
+      "slope_aspect": "NW",
+      "slope_angle": 30,
+      "difficulty": "intermediate",
+      "expected_danger_rating": "yellow"
+    },
+    {
+      "id": 5260,
+      "name": "Fat City Condos",
+      "url": "https://wbsguide.com/5260.php",
+      "area": "Summit County",
+      "starting_location": "Guardsman",
+      "gps_lat": 40.6217,
+      "gps_lon": -111.56,
+      "upper_elevation": null,
+      "lower_elevation": null,
+      "typical_vertical": null,
+      "typical_vertical_min": null,
+      "slope_aspect": "NW",
+      "slope_angle": 28,
+      "difficulty": "advanced",
+      "expected_danger_rating": "yellow"
+    },
+    {
+      "id": 5531,
+      "name": "Green Slope",
+      "url": "https://wbsguide.com/5531.php",
+      "area": "Wasatch County",
+      "starting_location": null,
+      "gps_lat": 40.5806,
+      "gps_lon": -111.5816,
+      "upper_elevation": null,
+      "lower_elevation": null,
+      "typical_vertical": 600,
+      "typical_vertical_min": 600,
+      "slope_aspect": "S",
+      "slope_angle": 28,
+      "difficulty": "intermediate",
+      "expected_danger_rating": "yellow"
+    },
+    {
+      "id": 2586,
+      "name": "Greens Basin",
+      "url": "https://wbsguide.com/2586.php",
+      "area": "Big Cottonwood Canyon",
+      "starting_location": "Spruces",
+      "gps_lat": 40.6268,
+      "gps_lon": -111.6287,
+      "upper_elevation": null,
+      "lower_elevation": null,
+      "typical_vertical": 1000,
+      "typical_vertical_min": 1000,
+      "slope_aspect": "N",
+      "slope_angle": 30,
+      "difficulty": "intermediate",
+      "expected_danger_rating": "yellow"
+    },
+    {
+      "id": 2598,
+      "name": "Hideaway Park",
+      "url": "https://wbsguide.com/2598.php",
+      "area": "Big Cottonwood Canyon",
+      "starting_location": "Bay City Tunnel",
+      "gps_lat": 40.6038,
+      "gps_lon": -111.6331,
+      "upper_elevation": null,
+      "lower_elevation": null,
+      "typical_vertical": null,
+      "typical_vertical_min": null,
+      "slope_aspect": "N",
+      "slope_angle": 30,
+      "difficulty": "intermediate",
       "expected_danger_rating": "yellow"
     },
     {
@@ -1949,6 +2102,23 @@
       "expected_danger_rating": "yellow"
     },
     {
+      "id": 3200,
+      "name": "Michigan City",
+      "url": "https://wbsguide.com/3200.php",
+      "area": "Little Cottonwood Canyon",
+      "starting_location": "Grizzly Gulch",
+      "gps_lat": 40.5968,
+      "gps_lon": -111.6166,
+      "upper_elevation": null,
+      "lower_elevation": null,
+      "typical_vertical": null,
+      "typical_vertical_min": null,
+      "slope_aspect": "SW",
+      "slope_angle": 30,
+      "difficulty": "intermediate",
+      "expected_danger_rating": "yellow"
+    },
+    {
       "id": 1003,
       "name": "Mill Creek Road",
       "url": "https://wbsguide.com/1003.php",
@@ -1963,6 +2133,23 @@
       "slope_aspect": "W",
       "slope_angle": 4,
       "difficulty": "beginner",
+      "expected_danger_rating": "yellow"
+    },
+    {
+      "id": 4062,
+      "name": "Mount Olympus Couloir",
+      "url": "https://wbsguide.com/4062.php",
+      "area": "Mount Olympus",
+      "starting_location": "Mount Olympus",
+      "gps_lat": 40.6582,
+      "gps_lon": -111.7705,
+      "upper_elevation": null,
+      "lower_elevation": null,
+      "typical_vertical": 1000,
+      "typical_vertical_min": 1000,
+      "slope_aspect": "NE",
+      "slope_angle": 30,
+      "difficulty": "intermediate",
       "expected_danger_rating": "yellow"
     },
     {
@@ -2017,6 +2204,23 @@
       "expected_danger_rating": "yellow"
     },
     {
+      "id": 3267,
+      "name": "Patsey Marley (run)",
+      "url": "https://wbsguide.com/3267.php",
+      "area": "Little Cottonwood Canyon",
+      "starting_location": "Grizzly Gulch",
+      "gps_lat": 40.5885,
+      "gps_lon": -111.6089,
+      "upper_elevation": 10560,
+      "lower_elevation": null,
+      "typical_vertical": null,
+      "typical_vertical_min": null,
+      "slope_aspect": "N",
+      "slope_angle": 30,
+      "difficulty": "intermediate",
+      "expected_danger_rating": "yellow"
+    },
+    {
       "id": 3265,
       "name": "Patsey Trees",
       "url": "https://wbsguide.com/3265.php",
@@ -2048,7 +2252,7 @@
       "slope_aspect": "N",
       "slope_angle": 26,
       "difficulty": "beginner",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2122,
@@ -2082,7 +2286,7 @@
       "slope_aspect": "N",
       "slope_angle": 26,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2104,
@@ -2099,7 +2303,7 @@
       "slope_aspect": "N",
       "slope_angle": 26,
       "difficulty": "intermediate",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2192,
@@ -2116,6 +2320,23 @@
       "slope_aspect": "W",
       "slope_angle": 18,
       "difficulty": "beginner",
+      "expected_danger_rating": "yellow"
+    },
+    {
+      "id": 2124,
+      "name": "Short Swing",
+      "url": "https://wbsguide.com/2124.php",
+      "area": "Big Cottonwood Canyon",
+      "starting_location": "Spruces",
+      "gps_lat": 40.6507,
+      "gps_lon": -111.6263,
+      "upper_elevation": null,
+      "lower_elevation": null,
+      "typical_vertical": 1500,
+      "typical_vertical_min": 1500,
+      "slope_aspect": "W",
+      "slope_angle": 30,
+      "difficulty": "intermediate",
       "expected_danger_rating": "yellow"
     },
     {
@@ -2150,7 +2371,7 @@
       "slope_aspect": "N",
       "slope_angle": 24,
       "difficulty": "beginner",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2118,
@@ -2167,7 +2388,7 @@
       "slope_aspect": "NE",
       "slope_angle": 26,
       "difficulty": "beginner",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
     },
     {
       "id": 2206,
@@ -2201,7 +2422,58 @@
       "slope_aspect": "E",
       "slope_angle": 24,
       "difficulty": "advanced",
-      "expected_danger_rating": "orange"
+      "expected_danger_rating": "yellow"
+    },
+    {
+      "id": 2116,
+      "name": "Weathering Heights",
+      "url": "https://wbsguide.com/2116.php",
+      "area": "Big Cottonwood Canyon",
+      "starting_location": "Spruces",
+      "gps_lat": 40.658,
+      "gps_lon": -111.6335,
+      "upper_elevation": null,
+      "lower_elevation": null,
+      "typical_vertical": 1000,
+      "typical_vertical_min": 1000,
+      "slope_aspect": "E",
+      "slope_angle": 28,
+      "difficulty": "advanced",
+      "expected_danger_rating": "yellow"
+    },
+    {
+      "id": 2185,
+      "name": "Will's Hill",
+      "url": "https://wbsguide.com/2185.php",
+      "area": "Big Cottonwood Canyon",
+      "starting_location": "Solitude Entry #1",
+      "gps_lat": 40.6392,
+      "gps_lon": -111.5808,
+      "upper_elevation": 9900,
+      "lower_elevation": null,
+      "typical_vertical": 900,
+      "typical_vertical_min": 900,
+      "slope_aspect": "NW",
+      "slope_angle": 30,
+      "difficulty": "intermediate",
+      "expected_danger_rating": "yellow"
+    },
+    {
+      "id": 2422,
+      "name": "Wolverine Bowl",
+      "url": "https://wbsguide.com/2422.php",
+      "area": "Big Cottonwood Canyon",
+      "starting_location": null,
+      "gps_lat": 40.5859,
+      "gps_lon": -111.6021,
+      "upper_elevation": null,
+      "lower_elevation": null,
+      "typical_vertical": null,
+      "typical_vertical_min": null,
+      "slope_aspect": "NE",
+      "slope_angle": 28,
+      "difficulty": "intermediate",
+      "expected_danger_rating": "yellow"
     }
   ],
   "failed": []
