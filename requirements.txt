@@ -18,13 +18,16 @@ numpy
 
 # Image Processing
 Pillow
+google-auth-httplib2
+fuzzywuzzy
+python-doctr
+python-Levenshtein
 opencv-python
 PyMuPDF
 imagehash
 
 # Text Processing
 rapidfuzz
-python-doctr
 
 # Hugging Face (for API access, not local models)
 huggingface-hub
@@ -43,3 +46,8 @@ anthropic>=0.40.0
 # oxylabs        # sheets_38 task
 # llama-cpp-python  # Local Llama models
 # qwen-vl-utils     # Qwen VL models
+transformers
+torch
+torchvision
+accelerate
+paperscraper
