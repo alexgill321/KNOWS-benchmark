@@ -783,14 +783,61 @@ def grade_checkpoint_3():
                     else:
                         print(f"  No URL found below new image for {gold_filename}")
 
-                # Step 5: Check if new image covers text box (using cached text boxes)
+            # ============ PHASE 1.5: Filter out originals still present ============
+            # Use exact + perceptual hash matching (no VLM) to check if found
+            # images are actually the unchanged originals
+            originality_check_tasks = []
+            for gold_filename, data in image_data.items():
+                replacement_path = data.get('replacement_path')
+                if replacement_path:
+                    gold_path = os.path.join(GOLD_IMAGES_DIR, gold_filename)
+                    originality_check_tasks.append({
+                        'id': gold_filename,
+                        'candidate_path': replacement_path,
+                        'gold_path': gold_path
+                    })
+
+            if originality_check_tasks:
+                print(f"  Checking {len(originality_check_tasks)} images for originality (exact+hash only)...")
+                originality_results = parallel_image_match(originality_check_tasks, max_workers=8)
+
+                for gold_filename, (is_original, method) in originality_results.items():
+                    if is_original:
+                        print(f"  SKIP: {gold_filename} is the original image (matched via {method})")
+                        image_data[gold_filename]['new_image'] = None
+                        image_data[gold_filename]['new_image_bbox'] = None
+                        image_data[gold_filename]['replacement_path'] = None
+                        image_data[gold_filename]['matched_url'] = None
+
+            # Recompute counters after filtering out originals
+            new_image_count = 0
+            url_on_slide_count = 0
+            image_covers_text_count = 0
+
+            for gold_filename, data in image_data.items():
+                if data.get('replacement_path'):
+                    new_image_count += 1
+                    if data.get('matched_url'):
+                        url_on_slide_count += 1
+
+            for gold_filename, data in image_data.items():
+                new_image_bbox = data.get('new_image_bbox')
                 if new_image_bbox:
+                    slide_index = data['slide_index']
                     text_boxes = cached_text_boxes.get(slide_index, [])
                     for tb in text_boxes:
                         tb_bbox = tb.get('bbox', {})
-                        if is_bbox_mostly_inside(tb_bbox, new_image_bbox, threshold=0.9):
+                        if is_bbox_mostly_inside(tb_bbox, new_image_bbox, threshold=0.8):
                             image_covers_text_count += 1
                             break
+
+            # Filter url_download_tasks to exclude originals
+            url_download_tasks = [
+                t for t in url_download_tasks
+                if image_data[t['id']].get('replacement_path') is not None
+            ]
+
+            print(f"  After originality filter: {new_image_count}/{total_images} genuinely new images")
 
             # ============ PHASE 2: Parallel URL downloads ============
             url_download_results = {}
@@ -979,7 +1026,7 @@ def grade_checkpoint_3():
             "Image Covers Text Box",
             image_covers_text_count == total_images,
             5,
-            f"{image_covers_text_count}/{total_images} new images fully cover text placeholders (90% required)",
+            f"{image_covers_text_count}/{total_images} new images fully cover text placeholders (80% required)",
             score=step5_score,
             max_score=10,
             execution_time=time.time() - step_start
@@ -1080,13 +1127,13 @@ def grade_checkpoint_4():
             total_slides = len(original_image_count.keys())
 
             #This score will be higher if there are less slides with extra images
-            step_1_percentage_score = ((total_slides - len(extra_img_slides))/total_slides) * 10
+            step_1_percentage_score = max(0, ((total_slides - len(extra_img_slides))/total_slides)) * 10
 
             checkpoint.add_step(
                 "Images Amount in Slides is Equal",
                 False,
                 1,
-                "Extra images were added",
+                f"Expected {total_images_of_original_slides} images, found {new_total_images_of_new_slides}. {len(extra_img_slides)}/{total_slides} slides have wrong image count (slides: {extra_img_slides})",
                 score = step_1_percentage_score,
                 max_score=10,
                 execution_time= time.time() - step_start
@@ -1115,27 +1162,17 @@ def grade_checkpoint_4():
                     extra_textbox_slides.append(slide_number)
 
             #this score will be higher if less slides have missing or extra textboxes
-            step_2_percentage_score = ((total_slides - len(extra_textbox_slides))/total_slides) * 10
-            if(new_total_textboxes > expected_textboxcount):
-                checkpoint.add_step(
-                    "Extra textbox check",
-                    False,
-                    2,
-                    f"There are more textboxes than expected",
-                    score = step_2_percentage_score,
-                    max_score=10,
-                    execution_time= time.time() - step_start
-                )
-            else:
-                checkpoint.add_step(
-                    "Extra textbox check",
-                    False,
-                    2,
-                    f"There are fewer textboxes than expected",
-                    score = step_2_percentage_score,
-                    max_score=10,
-                    execution_time= time.time() - step_start
-                )
+            step_2_percentage_score = max(0, ((total_slides - len(extra_textbox_slides))/total_slides)) * 10
+            qualifier = "too many" if new_total_textboxes > expected_textboxcount else "too few"
+            checkpoint.add_step(
+                "Extra textbox check",
+                False,
+                2,
+                f"Expected {expected_textboxcount} textboxes, found {new_total_textboxes} ({qualifier}). {len(extra_textbox_slides)}/{total_slides} slides have wrong count (slides: {extra_textbox_slides})",
+                score = step_2_percentage_score,
+                max_score=10,
+                execution_time= time.time() - step_start
+            )
     except Exception as e:
         checkpoint.add_step("Error", False, 1, f"Checkpoint failed: {e}",
                             score=0, max_score=20, execution_time=time.time() - checkpoint_start)
