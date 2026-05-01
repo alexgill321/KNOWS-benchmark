@@ -15,6 +15,7 @@ import glob
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple, Any
 from rapidfuzz import fuzz
+from src.browsergym.knows.eval.eval_utils.text_utils import text_fuzzy_match_contained_long
 
 
 # ============================================================================
@@ -958,14 +959,17 @@ def check_metadata_modified(metadata: Dict[str, Optional[str]], defaults: Dict[s
     return is_modified, details
 
 
-def verify_tip_is_quote(tip_text: str, webpage_content: str, threshold: int = 90) -> Tuple[bool, int]:
+def verify_tip_is_quote(tip_text: str, webpage_content: str, threshold: int = 85) -> Tuple[bool, int]:
     """
     Verify if a tip appears as a direct quote in webpage content.
+
+    Uses text_fuzzy_match_contained_long from shared utils for robust
+    sliding-window fuzzy containment matching.
 
     Args:
         tip_text: The tip text to verify.
         webpage_content: The fetched webpage text content.
-        threshold: Minimum fuzzy match score for "direct quote" (0-100).
+        threshold: Minimum fuzzy match score (0-100).
 
     Returns:
         Tuple of (is_quote, match_score).
@@ -976,23 +980,13 @@ def verify_tip_is_quote(tip_text: str, webpage_content: str, threshold: int = 90
     tip_normalized = tip_text.lower().strip()
     webpage_lower = webpage_content.lower()
 
-    # First try exact substring match
+    # Exact substring match first (fast path)
     if tip_normalized in webpage_lower:
         return True, 100
 
-    # Try fuzzy partial match for longer tips
-    # Use sliding window approach for better matching
-    tip_words = tip_normalized.split()
-    if len(tip_words) > 5:
-        # For longer tips, check if most words appear in content
-        words_found = sum(1 for word in tip_words if word in webpage_lower)
-        word_ratio = (words_found / len(tip_words)) * 100
-        if word_ratio >= threshold:
-            return True, int(word_ratio)
-
-    # Try partial ratio for shorter tips
-    score = fuzz.partial_ratio(tip_normalized, webpage_lower)
-    return score >= threshold, score
+    # Use shared sliding-window fuzzy containment
+    match, score = text_fuzzy_match_contained_long(tip_normalized, webpage_lower, threshold=threshold)
+    return match is not None, int(score)
 
 
 # ============================================================================

@@ -77,7 +77,7 @@ from src.browsergym.knows.eval.tasks.docs_11_personal_recipe_ocr.utils import (
 )
 
 # Task directories
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/docs_11_personal_recipe_ocr/instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/docs_11_personal_recipe_ocr/instance_1/")
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 GOLDS_DIR = os.path.join(DATA_DIR, "golds/")
 DOC_IMAGES_DIR = os.path.join(DATA_DIR, "images/")
@@ -93,8 +93,9 @@ PDF_DPI = 150
 model = None
 model_id = "gemini-2.5-flash-google-ai"
 
-# Google services
-DRIVE_SERVICE, DOCS_SERVICE = initialize_google_services()
+# Google services — initialized lazily in grade_checkpoints to avoid import-time crashes
+DRIVE_SERVICE = None
+DOCS_SERVICE = None
 
 # Global variables set by setup_document
 doc_id = None
@@ -146,8 +147,12 @@ def grade_checkpoint_1():
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=10, result=0, name="Original Recipe Page")
 
-    # Load gold data (using utility from utils.py)
+    # Load gold data — these are required for evaluation to work
     gold_ingredients, gold_prepsteps = load_gold_data(GOLDS_DIR)
+    if not gold_ingredients:
+        raise FileNotFoundError(f"Gold ingredients file missing or empty in {GOLDS_DIR}")
+    if not gold_prepsteps:
+        raise FileNotFoundError(f"Gold preparation steps file missing or empty in {GOLDS_DIR}")
 
     # Get first recipe from discovered recipes
     first_recipe = recipes[0] if recipes else None
@@ -308,8 +313,17 @@ Answer 'No' only if it's completely generic advice unrelated to soup or pumpkin.
             }
         ]
 
-        response = model(messages)
-        is_relevant = response.strip().lower().startswith('yes')
+        is_relevant = False
+        for attempt in range(2):
+            try:
+                response = model(messages)
+                is_relevant = response.strip().lower().startswith('yes')
+                break
+            except Exception as e:
+                if attempt == 0:
+                    print(f"Warning: LLM tip relevance check failed, retrying: {e}")
+                else:
+                    print(f"Warning: LLM tip relevance check failed after retry: {e}")
         tips_relevance_details.append({'tip': tip[:50], 'relevant': is_relevant})
 
         if not is_relevant:
@@ -351,19 +365,21 @@ Answer 'No' only if it's completely generic advice unrelated to soup or pumpkin.
                             "No tip text found in Tips section to position URLs after",
                             execution_time=step_time)
     else:
-        # Find the position of the last tip text in recipe.text
-        last_tip_text_pos = -1
+        # Find the position of the last tip text, searching only within the
+        # tips section (after tips_header_pos) to avoid false matches elsewhere
+        last_tip_text_pos = tips_header_pos
         for tip in tips_list:
-            pos = first_recipe.text.find(tip[:30])
+            search_start = tips_header_pos
+            pos = first_recipe.text.find(tip[:30], search_start)
             if pos > last_tip_text_pos:
                 last_tip_text_pos = pos
 
         # Filter to URLs positioned after the Tips header AND after all tip text
         for link in recipe1_links:
             url = link['url']
-            link_pos = first_recipe.text.find(url[:30])
+            link_pos = first_recipe.text.find(url[:30], tips_header_pos)
             if link_pos < 0:
-                link_pos = first_recipe.text.find(link['text'][:30])
+                link_pos = first_recipe.text.find(link['text'][:30], tips_header_pos)
             if link_pos < 0:
                 continue
 
@@ -493,7 +509,7 @@ Answer 'No' only if it's completely generic advice unrelated to soup or pumpkin.
             except Exception as e:
                 print(f"Warning: Image matching failed for {os.path.basename(doc_img)}: {e}")
 
-        if not image_match and image_match_details == "No images found in first recipe":
+        if not image_match:
             image_match_details = "First recipe image does not match original recipe image"
     elif not first_recipe_image_ids:
         image_match_details = "No image elements found in first recipe structure"
@@ -653,6 +669,10 @@ def grade_checkpoint_2():
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=24, result=0, name="Additional Recipe Pages Formatting")
 
+    # Validate gold template page exists — required for format comparison
+    if not os.path.exists(GOLD_TEMPLATE_PAGE1):
+        raise FileNotFoundError(f"Gold template page 1 image missing: {GOLD_TEMPLATE_PAGE1}")
+
     # Get additional recipes (pages 2, 3, 4) from discovered recipes
     additional_recipes = recipes[1:]  # Skip first recipe
 
@@ -744,7 +764,7 @@ Answer 'No' if the title is completely unrelated (e.g., "Summer Salad", "Grilled
             recipe_links = []
 
         # Find title position and first section header position in recipe text
-        title_pos = recipe_text.find(title) if title else -1
+        title_pos = recipe_text.find(title) if title and len(title) > 2 else -1
 
         first_section_pos = len(recipe_text)
         for section in ['ingredients', 'preparation', 'tips', 'ready in', 'serves', 'calories']:
@@ -917,10 +937,16 @@ Answer 'No' if the title is completely unrelated (e.g., "Summer Salad", "Grilled
             else:
                 similar_to = []
                 distinct_from = []
+                styling_prompt = (
+                    "Do these two recipe pages have the SAME visual styling? "
+                    "Compare ONLY the colors, fonts, text formatting, and color scheme — ignore the actual recipe content. "
+                    "Answer 'Yes' if they use the same colors and fonts. "
+                    "Answer 'No' if they have different color schemes, font styles, or text formatting."
+                )
                 for other_num, other_image in other_pages:
                     try:
-                        is_same = binary_compare_images(model, page_image, other_image, mode="similar")
-                        if is_same:
+                        looks_same = binary_compare_images(model, page_image, other_image, mode=styling_prompt)
+                        if looks_same:
                             similar_to.append(other_num)
                         else:
                             distinct_from.append(other_num)
@@ -1185,7 +1211,16 @@ def grade_checkpoint_3():
                         ingredients_match = True
                         ingredients_details = f"Ingredients match source ({len(doc_ingredients)} items, strict match)"
                     else:
-                        llm_match, _ = compare_lists_with_llm(model, doc_ingredients, source_ingredients, "ingredients")
+                        llm_match = False
+                        for attempt in range(2):
+                            try:
+                                llm_match, _ = compare_lists_with_llm(model, doc_ingredients, source_ingredients, "ingredients")
+                                break
+                            except Exception as e:
+                                if attempt == 0:
+                                    print(f"Warning: LLM ingredient comparison failed, retrying: {e}")
+                                else:
+                                    print(f"Warning: LLM ingredient comparison failed after retry: {e}")
                         if llm_match:
                             ingredients_match = True
                             ingredients_details = f"Ingredients match source (LLM verified, {len(doc_ingredients)} items)"
@@ -1447,7 +1482,12 @@ def grade_checkpoint_4(browsing_history: Optional[list] = None):
         return checkpoint
 
     # Normalize browsing history for comparison
-    normalized_history = set(normalize_url_for_comparison(url) for url in browsing_history)
+    normalized_history = set()
+    for url in browsing_history:
+        try:
+            normalized_history.add(normalize_url_for_comparison(url))
+        except Exception:
+            pass  # Skip malformed URLs
 
     # =========================================================================
     # Step 4.1: First page tips source URLs visited (1 pt)
@@ -1534,6 +1574,42 @@ def grade_checkpoint_4(browsing_history: Optional[list] = None):
     return checkpoint
 
 
+def _all_zero_result(reason: str) -> Result:
+    """Create a Result with all checkpoints scored at 0, with a failure reason."""
+    checkpoints = []
+
+    cp1 = Checkpoint(total=10, result=0, name="Original Recipe Page")
+    for step_id, name in enumerate(["Title Match", "Ingredients Match", "Preparation Steps Match",
+                                     "Tips Relevance", "Tips URLs Valid", "Tips Are Direct Quotes",
+                                     "Image from Original", "Image Properly Cropped",
+                                     "Image Shows Recipe Text", "Info Modified from Defaults"], 1):
+        cp1.add_step(name, False, step_id, reason, execution_time=0)
+    checkpoints.append(cp1)
+
+    cp2 = Checkpoint(total=24, result=0, name="Additional Recipe Pages Formatting")
+    step_names_2 = ["Title Theme", "Source URL", "Format Match", "Ingredients Modified",
+                    "Preparation Modified", "Tips Modified", "Info Modified", "Visual Distinction"]
+    for i in range(3):
+        for step_idx, name in enumerate(step_names_2):
+            cp2.add_step(f"Recipe {i+2} - {name}", False, i * 8 + step_idx + 1, reason, execution_time=0)
+    checkpoints.append(cp2)
+
+    cp3 = Checkpoint(total=15, result=0, name="Additional Recipe Pages Content")
+    step_names_3 = ["Photo from Source", "Ingredients Match", "Preparation Match",
+                    "Tips Direct Quotes", "Info Relevant"]
+    for i in range(3):
+        for step_idx, name in enumerate(step_names_3):
+            cp3.add_step(f"Recipe {i+2} - {name}", False, i * 5 + step_idx + 1, reason, execution_time=0)
+    checkpoints.append(cp3)
+
+    cp4 = Checkpoint(total=4, result=0, name="Websites Visited Check")
+    cp4.add_step("Tips Source Visited", False, 1, reason, execution_time=0)
+    cp4.add_step("Additional Recipe Sources Visited", False, 2, reason, score=0, max_score=3, execution_time=0)
+    checkpoints.append(cp4)
+
+    return Result(checkpoints)
+
+
 def grade_checkpoints(workspace_doc_id: str, cached_models: Optional[dict] = None, browsing_history: Optional[list] = None):
     """
     Grade all checkpoints for the document.
@@ -1546,12 +1622,15 @@ def grade_checkpoints(workspace_doc_id: str, cached_models: Optional[dict] = Non
     Returns:
         Result: Evaluation results with checkpoint scores.
     """
-    global doc_id, doc_text, doc_structure, recipes
+    global doc_id, doc_text, doc_structure, recipes, DRIVE_SERVICE, DOCS_SERVICE
 
     total_start_time = time.time()
 
     try:
-        # Setup document processing (using utility from utils.py)
+        # Initialize Google services (moved from import time to avoid crashes on missing credentials)
+        DRIVE_SERVICE, DOCS_SERVICE = initialize_google_services()
+
+        # Setup document processing — fatal if this fails
         doc_data = setup_document(
             workspace_doc_id,
             DATA_DIR,
@@ -1565,8 +1644,16 @@ def grade_checkpoints(workspace_doc_id: str, cached_models: Optional[dict] = Non
         doc_text = doc_data['doc_text']
         doc_structure = doc_data['doc_structure']
 
+        if not doc_text or not doc_structure:
+            print("FATAL: Document text or structure could not be extracted")
+            return _all_zero_result("Document text or structure could not be extracted")
+
         # Phase 1: Discover all recipes and their boundaries
         recipes = discover_recipes(doc_text, doc_structure)
+
+        if not recipes:
+            print("FATAL: No valid recipes found — template may not have been used")
+            return _all_zero_result("No valid recipes found in document — template may not have been used")
 
         # Map recipes to PDF pages using actual page text
         pdf_path = os.path.join(DATA_DIR, "recipe_doc.pdf")
@@ -1596,6 +1683,10 @@ def grade_checkpoints(workspace_doc_id: str, cached_models: Optional[dict] = Non
         result = Result(checkpoints, total_execution_time=total_execution_time)
 
         return result
+
+    except Exception as e:
+        print(f"FATAL: Evaluator failed: {e}")
+        return _all_zero_result(f"Evaluator failed: {str(e)[:100]}")
 
     finally:
         try:
