@@ -246,7 +246,7 @@ def grade_checkpoint_1(gold_text, text_ocr):
             if location.y > 450:
                 print(f"Rejecting title location: too low on page at y={location.y}")
                 location = None
-            if not is_first_page_text(location):
+            if location and not is_first_page_text(location):
                 print(f"Rejecting title location: wrong page_number={location.page_number}")
                 location = None
             if location and location.is_upper_left() and int(location.x) < int(smallest_x) + 6:

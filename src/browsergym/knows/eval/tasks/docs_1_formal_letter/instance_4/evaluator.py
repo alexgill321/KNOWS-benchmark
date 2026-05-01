@@ -26,11 +26,12 @@ from src.browsergym.knows.eval.eval_utils.image_utils import * # type: ignore
 from src.browsergym.knows.eval.eval_utils.utils import layout, image_id_from_path # type: ignore
 from src.browsergym.knows.eval.eval_utils.models import load_model # type: ignore
 
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/docs_1_formal_letter/instance_4/")
+TASK_DIR = os.path.dirname(os.path.abspath(__file__))
 DOC_IMAGES_DIR = os.path.join(TASK_DIR, "data/images/")
 DOC_IMAGES_CROPPED_DIR = os.path.join(TASK_DIR, "data/cropped_images/")
 PDF_IMAGES_DIR =  os.path.join(TASK_DIR, "data/pdf_images/")
 GOLD_IMAGES_DIR = os.path.join(TASK_DIR, "data/gold_images/")
+GOLD_SIGNATURE_PATH = os.path.join(TASK_DIR, "data/gold_signature.png")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 CLEANUP_ENABLED = os.environ.get("CLEANUP", "True").lower() == "true"
 PDF_DPI = 150  # Lower DPI for faster OCR while maintaining text recognition quality
@@ -296,7 +297,7 @@ def grade_checkpoint_2():
     checkpoint = Checkpoint(total=2, result=0, name="Logo Image")
 
     step_start = time.time()
-    logo_path = image_exact_match(DOC_IMAGES_DIR, GOLD_IMAGES_DIR + "logos/")
+    logo_path = image_exact_match(DOC_IMAGES_DIR, GOLD_IMAGES_DIR)
     step_time = time.time() - step_start
 
     if logo_path:
@@ -339,7 +340,7 @@ def grade_checkpoint_2():
 
         step_start = time.time()
         # TODO: Update the institution name in the prompt after looking up https://nickatomlin.github.io/
-        logo_path = binary_judge_image(model, DOC_IMAGES_DIR, "Is this an image of ONLY one of these institutions' logos: TODO", GOLD_IMAGES_DIR + "logos/")  # TODO: Replace 'TODO' with actual institution name(s)
+        logo_path = binary_judge_image(model, DOC_IMAGES_DIR, "Is this an image of ONLY one of these institutions' logos: TODO", GOLD_IMAGES_DIR)  # TODO: Replace 'TODO' with actual institution name(s)
         step_time = time.time() - step_start
 
         if logo_path:
@@ -400,7 +401,7 @@ def grade_checkpoint_3(doc_structure):
     checkpoint = Checkpoint(total=2, result=0, name="Signature Image")
 
     step_start = time.time()
-    signature_path = image_exact_match(DOC_IMAGES_DIR, GOLD_IMAGES_DIR + "gold_signature.png")
+    signature_path = image_exact_match(DOC_IMAGES_DIR, GOLD_SIGNATURE_PATH)
     step_time = time.time() - step_start
 
     if signature_path:

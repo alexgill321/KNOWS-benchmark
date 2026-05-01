@@ -40,16 +40,15 @@ EVAL_TASKS_DIR = _PACKAGE_DIR / "eval" / "tasks"
 
 
 def _install_eval_import_shim() -> None:
-    """Make legacy ``from src.browsergym.eval.*`` imports resolve to the
-    relocated ``browsergym.knows.eval.*`` package.
+    """Make legacy ``src.browsergym.*`` eval imports resolve locally.
 
     Evaluator files under ``eval/tasks/.../evaluator.py`` and the
     ``eval/eval_utils/*`` modules were authored before the eval tree was
     moved into this Python package. They still use ``src.browsergym.eval...``
+    and ``src.browsergym.knows.eval...``
     paths. Rather than rewrite every legacy import, we install a meta-path
-    finder that transparently redirects the ``src.browsergym.eval`` namespace
-    to the real, importable ``browsergym.knows.eval`` package (and ensures
-    parent stub modules ``src`` / ``src.browsergym`` exist).
+    finder that transparently redirects those namespaces to the real,
+    importable ``browsergym.knows.eval`` package.
     """
     if any(getattr(f, "_knows_eval_shim", False) for f in sys.meta_path):
         return
@@ -65,14 +64,16 @@ def _install_eval_import_shim() -> None:
             if parent_name:
                 setattr(sys.modules[parent_name], child, stub)
 
-    _OLD = "src.browsergym.eval"
-    _NEW = "browsergym.knows.eval"
+    _ALIASES = {
+        "src.browsergym.knows": "browsergym.knows",
+        "src.browsergym.knows.eval": "browsergym.knows.eval",
+        "src.browsergym.eval": "browsergym.knows.eval",
+    }
 
     class _AliasLoader:
         """Loader that returns an already-imported module instead of executing
         new code. We use this together with the finder below to expose
-        ``browsergym.knows.eval.*`` modules under the legacy
-        ``src.browsergym.eval.*`` names.
+        ``browsergym.knows.*`` modules under legacy ``src.browsergym.*`` names.
         """
 
         def __init__(self, real_mod):
@@ -85,14 +86,18 @@ def _install_eval_import_shim() -> None:
             return None
 
     class _KnowsEvalShim:
-        """Meta-path finder that redirects ``_OLD[.subpath]`` to ``_NEW[.subpath]``."""
+        """Meta-path finder that redirects legacy eval namespaces."""
 
         _knows_eval_shim = True
 
         def find_spec(self, fullname, path=None, target=None):
-            if fullname != _OLD and not fullname.startswith(_OLD + "."):
+            real_name = None
+            for old, new in _ALIASES.items():
+                if fullname == old or fullname.startswith(old + "."):
+                    real_name = new + fullname[len(old):]
+                    break
+            if real_name is None:
                 return None
-            real_name = _NEW + fullname[len(_OLD):]
             try:
                 real_mod = importlib.import_module(real_name)
             except Exception:
