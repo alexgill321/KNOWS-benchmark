@@ -54,7 +54,7 @@ from src.browsergym.knows.eval.tasks.slides_51_event_announcement_poster.utils i
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/slides_51_event_announcement_poster/instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/slides_51_event_announcement_poster/instance_1/")
 LOGOS_DIR = os.path.join(TASK_DIR, "data/gold_images/logos/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
@@ -130,6 +130,16 @@ def grade_checkpoint_1():
 
     slide = slides[0]
     slide_width_emu, slide_height_emu = get_slide_dimensions(presentation_data)
+    if slide_width_emu is None or slide_height_emu is None:
+        for step_id, name in enumerate([
+            "Event Name at Top", "Event Name Centered", "Event Name Bold",
+            "Event Name Font Size >= 20", "Event Name Black Color", "Event Name Text Content",
+            "Subheader Below Header", "Subheader Left-Aligned", "Subheader Italic & Smaller Font",
+            "Subheader Contains Date", "Subheader Contains Location", "Subheader Contains Host",
+            "Visual Contrast"], start=1):
+            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
     text_boxes = extract_text_boxes_from_slide(slide)
 
     # --- Find header and subheader by position/styling (content-independent) ---
@@ -377,6 +387,11 @@ def grade_checkpoint_2():
 
     slide = slides[0]
     slide_w, slide_h = get_slide_dimensions(presentation_data)
+    if slide_w is None or slide_h is None:
+        for step_id, name in enumerate(["U of U Logo", "Logo Top Right", "Logo Scale", "Logo No Overlap with Header/Subheader"], start=1):
+            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
 
     # --- Find all image elements with bboxes (position-based, content-independent) ---
     image_elements = []
@@ -569,6 +584,14 @@ def grade_checkpoint_3():
 
     slide = slides[0]
     slide_w, slide_h = get_slide_dimensions(presentation_data)
+    if slide_w is None or slide_h is None:
+        for step_id, name in enumerate([
+            "Body Summary in Central Area", "1-2 Paragraphs",
+            "Covers How Web Browsers Work", "Tied to Pavel Panchekha's Work",
+            "Engaging Content", "At Least 2 Relevant Cited Sources"], start=1):
+            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
     text_boxes = extract_text_boxes_from_slide(slide)
 
     # --- Find central body text box ---
@@ -861,6 +884,14 @@ def grade_checkpoint_4():
 
     slide = slides[0]
     slide_w, _ = get_slide_dimensions(presentation_data)
+    if slide_w is None:
+        for step_id, name in enumerate([
+            "Grey Sidebar Exists", "Sidebar Contains Text",
+            "Speaker Affiliation Correct", "Educational Background Accurate",
+            "3+ Professional Achievements", "Connection to Web Browsers"], start=1):
+            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
     text_boxes = extract_text_boxes_from_slide(slide)
 
     # --- Find sidebar: right-side text box(es) with grey background ---
@@ -1141,6 +1172,13 @@ def grade_checkpoint_5():
 
     slide = slides[0]
     slide_w, slide_h = get_slide_dimensions(presentation_data)
+    if slide_w is None or slide_h is None:
+        for step_id, name in enumerate([
+            "Footer at Bottom Right", "U of U Contact Info",
+            "Pavel Panchekha's Webpage URL"], start=1):
+            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
     text_boxes = extract_text_boxes_from_slide(slide)
 
     # --- Find footer: text box in the bottom-right area of the slide ---
@@ -1452,6 +1490,11 @@ def grade_checkpoint_7():
 
     slide = slides[0]
     slide_w, slide_h = get_slide_dimensions(presentation_data)
+    if slide_w is None or slide_h is None:
+        for step_id, name in enumerate(["No Overlapping Elements", "All Elements On Slide"], start=1):
+            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5)
+        checkpoint.execution_time = time.time() - checkpoint_start
+        return checkpoint
 
     # Collect bboxes for all visible page elements (text boxes + images)
     elements = []

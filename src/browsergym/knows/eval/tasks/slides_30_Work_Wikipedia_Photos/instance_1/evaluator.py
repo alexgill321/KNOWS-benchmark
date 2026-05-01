@@ -39,7 +39,7 @@ from src.browsergym.knows.eval.eval_utils.parallel_utils import parallel_execute
 from src.browsergym.knows.eval.tasks.slides_30_Work_Wikipedia_Photos.utils import evaluate_single_client, name_exact_match, download_image_with_retry
 
 # Constants
-TASK_DIR = os.path.normpath(os.path.join(BASE_PATH, "src", "browsergym", "eval", "tasks", "slides_30_Work_Wikipedia_Photos", "instance_1"))
+TASK_DIR = os.path.normpath(os.path.join(BASE_PATH, "src", "browsergym", "knows", "eval", "tasks", "slides_30_Work_Wikipedia_Photos", "instance_1"))
 DATA_DIR = os.path.join(TASK_DIR, "data")
 
 DRIVE_SERVICE, SLIDES_SERVICE = initialize_google_services(service_type="slides")
@@ -122,6 +122,13 @@ def grade_checkpoint_1():
 
     title_slide = presentation_data['slides'][0]
     slide_width_emu, slide_height_emu = get_slide_dimensions(presentation_data)
+    if slide_width_emu is None or slide_height_emu is None:
+        checkpoint.add_step("Title Text Match", False, 1, details="Slide dimensions unavailable")
+        checkpoint.add_step("Tom Hanks Image Present", False, 2, details="Slide dimensions unavailable")
+        checkpoint.add_step("Image Top Right Position", False, 3, details="Slide dimensions unavailable")
+        checkpoint.add_step("Image Coverage", False, 4, details="Slide dimensions unavailable")
+        checkpoint.execution_time = time.time() - start
+        return checkpoint
 
     # Step 1: Title text exact match
     step_start = time.time()
@@ -255,6 +262,15 @@ def grade_checkpoint_2():
 
     slides = presentation_data['slides']
     _, slide_height_emu = get_slide_dimensions(presentation_data)
+    if slide_height_emu is None:
+        step_id = 1
+        for client in gold_clients:
+            for step_name in step_names:
+                checkpoint.add_step(f"{client} - {step_name}", False, step_id,
+                                   details="Slide dimensions unavailable", execution_time=0)
+                step_id += 1
+        checkpoint.execution_time = time.time() - start
+        return checkpoint
 
     # Build client → slide mapping in one pass over slides
     print("Mapping clients to slides...")

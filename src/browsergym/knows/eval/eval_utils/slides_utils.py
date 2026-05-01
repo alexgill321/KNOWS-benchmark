@@ -166,8 +166,11 @@ def extract_image_source_urls(slide: Dict[str, Any]) -> List[Dict[str, Any]]:
             # Get the description (ALT text)
             description = element.get('description', '')
 
-            # Extract URLs from description using regex
-            urls = re.findall(r'https?://[^\s<>"{}|\\^`\[\]]+', description)
+            # Extract URLs from description using regex; strip trailing punctuation that
+            # commonly appears in markdown-style links like `[label](https://example.com)`
+            # — without this, the regex would capture `https://example.com)` and downstream
+            # downloads would 404.
+            urls = [u.rstrip('.,!?;:)\'\"]') for u in re.findall(r'https?://[^\s<>"{}|\\^`\[\]]+', description)]
 
             image_sources.append({
                 'objectId': object_id,
@@ -179,21 +182,42 @@ def extract_image_source_urls(slide: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def download_slide_image(image_url: str) -> Optional[Image.Image]:
-    """
-    Download an image from a URL and return as PIL Image.
+    """Download an image with retry and Wayback Machine fallback.
+
+    Tries: direct GET (10s) -> direct GET with longer timeout (20s) -> Wayback snapshot.
+    A transient CDN slowness no longer permanently zeros out an evaluator step.
 
     Args:
         image_url (str): URL of the image to download.
 
     Returns:
-        PIL.Image.Image or None: Downloaded image or None if failed.
+        PIL.Image.Image or None: Downloaded image or None if all strategies failed.
     """
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    }
+
+    for attempt_timeout in (10, 20):
+        try:
+            response = requests.get(image_url, timeout=attempt_timeout, headers=headers, allow_redirects=True)
+            if response.status_code == 200:
+                return Image.open(BytesIO(response.content))
+        except Exception as e:
+            print(f"download_slide_image attempt (timeout={attempt_timeout}s) failed for {image_url}: {e}")
+
+    # Wayback fallback for permanently-dead URLs.
     try:
-        response = requests.get(image_url, timeout=10)
-        if response.status_code == 200:
-            return Image.open(BytesIO(response.content))
+        wb_api = f"https://archive.org/wayback/available?url={image_url}"
+        wb_resp = requests.get(wb_api, timeout=10)
+        snapshot = wb_resp.json().get('archived_snapshots', {}).get('closest', {})
+        wb_url = snapshot.get('url')
+        if wb_url:
+            wb_url = re.sub(r"(/web/\d+)/", r"\1im_/", wb_url, count=1)
+            wb_img_resp = requests.get(wb_url, timeout=20, headers=headers)
+            if wb_img_resp.status_code == 200:
+                return Image.open(BytesIO(wb_img_resp.content))
     except Exception as e:
-        print(f"Error downloading image from {image_url}: {e}")
+        print(f"download_slide_image wayback fallback failed for {image_url}: {e}")
 
     return None
 
@@ -225,6 +249,26 @@ def get_slide_background_color(slide: Dict[str, Any], presentation: Dict[str, An
                         return _parse_color(color_info)
         
     # No background or unsupported type
+    return None
+
+
+def resolve_theme_color(theme_color_name: str, presentation: Dict[str, Any]) -> Optional[Dict[str, float]]:
+    """Resolve a Slides themeColor name (e.g. 'ACCENT1', 'TEXT1') to an RGB dict via the
+    master's color scheme. Returns None when the scheme can't be located or the entry isn't
+    an rgbColor.
+
+    Returns dict with `red`, `green`, `blue` keys (0-1 range) — same shape as
+    `foregroundColor` from `get_text_style_from_shape`. Pass the full `presentation_data`
+    object (not a single slide).
+    """
+    if not theme_color_name or not presentation:
+        return None
+    for master in presentation.get('masters', []):
+        scheme = master.get('pageProperties', {}).get('colorScheme', {})
+        for entry in scheme.get('colors', []):
+            if entry.get('type') == theme_color_name and 'color' in entry:
+                rgb = entry['color'].get('rgbColor', {})
+                return {'red': rgb.get('red', 0), 'green': rgb.get('green', 0), 'blue': rgb.get('blue', 0)}
     return None
 
 
@@ -764,22 +808,31 @@ def extract_text_boxes_from_slide(slide: Dict[str, Any]) -> List[Dict[str, Any]]
     return text_boxes
 
 
-def get_text_style_from_shape(shape: Dict[str, Any]) -> Dict[str, Any]:
+def get_text_style_from_shape(shape: Dict[str, Any], presentation: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Extract text styling information (color, font size) from a shape element.
 
     Args:
         shape (dict): Shape object from Google Slides API containing 'text'.
+        presentation (dict, optional): Full presentation_data. When provided, themeColor
+            references (e.g. 'ACCENT1') are auto-resolved to RGB via the master color
+            scheme and populated into `foregroundColor` so callers checking color "just
+            work" for theme-colored text. When omitted, theme colors are surfaced via
+            `foregroundThemeColor` only and `foregroundColor` stays None.
 
     Returns:
         dict: Text style information containing:
-            - 'foregroundColor': RGB color dict or None
+            - 'foregroundColor': RGB color dict (resolved from theme when `presentation`
+                provided) or None
+            - 'foregroundThemeColor': themeColor name (e.g. 'ACCENT1') if shape uses one,
+                else None
             - 'fontSize': Font size dict with 'magnitude' and 'unit', or None
             - 'bold': Boolean or None
             - 'italic': Boolean or None
     """
     result = {
         'foregroundColor': None,
+        'foregroundThemeColor': None,
         'fontSize': None,
         'bold': None,
         'italic': None
@@ -795,8 +848,8 @@ def get_text_style_from_shape(shape: Dict[str, Any]) -> Dict[str, Any]:
         if 'textRun' in text_run:
             style = text_run['textRun'].get('style', {})
 
-            # Extract foreground color
-            if 'foregroundColor' in style and result['foregroundColor'] is None:
+            # Extract foreground color (first one wins — match other fields' semantics)
+            if 'foregroundColor' in style and result['foregroundColor'] is None and result['foregroundThemeColor'] is None:
                 color_info = style['foregroundColor'].get('opaqueColor', {})
                 if 'rgbColor' in color_info:
                     rgb = color_info['rgbColor']
@@ -805,6 +858,16 @@ def get_text_style_from_shape(shape: Dict[str, Any]) -> Dict[str, Any]:
                         'green': rgb.get('green', 0),
                         'blue': rgb.get('blue', 0)
                     }
+                elif 'themeColor' in color_info:
+                    theme_name = color_info['themeColor']
+                    result['foregroundThemeColor'] = theme_name
+                    # Auto-resolve to RGB when caller supplied presentation — populates
+                    # foregroundColor so existing color checks (is_text_color, is_text_red)
+                    # work without callers needing theme-aware code.
+                    if presentation is not None:
+                        resolved = resolve_theme_color(theme_name, presentation)
+                        if resolved is not None:
+                            result['foregroundColor'] = resolved
 
             # Extract font size
             if 'fontSize' in style and result['fontSize'] is None:
@@ -817,35 +880,6 @@ def get_text_style_from_shape(shape: Dict[str, Any]) -> Dict[str, Any]:
                 result['italic'] = style['italic']
 
     return result
-
-def is_text_color(text_style: Dict[str, Any], r: float, g: float, b: float, tolerance: float = 0.25) -> bool:
-    """Check if text foreground color is close to the given RGB target.
-
-    Compares the text's foreground color against a target RGB value using
-    Euclidean distance in RGB space (0-1 range per channel).
-
-    Args:
-        text_style (dict): Text style from get_text_style_from_shape().
-        r (float): Target red value (0.0 to 1.0).
-        g (float): Target green value (0.0 to 1.0).
-        b (float): Target blue value (0.0 to 1.0).
-        tolerance (float): Maximum Euclidean distance to consider a match.
-            Default 0.25 allows moderate variation.
-
-    Returns:
-        bool: True if text color is within tolerance of the target.
-    """
-    fg = text_style.get('foregroundColor')
-    if not fg:
-        return False
-
-    dr = fg.get('red', 0) - r
-    dg = fg.get('green', 0) - g
-    db = fg.get('blue', 0) - b
-
-    distance = (dr ** 2 + dg ** 2 + db ** 2) ** 0.5
-    return distance <= tolerance
-
 
 def is_text_color(text_style: Dict[str, Any], r: float, g: float, b: float, tolerance: float = 0.25) -> bool:
     """Check if text foreground color is close to the given RGB target.
@@ -961,25 +995,19 @@ def find_url_below_image(image_bbox: dict, links_with_positions: list, tolerance
     return best_url
 
 
-def get_slide_dimensions(presentation_data: Dict[str, Any]) -> Tuple[float, float]:
-    """
-    Extract slide dimensions from presentation data.
-
-    Args:
-        presentation_data (dict): Presentation object from Google Slides API.
-
-    Returns:
-        tuple: (width_emu, height_emu) in English Metric Units.
-    """
-    page_size = presentation_data.get('pageSize', {})
+def get_slide_dimensions(presentation_data: Dict[str, Any]) -> Tuple[Optional[float], Optional[float]]:
+    """Extract slide dimensions in EMU. Returns (None, None) when pageSize is missing/malformed."""
+    page_size = (presentation_data or {}).get('pageSize', {})
+    if not isinstance(page_size, dict):
+        return (None, None)
 
     width_obj = page_size.get('width', {})
     height_obj = page_size.get('height', {})
-
-    width = width_obj.get('magnitude', DEFAULT_SLIDE_WIDTH_EMU) if isinstance(width_obj, dict) else DEFAULT_SLIDE_WIDTH_EMU
-    height = height_obj.get('magnitude', DEFAULT_SLIDE_HEIGHT_EMU) if isinstance(height_obj, dict) else DEFAULT_SLIDE_HEIGHT_EMU
-
-    return width, height
+    width = width_obj.get('magnitude') if isinstance(width_obj, dict) else None
+    height = height_obj.get('magnitude') if isinstance(height_obj, dict) else None
+    if width is None or height is None:
+        return (None, None)
+    return (width, height)
 
 
 def get_image_area_percentage_from_api(slide: Dict[str, Any], slide_width_emu: float = DEFAULT_SLIDE_WIDTH_EMU, slide_height_emu: float = DEFAULT_SLIDE_HEIGHT_EMU) -> float:

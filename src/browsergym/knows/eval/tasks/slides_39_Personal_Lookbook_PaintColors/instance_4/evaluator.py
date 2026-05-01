@@ -42,7 +42,7 @@ from src.browsergym.knows.eval.tasks.slides_39_Personal_Lookbook_PaintColors.uti
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/slides_39_Personal_Lookbook_PaintColors/instance_4/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/slides_39_Personal_Lookbook_PaintColors/instance_4/")
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 
 try:
@@ -104,12 +104,9 @@ def setup(presentation_data, workspace_doc_id):
         slides = []
         presentation_data = {**presentation_data, 'slides': []}
 
-    # Warn if pageSize is missing/malformed; get_slide_dimensions silently
-    # falls back to a 16:9 default which would skew CP1 step 3's coverage %.
-    page_size = presentation_data.get('pageSize') or {}
-    if not (isinstance(page_size, dict) and 'width' in page_size and 'height' in page_size):
-        print("Warning: presentation has no pageSize; using default 16:9 dimensions")
     slide_width_emu, slide_height_emu = get_slide_dimensions(presentation_data)
+    if slide_width_emu is None or slide_height_emu is None:
+        raise ValueError("Slide dimensions unavailable: pageSize missing or malformed")
 
     title_slide = slides[0] if slides else None
 
@@ -224,6 +221,12 @@ def grade_checkpoint_1(ctx, browsing_history=None):
 
     # Step 3: Image coverage >= 70% (4 pt)
     step_start = time.time()
+    if ctx['slide_width_emu'] is None or ctx['slide_height_emu'] is None:
+        checkpoint.add_step("Image Coverage >= 70%", False, 3, details="Slide dimensions unavailable", max_score=4)
+        checkpoint.add_step("Browsing History Check", False, 4, details="Slide dimensions unavailable", max_score=2)
+        checkpoint.add_step("Image Relevance (VLM)", False, 5, details="Slide dimensions unavailable", max_score=2)
+        checkpoint.execution_time = time.time() - start
+        return checkpoint
     image_percentage = get_image_area_percentage_from_api(
         title_slide, ctx['slide_width_emu'], ctx['slide_height_emu']
     )
@@ -480,6 +483,13 @@ def grade_checkpoint_3(ctx, browsing_history=None):
 
     # Step 3: Image positioning - bottom left + bottom right (10 pt, proportional)
     step_start = time.time()
+    if ctx['slide_width_emu'] is None or ctx['slide_height_emu'] is None:
+        checkpoint.add_step("Image Positioning (BL + BR)", False, 3, details="Slide dimensions unavailable", max_score=10)
+        checkpoint.add_step("Image Relevance (VLM)", False, 4, details="Slide dimensions unavailable", max_score=10)
+        checkpoint.add_step("ALT Text Has Source URL", False, 5, details="Slide dimensions unavailable", max_score=10)
+        checkpoint.add_step("Image Source Match (ALT URL)", False, 6, details="Slide dimensions unavailable", max_score=10)
+        checkpoint.execution_time = time.time() - start
+        return checkpoint
     position_pass_count = 0
     position_details = []
     for cs in color_slides:
@@ -859,8 +869,8 @@ def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history=Non
         ctx = {
             'presentation_data': {'slides': []},
             'slides': [],
-            'slide_width_emu': 9144000,   # default 16:9 width  (EMU)
-            'slide_height_emu': 5143500,  # default 16:9 height (EMU)
+            'slide_width_emu': None,
+            'slide_height_emu': None,
             'title_slide': None,
             'color_slides': [],
             'color_names': [],
