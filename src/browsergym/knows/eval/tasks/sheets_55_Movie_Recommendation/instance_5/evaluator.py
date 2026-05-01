@@ -7,7 +7,7 @@ import time
 import traceback
 import warnings
 import argparse
-from typing import List, Optional
+from typing import List
 import pandas as pd
 
 
@@ -46,6 +46,7 @@ from src.browsergym.knows.eval.tasks.sheets_55_Movie_Recommendation.utils import
     close_browser,
     fetch_imdb_data,
     fetch_imdb_awards_text,
+    get_primary_imdb_genre,
     verify_genre,
     verify_imdb_score,
     verify_mpa_rating,
@@ -54,13 +55,20 @@ from src.browsergym.knows.eval.tasks.sheets_55_Movie_Recommendation.utils import
 )
 
 # Preferred genres from the task description (update per instance)
-PREFERRED_GENRES = ["Action", "Drama", "Thriller", "Sci-Fi", "Comedy"]
+PREFERRED_GENRES = ["Drama", "Comedy", "Crime"]
+
+# Inclusive year range from the task description
+YEAR_RANGE = (1985, 2005)
+
+# Inclusive total-duration range (minutes) from the task description
+TOTAL_DURATION_RANGE = (600, 800)
+
+# Minimum number of distinct primary genres required across the sheet
+MIN_DISTINCT_GENRES = 3
 
 QUALIFYING_OSCARS = [
     "Best Actor",
     "Best Actress",
-    "Best Director",
-    "Best Original Screenplay",
     "Best Adapted Screenplay",
     "Best Cinematography",
 ]
@@ -152,7 +160,7 @@ def grade_checkpoint_1():
         execution_time=time.time() - step_start,
     )
 
-    # Step 2: Columns appear in the required order.
+    # Step 2: Columns appear in the required order. 
     step_start = time.time()
     if not matched_columns:
         ordered = False
@@ -221,10 +229,10 @@ def grade_checkpoint_1():
         details = "No required columns matched; cannot check for blanks"
     else:
         blank_details = []
-        for col_name, matched_col in matched_columns.items():
+        for expected_name, matched_col in matched_columns.items():
             blanks = df[matched_col].isna().sum() + (df[matched_col].astype(str).str.strip() == "").sum()
             if blanks > 0:
-                blank_details.append(f"{col_name}: {blanks} blank(s)")
+                blank_details.append(f"{expected_name}: {blanks} blank(s)")
         no_blanks = len(blank_details) == 0
         details = "No blank cells" if no_blanks else f"Blanks found: {'; '.join(blank_details)}"
     checkpoint.add_step(
@@ -237,34 +245,44 @@ def grade_checkpoint_1():
 
 
 def grade_checkpoint_2(browsing_history: List[str] = None):
-    """Checkpoint 2 (50 pts): Data Accuracy.
+    """Checkpoint 2 (80 pts): Data Accuracy.
 
     Fetches structured IMDb data (JSON-LD) via Playwright for each movie.
     Verifies that the agent actually visited each movie's IMDb page (rather
     than relying on parametric memory). Uses programmatic comparison for
-    genre, IMDb score, and MPA rating. Uses LLM only for Oscar verification
-    (unstructured awards data). Each step scored proportionally per movie:
-    round((movies_passing / total_movies) * 10).
+    genre, release year, IMDb score, and MPA rating. Uses LLM only for Oscar
+    verification (unstructured awards data). Each step scored proportionally
+    per movie: round((movies_passing / total_movies) * 10).
 
     Steps:
         1. Each movie's IMDb page appears in the browsing history (10 pt, proportional).
            Movies whose IMDb page wasn't visited fail every subsequent step too.
-        2. Each movie belongs to at least one preferred genre (10 pt, proportional).
-        3. Oscar Awards Won cell lists exactly the qualifying Oscars won (10 pt, proportional).
-        4. Each IMDb Score matches actual rating (within +/-0.1) and >= 6.5 (10 pt, proportional).
-        5. Each MPA/Age Rating is correct (10 pt, proportional).
+        2. Each movie's primary IMDb genre is one of the preferred genres
+           (Drama, Comedy, Crime) (10 pt, proportional).
+        3. At least 3 distinct primary genres (per IMDb's standard genre list)
+            appear among the recommended movies. (10 pt, all or nothing)
+        4. Each movie's release year is between 1985 and 2005 (10 pt, proportional).
+        5. Oscar Awards Won cell lists exactly the qualifying Oscars won —
+           {Best Actor, Best Actress, Best Adapted Screenplay, Best Cinematography}
+           (10 pt, proportional).
+        6. Each IMDb Score matches actual rating (within +/-0.1) and >= 6.5 (10 pt, proportional).
+        7. Each MPA/Age Rating is correct (10 pt, proportional).
+        8. Sum of all movie durations is between 600 and 800 minutes, inclusive (10 pt, all or nothing).
     """
     global model
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=50, result=0, name="Data Accuracy")
+    checkpoint = Checkpoint(total=80, result=0, name="Data Accuracy")
 
     if df is None or df.empty or not matched_columns:
         detail = "No data available"
         checkpoint.add_step("IMDb Page Visited", False, 1, detail, score=0, max_score=10, execution_time=0)
         checkpoint.add_step("Genre Verification", False, 2, detail, score=0, max_score=10, execution_time=0)
-        checkpoint.add_step("Oscar Verification", False, 3, detail, score=0, max_score=10, execution_time=0)
-        checkpoint.add_step("IMDb Score Verification", False, 4, detail, score=0, max_score=10, execution_time=0)
-        checkpoint.add_step("MPA Rating Verification", False, 5, detail, score=0, max_score=10, execution_time=0)
+        checkpoint.add_step("At Least 3 Distinct Genres", False, 3, detail, score=0, max_score=10, execution_time=0)
+        checkpoint.add_step("Release Year In Range", False, 4, detail, score=0, max_score=10, execution_time=0)
+        checkpoint.add_step("Oscar Verification", False, 5, detail, score=0, max_score=10, execution_time=0)
+        checkpoint.add_step("IMDb Score Verification", False, 6, detail, score=0, max_score=10, execution_time=0)
+        checkpoint.add_step("MPA Rating Verification", False, 7, detail, score=0, max_score=10, execution_time=0)
+        checkpoint.add_step("Total Duration In Range", False, 8, detail, score=0, max_score=10, execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -273,9 +291,12 @@ def grade_checkpoint_2(browsing_history: List[str] = None):
         detail = "Movie Title column not found"
         checkpoint.add_step("IMDb Page Visited", False, 1, detail, score=0, max_score=10, execution_time=0)
         checkpoint.add_step("Genre Verification", False, 2, detail, score=0, max_score=10, execution_time=0)
-        checkpoint.add_step("Oscar Verification", False, 3, detail, score=0, max_score=10, execution_time=0)
-        checkpoint.add_step("IMDb Score Verification", False, 4, detail, score=0, max_score=10, execution_time=0)
-        checkpoint.add_step("MPA Rating Verification", False, 5, detail, score=0, max_score=10, execution_time=0)
+        checkpoint.add_step("At Least 3 Distinct Genres", False, 3, detail, score=0, max_score=10, execution_time=0)
+        checkpoint.add_step("Release Year In Range", False, 4, detail, score=0, max_score=10, execution_time=0)
+        checkpoint.add_step("Oscar Verification", False, 5, detail, score=0, max_score=10, execution_time=0)
+        checkpoint.add_step("IMDb Score Verification", False, 6, detail, score=0, max_score=10, execution_time=0)
+        checkpoint.add_step("MPA Rating Verification", False, 7, detail, score=0, max_score=10, execution_time=0)
+        checkpoint.add_step("Total Duration In Range", False, 8, detail, score=0, max_score=10, execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -368,7 +389,70 @@ def grade_checkpoint_2(browsing_history: List[str] = None):
         execution_time=time.time() - step_start,
     )
 
-    # Step 3: Oscar verification — cell must list exactly the qualifying Oscars
+    # Step 3: At least 3 distinct primary IMDb genres across the sheet.
+    # Uses the first-listed (primary) genre per movie from IMDb's standard
+    # genre list; they must be in PREFERRED_GENRES;
+    # movies missing IMDb data contribute nothing.
+    step_start = time.time()
+    primary_genres = set()
+    distinct_unknown = []
+    for movie, data in imdb_data_map.items():
+        if data is None:
+            distinct_unknown.append(movie)
+            continue
+        primary = get_primary_imdb_genre(data)
+        if primary and any(re.search(rf"\b{re.escape(pref.lower())}\b", primary) for pref in PREFERRED_GENRES):
+            primary_genres.add(primary)
+    distinct_ok = len(primary_genres) >= MIN_DISTINCT_GENRES
+    distinct_score = 10 if distinct_ok else 0
+    distinct_detail = (
+        f"Found {len(primary_genres)} distinct primary IMDb genre(s): "
+        f"{sorted(primary_genres)} (target: >= {MIN_DISTINCT_GENRES})"
+    )
+    if distinct_unknown:
+        distinct_detail += f". Could not retrieve IMDb data: {', '.join(distinct_unknown)}"
+    checkpoint.add_step(
+        "At Least 3 Distinct Genres", distinct_ok, 3, distinct_detail,
+        score=distinct_score, max_score=10,
+        execution_time=time.time() - step_start,
+    )
+
+    # Step 4: Release year in range.
+    step_start = time.time()
+    year_low, year_high = YEAR_RANGE
+    year_failures = []
+    year_not_found = []
+    for idx, row in df.iterrows():
+        movie = str(row[title_col]).strip()
+        if movie not in visited_movies:
+            year_failures.append(f"{movie} (IMDb page not visited)")
+            continue
+        data = imdb_data_map.get(movie)
+        if data is None:
+            year_not_found.append(movie)
+            continue
+        date_published = (data.get("datePublished", "") or "")[:4]
+        try:
+            actual_year = int(date_published)
+        except ValueError:
+            year_not_found.append(f"{movie} (could not parse year from '{date_published}')")
+            continue
+        if not (year_low <= actual_year <= year_high):
+            year_failures.append(f"{movie} ({actual_year} not in {year_low}-{year_high})")
+    year_pass = num_movies - len(year_failures) - len(year_not_found)
+    year_score = calculate_percentage_score(year_pass, num_movies, max_points=10)
+    details = f"{year_pass}/{num_movies} movies released in {year_low}-{year_high}"
+    if year_not_found:
+        details += f". Could not retrieve IMDb data: {', '.join(year_not_found)}"
+    if year_failures:
+        details += f". Failed: {', '.join(year_failures)}"
+    checkpoint.add_step(
+        "Release Year In Range", year_pass == num_movies, 4, details,
+        score=year_score, max_score=10,
+        execution_time=time.time() - step_start,
+    )
+
+    # Step 5: Oscar verification — cell must list exactly the qualifying Oscars
     # the movie actually won (no extras, no omissions, at least one).
     step_start = time.time()
     oscar_col = matched_columns.get("Oscar Awards Won")
@@ -454,12 +538,12 @@ def grade_checkpoint_2(browsing_history: List[str] = None):
         oscar_score = 0
         details = "Oscar Awards Won column not found"
     checkpoint.add_step(
-        "Oscar Verification", oscar_pass == num_movies, 3, details,
+        "Oscar Verification", oscar_pass == num_movies, 5, details,
         score=oscar_score, max_score=10,
         execution_time=time.time() - step_start,
     )
 
-    # Step 4: IMDb Score verification (programmatic — no LLM)
+    # Step 6: IMDb Score verification (programmatic — no LLM)
     step_start = time.time()
     score_col = matched_columns.get("IMDb Score")
     if score_col:
@@ -500,12 +584,12 @@ def grade_checkpoint_2(browsing_history: List[str] = None):
         score_step = 0
         details = "IMDb Score column not found"
     checkpoint.add_step(
-        "IMDb Score Verification", score_pass == num_movies, 4, details,
+        "IMDb Score Verification", score_pass == num_movies, 6, details,
         score=score_step, max_score=10,
         execution_time=time.time() - step_start,
     )
 
-    # Step 5: MPA Rating verification (programmatic — no LLM)
+    # Step 7: MPA Rating verification (programmatic — no LLM)
     step_start = time.time()
     rating_col = matched_columns.get("MPA/Age Rating")
     if rating_col:
@@ -536,8 +620,46 @@ def grade_checkpoint_2(browsing_history: List[str] = None):
         rating_score = 0
         details = "MPA/Age Rating column not found"
     checkpoint.add_step(
-        "MPA Rating Verification", rating_pass == num_movies, 5, details,
+        "MPA Rating Verification", rating_pass == num_movies, 7, details,
         score=rating_score, max_score=10,
+        execution_time=time.time() - step_start,
+    )
+    
+    # Step 8: Total duration in range. Uses IMDb's actual runtime
+    # (JSON-LD `duration` field, ISO 8601 like "PT2H22M") rather than the
+    # sheet's Duration column so the agent can't fudge the total.
+    step_start = time.time()
+    low, high = TOTAL_DURATION_RANGE
+    iso_re = re.compile(r"^PT(?:(\d+)H)?(?:(\d+)M)?$")
+    minutes_per_movie = {}
+    duration_unknown = []
+    for movie, data in imdb_data_map.items():
+        if data is None:
+            duration_unknown.append(movie)
+            continue
+        raw = (data.get("duration") or "").strip()
+        m = iso_re.match(raw)
+        if not m or (m.group(1) is None and m.group(2) is None):
+            duration_unknown.append(f"{movie} (could not parse IMDb duration '{raw}')")
+            continue
+        h = int(m.group(1) or 0)
+        mi = int(m.group(2) or 0)
+        minutes_per_movie[movie] = h * 60 + mi
+    if duration_unknown:
+        duration_ok = False
+        total = sum(minutes_per_movie.values())
+        duration_detail = (
+            f"Could not retrieve IMDb duration for: {', '.join(duration_unknown)}. "
+            f"Partial total (verified movies only) = {total} min"
+        )
+    else:
+        total = sum(minutes_per_movie.values())
+        duration_ok = low <= total <= high
+        duration_detail = f"Total IMDb duration = {total} min (target: {low}-{high})"
+    duration_score = 10 if duration_ok else 0
+    checkpoint.add_step(
+        "Total Duration In Range", duration_ok, 8, duration_detail,
+        score=duration_score, max_score=10,
         execution_time=time.time() - step_start,
     )
 

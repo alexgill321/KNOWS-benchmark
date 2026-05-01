@@ -1,5 +1,5 @@
-I want to watch a movie tonight. I prefer the following genres: Action, Drama, Thriller, Sci-Fi, and Comedy. Find the genre based on the IMDb listing of the movies.
-I want to watch award-winning movies, and I prefer movies that are highly rated and well-reviewed (IMDb ≥ 6.5). Look for movies that have won at least one Oscar award for Best Actor, Best Actress, Best Director, Best Original Screenplay, Best Adapted Screenplay, or Best Cinematography.
+I want to watch a movie tonight. I prefer the following genres: Comedy, Musical, Adventure. Find the genre based on the IMDb listing of the movies.
+I want to watch award-winning movies, released between 1940 and 1960, and I prefer movies that are highly rated and well-reviewed (IMDb ≥ 6.5). Look for movies that have won at least one Oscar award for Best Actor, Best Actress, Best Director, Best Original Screenplay, Best Adapted Screenplay, or Best Cinematography.
 Please make a Google Sheet with at least 5 movie recommendations that won at least one of the mentioned awards. Each movie's primary genre on IMDb — the first standard genre IMDb lists for the movie — must be one of the above listed genres. Use IMDb's standard genre list, not UI tags.
 Each row should contain information about one movie. Use these column header names, in this order:
 Movie Title

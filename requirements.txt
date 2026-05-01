@@ -12,6 +12,9 @@ html2text
 playwright
 chromium
 
+# BrowserGym framework (provides browsergym.core.registration)
+browsergym-core
+
 # Data Processing
 pandas
 numpy
