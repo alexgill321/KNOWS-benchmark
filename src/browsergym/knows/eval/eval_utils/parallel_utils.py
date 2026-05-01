@@ -1,7 +1,7 @@
 """Parallel execution utilities for evaluator performance optimization."""
 
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeoutError
 from threading import Semaphore, Lock
 from typing import List, Dict, Any, Callable, Tuple, Optional
 
@@ -19,7 +19,8 @@ def parallel_download(
     download_tasks: List[Dict[str, Any]],
     max_workers: int = 3,
     use_rate_limit: bool = True,
-    max_retries: int = 2
+    max_retries: int = 2,
+    timeout: Optional[float] = None,
 ) -> Dict[str, Any]:
     """
     Download multiple items in parallel with rate limiting and retry logic.
@@ -33,9 +34,12 @@ def parallel_download(
         max_workers: Maximum concurrent downloads (kept low for stability)
         use_rate_limit: Whether to use the Google API semaphore
         max_retries: Number of retry attempts on failure
+        timeout: Optional wall-clock cap (seconds). When set, downloads that
+            don't finish within this budget are recorded as None and the
+            remaining futures are cancelled. None (default) waits indefinitely.
 
     Returns:
-        Dict mapping task 'id' to download result (or None if failed)
+        Dict mapping task 'id' to download result (or None if failed/timed out)
     """
     results = {}
 
@@ -69,15 +73,23 @@ def parallel_download(
     effective_workers = min(max_workers, 3) if use_rate_limit else max_workers
 
     with ThreadPoolExecutor(max_workers=effective_workers) as executor:
-        futures = [executor.submit(download_with_limit, task) for task in download_tasks]
+        futures = {executor.submit(download_with_limit, task): task['id'] for task in download_tasks}
 
-        for future in as_completed(futures):
-            try:
-                task_id, result = future.result()
-                with RESULTS_LOCK:
-                    results[task_id] = result
-            except Exception as e:
-                print(f"  Future failed: {e}")
+        try:
+            for future in as_completed(futures, timeout=timeout):
+                try:
+                    task_id, result = future.result()
+                    with RESULTS_LOCK:
+                        results[task_id] = result
+                except Exception as e:
+                    print(f"  Future failed: {e}")
+        except FuturesTimeoutError:
+            for fut, task_id in futures.items():
+                if not fut.done():
+                    print(f"  Download {task_id} timed out after {timeout}s")
+                    with RESULTS_LOCK:
+                        results.setdefault(task_id, None)
+                    fut.cancel()
 
     return results
 
@@ -85,7 +97,8 @@ def parallel_download(
 def parallel_execute(
     tasks: List[Dict[str, Any]],
     max_workers: int = 3,
-    semaphore: Optional[Semaphore] = None
+    semaphore: Optional[Semaphore] = None,
+    timeout: Optional[float] = None,
 ) -> Dict[str, Any]:
     """
     Execute multiple tasks in parallel with optional rate limiting.
@@ -98,9 +111,12 @@ def parallel_execute(
             - 'kwargs': Dict of keyword arguments (optional)
         max_workers: Maximum concurrent executions
         semaphore: Optional semaphore for rate limiting
+        timeout: Optional wall-clock cap (seconds). When set, tasks that don't
+            finish within this budget are recorded as None and the remaining
+            futures are cancelled. None (default) waits indefinitely.
 
     Returns:
-        Dict mapping task 'id' to result (or None if failed)
+        Dict mapping task 'id' to result (or None if failed/timed out)
     """
     results = {}
 
@@ -121,14 +137,24 @@ def parallel_execute(
             return task_id, None
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(execute_with_limit, task) for task in tasks]
+        futures = {executor.submit(execute_with_limit, task): task['id'] for task in tasks}
 
-        for future in as_completed(futures):
-            try:
-                task_id, result = future.result()
-                results[task_id] = result
-            except Exception as e:
-                print(f"  Future failed: {e}")
+        try:
+            for future in as_completed(futures, timeout=timeout):
+                try:
+                    task_id, result = future.result()
+                    results[task_id] = result
+                except Exception as e:
+                    print(f"  Future failed: {e}")
+        except FuturesTimeoutError:
+            # Wall-clock cap exceeded — record unresolved tasks as None and let the
+            # ThreadPoolExecutor.__exit__ handle cleanup (workers may still finish in
+            # the background but their results are discarded).
+            for fut, task_id in futures.items():
+                if not fut.done():
+                    print(f"  Task {task_id} timed out after {timeout}s")
+                    results[task_id] = None
+                    fut.cancel()
 
     return results
 
@@ -136,7 +162,8 @@ def parallel_execute(
 def parallel_vlm_calls(
     vlm_tasks: List[Dict[str, Any]],
     model: Callable,
-    max_workers: int = 3
+    max_workers: int = 3,
+    timeout: Optional[float] = None,
 ) -> Dict[str, bool]:
     """
     Execute multiple VLM calls in parallel with rate limiting.
@@ -147,6 +174,9 @@ def parallel_vlm_calls(
             - 'messages': The messages to send to the model
         model: The loaded model callable
         max_workers: Maximum concurrent VLM calls
+        timeout: Optional wall-clock cap (seconds). When set, VLM calls that
+            don't finish within this budget are recorded as False and the
+            remaining futures are cancelled. None (default) waits indefinitely.
 
     Returns:
         Dict mapping task 'id' to boolean result
@@ -166,21 +196,29 @@ def parallel_vlm_calls(
             return task_id, False
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(call_vlm, task) for task in vlm_tasks]
+        futures = {executor.submit(call_vlm, task): task['id'] for task in vlm_tasks}
 
-        for future in as_completed(futures):
-            try:
-                task_id, result = future.result()
-                results[task_id] = result
-            except Exception as e:
-                print(f"  VLM future failed: {e}")
+        try:
+            for future in as_completed(futures, timeout=timeout):
+                try:
+                    task_id, result = future.result()
+                    results[task_id] = result
+                except Exception as e:
+                    print(f"  VLM future failed: {e}")
+        except FuturesTimeoutError:
+            for fut, task_id in futures.items():
+                if not fut.done():
+                    print(f"  VLM call {task_id} timed out after {timeout}s")
+                    results.setdefault(task_id, False)
+                    fut.cancel()
 
     return results
 
 
 def parallel_image_match(
     match_tasks: List[Dict[str, Any]],
-    max_workers: int = 5
+    max_workers: int = 5,
+    timeout: Optional[float] = None,
 ) -> Dict[str, Tuple[bool, str]]:
     """
     Perform parallel image matching (exact + perceptual hash tiers only).
@@ -191,6 +229,10 @@ def parallel_image_match(
             - 'candidate_path': Path to candidate image
             - 'gold_path': Path to gold/reference image
         max_workers: Maximum concurrent matches
+        timeout: Optional wall-clock cap (seconds). When set, matches that
+            don't finish within this budget are recorded as (False, None) and
+            the remaining futures are cancelled. None (default) waits
+            indefinitely.
 
     Returns:
         Dict mapping task 'id' to (matched: bool, method: str) tuple
@@ -221,14 +263,21 @@ def parallel_image_match(
         return task_id, (False, None)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(match_image, task) for task in match_tasks]
+        futures = {executor.submit(match_image, task): task['id'] for task in match_tasks}
 
-        for future in as_completed(futures):
-            try:
-                task_id, result = future.result()
-                results[task_id] = result
-            except Exception as e:
-                print(f"  Image match future failed: {e}")
+        try:
+            for future in as_completed(futures, timeout=timeout):
+                try:
+                    task_id, result = future.result()
+                    results[task_id] = result
+                except Exception as e:
+                    print(f"  Image match future failed: {e}")
+        except FuturesTimeoutError:
+            for fut, task_id in futures.items():
+                if not fut.done():
+                    print(f"  Image match {task_id} timed out after {timeout}s")
+                    results.setdefault(task_id, (False, None))
+                    fut.cancel()
 
     return results
 
@@ -236,7 +285,8 @@ def parallel_image_match(
 def fast_parallel_vlm_calls(
     vlm_tasks: List[Dict[str, Any]],
     model: Callable,
-    max_workers: int = 10
+    max_workers: int = 10,
+    timeout: Optional[float] = None,
 ) -> Dict[str, bool]:
     """
     Execute multiple VLM calls in parallel without global semaphore bottleneck.
@@ -251,6 +301,9 @@ def fast_parallel_vlm_calls(
             - 'messages': The messages to send to the model
         model: The loaded model callable
         max_workers: Maximum concurrent VLM calls (default 10)
+        timeout: Optional wall-clock cap (seconds). When set, VLM calls that
+            don't finish within this budget are recorded as False and the
+            remaining futures are cancelled. None (default) waits indefinitely.
 
     Returns:
         Dict mapping task 'id' to boolean result (True if response contains 'yes')
@@ -268,12 +321,19 @@ def fast_parallel_vlm_calls(
             return task_id, False
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(call_vlm, task) for task in vlm_tasks]
-        for future in as_completed(futures):
-            try:
-                task_id, result = future.result()
-                results[task_id] = result
-            except Exception:
-                pass
+        futures = {executor.submit(call_vlm, task): task['id'] for task in vlm_tasks}
+        try:
+            for future in as_completed(futures, timeout=timeout):
+                try:
+                    task_id, result = future.result()
+                    results[task_id] = result
+                except Exception:
+                    pass
+        except FuturesTimeoutError:
+            for fut, task_id in futures.items():
+                if not fut.done():
+                    print(f"  VLM call {task_id} timed out after {timeout}s")
+                    results.setdefault(task_id, False)
+                    fut.cancel()
 
     return results
