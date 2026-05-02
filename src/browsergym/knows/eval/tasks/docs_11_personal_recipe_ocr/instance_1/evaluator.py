@@ -618,27 +618,26 @@ Answer 'No' only if it's completely generic advice unrelated to soup or pumpkin.
         info_pass = False
         info_parts.append("Ready In: not found")
 
-    # Check Serves: just needs to differ from default (8)
+    # Check Serves: must differ from default (8) if present, but not required
+    # (the recipe image may not contain serving info)
     serves = metadata.get('serves')
     if serves and serves != TEMPLATE_DEFAULTS.get('serves'):
         info_parts.append(f"Serves: {serves} (changed from default {TEMPLATE_DEFAULTS.get('serves')})")
-    elif not serves:
-        info_pass = False
-        info_parts.append("Serves: not found")
-    else:
+    elif serves and serves == TEMPLATE_DEFAULTS.get('serves'):
         info_pass = False
         info_parts.append(f"Serves: {serves} (unchanged from default)")
+    else:
+        info_parts.append("Serves: not specified")
 
-    # Check Calories: just needs to differ from default (280)
+    # Check Calories: must differ from default (280) if present, but not required
     calories = metadata.get('calories')
     if calories and calories != TEMPLATE_DEFAULTS.get('calories'):
         info_parts.append(f"Calories: {calories} (changed from default {TEMPLATE_DEFAULTS.get('calories')})")
-    elif not calories:
-        info_pass = False
-        info_parts.append("Calories: not found")
-    else:
+    elif calories and calories == TEMPLATE_DEFAULTS.get('calories'):
         info_pass = False
         info_parts.append(f"Calories: {calories} (unchanged from default)")
+    else:
+        info_parts.append("Calories: not specified")
 
     step_time = time.time() - step_start
     checkpoint.add_step("Info Modified from Defaults", info_pass, 10, '; '.join(info_parts), execution_time=step_time)

@@ -1,7 +1,14 @@
-from browsergym.core.registration import register_task
-from browsergym.core.task import AbstractBrowserTask
+try:
+    from browsergym.core.registration import register_task
+    from browsergym.core.task import AbstractBrowserTask
+except ImportError:
+    register_task = None
+    AbstractBrowserTask = object
 from pathlib import Path
-import playwright.sync_api
+try:
+    import playwright.sync_api
+except ImportError:
+    playwright = None
 from typing import Tuple, List, Dict, Any, Optional
 import inspect
 import time
