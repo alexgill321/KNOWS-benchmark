@@ -1,6 +1,6 @@
 # Checkpoints
 
-This task has 53 points in total.
+This task has 61 points in total.
 
 ## Checkpoint 1 (10 pts): Original Recipe Page
 

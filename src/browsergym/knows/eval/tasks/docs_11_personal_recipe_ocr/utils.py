@@ -1054,12 +1054,19 @@ def extract_recipe_title(recipe_text: str) -> str:
     return ""
 
 
-def check_title_theme(title: str) -> Tuple[bool, str]:
+def check_title_theme(
+    title: str,
+    theme_keywords: Optional[List[str]] = None,
+    theme_description: Optional[str] = None
+) -> Tuple[bool, str]:
     """
-    Check if a recipe title relates to fall/autumn themes.
+    Check if a recipe title relates to expected themes.
 
     Args:
         title: The recipe title to check.
+        theme_keywords: List of keywords to match against. If None, uses default
+                        fall/soup/pumpkin keywords for backward compatibility.
+        theme_description: Human-readable description of the theme for failure messages.
 
     Returns:
         Tuple of (is_thematic, details).
@@ -1067,25 +1074,21 @@ def check_title_theme(title: str) -> Tuple[bool, str]:
     if not title:
         return False, "No title found"
 
-    title_lower = title.lower()
+    if theme_keywords is None:
+        theme_keywords = [
+            'pumpkin', 'squash', 'soup', 'fall', 'autumn',
+        ]
+    if theme_description is None:
+        theme_description = "fall, soups, pumpkins, or thanksgiving"
 
-    # Keywords related to fall, soups, pumpkins, thanksgiving
-    theme_keywords = [
-        'pumpkin', 'squash', 'butternut', 'acorn',
-        'soup', 'stew', 'chowder', 'bisque',
-        'fall', 'autumn', 'harvest',
-        'thanksgiving', 'turkey', 'cranberry',
-        'gourd', 'warm', 'comfort', 'cozy',
-        'apple', 'cider', 'cinnamon', 'spice',
-        'sweet potato', 'yam'
-    ]
+    title_lower = title.lower()
 
     found_keywords = [kw for kw in theme_keywords if kw in title_lower]
 
     if found_keywords:
         return True, f"Found thematic keywords: {', '.join(found_keywords)}"
 
-    return False, f"No fall/soup/pumpkin/thanksgiving keywords found in '{title}'"
+    return False, f"No {theme_description} keywords found in '{title}'"
 
 
 def check_content_modified_from_default(

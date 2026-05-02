@@ -1,6 +1,6 @@
 # Checkpoints
 
-This task has 53 points in total.
+This task has 81 points in total.
 
 ## Checkpoint 1 (10 pts): Original Recipe Page
 
@@ -28,7 +28,7 @@ This task has 53 points in total.
 - For each additional recipe information under photo is modified from the default
 - Each additional recipe is visually distinguishable, via color or font changes to text.
 
-## Checkpoint 3 (15 pts): Additional Recipe Pages Content (x3)
+## Checkpoint 3 (25 pts): Additional Recipe Pages Content (x5)
 
 ### Outcome Evaluation:
 - Each additional recipe has a photo from the source url of the item in the recipe
@@ -37,9 +37,9 @@ This task has 53 points in total.
 - Each additional recipe has tips which are clearly extracted from the source
 - Each additional recipe has information under the photo relevant to the source recipe (Ready in, serves and calories is modified based on recipe info)
 
-## Checkpoint 4 (4 pts): Websites Visited Check
+## Checkpoint 4 (6 pts): Websites Visited Check
 All relevant source URLs were visited
 
 ### Outcome Evaluation:
 - First page tips source urls are in the browsing history of the agent
-- Additional recipe source urls are in the browsing history of the agent (x3)
+- Additional recipe source urls are in the browsing history of the agent (x5)
