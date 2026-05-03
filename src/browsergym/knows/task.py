@@ -1126,6 +1126,6 @@ class SlidesEventAnnouncementPosterTask(KnowsWorkspaceTask):
     TASK_FAMILY_FOLDER = "slides_51_event_announcement_poster"
     TASK_ID_PREFIX = "knows.slides_51_event_announcement_poster"
     WORKSPACE_KIND = WORKSPACE_KIND_SLIDES
-    AVAILABLE_INSTANCES: Tuple[int, ...] = (1,)
+    AVAILABLE_INSTANCES: Tuple[int, ...] = (1, 2, 3, 4, 5)
 
 

@@ -22,6 +22,47 @@ _REFERENCE_CACHE_PATH = os.path.join(
 )
 
 
+# Canonical RGB targets (0-1 range) for the descriptive color names used across
+# instances 2-5. Values approximate common digital interpretations; pair with
+# `is_color_close` and a generous tolerance to allow for designer variation.
+COLORS = {
+    "mint_green":      (0.60, 0.95, 0.70),
+    "deep_ocean_blue": (0.00, 0.30, 0.50),
+    "navy_blue":       (0.00, 0.00, 0.50),
+    "deep_teal":       (0.00, 0.30, 0.30),
+    "light_orange":    (1.00, 0.75, 0.45),
+    "seafoam_green":   (0.50, 0.92, 0.75),
+    "charcoal_grey":   (0.20, 0.25, 0.30),
+    "warm_amber":      (1.00, 0.65, 0.10),
+}
+
+
+def is_color_close(color: Optional[Dict[str, Any]], target_rgb: Tuple[float, float, float],
+                   tolerance: float = 0.30) -> bool:
+    """Check whether a color dict is within Euclidean RGB distance of a target.
+
+    Accepts colors in either ``{'r','g','b'}`` form (e.g. from
+    ``get_shape_background_fill``) or ``{'red','green','blue'}`` form (e.g. from
+    ``get_text_style_from_shape``).
+
+    Args:
+        color (dict): RGB color dict, or None.
+        target_rgb (tuple): Target ``(r, g, b)`` floats in 0-1 range.
+        tolerance (float): Maximum Euclidean distance to consider a match.
+
+    Returns:
+        bool: True if color is within tolerance of target_rgb.
+    """
+    if not color:
+        return False
+    r = color.get('r', color.get('red', 0))
+    g = color.get('g', color.get('green', 0))
+    b = color.get('b', color.get('blue', 0))
+    tr, tg, tb = target_rgb
+    distance = ((r - tr) ** 2 + (g - tg) ** 2 + (b - tb) ** 2) ** 0.5
+    return distance <= tolerance
+
+
 def classify_citation_group(
     group_urls: List[str],
     fetch_results: Dict[str, Any],
