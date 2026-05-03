@@ -1,0 +1,87 @@
+[
+  {
+    "session": "1",
+    "lecture_title": "Overview: Introduction to the Introduction of Geology",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/12-001-introduction-to-geology-fall-2013/resources/mit12_001f13_lecture1slides/"
+  },
+  {
+    "session": "2",
+    "lecture_title": "Origin and Age of the Earth",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/12-001-introduction-to-geology-fall-2013/resources/mit12_001f13_lecture2slides/"
+  },
+  {
+    "session": "3",
+    "lecture_title": "Introduction to Minerals",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/12-001-introduction-to-geology-fall-2013/resources/mit12_001f13_lec3slides/"
+  },
+  {
+    "session": "6",
+    "lecture_title": "Sedimentary Rocks",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/12-001-introduction-to-geology-fall-2013/resources/mit12_001f13_lecture6slides/"
+  },
+  {
+    "session": "8",
+    "lecture_title": "Rock Structure and Deformation",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/12-001-introduction-to-geology-fall-2013/resources/mit12_001f13_lec8slides/"
+  },
+  {
+    "session": "11",
+    "lecture_title": "Geologic Time: Relative versus Absolute Dating",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/12-001-introduction-to-geology-fall-2013/resources/mit12_001f13_lecture11slides/"
+  },
+  {
+    "session": "12",
+    "lecture_title": "Volcanoes",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/12-001-introduction-to-geology-fall-2013/resources/mit12_001f13_lecture12slides/"
+  },
+  {
+    "session": "13–15",
+    "lecture_title": "Plate Tectonics",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/12-001-introduction-to-geology-fall-2013/resources/mit12_001f13_lec13-15slides/"
+  },
+  {
+    "session": "18",
+    "lecture_title": "Oceanic Crust Formation",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/12-001-introduction-to-geology-fall-2013/resources/mit12_001f13_lec18slides/"
+  },
+  {
+    "session": "19",
+    "lecture_title": "Earthquakes",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/12-001-introduction-to-geology-fall-2013/resources/mit12_001f13_lec19slides/"
+  },
+  {
+    "session": "21",
+    "lecture_title": "Topography",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/12-001-introduction-to-geology-fall-2013/resources/mit12_001f13_lec21slides/"
+  },
+  {
+    "session": "28",
+    "lecture_title": "Rivers",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/12-001-introduction-to-geology-fall-2013/resources/mit12_001f13_lec28slides/"
+  },
+  {
+    "session": "31",
+    "lecture_title": "Landslides and Debris Flows",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/12-001-introduction-to-geology-fall-2013/resources/mit12_001f13_lec31slides/"
+  },
+  {
+    "session": "32",
+    "lecture_title": "Glaciers",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/12-001-introduction-to-geology-fall-2013/resources/mit12_001f13_lec32slides/"
+  },
+  {
+    "session": "33",
+    "lecture_title": "Climate through Geologic History",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/12-001-introduction-to-geology-fall-2013/resources/mit12_001f13_lec33slides/"
+  },
+  {
+    "session": "34",
+    "lecture_title": "Earth History and Geobiology",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/12-001-introduction-to-geology-fall-2013/resources/mit12_001f13_lec34slides/"
+  },
+  {
+    "session": "36",
+    "lecture_title": "Comparative Planetology",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/12-001-introduction-to-geology-fall-2013/resources/mit12_001f13_lec36slides/"
+  }
+]

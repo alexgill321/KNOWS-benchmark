@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
+    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+    "list_type": "Wikipedia",
+    "lecture": "Climate through Geologic History",
+    "slides": [
+      5
+    ],
+    "num_slides": 1,
+    "is_bold": false,
+    "is_underline": false,
+    "is_dark_yellow_1": false,
+    "author": ""
+  },
+  {
+    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
+    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+    "list_type": "Wikipedia",
+    "lecture": "Earth History and Geobiology",
+    "slides": [
+      5
+    ],
+    "num_slides": 1,
+    "is_bold": false,
+    "is_underline": false,
+    "is_dark_yellow_1": false,
+    "author": ""
+  }
+]

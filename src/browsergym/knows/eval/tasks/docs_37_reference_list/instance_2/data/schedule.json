@@ -1,0 +1,67 @@
+[
+  {
+    "module": "module 1",
+    "lecture_title": "Course Overview & Introduction to Agents",
+    "lecture_slides_link": "https://sparklabutah.github.io/Multimodal-LLM-Agents-Course-Public/Lecture%20Slides/Lecture%201%20-%20Agents%20_%20Syllabus.pdf"
+  },
+  {
+    "module": "module 1",
+    "lecture_title": "RL Review",
+    "lecture_slides_link": "https://sparklabutah.github.io/Multimodal-LLM-Agents-Course-Public/Lecture%20Slides/Lecture%202%20-%20RL%20Review.pdf"
+  },
+  {
+    "module": "module 1",
+    "lecture_title": "LLM Review",
+    "lecture_slides_link": "https://sparklabutah.github.io/Multimodal-LLM-Agents-Course-Public/Lecture%20Slides/Lecture%203%20-%20LLM%20Review.pdf"
+  },
+  {
+    "module": "module 1",
+    "lecture_title": "VLM Review",
+    "lecture_slides_link": "https://sparklabutah.github.io/Multimodal-LLM-Agents-Course-Public/Lecture%20Slides/Lecture%204%20-%20VLM%20Review.pdf"
+  },
+  {
+    "module": "module 2",
+    "lecture_title": "Agent Frameworks",
+    "lecture_slides_link": "https://sparklabutah.github.io/Multimodal-LLM-Agents-Course-Public/Lecture%20Slides/Lecture%205%20-%20Agent%20Frameworks.pdf"
+  },
+  {
+    "module": "module 3",
+    "lecture_title": "RAG & Memory",
+    "lecture_slides_link": "https://sparklabutah.github.io/Multimodal-LLM-Agents-Course-Public/Lecture%20Slides/Lecture%206%20-%20RAG%20%26%20Memory.pdf"
+  },
+  {
+    "module": "module 4",
+    "lecture_title": "Tool Use",
+    "lecture_slides_link": "https://sparklabutah.github.io/Multimodal-LLM-Agents-Course-Public/Lecture%20Slides/Lecture%207%20-%20Tool%20Use.pdf"
+  },
+  {
+    "module": "module 5",
+    "lecture_title": "Coding Agents",
+    "lecture_slides_link": "https://sparklabutah.github.io/Multimodal-LLM-Agents-Course-Public/Lecture%20Slides/Lecture%208%20-%20Coding%20Agents.pdf"
+  },
+  {
+    "module": "module 6",
+    "lecture_title": "Evaluation",
+    "lecture_slides_link": "https://sparklabutah.github.io/Multimodal-LLM-Agents-Course-Public/Lecture%20Slides/Lecture%209%20-%20Evaluation.pdf"
+  },
+  {
+    "module": "module 7",
+    "lecture_title": "Assistant Agents",
+    "lecture_slides_link": "https://sparklabutah.github.io/Multimodal-LLM-Agents-Course-Public/Lecture%20Slides/Lecture%2010%20-%20Assistant%20Agents.pdf"
+  },
+  {
+    "module": "module 8",
+    "lecture_title": "Game Agents",
+    "lecture_slides_link": "https://sparklabutah.github.io/Multimodal-LLM-Agents-Course-Public/Lecture%20Slides/Lecture%2011%20-%20Game%20Agents.pdf"
+  },
+  {
+    "module": "module 9",
+    "lecture_title": "Computer Use",
+    "lecture_slides_link": "https://sparklabutah.github.io/Multimodal-LLM-Agents-Course-Public/Lecture%20Slides/Lecture%2012%20-%20Computer%20Use.pdf"
+  },
+  {
+    "module": "module 10",
+    "lecture_title": "Robotics",
+    "lecture_slides_link": "https://sparklabutah.github.io/Multimodal-LLM-Agents-Course-Public/Lecture%20Slides/Lecture%2013%20-%20Robotics.pdf"
+  }
+]

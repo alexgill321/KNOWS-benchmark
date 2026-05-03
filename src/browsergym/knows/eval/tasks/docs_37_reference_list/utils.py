@@ -21,6 +21,8 @@ from src.browsergym.knows.eval.eval_utils.web_utils import fetch_page_title
 
 # Dark green 2 RGB values as seen in Google Docs API (approx #38761D)
 DARK_GREEN_2_RGB = {"red": 0.2196, "green": 0.4627, "blue": 0.1137}
+# Dark cyan 1 RGB values as seen in Google Docs API (approx #007074)
+DARK_CYAN_1_RGB = {"red": 0.0, "green": 0.439, "blue": 0.455}
 COLOR_TOLERANCE = 0.03
 
 # Valid reference categories
@@ -92,6 +94,22 @@ def is_dark_green_2(text_style):
         return False
 
     return colors_are_similar(fg, DARK_GREEN_2_RGB, tolerance=COLOR_TOLERANCE)
+
+
+def is_dark_cyan_1(text_style):
+    """Check if a textStyle's foregroundColor matches dark cyan 1.
+
+    Args:
+        text_style (dict): The textStyle dict from a textRun.
+
+    Returns:
+        bool: True if the color matches dark cyan 1 within tolerance.
+    """
+    fg = text_style.get("foregroundColor", {}).get("color", {}).get("rgbColor", {})
+    if not fg:
+        return False
+
+    return colors_are_similar(fg, DARK_CYAN_1_RGB, tolerance=COLOR_TOLERANCE)
 
 
 def parse_slide_numbers(text):
@@ -300,7 +318,7 @@ def get_gold_lectures(gold_data):
     return lectures
 
 
-def match_valid_category(category_text, model=None):
+def match_valid_category(category_text, model=None, valid_categories=None):
     """Check if a category title matches one of the valid reference categories.
 
     Uses keywords_match_robust for exact match first, then LLM semantic fallback.
@@ -308,13 +326,15 @@ def match_valid_category(category_text, model=None):
     Args:
         category_text (str): The category title from the document.
         model: Optional LLM model callable for fallback matching.
+        valid_categories (set|None): Override the default VALID_CATEGORIES set.
 
     Returns:
-        str|None: The category_text if it matches a valid category, or None.
+        str|None: The matched canonical category name, or None if no match.
     """
+    cats = valid_categories if valid_categories is not None else VALID_CATEGORIES
     return keywords_match_robust(
         category_text,
-        list(VALID_CATEGORIES),
+        list(cats),
         model=model,
         description="reference list category type",
     )
@@ -340,6 +360,9 @@ def extract_reference_links(document):
             - full_text (str): The full text of the bullet item.
             - link_is_bold (bool): Whether the hyperlink text is bold.
             - link_is_dark_green_2 (bool): Whether the hyperlink text is dark green 2.
+            - non_link_is_bold (bool): Whether any non-whitespace, non-link text
+              in the same bullet (e.g. " Slide: 6") is also bold. Used to enforce
+              the "(and only the hyperlink)" rule from task.md.
     """
     references = []
     current_lecture = None
@@ -375,7 +398,15 @@ def extract_reference_links(document):
                 url = ""
                 full_text = get_paragraph_text(paragraph)
                 link_is_bold = False
+                link_is_italic = False
                 link_is_dark_green = False
+                link_is_dark_cyan = False
+                link_font_size = None
+                non_link_is_bold = False
+                non_link_is_italic = False
+                non_link_is_dark_green_2 = False
+                non_link_is_dark_cyan_1 = False
+                non_link_is_12pt = False
 
                 for elem in paragraph.get("elements", []):
                     if "textRun" not in elem:
@@ -390,7 +421,23 @@ def extract_reference_links(document):
                             url = link_url
                             anchor_text = content.strip()
                             link_is_bold = ts.get("bold", False)
+                            link_is_italic = ts.get("italic", False)
                             link_is_dark_green = is_dark_green_2(ts)
+                            link_is_dark_cyan = is_dark_cyan_1(ts)
+                            link_font_size = ts.get("fontSize", {}).get("magnitude")
+                    else:
+                        if content.strip():
+                            # Track formatting leaks outside the hyperlink span
+                            if ts.get("bold", False):
+                                non_link_is_bold = True
+                            if ts.get("italic", False):
+                                non_link_is_italic = True
+                            if is_dark_green_2(ts):
+                                non_link_is_dark_green_2 = True
+                            if is_dark_cyan_1(ts):
+                                non_link_is_dark_cyan_1 = True
+                            if ts.get("fontSize", {}).get("magnitude") == 12:
+                                non_link_is_12pt = True
 
                 slide_numbers = parse_slide_numbers(full_text)
 
@@ -403,7 +450,15 @@ def extract_reference_links(document):
                         "slide_numbers": slide_numbers,
                         "full_text": full_text,
                         "link_is_bold": link_is_bold,
+                        "link_is_italic": link_is_italic,
                         "link_is_dark_green_2": link_is_dark_green,
+                        "link_is_dark_cyan_1": link_is_dark_cyan,
+                        "link_font_size": link_font_size,
+                        "non_link_is_bold": non_link_is_bold,
+                        "non_link_is_italic": non_link_is_italic,
+                        "non_link_is_dark_green_2": non_link_is_dark_green_2,
+                        "non_link_is_dark_cyan_1": non_link_is_dark_cyan_1,
+                        "non_link_is_12pt": non_link_is_12pt,
                     })
         else:
             if not bullet:
@@ -510,6 +565,40 @@ _NON_HTML_EXTENSIONS = re.compile(
     r"\.(pdf|png|jpg|jpeg|gif|svg|mp4|mp3|zip|tar|gz|bz2|xz|doc|docx|ppt|pptx|xls|xlsx|csv)(\?|#|$)",
     re.IGNORECASE,
 )
+
+
+def is_dead_link(url, timeout=10):
+    """Check if a URL is dead by detecting HTTP 403 or 410 responses.
+
+    Only HTTP 403 (Not Found) and 410 (Gone) are treated as dead.
+    All other outcomes are treated as alive.
+
+    Args:
+        url (str): The URL to check.
+        timeout (int): Seconds to wait per request.
+
+    Returns:
+        tuple[bool, str]: (is_dead, reason) — reason always includes the HTTP status code
+            or error type.
+    """
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+    try:
+        resp = requests.head(url, timeout=timeout, allow_redirects=True, headers=headers)
+        status = resp.status_code
+
+        if status == 404:
+            return True, "HTTP 404 (Not Found)"
+        if status == 410:
+            return True, "HTTP 410 (Gone)"
+
+        return False, f"HTTP {status}"
+
+    except requests.exceptions.Timeout:
+        return False, "No HTTP status (Timeout)"
+    except requests.exceptions.ConnectionError:
+        return False, "No HTTP status (Connection Error)"
+    except Exception as e:
+        return False, f"No HTTP status (Error: {e})"
 
 
 def fetch_page_title_safe(url):

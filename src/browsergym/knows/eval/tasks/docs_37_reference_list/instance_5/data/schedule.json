@@ -1,0 +1,112 @@
+[
+  {
+    "session": 1,
+    "lecture_title": "Introduction",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_introduction/"
+  },
+  {
+    "session": 3,
+    "lecture_title": "Foundation Myths",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_foundatnmyth/"
+  },
+  {
+    "session": 5,
+    "lecture_title": "Social Conflict in the Early Republic and The Conquest of Italy",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_socialconflt/"
+  },
+  {
+    "session": 7,
+    "lecture_title": "The Second Punic War: Hannibal in Italy",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_2punicwarhan/"
+  },
+  {
+    "session": 8,
+    "lecture_title": "Consequences of Empire I: The \u00c9lites",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_conseqncselit/"
+  },
+  {
+    "session": 9,
+    "lecture_title": "Consequences of Empire II: Arming and Farming",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_conseqncarmg/"
+  },
+  {
+    "session": 10,
+    "lecture_title": "Civil War: Marius and Sulla",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_civilwar/"
+  },
+  {
+    "session": 11,
+    "lecture_title": "Pompey and the Special Command",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_pompey/"
+  },
+  {
+    "session": 12,
+    "lecture_title": "From \u2018Triumvirate\u2019 to the Rubicon",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_triumvirate/"
+  },
+  {
+    "session": 13,
+    "lecture_title": "Caesar Dictator",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_caesar/"
+  },
+  {
+    "session": 14,
+    "lecture_title": "The Roman Constitution II: Augustus and the Principate",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_augustus/"
+  },
+  {
+    "session": 15,
+    "lecture_title": "Soft Power: Hearts & Minds of Augustan Rome",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_heartsminds/"
+  },
+  {
+    "session": 16,
+    "lecture_title": "The Emperor and the \u00c9lites",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_emprorelites/"
+  },
+  {
+    "session": 17,
+    "lecture_title": "The Emperor and the Plebs",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_emprorplebs/"
+  },
+  {
+    "session": 18,
+    "lecture_title": "High Politics: The Julio-Claudians to the Flavians",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_highpolitic1/"
+  },
+  {
+    "session": 19,
+    "lecture_title": "Flavian Rome",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_flavianrome/"
+  },
+  {
+    "session": 21,
+    "lecture_title": "High Politics: From the Flavians to the Severans",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_highpolitic2/"
+  },
+  {
+    "session": 22,
+    "lecture_title": "The Roman Army",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_romanarmy/"
+  },
+  {
+    "session": 23,
+    "lecture_title": "Domestic Life in Imperial Rome",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_domesticlife/"
+  },
+  {
+    "session": 24,
+    "lecture_title": "Crisis and Recovery: From the Severan Dynasty to the Later Roman Empire",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_crisisrecvry/"
+  },
+  {
+    "session": "25a",
+    "lecture_title": "Constantine: The Empire and the Church",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_constantine/"
+  },
+  {
+    "session": "25b",
+    "lecture_title": "The End of Roman History",
+    "lecture_slides_link": "https://ocw.mit.edu/courses/21h-132-the-ancient-world-rome-spring-2017/resources/mit21h_132s17_romanhistory/"
+  }
+]

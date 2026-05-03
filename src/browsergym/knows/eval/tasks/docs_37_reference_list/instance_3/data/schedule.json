@@ -1,0 +1,112 @@
+[
+  {
+    "lecture_date": "Feb 16, 2021",
+    "lecture_title": "Course Intro + Overview Foundations",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l01.pdf"
+  },
+  {
+    "lecture_date": "Feb 18, 2021",
+    "lecture_title": "ML Foundations",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l02.pdf"
+  },
+  {
+    "lecture_date": "Feb 23, 2021",
+    "lecture_title": "Convolutional Neural Networks",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l03.pdf"
+  },
+  {
+    "lecture_date": "Feb 25, 2021",
+    "lecture_title": "Recurrent Neural Networks, Graph Neural Networks",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l04.pdf"
+  },
+  {
+    "lecture_date": "Mar 2, 2021",
+    "lecture_title": "Interpretability, Dimensionality Reduction",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l05.pdf"
+  },
+  {
+    "lecture_date": "Mar 4, 2021",
+    "lecture_title": "Generative Models, GANs, VAE",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l06.pdf"
+  },
+  {
+    "lecture_date": "Mar 11, 2021",
+    "lecture_title": "DNA Accessibility, Promoters and Enhancers",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l07.pdf"
+  },
+  {
+    "lecture_date": "Mar 16, 2021",
+    "lecture_title": "Transcription Factors, DNA methylation",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l08.pdf"
+  },
+  {
+    "lecture_date": "Mar 18, 2021",
+    "lecture_title": "Gene Expression, Splicing",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l09.pdf"
+  },
+  {
+    "lecture_date": "Mar 25, 2021",
+    "lecture_title": "Single cell RNA-sequencing",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l10.pdf"
+  },
+  {
+    "lecture_date": "Mar 30, 2021",
+    "lecture_title": "Dimensionality Reduction, Genetics, and Variation",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l11a.pdf"
+  },
+  {
+    "lecture_date": "Apr 1, 2021",
+    "lecture_title": "GWAS and Rare variants",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l12.pdf"
+  },
+  {
+    "lecture_date": "Apr 6, 2021",
+    "lecture_title": "eQTLs",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l13.pdf"
+  },
+  {
+    "lecture_date": "Apr 8, 2021",
+    "lecture_title": "Electronic health records and patient data",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l14.pdf"
+  },
+  {
+    "lecture_date": "Apr 13, 2021",
+    "lecture_title": "Graph analysis",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l15a.pdf"
+  },
+  {
+    "lecture_date": "Apr 15, 2021",
+    "lecture_title": "Drug discovery",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l16.pdf"
+  },
+  {
+    "lecture_date": "Apr 22, 2021",
+    "lecture_title": "Protein folding",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l17a.pdf"
+  },
+  {
+    "lecture_date": "May 4, 2021",
+    "lecture_title": "Imaging applications in healthcare",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l20a.pdf"
+  },
+  {
+    "lecture_date": "May 6, 2021",
+    "lecture_title": "Video processing, structure determination",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l21.pdf"
+  },
+  {
+    "lecture_date": "May 11, 2021",
+    "lecture_title": "Imaging and Cancer",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l22a.pdf"
+  },
+  {
+    "lecture_date": "May 13, 2021",
+    "lecture_title": "EHRs and data mining",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l23a.pdf"
+  },
+  {
+    "lecture_date": "May 18, 2021",
+    "lecture_title": "Neuroscience",
+    "lecture_slides_link": "https://mit6874.github.io/assets/sp2021/slides/l24a.pdf"
+  }
+]

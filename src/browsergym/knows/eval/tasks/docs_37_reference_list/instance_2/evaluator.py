@@ -1,9 +1,9 @@
 import os
 import sys
+import re
 import json
 import time
 import argparse
-from datetime import datetime
 from typing import List
 
 def get_base_path():
@@ -31,7 +31,6 @@ from src.browsergym.knows.eval.tasks.docs_37_reference_list.utils import (
     extract_headings_with_bookmarks,
     extract_bullet_sections,
     extract_reference_links,
-    matches_lecture_title_format,
     get_gold_lectures,
     match_valid_category,
     match_text_quiet,
@@ -42,10 +41,12 @@ from src.browsergym.knows.eval.tasks.docs_37_reference_list.utils import (
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/docs_37_reference_list/instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/docs_37_reference_list/instance_2/")
 GOLD_DATA_PATH = os.path.join(TASK_DIR, "data/gold_outputs.json")
-NOTION_DATA_PATH = os.path.join(TASK_DIR, "data/notion_schedule.json")
 PAGE_TITLES_PATH = os.path.join(TASK_DIR, "data/page_titles.json")
+
+# Instance-2 specific valid categories
+VALID_CATEGORIES_2 = {"Tutorials", "Textbooks", "Videos"}
 
 model = None
 model_id = "gemini-3-flash-google-ai"
@@ -56,40 +57,33 @@ DRIVE_SERVICE, DOCS_SERVICE = initialize_google_services()
 # Global variables
 document = None
 gold_data = None
-notion_schedule = None
 
 # Caches to avoid redundant computation across checkpoints
 doc_refs_cache = None
 gold_to_doc_cache = None
 category_cache = None
 
-
 def setup_document(workspace_doc_id):
-    """Fetch the Google Doc and load gold/notion reference data."""
-    global document, gold_data, notion_schedule
+    """Fetch the Google Doc and load gold reference data."""
+    global document, gold_data
 
     document = get_doc_content(workspace_doc_id, DOCS_SERVICE)
 
     with open(GOLD_DATA_PATH, "r", encoding="utf-8") as f:
         gold_data = json.load(f)
 
-    with open(NOTION_DATA_PATH, "r", encoding="utf-8") as f:
-        notion_schedule = json.load(f)
-
 
 def grade_checkpoint_1():
-    """Checkpoint 1 (30pt): Lecture Title — format, heading style, bookmarks."""
+    """Checkpoint 1 (20pt): Lecture Title — Module N format and heading style."""
     _STEPS = [
-        (1, "Title format (M/D: title) with gold + notion match", 10),
+        (1, "Title format (Module N: title) with gold match", 10),
         (2, "Heading 3 style", 10),
-        (3, "Bookmarked", 10),
     ]
     start = time.time()
-    checkpoint = Checkpoint(total=30, result=0, name="Lecture Title")
+    checkpoint = Checkpoint(total=20, result=0, name="Lecture Title")
     _added = set()
 
     try:
-        # --- Shared preparation ---
         gold_lectures = get_gold_lectures(gold_data)
         doc_headings = extract_headings_with_bookmarks(document)
         total_count = len(gold_lectures)
@@ -105,15 +99,7 @@ def grade_checkpoint_1():
             else:
                 matched_headings[gold_lecture] = None
 
-        notion_combined_titles = []
-        for entry in notion_schedule:
-            try:
-                dt = datetime.strptime(entry["lecture_date"], "%B %d, %Y")
-                notion_combined_titles.append(f"{dt.month}/{dt.day}: {entry['lecture_title']}")
-            except (ValueError, KeyError):
-                pass
-
-        # --- Step 1: Title format (M/D: title) + gold match + notion cross-reference ---
+        # --- Step 1: Title format (Module N: title) + gold match ---
         t = time.time()
         try:
             format_pass = 0
@@ -123,21 +109,26 @@ def grade_checkpoint_1():
                 if not heading:
                     format_details.append(f"Missing: '{gold_lecture}'")
                     continue
-                if not matches_lecture_title_format(heading["text"]):
+                doc_module_match = re.match(r"Module\s+(\d+):\s+.+", heading["text"].strip(), re.IGNORECASE)
+                if not doc_module_match:
                     format_details.append(f"Bad format: '{heading['text']}'")
+                    continue
+                gold_module_match = re.match(r"Module\s+(\d+):", gold_lecture.strip(), re.IGNORECASE)
+                if gold_module_match and int(doc_module_match.group(1)) != int(gold_module_match.group(1)):
+                    format_details.append(
+                        f"Wrong module number {doc_module_match.group(1)} (expected {gold_module_match.group(1)}): '{heading['text']}'"
+                    )
                     continue
                 _, gold_score = match_text_quiet(heading["text"], [gold_lecture], threshold=85)
                 if gold_score < 85:
-                    format_details.append(f"Weak gold match ({gold_score}): '{heading['text']}' vs '{gold_lecture}'")
-                    continue
-                notion_match, _ = match_text_quiet(heading["text"], notion_combined_titles, threshold=60)
-                if not notion_match:
-                    format_details.append(f"No notion match: '{heading['text']}'")
+                    format_details.append(
+                        f"Weak gold match ({gold_score}): '{heading['text']}' vs '{gold_lecture}'"
+                    )
                     continue
                 format_pass += 1
             score_1 = calculate_percentage_score(format_pass, total_count, 10)
             checkpoint.add_step(
-                name="Title format (M/D: title) with gold + notion match",
+                name="Title format (Module N: title) with gold match",
                 success=(format_pass == total_count), step_id=1,
                 details=f"{format_pass}/{total_count} lectures in correct format. "
                         + "; ".join(format_details) if format_details else f"{format_pass}/{total_count} all passed",
@@ -145,7 +136,7 @@ def grade_checkpoint_1():
             )
         except Exception as e:
             checkpoint.add_step(
-                name="Title format (M/D: title) with gold + notion match",
+                name="Title format (Module N: title) with gold match",
                 success=False, step_id=1, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
             )
@@ -180,36 +171,6 @@ def grade_checkpoint_1():
                 score=0, max_score=10, execution_time=time.time() - t,
             )
         _added.add(2)
-
-        # --- Step 3: Bookmarked ---
-        t = time.time()
-        try:
-            bookmark_pass = 0
-            bookmark_details = []
-            for gold_lecture in gold_lectures:
-                heading = matched_headings.get(gold_lecture)
-                if not heading:
-                    bookmark_details.append(f"Missing: '{gold_lecture}'")
-                    continue
-                if heading["has_bookmark"]:
-                    bookmark_pass += 1
-                else:
-                    bookmark_details.append(f"Not bookmarked: '{heading['text']}'")
-            score_3 = calculate_percentage_score(bookmark_pass, total_count, 10)
-            checkpoint.add_step(
-                name="Bookmarked",
-                success=(bookmark_pass == total_count), step_id=3,
-                details=f"{bookmark_pass}/{total_count} lectures bookmarked. "
-                        + "; ".join(bookmark_details) if bookmark_details else f"{bookmark_pass}/{total_count} all passed",
-                score=score_3, max_score=10, execution_time=time.time() - t,
-            )
-        except Exception as e:
-            checkpoint.add_step(
-                name="Bookmarked", success=False, step_id=3,
-                details=f"Step evaluation error: {e}",
-                score=0, max_score=10, execution_time=time.time() - t,
-            )
-        _added.add(3)
 
     except Exception as e:
         for sid, sname, smax in _STEPS:
@@ -254,7 +215,9 @@ def grade_checkpoint_2():
         for section in sections:
             cat = section["category"]
             if cat not in category_cache:
-                category_cache[cat] = match_valid_category(cat)
+                category_cache[cat] = match_valid_category(
+                    cat, model=model, valid_categories=VALID_CATEGORIES_2
+                )
 
         valid_sections = []
         invalid_sections = []
@@ -392,7 +355,8 @@ def grade_checkpoint_2():
 
 
 def grade_checkpoint_3():
-    """Checkpoint 3 (80pt): Reference links — presence, no duplicates, categorization, slides, format, relevant, active."""
+    """Checkpoint 3 (90pt): Reference links — presence, no duplicates, categorization,
+    slides match gold, hyperlink format, slide format, author format, relevance, active."""
     _STEPS = [
         (1, "All references present", 10),
         (2, "No duplicate reference links", 10),
@@ -400,15 +364,16 @@ def grade_checkpoint_3():
         (4, "Slide numbers match gold", 10),
         (5, "Hyperlink format (descriptive anchor text)", 10),
         (6, "Slide number format", 10),
-        (7, "Link names relevant", 10),
-        (8, "No dead hyperlinks", 10),
+        (7, "Author format (First author) after hyperlink", 10),
+        (8, "Link names relevant", 10),
+        (9, "No dead hyperlinks", 10),
     ]
     global model, doc_refs_cache, gold_to_doc_cache
     if model is None:
         model = load_model(model_id)
 
     start = time.time()
-    checkpoint = Checkpoint(total=80, result=0, name="Reference links")
+    checkpoint = Checkpoint(total=90, result=0, name="Reference links")
     _added = set()
 
     try:
@@ -509,11 +474,15 @@ def grade_checkpoint_3():
                     continue
                 expected_type = gold_item.get("list_type", "")
                 doc_category = (category_cache.get(ref["category"])
-                                if category_cache else match_valid_category(ref["category"], model=model))
+                                if category_cache else match_valid_category(
+                                    ref["category"], model=model, valid_categories=VALID_CATEGORIES_2
+                                ))
                 if doc_category == expected_type:
                     cat_pass += 1
                 else:
-                    cat_details.append(f"Wrong category '{ref['category']}' (expected '{expected_type}'): '{gold_item['name']}'")
+                    cat_details.append(
+                        f"Wrong category '{ref['category']}' (expected '{expected_type}'): '{gold_item['name']}'"
+                    )
             score_3 = calculate_percentage_score(cat_pass, total_gold, 10)
             checkpoint.add_step(
                 name="Correct categorization",
@@ -622,7 +591,53 @@ def grade_checkpoint_3():
             )
         _added.add(6)
 
-        # --- Step 7: Link name relevance ---
+        # --- Step 7: Author format "(First author)" after hyperlink ---
+        t = time.time()
+        try:
+            author_pass = 0
+            author_details = []
+            for gold_item in gold_data:
+                ref = gold_to_doc[(gold_item["lecture"], gold_item["url"])]
+                if not ref:
+                    author_details.append(f"Missing: '{gold_item['name']}'")
+                    continue
+                gold_author = gold_item.get("author", "")
+                full_text = ref["full_text"]
+                anchor_text = ref["anchor_text"]
+                # Look for (author) in the text after the anchor
+                meta = full_text[full_text.find(anchor_text) + len(anchor_text):] if anchor_text in full_text else full_text
+                author_match = re.search(r'\(([^)]+)\)', meta)
+                if not author_match:
+                    author_details.append(f"No (author) in bullet: '{gold_item['name']}'")
+                    continue
+                doc_author = author_match.group(1).strip()
+                if not gold_author:
+                    author_pass += 1
+                    continue
+                _, score = match_text_quiet(gold_author, [doc_author], threshold=65)
+                if score >= 65:
+                    author_pass += 1
+                else:
+                    author_details.append(
+                        f"Author mismatch '{doc_author}' (expected '{gold_author}'): '{gold_item['name']}'"
+                    )
+            score_7 = calculate_percentage_score(author_pass, total_gold, 10)
+            checkpoint.add_step(
+                name="Author format (First author) after hyperlink",
+                success=(author_pass == total_gold), step_id=7,
+                details=f"{author_pass}/{total_gold} have correct author format. "
+                        + "; ".join(author_details[:5]) if author_details else f"{author_pass}/{total_gold} all correct",
+                score=score_7, max_score=10, execution_time=time.time() - t,
+            )
+        except Exception as e:
+            checkpoint.add_step(
+                name="Author format (First author) after hyperlink",
+                success=False, step_id=7, details=f"Step evaluation error: {e}",
+                score=0, max_score=10, execution_time=time.time() - t,
+            )
+        _added.add(7)
+
+        # --- Step 8: Link name relevance ---
         t = time.time()
         try:
             with open(PAGE_TITLES_PATH, "r", encoding="utf-8") as f:
@@ -659,23 +674,23 @@ def grade_checkpoint_3():
                     relevance_pass += 1
                 else:
                     relevance_details.append(f"Irrelevant name '{ref['anchor_text']}' for '{ref['url']}'")
-            score_7 = calculate_percentage_score(relevance_pass, total_gold, 10)
+            score_8 = calculate_percentage_score(relevance_pass, total_gold, 10)
             checkpoint.add_step(
                 name="Link names relevant",
-                success=(relevance_pass == total_gold), step_id=7,
+                success=(relevance_pass == total_gold), step_id=8,
                 details=f"{relevance_pass}/{total_gold} have relevant names. "
                         + "; ".join(relevance_details[:5]) if relevance_details else f"{relevance_pass}/{total_gold} all relevant",
-                score=score_7, max_score=10, execution_time=time.time() - t,
+                score=score_8, max_score=10, execution_time=time.time() - t,
             )
         except Exception as e:
             checkpoint.add_step(
                 name="Link names relevant",
-                success=False, step_id=7, details=f"Step evaluation error: {e}",
+                success=False, step_id=8, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
             )
-        _added.add(7)
+        _added.add(8)
 
-        # --- Step 8: No dead hyperlinks ---
+        # --- Step 9: No dead hyperlinks ---
         t = time.time()
         try:
             unique_urls = list({r["url"] for r in doc_refs if r.get("url")})
@@ -693,17 +708,17 @@ def grade_checkpoint_3():
             dead_details = [f"{url} ({reason})" for url, reason in dead_urls[:5]]
             checkpoint.add_step(
                 name="No dead hyperlinks",
-                success=no_dead, step_id=8,
+                success=no_dead, step_id=9,
                 details="No dead links found" if no_dead else f"{len(dead_urls)} dead link(s): " + "; ".join(dead_details),
                 score=10 if no_dead else 0, max_score=10, execution_time=time.time() - t,
             )
         except Exception as e:
             checkpoint.add_step(
                 name="No dead hyperlinks",
-                success=False, step_id=8, details=f"Step evaluation error: {e}",
+                success=False, step_id=9, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
             )
-        _added.add(8)
+        _added.add(9)
 
     except Exception as e:
         for sid, sname, smax in _STEPS:
@@ -719,14 +734,16 @@ def grade_checkpoint_3():
 
 
 def grade_checkpoint_4():
-    """Checkpoint 4 (30pt): Multiple references — bold, dark green 2, no duplicate slides."""
+    """Checkpoint 4 (50pt): Multiple references — bold, italic, dark cyan 1, 12pt, no duplicate slides."""
     _STEPS = [
         (1, "Bold for multi-slide refs", 10),
-        (2, "Dark green 2 for multi-slide refs", 10),
-        (3, "No duplicate slide numbers", 10),
+        (2, "Italic for multi-slide refs", 10),
+        (3, "Dark cyan 1 for multi-slide refs", 10),
+        (4, "12pt font size for multi-slide refs", 10),
+        (5, "No duplicate slide numbers", 10),
     ]
     start = time.time()
-    checkpoint = Checkpoint(total=30, result=0, name="Multiple references")
+    checkpoint = Checkpoint(total=50, result=0, name="Multiple references")
     _added = set()
 
     try:
@@ -791,42 +808,119 @@ def grade_checkpoint_4():
                 )
             _added.add(1)
 
-            # --- Step 2: Dark green 2 (and only the hyperlink) ---
+            # --- Step 2: Italic (and only the hyperlink) ---
             t = time.time()
             try:
-                green_pass = 0
-                green_details = []
+                italic_pass = 0
+                italic_details = []
                 for gold_item in multi_slide_gold:
                     ref = gold_to_doc[(gold_item["lecture"], gold_item["url"])]
                     if not ref:
-                        green_details.append(f"Missing: '{gold_item['name']}'")
+                        italic_details.append(f"Missing: '{gold_item['name']}'")
                         continue
-                    if ref["link_is_dark_green_2"] and not ref.get("non_link_is_dark_green_2", False):
-                        green_pass += 1
-                    elif not ref["link_is_dark_green_2"]:
-                        green_details.append(f"Hyperlink not dark green 2: '{gold_item['name']}' in '{gold_item['lecture']}'")
+                    if ref.get("link_is_italic") and not ref.get("non_link_is_italic", False):
+                        italic_pass += 1
+                    elif not ref.get("link_is_italic"):
+                        italic_details.append(
+                            f"Hyperlink not italic: '{gold_item['name']}' in '{gold_item['lecture']}'"
+                        )
                     else:
-                        green_details.append(
-                            f"Surrounding text also dark green 2 (must be only the hyperlink): "
+                        italic_details.append(
+                            f"Surrounding text also italic (must be only the hyperlink): "
                             f"'{gold_item['name']}' in '{gold_item['lecture']}'"
                         )
-                score_2 = calculate_percentage_score(green_pass, total_multi, 10)
+                score_2 = calculate_percentage_score(italic_pass, total_multi, 10)
                 checkpoint.add_step(
-                    name="Dark green 2 for multi-slide refs",
-                    success=(green_pass == total_multi), step_id=2,
-                    details=f"{green_pass}/{total_multi} multi-slide refs are dark green 2 (only hyperlink). "
-                            + "; ".join(green_details[:5]) if green_details else f"{green_pass}/{total_multi} all dark green 2",
+                    name="Italic for multi-slide refs",
+                    success=(italic_pass == total_multi), step_id=2,
+                    details=f"{italic_pass}/{total_multi} multi-slide refs are italic (only hyperlink). "
+                            + "; ".join(italic_details[:5]) if italic_details else f"{italic_pass}/{total_multi} all italic",
                     score=score_2, max_score=10, execution_time=time.time() - t,
                 )
             except Exception as e:
                 checkpoint.add_step(
-                    name="Dark green 2 for multi-slide refs",
+                    name="Italic for multi-slide refs",
                     success=False, step_id=2, details=f"Step evaluation error: {e}",
                     score=0, max_score=10, execution_time=time.time() - t,
                 )
             _added.add(2)
 
-            # --- Step 3: No duplicate slide numbers ---
+            # --- Step 3: Dark cyan 1 (and only the hyperlink) ---
+            t = time.time()
+            try:
+                cyan_pass = 0
+                cyan_details = []
+                for gold_item in multi_slide_gold:
+                    ref = gold_to_doc[(gold_item["lecture"], gold_item["url"])]
+                    if not ref:
+                        cyan_details.append(f"Missing: '{gold_item['name']}'")
+                        continue
+                    if ref.get("link_is_dark_cyan_1") and not ref.get("non_link_is_dark_cyan_1", False):
+                        cyan_pass += 1
+                    elif not ref.get("link_is_dark_cyan_1"):
+                        cyan_details.append(
+                            f"Hyperlink not dark cyan 1: '{gold_item['name']}' in '{gold_item['lecture']}'"
+                        )
+                    else:
+                        cyan_details.append(
+                            f"Surrounding text also dark cyan 1 (must be only the hyperlink): "
+                            f"'{gold_item['name']}' in '{gold_item['lecture']}'"
+                        )
+                score_3 = calculate_percentage_score(cyan_pass, total_multi, 10)
+                checkpoint.add_step(
+                    name="Dark cyan 1 for multi-slide refs",
+                    success=(cyan_pass == total_multi), step_id=3,
+                    details=f"{cyan_pass}/{total_multi} multi-slide refs are dark cyan 1 (only hyperlink). "
+                            + "; ".join(cyan_details[:5]) if cyan_details else f"{cyan_pass}/{total_multi} all dark cyan 1",
+                    score=score_3, max_score=10, execution_time=time.time() - t,
+                )
+            except Exception as e:
+                checkpoint.add_step(
+                    name="Dark cyan 1 for multi-slide refs",
+                    success=False, step_id=3, details=f"Step evaluation error: {e}",
+                    score=0, max_score=10, execution_time=time.time() - t,
+                )
+            _added.add(3)
+
+            # --- Step 4: 12pt font size (and only the hyperlink) ---
+            t = time.time()
+            try:
+                font_pass = 0
+                font_details = []
+                for gold_item in multi_slide_gold:
+                    ref = gold_to_doc[(gold_item["lecture"], gold_item["url"])]
+                    if not ref:
+                        font_details.append(f"Missing: '{gold_item['name']}'")
+                        continue
+                    link_font = ref.get("link_font_size")
+                    if link_font == 12 and not ref.get("non_link_is_12pt", False):
+                        font_pass += 1
+                    elif link_font != 12:
+                        font_details.append(
+                            f"Hyperlink not 12pt (got {link_font}pt): '{gold_item['name']}' in '{gold_item['lecture']}'"
+                        )
+                    else:
+                        font_details.append(
+                            f"Surrounding text also 12pt (must be only the hyperlink): "
+                            f"'{gold_item['name']}' in '{gold_item['lecture']}'"
+                        )
+                score_4 = calculate_percentage_score(font_pass, total_multi, 10)
+                checkpoint.add_step(
+                    name="12pt font size for multi-slide refs",
+                    success=(font_pass == total_multi), step_id=4,
+                    details=f"{font_pass}/{total_multi} multi-slide refs are 12pt (only hyperlink). "
+                            + "; ".join(font_details[:5]) if font_details else f"{font_pass}/{total_multi} all 12pt",
+                    score=score_4, max_score=10, execution_time=time.time() - t,
+                )
+            except Exception as e:
+                checkpoint.add_step(
+                    name="12pt font size for multi-slide refs",
+                    success=False, step_id=4, details=f"Step evaluation error: {e}",
+                    score=0, max_score=10, execution_time=time.time() - t,
+                )
+            _added.add(4)
+
+            # --- Step 5: No duplicate slide numbers ---
             t = time.time()
             try:
                 no_dup_pass = 0
@@ -841,21 +935,21 @@ def grade_checkpoint_4():
                         no_dup_pass += 1
                     else:
                         dup_details.append(f"Duplicate slides {slide_nums}: '{gold_item['name']}'")
-                score_3 = calculate_percentage_score(no_dup_pass, total_multi, 10)
+                score_5 = calculate_percentage_score(no_dup_pass, total_multi, 10)
                 checkpoint.add_step(
                     name="No duplicate slide numbers",
-                    success=(no_dup_pass == total_multi), step_id=3,
+                    success=(no_dup_pass == total_multi), step_id=5,
                     details=f"{no_dup_pass}/{total_multi} have unique slide numbers. "
                             + "; ".join(dup_details[:5]) if dup_details else f"{no_dup_pass}/{total_multi} all unique",
-                    score=score_3, max_score=10, execution_time=time.time() - t,
+                    score=score_5, max_score=10, execution_time=time.time() - t,
                 )
             except Exception as e:
                 checkpoint.add_step(
                     name="No duplicate slide numbers",
-                    success=False, step_id=3, details=f"Step evaluation error: {e}",
+                    success=False, step_id=5, details=f"Step evaluation error: {e}",
                     score=0, max_score=10, execution_time=time.time() - t,
                 )
-            _added.add(3)
+            _added.add(5)
 
     except Exception as e:
         for sid, sname, smax in _STEPS:
@@ -886,7 +980,7 @@ def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history=Non
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Evaluate docs_37_reference_list")
+    parser = argparse.ArgumentParser(description="Evaluate docs_37_reference_list instance_2")
     parser.add_argument("--workspace_doc_id", type=str, required=True, help="Google Docs document ID")
     parser.add_argument("--browsing_history", nargs='+', help="List of URLs visited during task")
     parser.add_argument("--cached_models", type=dict, default=None, help="Dictionary of preloaded models")
@@ -897,7 +991,7 @@ if __name__ == "__main__":
         cached_models=args.cached_models,
         browsing_history=args.browsing_history,
     )
-    
+
     score = result.final_score
 
     print("=== EVALUATION RESULTS ===")
