@@ -1,5 +1,5 @@
 Structure a formal letter written in my name using Google Docs.
-Use my website for my info: https://www.coalas-lab.com/elisakreiss.
+Use my website for my info: https://elisakreiss.com/.
 Include my employer's logo in the upper left corner if available online. Use the first affiliation listed if multiple exist. For incoming positions, use the future institution.
 Include the following information in the letter header:
 

@@ -762,6 +762,73 @@ def get_smallest_x_position(text_ocr):
                 smallest_x = line['location'].x
     return smallest_x
 
+def strip_label_prefix(text):
+    """Strip common label prefixes like 'Email:', 'GitHub:', 'LinkedIn:' from text lines.
+
+    Args:
+        text (str): Text potentially containing label prefixes.
+
+    Returns:
+        str: Text with prefixes removed from each line.
+    """
+    prefixes = ["email:", "github:", "linkedin:", "phone:", "website:", "address:"]
+    lines = text.split("\n")
+    stripped = []
+    for line in lines:
+        trimmed = line.strip()
+        lower = trimmed.lower()
+        for p in prefixes:
+            if lower.startswith(p):
+                trimmed = trimmed[len(p):].strip()
+                break
+        stripped.append(trimmed)
+    return "\n".join(stripped)
+
+
+def find_gold_text_location(target_text, doc_structure, text_ocr, threshold=60):
+    """Find OCR position of text by matching structural doc lines to OCR lines.
+
+    Uses the Google Docs API structure to find which line contains the target
+    text, then fuzzy-matches that line against OCR output to get pixel position.
+    Useful when OCR mangles text (e.g. URLs) but the line is still recognizable.
+
+    Args:
+        target_text (str): The text to locate (e.g. an email address or URL).
+        doc_structure (list): Document structure from extract_structure_from_doc().
+        text_ocr (dict): OCR result from extract_text_from_pdf().
+        threshold (int): Minimum fuzzy match score (0-100).
+
+    Returns:
+        location: Location object from the best-matching OCR line, or None.
+    """
+    if not target_text or not doc_structure or not text_ocr:
+        return None
+
+    # 1. Find the structural line containing target_text
+    gold_line = None
+    for elem in doc_structure:
+        if elem.get("type") == "text" and target_text.lower() in elem.get("content", "").lower():
+            gold_line = elem["content"].strip()
+            break
+    if gold_line is None:
+        return None
+
+    # 2. Fuzzy match gold_line against all OCR lines
+    best_match = None
+    best_score = 0
+    for page_num, lines in text_ocr.items():
+        for line in lines:
+            is_match, score = fuzzy_match_text(gold_line, line["text"], threshold=threshold)
+            if score > best_score:
+                best_score = score
+                best_match = line["location"]
+
+    if best_match and best_score >= threshold:
+        print(f"Fuzzy matched gold line '{gold_line[:50]}' to OCR (score={best_score})")
+        return best_match
+    return None
+
+
 def fuzzy_match_text(text1: str, text2: str, threshold: int = 80) -> tuple:
     """Perform fuzzy matching between two texts.
 

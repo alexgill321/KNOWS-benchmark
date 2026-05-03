@@ -19,6 +19,22 @@ class location(object):
     def __repr__(self):
         return f"Location(page_number={self.page_number}, x={self.x}, y={self.y}, width={self.width}, height={self.height})"
     
+    def describe(self, dpi=300):
+        """Return a human-readable description of this location.
+
+        Args:
+            dpi (int): The DPI used to render the page. Default 300.
+
+        Returns:
+            str: e.g. "page 1, 12% from left, 16% from top"
+        """
+        scale = dpi / 300
+        page_w = 2550 * scale
+        page_h = 3300 * scale
+        x_pct = self.x / page_w * 100
+        y_pct = self.y / page_h * 100
+        return f"page {self.page_number + 1}, {x_pct:.0f}% from left, {y_pct:.0f}% from top"
+
     def is_upper_left(self, mostly=False):
         """
         Assumes a standard coordinate system where (0,0) is the top-left corner, and y increases downwards.

@@ -152,6 +152,94 @@ def binary_judge_image(model, image_path, text, examples=None):
     return None
 
 
+def verify_image_in_region(model, pdf_images_dir, gold_image_path, region="upper_left", dpi=300):
+    """Verify a gold image is fully visible in a region of the document page using a VLM.
+
+    Crops the specified region from the first page of the rendered PDF, then asks
+    a VLM whether the gold image appears fully (not cropped) in that region.
+
+    Args:
+        model: The pre-trained VLM model to use.
+        pdf_images_dir (str): Directory containing rendered PDF page images (page_001.png, etc.).
+        gold_image_path (str): Path to the gold image (e.g. logo) to look for.
+        region (str): Region to crop. One of "upper_left", "upper_right", "lower_left", "lower_right".
+        dpi (int): DPI used to render the PDF pages. Default 300.
+
+    Returns:
+        bool: True if the VLM confirms the image is fully visible in the region.
+    """
+    import glob
+
+    # Find the first page image
+    page_images = sorted(glob.glob(os.path.join(pdf_images_dir, "page_*.png")))
+    if not page_images:
+        print(f"No page images found in {pdf_images_dir}")
+        return False
+
+    page_img = Image.open(page_images[0])
+    w, h = page_img.size
+
+    # Define region crop box (left, upper, right, lower)
+    regions = {
+        "upper_left":  (0, 0, w // 2, h // 3),
+        "upper_right": (w // 2, 0, w, h // 3),
+        "lower_left":  (0, 2 * h // 3, w // 2, h),
+        "lower_right": (w // 2, 2 * h // 3, w, h),
+    }
+
+    if region not in regions:
+        print(f"Unknown region: {region}")
+        return False
+
+    crop_box = regions[region]
+    cropped = page_img.crop(crop_box)
+
+    # Save cropped region to a temp file
+    crop_path = os.path.join(pdf_images_dir, f"_region_{region}.png")
+    cropped.save(crop_path)
+
+    try:
+        # Prepare gold image examples
+        gold_content = []
+        if os.path.isdir(gold_image_path):
+            for filename in os.listdir(gold_image_path):
+                if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
+                    gold_content.append({"type": "image", "image": os.path.join(gold_image_path, filename)})
+            if gold_content:
+                gold_content.insert(0, {"type": "text", "text": "Here is the logo to look for:"})
+        else:
+            gold_content = [
+                {"type": "text", "text": "Here is the logo to look for:"},
+                {"type": "image", "image": gold_image_path},
+            ]
+
+        messages = [
+            {
+                "role": "system",
+                "content": [{"type": "text", "text": "You are checking whether a specific logo appears in a document screenshot. Answer only 'Yes' or 'No'."}]
+            },
+            {
+                "role": "user",
+                "content": gold_content + [
+                    {"type": "image", "image": crop_path},
+                    {"type": "text", "text": "Is this image fully visible (not cropped or cut off) in this document screenshot? Answer Yes or No."},
+                ]
+            },
+        ]
+
+        response = model(messages)
+        result = parse_response(response)
+        print(f"VLM logo region check ({region}): {response}")
+        return result is True
+
+    except Exception as e:
+        print(f"Error in verify_image_in_region: {e}")
+        return False
+    finally:
+        if os.path.exists(crop_path):
+            os.remove(crop_path)
+
+
 def binary_compare_images(model, image1_path, image2_path, mode="same"):
     """Compare two images using a VLM with different comparison modes.
 

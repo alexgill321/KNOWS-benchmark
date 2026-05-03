@@ -20,6 +20,8 @@ def parse_response(response):
         bool or None: True if the response contains "yes", False if it contains "no",
             None if neither is found.
     """
+    if response is None:
+        return None
     response = response.lower()
     if "yes" in response:
         return True
