@@ -17,7 +17,7 @@ Car content slides exists and have correct cars.
 
 ### Outcome Evaluation:
 
-- The browsing history contains a visit to the article talking about 2023 best minivans.
+- The browsing history contains a visit to the article talking about 2015 best diesel sedans.
 - There are at least 5 slides, each contains the name of a car that meets the category and year. (5pts total).
 
 # Checkpoint 3 (50pt):
