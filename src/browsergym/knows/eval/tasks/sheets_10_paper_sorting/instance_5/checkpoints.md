@@ -60,6 +60,6 @@ The spreadsheet contains correct information for all new papers added by the age
 Rows are correctly highlighted and organized by color grouping.
 
 ### Eval Steps:
-1. **Yellow Highlighting:** Binary (pass/fail) - all papers that mention "chain-of-thought" in related works or similar section are highlighted.
+1. **Yellow Highlighting:** Binary (pass/fail) - all papers that mention "Bayesian" in related works or similar section are highlighted.
 2. **Row Grouping:** Binary (pass/fail) - rows must be grouped by highlight color (not interleaved).
 3. **Text Overflow:** No text in any cell is hidden due to cell overflow issues.

@@ -33,13 +33,28 @@ BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 from rapidfuzz import fuzz
+from src.browsergym.knows.eval.eval_utils.text_utils import fuzzy_match_text
 
 # Task-level constants
 # Note: TASK_DIR points to the template level. Instance-specific data is in instance_X/data/
 TASK_DIR = os.path.dirname(os.path.abspath(__file__))
-# Default DATA_DIR for backwards compatibility (instance_1)
-DATA_DIR = os.path.join(TASK_DIR, "instance_1", "data")
-FIGURES_DIR = os.path.join(DATA_DIR, "gold_figures")
+
+# Instance-aware directory helpers
+def get_instance_dir(instance: int = 1) -> str:
+    """Get the directory for a specific instance."""
+    return os.path.join(TASK_DIR, f"instance_{instance}")
+
+def get_data_dir(instance: int = 1) -> str:
+    """Get the data directory for a specific instance."""
+    return os.path.join(get_instance_dir(instance), "data")
+
+def get_figures_dir(instance: int = 1) -> str:
+    """Get the gold figures directory for a specific instance."""
+    return os.path.join(get_data_dir(instance), "gold_figures")
+
+# Default dirs for backwards compatibility (instance_1)
+DATA_DIR = get_data_dir(1)
+FIGURES_DIR = get_figures_dir(1)
 
 # HTTP headers for arXiv requests (avoid 403 errors)
 ARXIV_HEADERS = {
@@ -52,36 +67,38 @@ ARXIV_HEADERS = {
 # Shared Helper Functions
 # ============================================================================
 
-def ensure_data_directories():
+def ensure_data_directories(instance: int = 1):
     """Create necessary data directories if they don't exist."""
-    os.makedirs(DATA_DIR, exist_ok=True)
-    os.makedirs(FIGURES_DIR, exist_ok=True)
+    os.makedirs(get_data_dir(instance), exist_ok=True)
+    os.makedirs(get_figures_dir(instance), exist_ok=True)
 
 
-def load_json(filename: str) -> Optional[Dict]:
+def load_json(filename: str, instance: int = 1) -> Optional[Dict]:
     """Load JSON file from data directory.
 
     Args:
         filename: Name of the JSON file (e.g., 'gold_papers.json')
+        instance: Instance number (default: 1)
 
     Returns:
         Parsed JSON data, or None if file doesn't exist.
     """
-    filepath = os.path.join(DATA_DIR, filename)
+    filepath = os.path.join(get_data_dir(instance), filename)
     if not os.path.exists(filepath):
         return None
     with open(filepath, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 
-def save_json(data: Any, filename: str):
+def save_json(data: Any, filename: str, instance: int = 1):
     """Save data to JSON file in data directory.
 
     Args:
         data: Data to save (dict, list, etc.)
         filename: Name of the JSON file (e.g., 'gold_papers.json')
+        instance: Instance number (default: 1)
     """
-    filepath = os.path.join(DATA_DIR, filename)
+    filepath = os.path.join(get_data_dir(instance), filename)
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False, default=str)
     print(f"Saved: {filepath}")
@@ -1372,28 +1389,26 @@ Then briefly explain your reasoning."""
         return False, f"Error: {e}"
 
 
-def detect_chain_of_thought_in_text(text: str, model) -> Tuple[bool, str]:
-    """Use LLM to check if text contains meaningful chain-of-thought mentions.
+def detect_keyword_in_text(text: str, keyword: str, model) -> Tuple[bool, str]:
+    """Use LLM to check if text contains meaningful mentions of a keyword.
 
     Args:
         text: Text content from Related Work section.
+        keyword: The keyword/phrase to search for.
         model: LLM model to use for analysis.
 
     Returns:
-        Tuple of (has_cot, explanation).
+        Tuple of (has_keyword, explanation).
     """
     # Truncate to avoid token limits
     text_truncated = text[:8000] if len(text) > 8000 else text
 
     prompt = f"""Analyze this Related Work section from an academic paper.
 
-Does it contain meaningful mentions of "chain-of-thought" in the context of AI/ML?
+Does it contain meaningful mentions of "{keyword}"?
 
-Note: We're looking for actual discussions of chain-of-thought (CoT) prompting or reasoning,
-not incidental mentions. This includes:
-- Chain-of-thought prompting
-- CoT reasoning
-- Step-by-step reasoning similar to chain-of-thought
+Note: We're looking for actual discussions of "{keyword}" as a concept or technique,
+not incidental or passing mentions.
 
 Related Work text:
 ```
@@ -1401,7 +1416,7 @@ Related Work text:
 ```
 
 Answer with:
-- YES if there are meaningful chain-of-thought mentions
+- YES if there are meaningful mentions of "{keyword}"
 - NO if there are no mentions or only incidental ones
 
 Then briefly explain your reasoning."""
@@ -1419,43 +1434,139 @@ Then briefly explain your reasoning."""
 
     try:
         response = model(messages).strip()
-        has_cot = response.upper().startswith('YES')
-        return has_cot, response
+        has_keyword = response.upper().startswith('YES')
+        return has_keyword, response
     except Exception as e:
         return False, f"Error: {e}"
+
+
+def detect_chain_of_thought_in_text(text: str, model) -> Tuple[bool, str]:
+    """Use LLM to check if text contains meaningful chain-of-thought mentions.
+
+    Convenience wrapper around detect_keyword_in_text for backward compatibility.
+    """
+    return detect_keyword_in_text(text, "chain-of-thought", model)
+
+
+def detect_keyword_simple(text: str, keyword: str) -> bool:
+    """Simple regex-based keyword detection in text.
+
+    Args:
+        text: Text to check for keyword mentions.
+        keyword: The keyword/phrase to search for.
+
+    Returns:
+        True if keyword is mentioned.
+    """
+    if not text or not keyword:
+        return False
+
+    # Escape the keyword for regex, but allow hyphens/spaces to be interchangeable
+    keyword_pattern = re.escape(keyword).replace(r'\-', r'[- ]').replace(r'\ ', r'[- ]')
+    return bool(re.search(keyword_pattern, text, re.IGNORECASE))
 
 
 def detect_chain_of_thought_simple(text: str) -> bool:
     """Simple regex-based chain-of-thought detection.
 
-    Args:
-        text: Text to check for chain-of-thought mentions.
-
-    Returns:
-        True if chain-of-thought is mentioned.
+    Convenience wrapper around detect_keyword_simple for backward compatibility.
     """
-    if not text:
-        return False
-
-    text_lower = text.lower()
-
-    # Look for "chain-of-thought" or "chain of thought" or "CoT"
-    patterns = [
-        r'chain[- ]of[- ]thought',
-        r'\bCoT\b',  # CoT as standalone word/abbreviation
-        r'CoT\s+(?:prompting|reasoning|approach)',
-    ]
-
-    for pattern in patterns:
-        if re.search(pattern, text_lower if 'cot' not in pattern.lower() else text):
-            return True
-
-    return False
+    return detect_keyword_simple(text, "chain-of-thought")
 
 
 # ============================================================================
 # Preprocessing Helper Functions
 # ============================================================================
+
+_shared_arxiv_client = None
+
+def _get_arxiv_client():
+    """Get or create a shared arxiv client with proper rate limiting."""
+    global _shared_arxiv_client
+    if _shared_arxiv_client is None:
+        import arxiv
+        _shared_arxiv_client = arxiv.Client(
+            delay_seconds=5,  # Conservative: 5s between requests
+            num_retries=5,
+        )
+    return _shared_arxiv_client
+
+
+def _arxiv_query_with_retry(search, max_retries: int = 3) -> list:
+    """Execute an arxiv search with retry and exponential backoff on 429s.
+
+    Args:
+        search: An arxiv.Search object.
+        max_retries: Maximum number of retry attempts.
+
+    Returns:
+        List of arxiv.Result objects.
+    """
+    import time
+
+    client = _get_arxiv_client()
+
+    for attempt in range(max_retries + 1):
+        try:
+            results = list(client.results(search))
+            return results
+        except Exception as e:
+            error_str = str(e)
+            if '429' in error_str and attempt < max_retries:
+                wait_time = 10 * (2 ** attempt)  # 10s, 20s, 40s
+                print(f"      arXiv rate limited (429), waiting {wait_time}s (attempt {attempt + 1}/{max_retries})...")
+                time.sleep(wait_time)
+            else:
+                raise
+
+    return []
+
+
+def _parse_arxiv_result(result) -> Dict:
+    """Convert an arxiv.Result to our standard paper dict."""
+    raw_id = result.entry_id.split('/')[-1]
+    arxiv_id = re.sub(r'v\d+$', '', raw_id)
+    return {
+        'arxiv_id': arxiv_id,
+        'title': result.title,
+        'authors': [str(a) for a in result.authors],
+        'abstract': result.summary,
+        'pdf_url': result.pdf_url,
+    }
+
+
+def fetch_arxiv_batch(arxiv_ids: List[str]) -> List[Dict]:
+    """Fetch metadata for multiple papers by arXiv ID in a single API call.
+
+    Uses the arxiv id_list parameter to batch-fetch papers, avoiding
+    per-paper API calls.
+
+    Args:
+        arxiv_ids: List of arXiv IDs (e.g., ["2301.12345", "2405.00357"]).
+
+    Returns:
+        List of paper dicts with metadata.
+    """
+    if not arxiv_ids:
+        return []
+
+    try:
+        import arxiv
+
+        search = arxiv.Search(id_list=arxiv_ids)
+        results = _arxiv_query_with_retry(search)
+
+        papers = [_parse_arxiv_result(r) for r in results]
+        print(f"      Batch-fetched {len(papers)}/{len(arxiv_ids)} papers from arXiv")
+        return papers
+
+    except ImportError:
+        print("Warning: arxiv package not installed")
+        return []
+    except Exception as e:
+        print(f"Error batch-fetching from arXiv: {e}")
+        return []
+
 
 def search_arxiv_by_title(title: str, max_results: int = 5) -> Optional[Dict]:
     """Search arXiv for a paper by title.
@@ -1470,14 +1581,13 @@ def search_arxiv_by_title(title: str, max_results: int = 5) -> Optional[Dict]:
     try:
         import arxiv
 
-        client = arxiv.Client()
         search = arxiv.Search(
             query=f'ti:"{title}"',
             max_results=max_results,
             sort_by=arxiv.SortCriterion.Relevance
         )
 
-        results = list(client.results(search))
+        results = _arxiv_query_with_retry(search)
 
         if not results:
             return None
@@ -1493,18 +1603,9 @@ def search_arxiv_by_title(title: str, max_results: int = 5) -> Optional[Dict]:
                 best_match = result
 
         if best_match and best_score >= 80:
-            # Extract arXiv ID from entry_id (e.g., "http://arxiv.org/abs/2507.20534v1")
-            raw_id = best_match.entry_id.split('/')[-1]
-            # Remove version suffix (e.g., "v1", "v2")
-            arxiv_id = re.sub(r'v\d+$', '', raw_id)
-            return {
-                'arxiv_id': arxiv_id,
-                'title': best_match.title,
-                'authors': [str(a) for a in best_match.authors],
-                'abstract': best_match.summary,
-                'pdf_url': best_match.pdf_url,
-                'match_score': best_score
-            }
+            paper = _parse_arxiv_result(best_match)
+            paper['match_score'] = best_score
+            return paper
 
         return None
 
@@ -1531,31 +1632,14 @@ def search_arxiv_by_author(author_name: str, max_results: int = 50) -> List[Dict
     try:
         import arxiv
 
-        client = arxiv.Client()
         search = arxiv.Search(
             query=f'au:"{author_name}"',
             max_results=max_results,
             sort_by=arxiv.SortCriterion.SubmittedDate
         )
 
-        results = list(client.results(search))
-        papers = []
-
-        for result in results:
-            # Extract arXiv ID from entry_id (e.g., "http://arxiv.org/abs/2507.20534v1")
-            raw_id = result.entry_id.split('/')[-1]
-            # Remove version suffix (e.g., "v1", "v2")
-            arxiv_id = re.sub(r'v\d+$', '', raw_id)
-
-            papers.append({
-                'arxiv_id': arxiv_id,
-                'title': result.title,
-                'authors': [str(a) for a in result.authors],
-                'abstract': result.summary,
-                'pdf_url': result.pdf_url,
-            })
-
-        return papers
+        results = _arxiv_query_with_retry(search)
+        return [_parse_arxiv_result(r) for r in results]
 
     except ImportError:
         print("Warning: arxiv package not installed")

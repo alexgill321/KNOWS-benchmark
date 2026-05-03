@@ -7,11 +7,12 @@ Uses 3-stage approach:
 3. VLM - Use vision-language model on images as final fallback
 
 Usage:
-    python extract_figures.py [--skip-llm] [--papers-only] [--new-papers-only]
+    python extract_figures.py --instance 1
+    python extract_figures.py --instance 2 [--skip-llm] [--papers-only] [--new-papers-only]
 
-This script reads gold_papers.json and gold_new_papers.json, extracts Figure 1
-for each paper, saves the images to data/gold_figures/, and updates the JSON
-files with figure_1_path.
+This script reads gold_papers.json and gold_new_papers.json from the specified
+instance's data directory, extracts Figure 1 for each paper, saves the images
+to data/gold_figures/, and updates the JSON files with figure_1_path.
 """
 
 import os
@@ -25,7 +26,7 @@ from datetime import datetime
 # Local imports
 from utils import (
     BASE_PATH,
-    FIGURES_DIR,
+    get_figures_dir,
     ensure_data_directories,
     load_json,
     save_json,
@@ -44,13 +45,6 @@ def extract_figure_1(arxiv_id: str, model=None) -> Tuple[bool, Optional[bytes], 
     Stage 1: arXiv HTML (with LLM fallback)
     Stage 2: LaTeX parsing (with LLM fallback)
     Stage 3: VLM on images (if model provided)
-
-    Args:
-        arxiv_id: The arXiv paper ID.
-        model: Optional LLM/VLM model for fallback stages.
-
-    Returns:
-        Tuple of (success, image_bytes, message).
     """
     # Stage 1: Try arXiv HTML
     print(f"    Stage 1: Trying arXiv HTML...")
@@ -90,17 +84,9 @@ def extract_figure_1(arxiv_id: str, model=None) -> Tuple[bool, Optional[bytes], 
     return False, None, "All extraction stages failed"
 
 
-def process_papers(papers: List[Dict], prefix: str, model=None) -> Tuple[List[Dict], int, int]:
-    """Process a list of papers and extract Figure 1 for each.
-
-    Args:
-        papers: List of paper dicts with arxiv_id.
-        prefix: Prefix for output filenames ('original' or 'new').
-        model: Optional LLM model for fallback stages.
-
-    Returns:
-        Tuple of (updated_papers, found_count, not_found_count).
-    """
+def process_papers(papers: List[Dict], prefix: str, instance: int, model=None) -> Tuple[List[Dict], int, int]:
+    """Process a list of papers and extract Figure 1 for each."""
+    figures_dir = get_figures_dir(instance)
     found_count = 0
     not_found_count = 0
 
@@ -119,11 +105,9 @@ def process_papers(papers: List[Dict], prefix: str, model=None) -> Tuple[List[Di
         success, img_bytes, msg = extract_figure_1(arxiv_id, model=model)
 
         if success and img_bytes:
-            # Determine file extension based on content or default to PNG
             ext = '.png'
-
             dest_filename = f"{prefix}_{i+1}_fig1{ext}"
-            dest_path = os.path.join(FIGURES_DIR, dest_filename)
+            dest_path = os.path.join(figures_dir, dest_filename)
 
             with open(dest_path, 'wb') as f:
                 f.write(img_bytes)
@@ -147,6 +131,8 @@ def main():
     parser = argparse.ArgumentParser(
         description="Extract Figure 1 from arXiv papers using 3-stage approach"
     )
+    parser.add_argument('--instance', type=int, default=1,
+                        help="Instance number (default: 1)")
     parser.add_argument('--skip-llm', action='store_true',
                         help="Skip LLM-based extraction stages")
     parser.add_argument('--papers-only', action='store_true',
@@ -155,15 +141,17 @@ def main():
                         help="Only process new papers (gold_new_papers.json)")
     args = parser.parse_args()
 
+    instance = args.instance
+
     print("=" * 60)
-    print("Figure 1 Extraction Script")
+    print(f"Figure 1 Extraction Script (instance {instance})")
     print("=" * 60)
     print(f"Started at: {datetime.now().isoformat()}")
-    print(f"3-Stage approach: HTML → LaTeX → VLM")
+    print(f"3-Stage approach: HTML -> LaTeX -> VLM")
     print(f"LLM fallback: {'Disabled' if args.skip_llm else 'Enabled'}")
 
     # Ensure directories exist
-    ensure_data_directories()
+    ensure_data_directories(instance)
 
     # Load LLM model if needed
     model = None
@@ -181,15 +169,15 @@ def main():
 
     # Process original papers
     if not args.new_papers_only:
-        gold_papers = load_json("gold_papers.json")
+        gold_papers = load_json("gold_papers.json", instance)
         if gold_papers and 'papers' in gold_papers:
             print(f"\n=== Processing {len(gold_papers['papers'])} Original Papers ===")
             papers, found, not_found = process_papers(
-                gold_papers['papers'], 'original', model=model
+                gold_papers['papers'], 'original', instance, model=model
             )
             gold_papers['papers'] = papers
             gold_papers['figure_extraction_date'] = datetime.now().isoformat()
-            save_json(gold_papers, "gold_papers.json")
+            save_json(gold_papers, "gold_papers.json", instance)
 
             total_found += found
             total_not_found += not_found
@@ -199,15 +187,15 @@ def main():
 
     # Process new papers
     if not args.papers_only:
-        gold_new_papers = load_json("gold_new_papers.json")
+        gold_new_papers = load_json("gold_new_papers.json", instance)
         if gold_new_papers and 'papers' in gold_new_papers:
             print(f"\n=== Processing {len(gold_new_papers['papers'])} New Papers ===")
             papers, found, not_found = process_papers(
-                gold_new_papers['papers'], 'new', model=model
+                gold_new_papers['papers'], 'new', instance, model=model
             )
             gold_new_papers['papers'] = papers
             gold_new_papers['figure_extraction_date'] = datetime.now().isoformat()
-            save_json(gold_new_papers, "gold_new_papers.json")
+            save_json(gold_new_papers, "gold_new_papers.json", instance)
 
             total_found += found
             total_not_found += not_found
@@ -219,6 +207,7 @@ def main():
     print("\n" + "=" * 60)
     print("SUMMARY")
     print("=" * 60)
+    print(f"Instance: {instance}")
     print(f"Total Figure 1 found: {total_found}")
     print(f"Total not found: {total_not_found}")
     print(f"Success rate: {total_found / (total_found + total_not_found) * 100:.1f}%"

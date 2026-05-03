@@ -1,0 +1,165 @@
+{
+  "original_papers": [
+    {
+      "original_paper_title": "Semi-empirical Models of Galaxy Formation and Evolution",
+      "original_paper_arxiv_id": "2502.12764",
+      "first_authors": [
+        "Andrea Lapi"
+      ],
+      "normalized_first_authors": [
+        "andrea lapi"
+      ],
+      "gscholar_urls": [
+        "https://scholar.google.com/citations?user=SsSpUs0AAAAJ&hl=en&oi=sra"
+      ],
+      "new_papers_count": 44,
+      "new_paper_arxiv_ids": [
+        "2406.07605",
+        "2403.07109",
+        "2408.16823",
+        "2402.05994",
+        "2505.02920",
+        "2410.21401",
+        "2402.12427",
+        "2503.00112",
+        "2405.06010",
+        "2407.08778",
+        "2509.01664",
+        "2412.07533",
+        "2401.04698",
+        "2502.05823",
+        "2406.07901",
+        "2403.02123",
+        "2410.05385",
+        "2503.22543",
+        "2407.16787",
+        "2403.07060",
+        "2504.00192",
+        "2401.17299",
+        "2501.09662",
+        "2407.19007",
+        "2409.09118",
+        "2408.08611",
+        "2601.23250",
+        "2503.10811",
+        "2507.16614",
+        "2502.06942",
+        "2404.09673",
+        "2403.17276",
+        "2509.04553",
+        "2507.15436",
+        "2512.06089",
+        "2510.22633",
+        "2504.16685",
+        "2603.25650",
+        "2511.16753",
+        "2510.26305",
+        "2509.04224",
+        "2507.09175",
+        "2412.10030",
+        "2412.09134"
+      ],
+      "new_paper_titles": [
+        "Unveiling the (in)consistencies among the galaxy stellar mass function, star formation histories, satellite abundances and intracluster light from a semi-empirical perspective",
+        "Accretion properties of X-ray AGN: Evidence for radiation-regulated obscuration with redshift-dependent host galaxy contribution",
+        "The cosmic rate of Pair-Instability Supernovae",
+        "Dark progenitors and massive descendants: A first ALMA perspective on Radio-Selected NIRdark galaxies in the COSMOS field",
+        "Probing the co-evolution of SMBHs and their hosts from scaling relations pairwise residuals: dominance of stellar velocity dispersion and host halo mass",
+        "The more accurately the metal-dependent star formation rate is modeled, the larger the predicted excess of binary black hole mergers",
+        "GalaPy, the highly optimised C++/Python spectral modelling tool for galaxies -- I. Library presentation and photometric fitting",
+        "Going deeper into the dark with COSMOS-Web: JWST unveils the total contribution of Radio-Selected NIRfaint galaxies to the cosmic Star Formation Rate Density",
+        "The miniJPAS Survey: The radial distribution of star formation rates in faint X-ray active galactic nuclei",
+        "Mass Modeling and Kinematics of Galaxy Clusters in Modified Gravity",
+        "Mysteries of Capotauro: investigating the puzzling nature of an extreme F356W-dropout",
+        "Ultra-compact Objects of Non-minimally Coupled Dark Matter",
+        "Caustic and hydrostatic mass bias: Implications for modified gravity",
+        "Little ado about everything II: an `emergent' dark energy from structure formation to rule cosmic tensions",
+        "The resolved star formation law in NGC 7469 from JWST, ALMA and VLA",
+        "Observing Dusty Star-Forming Galaxies at the Cosmic Noon through Gravitational Lensing: Perspectives from New Generation Telescopes",
+        "Dust sub-millimetre emission in green valley galaxies",
+        "StAGE: Stellar Archaeology-driven Galaxy Evolution",
+        "A Relativistic Scalar Model for Fractional Interaction between Dark Matter and Gravity",
+        "Scrutinising evidence for the triggering of Active Galactic Nuclei in the outskirts of massive galaxy clusters at $z\\approx1$",
+        "An Updated Repository of Sub-mJy Extragalactic Source-Count Measurements in the Radio Domain",
+        "Ionised AGN outflows in the Goldfish galaxy -- The illuminating and interacting red quasar eFEDSJ091157.4+014327 at z $\\sim$ 0.6",
+        "SHORES: Serendipitous H-ATLAS-fields Observations of Radio Extragalactic Sources with the ATCA. I: catalog generation and analysis",
+        "Semi-Empirical Approach to [CII] Line Intensity Mapping",
+        "Constraining the Initial-Mass Function via Stellar Transients",
+        "Semi-empirical Estimates of the Cosmic Planet Formation Rate",
+        "Too many or too massive? Investigating the high-$z$ demography of active SMBHs from JWST",
+        "A FLASH on Blazars: Capturing the Radio Realm of 4FGL Blazars with SKAO Pathfinders",
+        "Cosmology with a Non-minimally Coupled Dark Matter Fluid I. Background Evolution",
+        "Shedding light on the star formation rate-halo accretion rate connection and halo quenching mechanism via DECODE, the Discrete statistical sEmi-empiriCal mODEl",
+        "Astrochemistry of the molecular gas in Dusty Star-Forming Galaxies at the Cosmic Noon",
+        "Teaming-up radio and submm-FIR observations to probe dusty star-forming galaxies",
+        "Characterizing the roles of transitory obscured phases and inner torus in shaping the fractions of obscured AGN at cosmic noon",
+        "Semi-empirical Framework of Supermassive Black Hole Evolution: Highlighting a possible tension between Demographics and Gravitational Wave Background",
+        "SHORES II: Multi-frequency Characterisation of the Sub-mJy Radio Population in FIR-selected Fields",
+        "Cosmic magnification on high-redshift submillimeter galaxies",
+        "Outer regions of galaxy clusters as a new probe to test modifications to gravity",
+        "Painting a full radio sky -- Empirical mock catalogues with multiple source populations for future radio surveys",
+        "The ViSta method for stacking in the Fourier domain and its application to the dusty star-forming galaxies in the ALMA Science Archive",
+        "The role of black hole feedback on galaxy star formation and the degeneracy with halo quenching",
+        "Cosmography via stellar archaeology of low-redshift early-type galaxies from SDSS",
+        "Combining (post-)Newtonian ideas with quasi-equilibrium (QE) sequence analysis for black hole-neutron star (BHNS) gravitational wave events",
+        "A Relativistic Tensorial Model for Fractional Interaction between Dark Matter and Gravity",
+        "Modified gravity in galaxy clusters: Joint analysis of Hydrostatics and Caustics"
+      ],
+      "expected_new_papers": 3
+    },
+    {
+      "original_paper_title": "Rapid detection of gravitational waves from binary black hole mergers using sparse\ndictionary learning",
+      "original_paper_arxiv_id": "2405.17721",
+      "first_authors": [
+        "Charles Badger\nRahul Srinivasan"
+      ],
+      "normalized_first_authors": [
+        "charles badger rahul srinivasan"
+      ],
+      "gscholar_urls": [
+        "https://scholar.google.com/citations?user=bvqMseUAAAAJ&hl=en&oi=sra",
+        "https://scholar.google.com/citations?user=V74safsAAAAJ&hl=en&oi=sra"
+      ],
+      "new_papers_count": 0,
+      "new_paper_arxiv_ids": [],
+      "new_paper_titles": [],
+      "expected_new_papers": 0
+    },
+    {
+      "original_paper_title": "Real-time gravitational-wave inference for binary neutron stars using machine learning",
+      "original_paper_arxiv_id": "2407.09602",
+      "first_authors": [
+        "Maximilian Dax"
+      ],
+      "normalized_first_authors": [
+        "maximilian dax"
+      ],
+      "gscholar_urls": [
+        "https://scholar.google.com/citations?user=VRBv6mEAAAAJ&hl=en&oi=sra"
+      ],
+      "new_papers_count": 0,
+      "new_paper_arxiv_ids": [],
+      "new_paper_titles": [],
+      "expected_new_papers": 0
+    },
+    {
+      "original_paper_title": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
+      "original_paper_arxiv_id": null,
+      "first_authors": [
+        "Mohammad Malekjani"
+      ],
+      "normalized_first_authors": [
+        "mohammad malekjani"
+      ],
+      "gscholar_urls": [
+        "https://scholar.google.com/citations?user=8zZWSb8AAAAJ&hl=en&oi=sra"
+      ],
+      "new_papers_count": 0,
+      "new_paper_arxiv_ids": [],
+      "new_paper_titles": [],
+      "expected_new_papers": 0
+    }
+  ],
+  "count": 4,
+  "generated_at": "2026-05-02T16:27:45.135547"
+}
