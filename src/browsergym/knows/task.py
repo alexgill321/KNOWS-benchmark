@@ -18,6 +18,7 @@ import json
 import importlib
 import importlib.util
 import sys
+import subprocess
 import types
 import re
 from abc import abstractmethod
@@ -1037,6 +1038,70 @@ class SheetsPaperSortingTask(KnowsWorkspaceTask):
     TASK_ID_PREFIX = "knows.sheets_10_paper_sorting"
     WORKSPACE_KIND = WORKSPACE_KIND_SHEETS
     AVAILABLE_INSTANCES: Tuple[int, ...] = (1,)
+
+    def setup(self, page: playwright.sync_api.Page) -> Tuple[str, dict]:
+        self._run_required_preprocess()
+        return super().setup(page)
+
+    def _run_required_preprocess(self) -> None:
+        """Run sheets_10 preprocessing before the browser task is exposed."""
+        script_path = EVAL_TASKS_DIR / self.TASK_FAMILY_FOLDER / "preprocess.py"
+        if not script_path.exists():
+            raise FileNotFoundError(f"Required preprocess script not found: {script_path}")
+
+        package_root = _PACKAGE_DIR.parents[2]  # browsergym/knows/
+        env = os.environ.copy()
+        self._load_local_env(env, package_root)
+
+        command = [
+            sys.executable,
+            str(script_path),
+            "--instance",
+            str(self._instance_id),
+        ]
+        print(
+            "Running required sheets_10 preprocessing before task setup: "
+            + " ".join(command)
+        )
+        try:
+            subprocess.run(
+                command,
+                cwd=str(package_root),
+                env=env,
+                check=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            raise RuntimeError(
+                "Required sheets_10 preprocessing failed; refusing to start "
+                f"{self.TASK_FAMILY_FOLDER} instance {self._instance_id}."
+            ) from exc
+
+    @staticmethod
+    def _load_local_env(env: Dict[str, str], package_root: Path) -> None:
+        """Populate subprocess env from local .env files without overriding live env."""
+        for env_path in (
+            package_root / ".env",
+            package_root.parents[1] / ".env",
+        ):
+            if not env_path.is_file():
+                continue
+            try:
+                with open(env_path) as env_file:
+                    for raw_line in env_file:
+                        line = raw_line.strip()
+                        if not line or line.startswith("#"):
+                            continue
+                        if line.startswith("export "):
+                            line = line[len("export ") :]
+                        if "=" not in line:
+                            continue
+                        key, _, value = line.partition("=")
+                        key = key.strip()
+                        value = value.strip().strip('"').strip("'")
+                        if key and key not in env:
+                            env[key] = value
+            except OSError:
+                continue
 
 
 class SheetsPersonalTravelPlannerTask(KnowsWorkspaceTask):

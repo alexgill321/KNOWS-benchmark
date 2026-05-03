@@ -37,10 +37,12 @@
       "arxiv_id": "2405.17721",
       "arxiv_url": "https://arxiv.org/abs/2405.17721",
       "gold_labels_first_authors": [
-        "Charles Badger\nRahul Srinivasan"
+        "Charles Badger",
+        "Rahul Srinivasan"
       ],
       "gold_labels_first_authors_normalized": [
-        "charles badger rahul srinivasan"
+        "charles badger",
+        "rahul srinivasan"
       ],
       "figure_1_path": null
     },
@@ -92,5 +94,5 @@
   ],
   "count": 4,
   "source_folder_id": "1Qm2gLrC3PhRqhlAI_WXBjYKqECdPOwBE",
-  "generated_at": "2026-05-02T16:27:45.130109"
+  "generated_at": "2026-05-03T14:14:38.579965"
 }

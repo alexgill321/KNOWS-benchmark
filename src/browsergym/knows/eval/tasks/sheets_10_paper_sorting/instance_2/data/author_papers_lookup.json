@@ -111,19 +111,63 @@
       "original_paper_title": "Rapid detection of gravitational waves from binary black hole mergers using sparse\ndictionary learning",
       "original_paper_arxiv_id": "2405.17721",
       "first_authors": [
-        "Charles Badger\nRahul Srinivasan"
+        "Charles Badger",
+        "Rahul Srinivasan"
       ],
       "normalized_first_authors": [
-        "charles badger rahul srinivasan"
+        "charles badger",
+        "rahul srinivasan"
       ],
       "gscholar_urls": [
         "https://scholar.google.com/citations?user=bvqMseUAAAAJ&hl=en&oi=sra",
         "https://scholar.google.com/citations?user=V74safsAAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 0,
-      "new_paper_arxiv_ids": [],
-      "new_paper_titles": [],
-      "expected_new_papers": 0
+      "new_papers_count": 20,
+      "new_paper_arxiv_ids": [
+        "2303.15923",
+        "2503.12263",
+        "2209.14707",
+        "2103.06718",
+        "2406.11742",
+        "2210.06194",
+        "2407.02908",
+        "2405.17721",
+        "2112.04650",
+        "2511.17422",
+        "2306.09861",
+        "2404.12294",
+        "2211.12052",
+        "2303.04017",
+        "2211.12055",
+        "2207.00374",
+        "2506.22543",
+        "2105.09527",
+        "2512.14650",
+        "2603.24466"
+      ],
+      "new_paper_titles": [
+        "Science with the Einstein Telescope: a comparison of different designs",
+        "The Science of the Einstein Telescope",
+        "Probing Early Universe Supercooled Phase Transitions with Gravitational Wave Data",
+        "Searching for parity violation with the LIGO-Virgo-KAGRA network",
+        "Detection Prospects of Gravitational Waves from SU(2) Axion Inflation",
+        "Dictionary learning: a novel approach to detecting binary black holes in the presence of Galactic noise with LISA",
+        "High-speed reconstruction of long-duration gravitational waves from extreme mass ratio inspirals using sparse dictionary learning",
+        "Rapid detection of gravitational waves from binary black hole mergers using sparse dictionary learning",
+        "Detecting parity violation from axion inflation with third generation detectors",
+        "A battle of designs: triangular vs. L-shaped detectors and parity violation in the gravitational-wave background",
+        "Astrophysical Uncertainties in the Gravitational-Wave Background from Stellar-Mass Compact Binary Mergers",
+        "Bayesian evidence estimation from posterior samples with normalizing flows",
+        "Science with the Daksha High Energy Transients Mission",
+        "Understanding the progenitor formation galaxies of merging binary black holes",
+        "Daksha: On Alert for High Energy Transients",
+        "Inferring binary black holes stellar progenitors with gravitational wave sources",
+        "Simulation-based population inference of LISA's Galactic binaries: Bypassing the global fit",
+        "Using collimated CZTI as all sky X-ray detector based on Earth Occultation Technique",
+        "Search for Gravitational Wave Memory in PPTA and EPTA Data: A Complete Signal Model",
+        "Short-Term Turbulence Prediction for Seeing Using Machine Learning"
+      ],
+      "expected_new_papers": 3
     },
     {
       "original_paper_title": "Real-time gravitational-wave inference for binary neutron stars using machine learning",
@@ -137,10 +181,52 @@
       "gscholar_urls": [
         "https://scholar.google.com/citations?user=VRBv6mEAAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 0,
-      "new_paper_arxiv_ids": [],
-      "new_paper_titles": [],
-      "expected_new_papers": 0
+      "new_papers_count": 20,
+      "new_paper_arxiv_ids": [
+        "2106.12594",
+        "1909.13055",
+        "2210.05686",
+        "2305.17161",
+        "2407.09602",
+        "2404.14286",
+        "1808.08957",
+        "2111.13139",
+        "2211.08801",
+        "2410.21477",
+        "2012.04655",
+        "2006.07872",
+        "2504.21087",
+        "2407.18648",
+        "2312.08295",
+        "2506.08001",
+        "2512.02968",
+        "2306.08106",
+        "2603.29019",
+        "2501.17044"
+      ],
+      "new_paper_titles": [
+        "Real-time gravitational-wave science with neural posterior estimation",
+        "DeepUSPS: Deep Robust Unsupervised Saliency Prediction With Self-Supervision",
+        "Neural Importance Sampling for Rapid and Reliable Gravitational-Wave Inference",
+        "Flow Matching for Scalable Simulation-Based Inference",
+        "Real-time gravitational-wave inference for binary neutron stars using machine learning",
+        "Evidence for eccentricity in the population of binary black holes observed by LIGO-Virgo-KAGRA",
+        "Quark-mass dependence in $ω\\to3π$ decays",
+        "Group equivariant neural posterior estimation",
+        "Adapting to noise distribution shifts in flow-based gravitational-wave inference",
+        "Flow Matching for Atmospheric Retrieval of Exoplanets: Where Reliability meets Adaptive Noise Levels",
+        "Dispersive analysis of the Primakoff reaction $γK \\to K π$",
+        "Explicitly Modeled Attention Maps for Image Classification",
+        "Fast and accurate parameter estimation of high-redshift sources with the Einstein Telescope",
+        "Fast and Reliable Probabilistic Reflectometry Inversion with Prior-Amortized Neural Posterior Estimation",
+        "Inferring Atmospheric Properties of Exoplanets with Flow Matching and Neural Importance Sampling",
+        "Reparameterized LLM Training via Orthogonal Equivalence Transformation",
+        "Flexible Gravitational-Wave Parameter Estimation with Transformers",
+        "Applications of Deep Learning to physics workflows",
+        "Eccentricity constraints disfavor single-single capture in nuclear star clusters as the origin of all LIGO-Virgo-KAGRA binary black holes",
+        "Synthesizing 3D Abstractions by Inverting Procedural Buildings with Transformers"
+      ],
+      "expected_new_papers": 3
     },
     {
       "original_paper_title": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
@@ -154,12 +240,62 @@
       "gscholar_urls": [
         "https://scholar.google.com/citations?user=8zZWSb8AAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 0,
-      "new_paper_arxiv_ids": [],
-      "new_paper_titles": [],
-      "expected_new_papers": 0
+      "new_papers_count": 24,
+      "new_paper_arxiv_ids": [
+        "2301.12725",
+        "1706.02537",
+        "1905.00100",
+        "2303.06928",
+        "2108.06255",
+        "2102.10671",
+        "2008.03092",
+        "1510.03996",
+        "1809.08792",
+        "1508.04697",
+        "1411.7251",
+        "1911.00209",
+        "1212.4673",
+        "1609.01964",
+        "1608.07961",
+        "2408.10704",
+        "2201.06866",
+        "1411.0780",
+        "1206.0647",
+        "1805.11033",
+        "1309.4566",
+        "2511.18657",
+        "1311.1102",
+        "2501.05740"
+      ],
+      "new_paper_titles": [
+        "On Redshift Evolution & Negative Dark Energy Density in Pantheon+ Supernovae",
+        "Constraints to dark energy using PADE parameterisations",
+        "Can dark energy be expressed as a power series of the Hubble parameter?",
+        "$S_8$ increases with effective redshift in $Λ$CDM cosmology",
+        "Cosmographic approach to Running Vacuum dark energy models: new constraints using BAOs and Hubble diagrams at higher redshifts",
+        "Comparison between different methods of model selection in cosmology",
+        "Cosmography approach to dark energy cosmologies: new constrains using the Hubble diagrams of supernovae, quasars and gamma-ray bursts",
+        "Growth of matter perturbations in clustered holographic dark energy cosmologies",
+        "Can Holographic dark energy models fit the observational data?",
+        "Effects of ghost dark energy perturbations on the evolution of spherical overdensities",
+        "Evolution of spherical overdensities in holographic dark energy models",
+        "Cosmological constrains on minimally and non-minimally coupled scalar field models",
+        "Cosmography of interacting generalized QCD ghost dark energy",
+        "Spherical collapse model and cluster number counts in power law $f(T)$ gravity",
+        "Constraints on shear and rotation with massive galaxy clusters",
+        "$Λ$CDM model against cosmography: A possible deviation after DESI 2024",
+        "Cosmological constrains on new generalized Chaplygin gas model",
+        "Can observational growth rate data favour the clustering dark energy models?",
+        "Polytropic gas scalar field models of dark energy",
+        "New parameterization for unified dark matter and dark energy",
+        "Observational constraints on G-corrected holographic dark energy using a Markov chain Monte Carlo method",
+        "How Complex is Dark Energy? A Bayesian Analysis of CPL Extensions with Recent DESI BAO Measurements",
+        "Spherical collapse and the holographic dark energy model",
+        "$Λ$CDM model against redshift-binned data: A mock analysis based on SNIa and Cosmic Chronometers"
+      ],
+      "expected_new_papers": 3
     }
   ],
   "count": 4,
-  "generated_at": "2026-05-02T16:27:45.135547"
+  "generated_at": "2026-05-03T14:14:38.585737"
 }
