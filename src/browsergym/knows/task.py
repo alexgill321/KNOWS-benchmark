@@ -129,6 +129,29 @@ class KnowsBenchTask(AbstractBrowserTask):
     Provides functionality to track visited websites during task execution,
     measure performance metrics, and maintain browser session state.
     """
+
+    # URL fragments that indicate Google has bounced the browser out to a
+    # sign-in / account-chooser surface (typically because Google's passive
+    # re-auth check fired mid-episode and the WebLiteSignIn flow rejected
+    # the automated browser). Once we see these, the agent cannot recover
+    # on its own and any further steps are wasted budget.
+    _AUTH_LOST_URL_FRAGMENTS: Tuple[str, ...] = (
+        "/v3/signin/rejected",
+        "/v3/signin/accountchooser",
+        "AccountChooser",
+        "/signin/identifier",
+        "/v3/signin/identifier",
+        "/v3/signin/confirmidentifier",
+        "ServiceLogin",
+        "deniedsigninrejected",
+    )
+
+    # How many consecutive ``validate()`` calls must observe a sign-in URL
+    # before we declare the session lost. Two avoids spuriously aborting on
+    # a single transient redirect that Google sometimes resolves on its own
+    # (e.g. an OAuth bounce that completes within one step).
+    _AUTH_LOST_CONSECUTIVE_THRESHOLD: int = 2
+
     @classmethod
     def get_task_id(cls) -> str:
         """
@@ -158,6 +181,15 @@ class KnowsBenchTask(AbstractBrowserTask):
         # Prepare browser context options
         self.pw_chromium_kwargs = {}
         self.pw_context_kwargs = {}
+
+        # Mid-episode auth-loss tracking. Updated by ``validate()`` every
+        # step; ``_auth_lost`` flips to True after the URL has stayed on a
+        # sign-in surface for ``_AUTH_LOST_CONSECUTIVE_THRESHOLD`` calls
+        # in a row, at which point validate() returns done=True so the
+        # episode terminates instead of looping through the chooser.
+        self._consecutive_auth_lost_observations: int = 0
+        self._auth_lost: bool = False
+        self._auth_lost_url: Optional[str] = None
         
         # Configure persistent browser session if requested
         if self._persistent_context and self._user_data_dir:
@@ -166,6 +198,18 @@ class KnowsBenchTask(AbstractBrowserTask):
                 "persistent_context": True,
                 "headless" : False
             }
+
+    def _is_auth_lost_url(self, url: str) -> bool:
+        """Return True iff *url* is on a Google sign-in / chooser surface.
+
+        Used by :meth:`validate` to detect mid-episode session eviction.
+        Substring match against :attr:`_AUTH_LOST_URL_FRAGMENTS` -- Google
+        cycles between ``/signin/accountchooser`` and ``/signin/rejected``
+        on a blocked re-auth, and we want to catch both.
+        """
+        if not url:
+            return False
+        return any(fragment in url for fragment in self._AUTH_LOST_URL_FRAGMENTS)
         
     def _track_url_visit(self, page: playwright.sync_api.Page):
         """
@@ -282,14 +326,52 @@ class KnowsBenchTask(AbstractBrowserTask):
         # This is a base implementation
         # Subclasses should override this method with their specific validation logic
         reward, done, message = 0.0, False, ""
-        
+
+        try:
+            current_url = page.url or ""
+        except Exception:
+            current_url = ""
+
         # Include browsing history in the info dictionary
         info = {
             "visited_urls": self._visited_urls,
             "total_pages_visited": len(self._visited_urls),
-            "current_url": page.url
+            "current_url": current_url,
         }
-        
+
+        # Mid-episode auth-loss detection. Once Google's passive re-auth
+        # bounces the browser to a sign-in / chooser URL, the WebLiteSignIn
+        # flow rejects the automated browser and the agent burns the rest
+        # of its budget cycling through the chooser. End the episode early
+        # so the run is flagged as an auth failure rather than scored as
+        # a 0-reward task failure. We require the URL to persist across
+        # ``_AUTH_LOST_CONSECUTIVE_THRESHOLD`` validate() calls so a single
+        # transient redirect (e.g. an OAuth bounce) does not abort.
+        if self._is_auth_lost_url(current_url):
+            self._consecutive_auth_lost_observations += 1
+            if (
+                self._consecutive_auth_lost_observations
+                >= self._AUTH_LOST_CONSECUTIVE_THRESHOLD
+                and not self._auth_lost
+            ):
+                self._auth_lost = True
+                self._auth_lost_url = current_url
+                done = True
+                message = (
+                    "Episode terminated: Google sign-out detected "
+                    f"(URL={current_url!r}). The persistent session was "
+                    "invalidated mid-episode and the automated browser "
+                    "cannot recover; subsequent steps would loop through "
+                    "the account chooser."
+                )
+                info["auth_lost_mid_episode"] = True
+                info["auth_lost_url"] = current_url
+                info["auth_lost_observed_steps"] = (
+                    self._consecutive_auth_lost_observations
+                )
+        else:
+            self._consecutive_auth_lost_observations = 0
+
         return reward, done, message, info
     
     def teardown(self) -> None:
@@ -508,13 +590,28 @@ class KnowsWorkspaceTask(KnowsBenchTask):
         )
         if agent_done:
             doc_id = self._created_doc_id or self._extract_doc_id(last_text, page.url)
+            # If we already detected mid-episode auth loss, prefer that
+            # reason over "agent_done" -- the agent's DONE on a sign-out
+            # page is meaningless and we don't want to grade it as a
+            # legitimate completion.
+            done_reason = (
+                "auth_lost_mid_episode" if self._auth_lost else "agent_done"
+            )
             if not self._run_evaluator:
-                info = self._evaluation_skipped_info(doc_id, reason="agent_done")
+                info = self._evaluation_skipped_info(doc_id, reason=done_reason)
+                if self._auth_lost:
+                    info["auth_lost_mid_episode"] = True
+                    if self._auth_lost_url:
+                        info["auth_lost_url"] = self._auth_lost_url
                 self._graded = True
                 self._last_score_breakdown = info
                 self._last_reward = 0.0
                 return 0.0, True, "", info
             reward, info = self._grade_doc(doc_id, last_text, page)
+            if self._auth_lost:
+                info["auth_lost_mid_episode"] = True
+                if self._auth_lost_url:
+                    info["auth_lost_url"] = self._auth_lost_url
             return reward, True, "", info
 
         return super().validate(page, chat_messages)
@@ -547,19 +644,34 @@ class KnowsWorkspaceTask(KnowsBenchTask):
         doc_id = self._created_doc_id or (
             self._extract_doc_id("", page_url) if page_url else None
         )
+        # Prefer the auth-loss reason over the generic "episode ended
+        # without DONE" so the summary clearly distinguishes environmental
+        # failures (Google bounced us out) from agent failures (ran out of
+        # steps / gave up).
+        finalize_reason = (
+            "auth_lost_mid_episode" if self._auth_lost
+            else "episode_end_without_done"
+        )
+
         if not self._run_evaluator:
-            info = self._evaluation_skipped_info(
-                doc_id, reason="episode_end_without_done"
-            )
-            info["finalize.reason"] = "episode_end_without_done"
+            info = self._evaluation_skipped_info(doc_id, reason=finalize_reason)
+            info["finalize.reason"] = finalize_reason
+            if self._auth_lost:
+                info["auth_lost_mid_episode"] = True
+                if self._auth_lost_url:
+                    info["auth_lost_url"] = self._auth_lost_url
             self._graded = True
             self._last_score_breakdown = info
             self._last_reward = 0.0
             return info
 
         reward, info = self._grade_doc(doc_id, "", page)
-        info["finalize.reason"] = "episode_end_without_done"
+        info["finalize.reason"] = finalize_reason
         info["cum_reward_override"] = reward
+        if self._auth_lost:
+            info["auth_lost_mid_episode"] = True
+            if self._auth_lost_url:
+                info["auth_lost_url"] = self._auth_lost_url
         return info
 
     def _evaluation_skipped_info(
