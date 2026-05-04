@@ -20,7 +20,7 @@ sys.path.append(BASE_PATH)
 # Imports
 from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, EvaluationStep
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
-from src.browsergym.knows.eval.eval_utils.text_utils import text_exact_match_contained, text_fuzzy_match_contained_short, match_text_in_list
+from src.browsergym.knows.eval.eval_utils.text_utils import text_exact_match_contained, text_fuzzy_match_contained_short
 from src.browsergym.knows.eval.eval_utils.image_utils import binary_judge_image
 from src.browsergym.knows.eval.eval_utils.models import load_model
 from src.browsergym.knows.eval.eval_utils.parallel_utils import parallel_download, fast_parallel_vlm_calls
@@ -42,7 +42,7 @@ from src.browsergym.knows.eval.eval_utils.slides_utils import (
 from src.browsergym.knows.eval.tasks.slides_20_Illustrated_Book_Report.utils import *
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/slides_20_Illustrated_Book_Report/instance_5/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/slides_20_Illustrated_Book_Report/instance_5/")
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
@@ -56,6 +56,7 @@ presentation_id = None
 presentation_data = None
 gold_characters = None
 alias_to_canonical = None
+slide_height = None
 
 
 def extract_title_text(slide):
@@ -109,7 +110,7 @@ def setup_presentation(workspace_doc_id):
     Args:
         workspace_doc_id (str): Google Slides presentation ID to evaluate.
     """
-    global presentation_id, presentation_data, gold_characters, alias_to_canonical
+    global presentation_id, presentation_data, gold_characters, alias_to_canonical, slide_height
 
     if not workspace_doc_id:
         raise ValueError("workspace_doc_id is required")
@@ -119,6 +120,11 @@ def setup_presentation(workspace_doc_id):
 
     # Fetch presentation data
     presentation_data = SLIDES_SERVICE.presentations().get(presentationId=presentation_id).execute()
+
+    # Resolve slide height from presentation data
+    page_size = presentation_data.get('pageSize', {})
+    height_obj = page_size.get('height', {})
+    slide_height = height_obj.get('magnitude', 5143500)
 
     # Load gold characters list (supports tab-separated aliases per line)
     gold_characters_path = os.path.join(DATA_DIR, "gold_characters.txt")
@@ -190,6 +196,7 @@ def grade_checkpoint_1():
     images = extract_slide_images(title_slide, presentation_id, SLIDES_SERVICE)
 
     book_cover_valid = False
+    verified_cover_idx = None
     if len(images) > 0:
         # Use LLM to verify it's the Slade House book cover
         global model
@@ -219,6 +226,11 @@ def grade_checkpoint_1():
 
                 if matching_image:
                     book_cover_valid = True
+                    # Extract the index of the verified cover image from the filename
+                    import re
+                    idx_match = re.search(r'temp_image_(\d+)', os.path.basename(matching_image))
+                    if idx_match:
+                        verified_cover_idx = int(idx_match.group(1))
 
         finally:
             # Cleanup temp directory
@@ -237,9 +249,7 @@ def grade_checkpoint_1():
                           execution_time=step_time)
 
     # Steps 4-6: Structural location checks using bounding box positions
-    # Typical slide dimensions in EMUs: width ~9144000, height ~5143500
-    SLIDE_HEIGHT = 5143500
-    BOTTOM_25_THRESHOLD = SLIDE_HEIGHT * 0.75  # Y position > this means bottom 25%
+    BOTTOM_25_THRESHOLD = slide_height * 0.75  # Y position > this means bottom 25%
 
     # Step 4: Check that name is at bottom (bottom 25% of slide)
     step_start = time.time()
@@ -281,17 +291,23 @@ def grade_checkpoint_1():
     title_y_position = None
 
     if title_found and name_y_position is not None and 'pageElements' in title_slide:
+        # Collect all elements containing the book title, prefer placeholders
+        title_candidates = []
         for element in title_slide['pageElements']:
             if 'shape' in element and 'text' in element['shape']:
                 element_text = _extract_text_from_text_element(element['shape']['text'])
-
                 if "Slade House" in element_text:
                     transform = element.get('transform', {})
-                    title_y_position = transform.get('translateY', 0)
+                    y = transform.get('translateY', 0)
+                    ph_type = element['shape'].get('placeholder', {}).get('type', '')
+                    is_placeholder = ph_type in ('TITLE', 'CENTERED_TITLE', 'SUBTITLE')
+                    title_candidates.append((not is_placeholder, y, element))
 
-                    if title_y_position < name_y_position:
-                        title_above_name = True
-                    break
+        if title_candidates:
+            title_candidates.sort()  # Placeholders first, then by Y position
+            title_y_position = title_candidates[0][1]
+            if title_y_position < name_y_position:
+                title_above_name = True
 
     step_time = time.time() - step_start
 
@@ -309,17 +325,14 @@ def grade_checkpoint_1():
     photo_above_both = False
     photo_y_position = None
 
-    if book_cover_valid and 'pageElements' in title_slide:
-        for element in title_slide['pageElements']:
-            if 'image' in element:
-                transform = element.get('transform', {})
-                photo_y_position = transform.get('translateY', 0)
+    if book_cover_valid and verified_cover_idx is not None:
+        # Use the verified cover image's transform from the images list
+        cover_transform = images[verified_cover_idx].get('transform', {})
+        photo_y_position = cover_transform.get('translateY', 0)
 
-                # Check if photo is above both title and name
-                if title_y_position is not None and name_y_position is not None:
-                    if photo_y_position < title_y_position and photo_y_position < name_y_position:
-                        photo_above_both = True
-                break
+        if title_y_position is not None and name_y_position is not None:
+            if photo_y_position < title_y_position and photo_y_position < name_y_position:
+                photo_above_both = True
 
     step_time = time.time() - step_start
 
@@ -351,7 +364,7 @@ def grade_checkpoint_2(browsing_history=None):
     print("----------------- CHECKPOINT 2 ----------------")
     global model
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=25, result=0, name="Character Slides Validation")
+    checkpoint = Checkpoint(total=120, result=0, name="Character Slides Validation")
 
     if not presentation_data or 'slides' not in presentation_data:
         checkpoint.add_step("Character Slides", False, 1,
@@ -377,7 +390,7 @@ def grade_checkpoint_2(browsing_history=None):
         title_text = extract_title_text(slide)
 
         # Use match_text_in_list to find the best matching character name
-        matched_char_name, match_score = match_text_in_list(title_text, gold_characters, threshold=80)
+        matched_char_name, match_score = match_character_name(title_text, gold_characters, threshold=80)
 
         # Reject fuzzy matches that strip diacritics from the gold name
         # (e.g., title "Adele" must not pass as gold "Adèle").
@@ -442,10 +455,19 @@ def grade_checkpoint_2(browsing_history=None):
         color = get_slide_background_color(slide)
         slide_colors.append(color)
 
-    # Extract bullet texts for all slides for later validation in Step 6
+    # Extract bullet texts for all slides for later validation.
+    # Fall back to plain text lines if no bullet formatting is found.
     slide_bullet_texts = {}
+    slide_has_real_bullets = {}
     for i, (slide_idx, slide, char_name) in enumerate(character_slides[:5]):
-        slide_bullet_texts[i] = extract_bullet_point_texts(slide)
+        bullets = extract_bullet_point_texts(slide)
+        if bullets:
+            slide_bullet_texts[i] = bullets
+            slide_has_real_bullets[i] = True
+        else:
+            title_text = extract_title_text(slide)
+            slide_bullet_texts[i] = extract_slide_body_lines(slide, title_text)
+            slide_has_real_bullets[i] = False
 
     # ============ PHASE 1: Parallel bullet characteristic validation ============
     # Batch all bullet validation LLM calls across all slides
@@ -518,7 +540,7 @@ def grade_checkpoint_2(browsing_history=None):
 
     # Grade each character slide
     for i, (slide_idx, slide, char_name) in enumerate(character_slides[:5]):  # Limit to 5
-        step_num_base = i * 5  # Each character gets 5 steps
+        step_num_base = i * 6  # Each character gets 6 steps
 
         # Step 1: Character in gold list AND name as title
         checkpoint.add_step(f"Character {i+1} - Valid Character and Name as Title", True, step_num_base + 1,
@@ -546,33 +568,35 @@ def grade_checkpoint_2(browsing_history=None):
                               f"Slide background color matches another character slide",
                               execution_time=step_time)
 
-        # Step 3: At least 3 bullet points that describe characteristics
+        # Step 3: At least 3 bullet points with text
         has_bullets, bullet_count = validate_bullet_points(slide, min_count=3)
         bullet_texts = slide_bullet_texts.get(i, [])
 
+        checkpoint.add_step(f"Character {i+1} - Bullet Point Count",
+                          has_bullets, step_num_base + 3,
+                          f"Found {bullet_count} bullet points (>= 3 required)",
+                          execution_time=0)
+
+        # Step 4: Bullet points describe characteristics (fractional)
         valid_characteristics_count = 0
         slide_bullet_results = bullet_validation_results.get(i, {})
         for bullet_j, is_valid in slide_bullet_results.items():
             if is_valid:
                 valid_characteristics_count += 1
 
-        passes_bullet_check = has_bullets and valid_characteristics_count >= 3
-
-        if passes_bullet_check:
-            checkpoint.add_step(f"Character {i+1} - Bullet Points", True, step_num_base + 3,
-                              f"Found {valid_characteristics_count}/{bullet_count} bullet points describing characteristics (>= 3 required)",
-                              execution_time=0)
+        text_count = len(bullet_texts)
+        if text_count > 0:
+            char_score = int((valid_characteristics_count / text_count) * 10)
         else:
-            if not has_bullets:
-                checkpoint.add_step(f"Character {i+1} - Bullet Points", False, step_num_base + 3,
-                                  f"Only found {bullet_count} bullet points, need 3",
-                                  execution_time=0)
-            else:
-                checkpoint.add_step(f"Character {i+1} - Bullet Points", False, step_num_base + 3,
-                                  f"Only {valid_characteristics_count}/{bullet_count} bullet points describe characteristics, need 3",
-                                  execution_time=0)
+            char_score = 0
 
-        # Step 4: Source link at bottom of slide
+        checkpoint.add_step(f"Character {i+1} - Characteristics Quality",
+                          char_score > 0, step_num_base + 4,
+                          f"{valid_characteristics_count}/{text_count} text items describe characteristics ({char_score}/10 pts)",
+                          score=char_score, max_score=10,
+                          execution_time=0)
+
+        # Step 5: Source link at bottom of slide
         slide_links = all_slide_links.get(i, [])
         has_source_links = len(slide_links) > 0
 
@@ -581,26 +605,25 @@ def grade_checkpoint_2(browsing_history=None):
 
         if has_source_links:
             for link in slide_links:
-                if is_text_at_bottom(slide, link):
+                if is_text_at_bottom(slide, link, slide_height=slide_height) or is_source_link_at_bottom_of_content(slide, link):
                     links_at_bottom_count += 1
 
             all_links_at_bottom = links_at_bottom_count == len(slide_links)
 
         if all_links_at_bottom:
-            checkpoint.add_step(f"Character {i+1} - Source Link at Bottom", True, step_num_base + 4,
+            checkpoint.add_step(f"Character {i+1} - Source Link at Bottom", True, step_num_base + 5,
                               f"All {len(slide_links)} source link(s) correctly positioned at bottom of slide",
                               execution_time=0)
         elif has_source_links:
-            checkpoint.add_step(f"Character {i+1} - Source Link at Bottom", False, step_num_base + 4,
+            checkpoint.add_step(f"Character {i+1} - Source Link at Bottom", False, step_num_base + 5,
                               f"Only {links_at_bottom_count}/{len(slide_links)} source link(s) positioned at bottom of slide",
                               execution_time=0)
         else:
-            checkpoint.add_step(f"Character {i+1} - Source Link at Bottom", False, step_num_base + 4,
+            checkpoint.add_step(f"Character {i+1} - Source Link at Bottom", False, step_num_base + 5,
                               "No source links found on slide",
                               execution_time=0)
 
-        # Step 5: Characteristics are direct quotes from source links
-        characteristics_validated = False
+        # Step 6: Characteristics are supported by source links
         validation_details = []
         validated_bullets = []
 
@@ -619,7 +642,7 @@ def grade_checkpoint_2(browsing_history=None):
 
                     found_in_source = False
                     for url, content in url_contents.items():
-                        if validate_bullet_in_content(bullet_text, content, model):
+                        if validate_bullet_in_content(bullet_text, content, model, character_name=char_name, book_title="Slade House"):
                             found_in_source = True
                             validation_details.append(f"Found in {url[:50]}...")
                             break
@@ -629,55 +652,39 @@ def grade_checkpoint_2(browsing_history=None):
                     else:
                         validation_details.append(f"Not found: {bullet_text[:50]}...")
 
-                characteristics_validated = len(validated_bullets) >= 3
-
-        if characteristics_validated:
-            checkpoint.add_step(
-                f"Character {i+1} - Characteristics from Sources",
-                True,
-                step_num_base + 5,
-                f"{len(validated_bullets)}/{len(bullet_texts)} characteristics validated as direct quotes from source URLs",
-                execution_time=0
-            )
-        elif not has_source_links:
-            checkpoint.add_step(
-                f"Character {i+1} - Characteristics from Sources",
-                False,
-                step_num_base + 5,
-                "No source links to validate",
-                execution_time=0
-            )
-        elif not bullet_texts:
-            checkpoint.add_step(
-                f"Character {i+1} - Characteristics from Sources",
-                False,
-                step_num_base + 5,
-                "No bullet points to validate",
-                execution_time=0
-            )
-        elif not url_contents:
-            checkpoint.add_step(
-                f"Character {i+1} - Characteristics from Sources",
-                False,
-                step_num_base + 5,
-                f"Could not fetch source URL content. {'; '.join(validation_details)}",
-                execution_time=0
-            )
+        # Fractional scoring: floor(validated / total) * 10
+        total_bullets_to_check = len(bullet_texts) if bullet_texts else 0
+        validated_count = len(validated_bullets)
+        if total_bullets_to_check > 0:
+            source_score = int((validated_count / total_bullets_to_check) * 10)
         else:
-            checkpoint.add_step(
-                f"Character {i+1} - Characteristics from Sources",
-                False,
-                step_num_base + 5,
-                f"Only {len(validated_bullets)}/{len(bullet_texts)} characteristics found as quotes. {'; '.join(validation_details[:3])}",
-                execution_time=0
-            )
+            source_score = 0
+
+        if not has_source_links:
+            detail = "No source links to validate"
+        elif not bullet_texts:
+            detail = "No bullet points to validate"
+        elif not url_contents:
+            detail = f"Could not fetch source URL content. {'; '.join(validation_details)}"
+        else:
+            detail = f"{validated_count}/{total_bullets_to_check} characteristics supported by sources ({source_score}/10 pts). {'; '.join(validation_details[:3])}"
+
+        checkpoint.add_step(
+            f"Character {i+1} - Characteristics from Sources",
+            source_score > 0, step_num_base + 6,
+            detail,
+            score=source_score, max_score=10,
+            execution_time=0
+        )
 
     # Handle missing character slides
+    missing_max_scores = {1: 1, 2: 1, 3: 1, 4: 10, 5: 1, 6: 10}
     for i in range(len(character_slides), 5):
-        step_num_base = i * 5
-        for j in range(1, 6):
+        step_num_base = i * 6
+        for j in range(1, 7):
             checkpoint.add_step(f"Character {i+1} - Step {j}", False, step_num_base + j,
                               "Character slide not found",
+                              score=0, max_score=missing_max_scores[j],
                               execution_time=0)
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -693,6 +700,7 @@ def grade_checkpoint_3():
     - Photo of author present and valid.
     """
     print("----------------- CHECKPOINT 3 ----------------")
+    global model
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=2, result=0, name="Author Slide Validation")
 
@@ -746,15 +754,50 @@ def grade_checkpoint_3():
                           "'David Mitchell' not found in author slide",
                           execution_time=step_time)
 
-    # Step 2: Check for author photo
+    # Step 2: Check for author photo using VLM validation
     step_start = time.time()
     images = extract_slide_images(author_slide, presentation_id, SLIDES_SERVICE)
-    photo_found = len(images) > 0
+    author_photo_valid = False
+
+    if len(images) > 0:
+        if model is None:
+            model = load_model(model_id)
+
+        temp_dir = os.path.join(DATA_DIR, "temp_author_images")
+        os.makedirs(temp_dir, exist_ok=True)
+
+        try:
+            for idx, img_info in enumerate(images):
+                if img_info['contentUrl']:
+                    img = download_slide_image(img_info['contentUrl'])
+                    if img:
+                        temp_img_path = os.path.join(temp_dir, f"temp_image_{idx}.png")
+                        img.save(temp_img_path)
+
+            if os.listdir(temp_dir):
+                author_photos_dir = os.path.join(DATA_DIR, "author-photos")
+                examples = author_photos_dir if os.path.isdir(author_photos_dir) else None
+                matching_image = binary_judge_image(
+                    model,
+                    temp_dir,
+                    "Is this a photo of David Mitchell, the author of Slade House?",
+                    examples=examples
+                )
+                if matching_image:
+                    author_photo_valid = True
+        finally:
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+
     step_time = time.time() - step_start
 
-    if photo_found:
+    if author_photo_valid:
         checkpoint.add_step("Author Photo", True, 2,
-                          f"Found {len(images)} image(s) in author slide",
+                          "Found valid photo of David Mitchell in author slide",
+                          execution_time=step_time)
+    elif len(images) > 0:
+        checkpoint.add_step("Author Photo", False, 2,
+                          f"Found {len(images)} image(s) but none verified as David Mitchell",
                           execution_time=step_time)
     else:
         checkpoint.add_step("Author Photo", False, 2,

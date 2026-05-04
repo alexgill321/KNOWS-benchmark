@@ -471,12 +471,10 @@ def fetch_with_fallbacks(url: str, max_chars: int = 15000, timeout: int = 15) ->
     """Fetch URL content with multiple fallback strategies.
 
     Tries in order:
-    1. Playwright with stealth (default timeout)
-    2. Playwright retry with longer timeout (2x)
-    3. Wayback Machine archived snapshot
-
-    Note: fetch_page_text_content_playwright already falls back to
-    fetch_page_text_content internally, so no need for a separate requests call.
+    1. Plain requests + HTML-to-text (fastest, works for most static sites)
+    2. Playwright with stealth (for JS-rendered pages)
+    3. Playwright retry with longer timeout (2x)
+    4. Wayback Machine archived snapshot
 
     Returns on first success (content > 200 chars to avoid error pages).
 
@@ -488,17 +486,22 @@ def fetch_with_fallbacks(url: str, max_chars: int = 15000, timeout: int = 15) ->
     Returns:
         Tuple of (text_content or None, status_details).
     """
-    # Strategy 1: Playwright (default timeout)
+    # Strategy 1: Plain requests + HTML parsing (fast, handles most sites)
+    content, status = fetch_page_text_content(url, max_chars=max_chars, timeout=timeout)
+    if content and len(content.strip()) > 200:
+        return content, "OK (requests)"
+
+    # Strategy 2: Playwright (for JS-rendered pages)
     content, status = fetch_page_text_content_playwright(url, max_chars=max_chars, timeout=timeout)
     if content and len(content.strip()) > 200:
         return content, "OK (playwright)"
 
-    # Strategy 2: Playwright retry with longer timeout
+    # Strategy 3: Playwright retry with longer timeout
     content, status = fetch_page_text_content_playwright(url, max_chars=max_chars, timeout=timeout * 2)
     if content and len(content.strip()) > 200:
         return content, "OK (playwright-retry)"
 
-    # Strategy 3: Wayback Machine archived snapshot
+    # Strategy 4: Wayback Machine archived snapshot
     try:
         wb_api = f"https://archive.org/wayback/available?url={url}"
         resp = requests.get(wb_api, timeout=10)

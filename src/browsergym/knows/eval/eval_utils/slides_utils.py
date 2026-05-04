@@ -432,7 +432,16 @@ def _extract_links_from_text_element(text_element: Dict[str, Any]) -> List[str]:
             content = text_run['textRun'].get('content', '')
             if content:
                 plain_urls = url_pattern.findall(content)
-                links.extend(plain_urls)
+                for url in plain_urls:
+                    # Strip trailing punctuation that's not part of the URL
+                    # e.g. "(https://example.com/path)" -> "https://example.com/path"
+                    while url and url[-1] in ')],.:;!':
+                        # Keep closing parens if they have a matching open paren in the URL
+                        if url[-1] == ')' and url.count('(') >= url.count(')'):
+                            break
+                        url = url[:-1]
+                    if url:
+                        links.append(url)
 
     return links
 
@@ -465,30 +474,18 @@ def find_slide_by_title_fuzzy(presentation: Dict[str, Any], title_text: str, thr
 
 def validate_bullet_points(slide: Dict[str, Any], min_count: int = 3) -> Tuple[bool, int]:
     """
-    Check if a slide has at least the minimum number of bullet points.
+    Check if a slide has at least the minimum number of non-empty bullet points.
 
     Args:
         slide (dict): Slide object from Google Slides API.
         min_count (int): Minimum number of bullet points required.
 
     Returns:
-        tuple: (bool, int) - (passes validation, actual count).
+        tuple: (bool, int) - (passes validation, actual count of non-empty bullets).
     """
-    bullet_count = 0
-
-    if 'pageElements' not in slide:
-        return False, 0
-
-    for element in slide['pageElements']:
-        if 'shape' in element and 'text' in element['shape']:
-            text_element = element['shape']['text']
-
-            for paragraph in text_element.get('textElements', []):
-                if 'paragraphMarker' in paragraph:
-                    bullet = paragraph['paragraphMarker'].get('bullet', {})
-                    if bullet:  # Has bullet formatting
-                        bullet_count += 1
-
+    # Use extract_bullet_point_texts which already filters empties
+    bullet_texts = extract_bullet_point_texts(slide)
+    bullet_count = len(bullet_texts)
     return bullet_count >= min_count, bullet_count
 
 
@@ -539,7 +536,8 @@ def extract_bullet_point_texts(slide: Dict[str, Any]) -> List[str]:
             if in_bullet and current_bullet_text:
                 bullet_texts.append(''.join(current_bullet_text).strip())
 
-    return bullet_texts
+    # Filter out empty strings from trailing blank bullets
+    return [t for t in bullet_texts if t]
 
 
 def is_text_in_title_position(slide: Dict[str, Any], text: str) -> bool:
@@ -587,13 +585,14 @@ def is_text_in_title_position(slide: Dict[str, Any], text: str) -> bool:
     return False
 
 
-def is_text_at_bottom(slide: Dict[str, Any], text: str) -> bool:
+def is_text_at_bottom(slide: Dict[str, Any], text: str, slide_height: Optional[int] = None) -> bool:
     """
     Check if specified text appears at the bottom of the slide.
 
     Args:
         slide (dict): Slide object from Google Slides API.
         text (str): Text to search for (can be a URL or any text).
+        slide_height (int, optional): Slide height in EMUs. Defaults to standard 16:9.
 
     Returns:
         bool: True if the text is found in the bottom ~25% of the slide.
@@ -601,9 +600,8 @@ def is_text_at_bottom(slide: Dict[str, Any], text: str) -> bool:
     if 'pageElements' not in slide:
         return False
 
-    # Typical slide height in EMUs
-    SLIDE_HEIGHT = 5143500
-    BOTTOM_THRESHOLD = SLIDE_HEIGHT * 0.75  # Bottom 25% of slide
+    height = slide_height or DEFAULT_SLIDE_HEIGHT_EMU
+    BOTTOM_THRESHOLD = height * 0.75  # Bottom 25% of slide
 
     text_lower = text.lower()
 
@@ -624,7 +622,7 @@ def is_text_at_bottom(slide: Dict[str, Any], text: str) -> bool:
     return False
 
 
-def is_link_at_bottom(slide: Dict[str, Any]) -> bool:
+def is_link_at_bottom(slide: Dict[str, Any], slide_height: Optional[int] = None) -> bool:
     """
     Check if there's a link positioned at the bottom of the slide.
 
@@ -637,9 +635,8 @@ def is_link_at_bottom(slide: Dict[str, Any]) -> bool:
     if 'pageElements' not in slide:
         return False
 
-    # Typical slide height in EMUs
-    SLIDE_HEIGHT = 5143500
-    BOTTOM_THRESHOLD = SLIDE_HEIGHT * 0.75  # Bottom 25% of slide
+    height = slide_height or DEFAULT_SLIDE_HEIGHT_EMU
+    BOTTOM_THRESHOLD = height * 0.75  # Bottom 25% of slide
 
     for element in slide['pageElements']:
         if 'shape' in element and 'text' in element['shape']:
