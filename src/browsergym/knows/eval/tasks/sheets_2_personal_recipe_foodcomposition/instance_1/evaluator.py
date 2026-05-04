@@ -56,6 +56,11 @@ from src.browsergym.knows.eval.eval_utils.parallel_utils import (
 # Local utils (template-specific functions and constants)
 from src.browsergym.knows.eval.tasks.sheets_2_personal_recipe_foodcomposition.utils import (
     fetch_usda_page_title,
+    fetch_usda_nutrients,
+    ingredient_matches_usda_page,
+    validate_usda_fallback,
+    extract_food_id_from_url,
+    parse_nutrient_value,
     COLUMN_KEYWORDS,
     MACRO_NUTRIENTS,
     MINERAL_NUTRIENTS,
@@ -84,7 +89,7 @@ INGREDIENT_KEYWORDS = {
     "Raw Cashews": ["cashew", "raw cashew"],
     "Water": ["water"],
     "Garlic": ["garlic"],
-    "Sea Salt": ["sea salt", "salt"],
+    "Sea Salt": ["sea salt", "salt", "salt, table"],
     "Nutritional Yeast": ["nutritional yeast", "yeast"],
     "Lemon Juice": ["lemon juice", "lemon"],
     "Onion Powder": ["onion powder", "onion"],
@@ -94,7 +99,7 @@ INGREDIENT_KEYWORDS = {
 EXCLUDED_KEYWORDS = ["black pepper", "pepper"]
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_2_personal_recipe_foodcomposition/instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/sheets_2_personal_recipe_foodcomposition/instance_1/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 # Model configuration
@@ -973,6 +978,89 @@ def grade_checkpoint_6():
     step_num = 0
     tolerance_percent = VALUE_TOLERANCE * 100  # Convert to percentage
 
+    # USDA fallback cache: ingredient -> True/False (whether fallback validated)
+    # Computed once per ingredient, reused across all nutrient columns
+    link_col = matched_columns.get("Link")
+    usda_fallback_valid = {}  # ingredient -> bool
+
+    def _check_usda_fallback(ingredient: str) -> bool:
+        """Validate ingredient via USDA API fallback (ratio consistency + gold cross-validation).
+
+        Only applies when the agent used a *different* USDA food code than gold.
+        If the same food code was used, the mismatch is a genuine agent error.
+        """
+        global model
+        if not link_col or ingredient not in matched_ingredients:
+            return False
+
+        try:
+            row_data = df.loc[matched_ingredients[ingredient]]
+            agent_link = str(row_data[link_col]).strip()
+
+            if not is_url_from_domain(agent_link, 'fdc.nal.usda.gov'):
+                return False
+
+            # Skip fallback if agent used the same USDA food code as gold
+            agent_food_id = extract_food_id_from_url(agent_link)
+            gold_row = gold_by_ingredient.get(ingredient.lower())
+            if gold_row is not None and 'Link' in gold_row.index:
+                gold_food_id = extract_food_id_from_url(str(gold_row['Link']))
+                if agent_food_id and gold_food_id and agent_food_id == gold_food_id:
+                    print(f"    [USDA FALLBACK] Same food code ({agent_food_id}) as gold — no fallback needed")
+                    return False
+
+            # LLM check: confirm the USDA entry is for the correct ingredient
+            page_title = fetch_usda_page_title(agent_link)
+            if not page_title:
+                print(f"    [USDA FALLBACK] Could not fetch page title for {agent_link[:60]}")
+                return False
+
+            if model is None:
+                model = load_model(model_id)
+            keywords = INGREDIENT_KEYWORDS.get(ingredient, [ingredient.lower()])
+            if not ingredient_matches_usda_page(ingredient, page_title, keywords=keywords, model=model):
+                print(f"    [USDA FALLBACK] LLM rejected '{page_title}' for '{ingredient}'")
+                return False
+
+            print(f"    [USDA FALLBACK] LLM confirmed '{page_title}' matches '{ingredient}'")
+
+            # Fetch per-100g nutrients from the agent's USDA link
+            api_per_100g = fetch_usda_nutrients(agent_link)
+            if not api_per_100g:
+                print(f"    [USDA FALLBACK] Could not fetch nutrients from {agent_link[:60]}")
+                return False
+
+            # Collect sheet values and gold values across all nutrients for this ingredient
+            sheet_vals = {}
+            gold_vals = {}
+            for nut in ALL_NUTRIENTS:
+                sc = matched_columns.get(nut)
+                if not sc:
+                    continue
+                parsed = parse_nutrient_value(str(row_data[sc]))
+                if parsed is not None:
+                    sheet_vals[nut] = parsed
+
+                gold_row = gold_by_ingredient.get(ingredient.lower())
+                if gold_row is not None:
+                    for gc in gold_data.columns:
+                        if nut.lower() in gc.lower():
+                            try:
+                                gold_vals[nut] = float(gold_row[gc])
+                            except (ValueError, TypeError):
+                                pass
+                            break
+
+            return validate_usda_fallback(
+                sheet_values=sheet_vals,
+                gold_values=gold_vals,
+                api_per_100g=api_per_100g,
+                tolerance=VALUE_TOLERANCE,
+            )
+        except Exception as e:
+            print(f"    [USDA FALLBACK] Error for {ingredient}: {e}")
+            return False
+
     for nutrient in ALL_NUTRIENTS:
         step_num += 1
         step_start = time.time()
@@ -1006,7 +1094,7 @@ def grade_checkpoint_6():
                 row_idx = matched_ingredients[ingredient]
                 row = df.loc[row_idx]
                 try:
-                    sheet_value = float(str(row[sheet_col]).replace(',', ''))
+                    sheet_value = parse_nutrient_value(str(row[sheet_col]))
                     print(f"    [DEBUG] {ingredient} -> {nutrient}: sheet_value={sheet_value}")
                 except (ValueError, TypeError):
                     sheet_value = None
@@ -1025,25 +1113,38 @@ def grade_checkpoint_6():
                     gold_value = None
                     print(f"    [DEBUG] {ingredient} -> {nutrient}: gold_value=None (parse error)")
 
-            # Compare values
+            # Compare against gold first
+            gold_matched = False
             if sheet_value is not None and gold_value is not None:
                 if gold_value == 0:
-                    if sheet_value == 0:
-                        matches += 1
-                    else:
-                        mismatches.append(f"{ingredient}: {sheet_value} vs 0")
+                    gold_matched = (sheet_value == 0)
                 else:
-                    is_match, _ = numerical_match_with_error(gold_value, sheet_value, error_percent=tolerance_percent)
-                    if is_match:
-                        matches += 1
-                    else:
-                        mismatches.append(f"{ingredient}: {sheet_value:.2f} vs {gold_value:.2f}")
+                    gold_matched, _ = numerical_match_with_error(gold_value, sheet_value, error_percent=tolerance_percent)
             elif sheet_value is None and gold_value is None:
+                gold_matched = True
+
+            if gold_matched:
                 matches += 1
-            elif sheet_value is None:
-                mismatches.append(f"{ingredient}: missing in sheet")
+                continue
+
+            # --- USDA API fallback ---
+            # If gold match failed, check if the ingredient's USDA entry is valid
+            # (ratio-consistent + at least one nutrient matches gold)
+            if ingredient not in usda_fallback_valid:
+                print(f"    [USDA FALLBACK] Evaluating fallback for '{ingredient}'...")
+                usda_fallback_valid[ingredient] = _check_usda_fallback(ingredient)
+
+            if usda_fallback_valid[ingredient]:
+                print(f"    [USDA FALLBACK] {ingredient} -> {nutrient}: PASSED (fallback validated)")
+                matches += 1
             else:
-                mismatches.append(f"{ingredient}: missing in gold")
+                # Build mismatch detail
+                if sheet_value is not None and gold_value is not None:
+                    mismatches.append(f"{ingredient}: {sheet_value:.2f} vs {gold_value:.2f}")
+                elif sheet_value is None:
+                    mismatches.append(f"{ingredient}: missing in sheet")
+                else:
+                    mismatches.append(f"{ingredient}: missing in gold")
 
         success = matches == len(EXPECTED_INGREDIENTS)
 
@@ -1122,9 +1223,8 @@ def grade_checkpoint_7():
                 cell = values[col_idx]
                 cell_value = cell.get('formattedValue', '')
 
-                try:
-                    value = float(str(cell_value).replace(',', ''))
-                except (ValueError, TypeError):
+                value = parse_nutrient_value(str(cell_value))
+                if value is None:
                     continue
 
                 total_checks += 1
