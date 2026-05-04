@@ -136,10 +136,18 @@ def grade_checkpoint_1(browsing_history):
         browsing_history = []
 
     # Step 1: Check if paper websites were accessed
+    # Count unique paper *IDs* (not raw URLs) so that visiting the same
+    # paper via different URL forms (versions, abs/pdf, mirror domains, etc.)
+    # is correctly collapsed into a single paper.
     step_start = time.time()
-    paper_visits = [url for url in browsing_history
-                    if any(domain in url for domain in PAPER_DOMAINS)]
-    unique_papers_visited = len(set(paper_visits))
+    visited_paper_ids = set()
+    for url in browsing_history:
+        if not any(domain in url for domain in PAPER_DOMAINS):
+            continue
+        pid = extract_paper_id(url)
+        if pid:
+            visited_paper_ids.add(pid)
+    unique_papers_visited = len(visited_paper_ids)
     step_time = time.time() - step_start
 
     if unique_papers_visited >= NUM_PAPERS:

@@ -90,6 +90,12 @@ def normalize_arxiv_url(url):
             paper_id = match.group(1)
             if paper_id.endswith('.pdf'):
                 paper_id = paper_id[:-4]
+            # Strip arxiv version suffix (e.g. "v1", "v12") so that
+            # https://arxiv.org/abs/2305.14314v2 and
+            # https://arxiv.org/abs/2305.14314 normalize to the same id.
+            # Browser-recorded histories often capture versioned URLs after
+            # arxiv's canonical redirect.
+            paper_id = re.sub(r'v\d+$', '', paper_id)
             return paper_id
     return None
 

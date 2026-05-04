@@ -124,8 +124,17 @@ def grade_checkpoint_1(browsing_history):
         browsing_history = []
 
     step_start = time.time()
-    arxiv_visits = [url for url in browsing_history if 'arxiv.org' in url]
-    unique_papers_visited = len(set(arxiv_visits))
+    # Count unique arxiv *paper IDs* (not raw URLs) so visiting the same
+    # paper via abs/pdf, http/https, www, or version suffixes (v1, v2, ...)
+    # is collapsed into a single paper.
+    visited_paper_ids = set()
+    for url in browsing_history:
+        if 'arxiv.org' not in url:
+            continue
+        paper_id = normalize_arxiv_url(url)
+        if paper_id:
+            visited_paper_ids.add(paper_id)
+    unique_papers_visited = len(visited_paper_ids)
     step_time = time.time() - step_start
 
     if unique_papers_visited >= NUM_PAPERS:
