@@ -142,13 +142,17 @@ def gemma3_27b_cloud():
 
 def gemma_google_ai(model_id="gemma-3-27b-it"):
     """Factory function for Gemini model using Google GenAI client with vision support."""
-    # Configure Google GenAI client
+    # Prefer an API key when provided, otherwise use ADC/service-account auth via Vertex AI.
     api_key = os.environ.get("GOOGLE_AI_API_KEY")
-    if not api_key:
-        raise ValueError("GOOGLE_AI_API_KEY environment variable is required")
-
-    # Initialize the GenAI client
-    client = genai.Client(api_key=api_key)
+    if api_key:
+        client = genai.Client(api_key=api_key)
+    else:
+        location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+        project = os.environ.get("GOOGLE_CLOUD_PROJECT")
+        client_kwargs = {"vertexai": True, "location": location}
+        if project:
+            client_kwargs["project"] = project
+        client = genai.Client(**client_kwargs)
 
     def query(messages):
         """

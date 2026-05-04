@@ -39,9 +39,9 @@ def _debug_progress(message: str) -> None:
         print(f"[doc-setup-progress] {message}", flush=True)
 
 
-# Default location of the OAuth + service-account credentials shipped with the
-# package. ``share_doc_with_service_account`` uses these to grant the evaluator's
-# service account access to docs created by the agent.
+# Default location of the credentials shipped with the package.
+# ``share_doc_with_service_account`` authenticates with the evaluator's
+# service-account JSON. The OAuth paths remain for the manual reauth CLI helper.
 _AUTH_DIR = Path(__file__).resolve().parent.parent.parent.parent / "auth-data"
 _DEFAULT_TOKEN_PATH = _AUTH_DIR / "token.json"
 _DEFAULT_CLIENT_SECRETS_PATH = _AUTH_DIR / "credentials.json"
@@ -186,6 +186,28 @@ def _read_service_account_email(
     return None
 
 
+def _resolve_service_account_path(service_account_path: Optional[Path] = None) -> Path:
+    """Return the service-account JSON path used for Drive API calls."""
+    if service_account_path is not None:
+        return Path(service_account_path)
+    sa_env = os.environ.get("SERVICE_ACCOUNT_PATH")
+    if sa_env:
+        return Path(sa_env)
+    return _DEFAULT_SERVICE_ACCOUNT_PATH
+
+
+def _load_service_account_credentials(service_account_path: Optional[Path] = None):
+    """Load Drive credentials from the evaluator service-account JSON."""
+    from google.oauth2.service_account import Credentials
+
+    sa_path = _resolve_service_account_path(service_account_path)
+    if not sa_path.is_file():
+        raise FileNotFoundError(f"Service-account file not found at {sa_path}")
+
+    scopes = ["https://www.googleapis.com/auth/drive"]
+    return Credentials.from_service_account_file(str(sa_path), scopes=scopes)
+
+
 def _load_user_oauth_credentials(
     token_path: Optional[Path] = None,
     client_secrets_path: Optional[Path] = None,
@@ -286,12 +308,11 @@ def share_doc_with_service_account(
 ) -> bool:
     """Grant the evaluator's service account access to *doc_id*.
 
-    The agent creates Google Docs inside the user's personal Drive (driven
-    via Playwright with a logged-in Chromium profile). The KNOWS evaluators,
-    however, authenticate as a *service account* (see
-    ``google_services_utils.initialize_google_services``), which by default
-    cannot see those user-owned docs. This helper adds the service account
-    as a collaborator on the doc, using the user's OAuth credentials.
+    This helper intentionally authenticates the Drive API request with the
+    evaluator service account, matching the credentials used by the KNOWS
+    evaluators (see ``google_services_utils.initialize_google_services``).
+    That means it can only update sharing for files the service account can
+    already access and has permission to reshare.
 
     Parameters
     ----------
@@ -304,19 +325,28 @@ def share_doc_with_service_account(
     service_account_email : str, optional
         Override the service-account email. By default the email is read
         from the ``client_email`` field of the service-account JSON.
-    token_path / client_secrets_path / service_account_path : Path, optional
-        Override paths to the OAuth + service-account credentials.
+    token_path / client_secrets_path : Path, optional
+        Deprecated compatibility arguments. Sharing no longer uses OAuth.
+    service_account_path : Path, optional
+        Override path to the service-account credentials.
 
     Returns
     -------
     bool
         ``True`` if a permission was created (or the request reported the
         permission already existed); ``False`` on best-effort failure (e.g.
-        the OAuth account does not own the doc, or the doc no longer exists).
+        the service account cannot access the doc, cannot reshare it, or the
+        doc no longer exists).
     """
     if not doc_id:
         logger.warning("share_doc_with_service_account: doc_id is empty")
         return False
+
+    if token_path or client_secrets_path:
+        logger.debug(
+            "share_doc_with_service_account: ignoring deprecated OAuth path "
+            "arguments because sharing uses service-account credentials."
+        )
 
     sa_email = service_account_email or _read_service_account_email(service_account_path)
     if not sa_email:
@@ -328,13 +358,10 @@ def share_doc_with_service_account(
         return False
 
     try:
-        creds = _load_user_oauth_credentials(
-            token_path=token_path,
-            client_secrets_path=client_secrets_path,
-        )
+        creds = _load_service_account_credentials(service_account_path)
     except Exception as exc:  # noqa: BLE001 - best-effort
         logger.warning(
-            "share_doc_with_service_account: could not load OAuth credentials "
+            "share_doc_with_service_account: could not load service-account credentials "
             "(%s); skipping share for doc %s",
             exc,
             doc_id,
@@ -483,9 +510,8 @@ def create_task_workspace(
     When ``share_with_evaluator`` is true (the default), the new file is
     also shared with the KNOWS evaluator's service account so the grading
     step at episode end can read it via the Drive APIs. Sharing is
-    best-effort: if the OAuth credentials are missing or belong to a
-    different account, the share attempt is logged and the file is still
-    returned.
+    best-effort: if the service account cannot access or reshare the file,
+    the share attempt is logged and the file is still returned.
     """
     workspace = _WORKSPACE_KINDS.get(kind)
     if workspace is None:
@@ -667,9 +693,8 @@ def _cli_main(argv=None) -> int:
             print(f"Doc {args.share_doc} shared with the evaluator's service account.")
             return 0
         print(
-            f"Could not share doc {args.share_doc}. If the OAuth refresh "
-            "token is invalid, run `python -m browsergym.knows.doc_setup "
-            "--reauth-oauth` first."
+            f"Could not share doc {args.share_doc}. Ensure the service "
+            "account can access the file and has permission to reshare it."
         )
         return 1
 
