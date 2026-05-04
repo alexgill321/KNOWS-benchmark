@@ -58,6 +58,25 @@ doc_structure = None
 cached_papers_info = None  # Cache paper info from Semantic Scholar
 
 
+def _get_crossref_publication_date(doi):
+    """Get the journal publication date from CrossRef API using DOI.
+    Falls back to None if unavailable. Used when S2 returns a preprint date."""
+    import requests
+    try:
+        response = requests.get(f"https://api.crossref.org/works/{doi}", timeout=10)
+        if response.status_code == 200:
+            msg = response.json().get('message', {})
+            # Prefer published-online, then published, then published-print
+            for field in ('published-online', 'published', 'published-print'):
+                date_parts = msg.get(field, {}).get('date-parts', [[]])
+                if date_parts and date_parts[0] and len(date_parts[0]) >= 3:
+                    parts = date_parts[0]
+                    return f"{parts[0]}-{parts[1]:02d}-{parts[2]:02d}"
+    except Exception as e:
+        print(f"  CrossRef lookup failed for DOI {doi}: {e}")
+    return None
+
+
 def cleanup_generated_files():
     """Clean up generated files and directories created during evaluation."""
     pass
@@ -192,13 +211,22 @@ def grade_checkpoint_2():
                                 f"Paper '{title}' has only {total_citations} citations, need {MIN_CITATIONS}",
                                 execution_time=time.time() - paper_step_start)
 
-            if is_within_x_years(publication_date, RECENCY_YEARS):
+            # If S2 date fails recency, try CrossRef using DOI (S2 often uses preprint date)
+            recency_date = publication_date
+            if not is_within_x_years(publication_date, RECENCY_YEARS):
+                paper_doi = (paper.get('externalIds') or {}).get('DOI')
+                if paper_doi:
+                    crossref_date = _get_crossref_publication_date(paper_doi)
+                    if crossref_date:
+                        recency_date = crossref_date
+
+            if is_within_x_years(recency_date, RECENCY_YEARS):
                 checkpoint.add_step(f"Recency Check {i+1}", True, 1,
-                                f"Paper '{title}' published on {publication_date} is within {RECENCY_YEARS} years",
+                                f"Paper '{title}' published on {recency_date} is within {RECENCY_YEARS} years",
                                 execution_time=time.time() - paper_step_start)
             else:
                 checkpoint.add_step(f"Recency Check {i+1}", False, 1,
-                                f"Paper '{title}' published on {publication_date} is older than {RECENCY_YEARS} years",
+                                f"Paper '{title}' published on {recency_date} is older than {RECENCY_YEARS} years",
                                 execution_time=time.time() - paper_step_start)
         else:
             checkpoint.add_step(f"Citation Check {i+1}", False, 1,
@@ -270,7 +298,7 @@ def grade_checkpoint_3():
         # Abstract check
         abstract_match = None
         if abstract:
-            abstract_match, abstract_score = text_fuzzy_match_contained_long(abstract, gold_text)
+            abstract_match, abstract_score = text_fuzzy_match_contained_long(abstract, gold_text, threshold=70)
             if abstract_match:
                 checkpoint.add_step(f"Abstract Inclusion {i+1}", True, (i*5)+1,
                                 f"Abstract for paper '{title}' found in document",

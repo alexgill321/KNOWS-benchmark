@@ -76,14 +76,27 @@ def prefetch_arxiv_papers():
         cached_arxiv_papers = []
         return
 
-    try:
-        client = arxiv.Client()
-        search = arxiv.Search(id_list=paper_links)
-        cached_arxiv_papers = list(client.results(search))
-        print(f"  Prefetched {len(cached_arxiv_papers)} arXiv papers")
-    except Exception as e:
-        print(f"Error prefetching arXiv papers: {e}")
-        cached_arxiv_papers = []
+    client = arxiv.Client(
+        delay_seconds=3,
+        num_retries=0,
+    )
+    search = arxiv.Search(id_list=paper_links)
+
+    max_retries = 3
+    for attempt in range(max_retries + 1):
+        try:
+            cached_arxiv_papers = list(client.results(search))
+            print(f"  Prefetched {len(cached_arxiv_papers)} arXiv papers")
+            return
+        except Exception as e:
+            print(f"  arXiv call failed (attempt {attempt + 1}/{max_retries + 1}): {type(e).__name__}: {e}")
+            if '429' in str(e) and attempt < max_retries:
+                wait_time = 10 * (2 ** attempt)
+                print(f"  Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+            else:
+                cached_arxiv_papers = []
+                return
 
 def setup_document(workspace_doc_id):
     """
@@ -171,31 +184,9 @@ def grade_checkpoint_2():
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    import requests
-    try:
-        response = requests.post(
-            "https://api.semanticscholar.org/graph/v1/paper/batch",
-            params={'fields': 'citationCount,title,publicationDate,externalIds'},
-            json={"ids": [f"ARXIV:{arxiv_id}" for arxiv_id in arxiv_ids]}
-        )
-        papers_info = response.json()
-
-        if not isinstance(papers_info, list):
-            error_msg = f"Unexpected API response format: {type(papers_info).__name__}"
-            if isinstance(papers_info, dict):
-                error_msg += f" - {papers_info.get('message', 'Unknown error')}"
-            elif isinstance(papers_info, str):
-                error_msg += f" - {papers_info}"
-            print(f"Error: {error_msg}")
-            detail = f"Semantic Scholar API error: {error_msg}"
-            for i in range(NUM_PAPERS):
-                checkpoint.add_step(f"Citation Check {i+1}", False, 1, detail, execution_time=0)
-                checkpoint.add_step(f"Recency Check {i+1}", False, 1, detail, execution_time=0)
-            checkpoint.execution_time = time.time() - checkpoint_start
-            return checkpoint
-    except Exception as e:
-        print(f"Error fetching data from Semantic Scholar: {e}")
-        detail = f"Semantic Scholar API error: {e}"
+    papers_info = s2_batch_fetch_by_arxiv_ids(arxiv_ids)
+    if papers_info is None:
+        detail = "Semantic Scholar API error: failed to fetch paper data."
         for i in range(NUM_PAPERS):
             checkpoint.add_step(f"Citation Check {i+1}", False, 1, detail, execution_time=0)
             checkpoint.add_step(f"Recency Check {i+1}", False, 1, detail, execution_time=0)
@@ -282,7 +273,7 @@ def grade_checkpoint_3():
 
     for i, paper in enumerate(papers_info):
         abstract = paper.summary
-        abstract_match, abstract_score = text_fuzzy_match_contained_long(abstract, gold_text)
+        abstract_match, abstract_score = text_fuzzy_match_contained_long(abstract, gold_text, threshold=70)
         title_match = text_fuzzy_match_contained_short(paper.title, gold_text)
         links_match = text_fuzzy_match_contained_short(paper.entry_id, gold_text)
         found_elements_for_ordering = []
@@ -317,6 +308,7 @@ def grade_checkpoint_3():
                             f"Link for paper {paper.title} not found in document",
                             execution_time=time.time() - step_start)
 
+        # Check structure: Title -> Link -> Abstract order in the document
         expected_components = [
             ("Title", title_match),
             ("Link", links_match),
@@ -326,18 +318,37 @@ def grade_checkpoint_3():
         missing_component_names = [name for name, match in expected_components if match is None]
 
         if not missing_component_names:
-            expected_text_order = [match for _, match in expected_components]
-            ordered_elements = get_structural_element_order(doc_structure, expected_text_order)
+            gold_text_lower = gold_text.lower()
 
-            if ordered_elements == expected_text_order:
+            # Use the arxiv ID as anchor — unique per paper
+            import re as _re
+            arxiv_id = _re.sub(r'v\d+$', '', paper.entry_id.split('/')[-1])
+            link_pos = gold_text_lower.find(arxiv_id.lower())
+
+            # Find paper title (use the actual title, not the fuzzy window)
+            paper_title_lower = paper.title.lower()
+            title_pos = gold_text_lower.find(paper_title_lower)
+
+            # For abstract: use middle 80 chars of the fuzzy-matched window,
+            # searching after the link position
+            search_from = link_pos if link_pos >= 0 else 0
+            am_lower = abstract_match.lower()
+            mid = len(am_lower) // 2
+            anchor = am_lower[max(0, mid-40):mid+40]
+            abstract_pos = gold_text_lower.find(anchor, search_from)
+
+            if title_pos >= 0 and link_pos >= 0 and abstract_pos >= 0 and title_pos <= link_pos <= abstract_pos:
                 checkpoint.add_step(f"Structure Check {i+1}", True, (i*5)+4,
                                     f"Correct structure for paper {paper.title}: Title -> Link -> Abstract",
                                     execution_time=time.time() - step_start)
             else:
-                actual_order_titles = [text.split(':')[0] for text in ordered_elements]
-                expected_order_titles = [text.split(':')[0] for text in expected_text_order]
-                checkpoint.add_step(f"Structure Check {i+1}", False, (i*5)+4,
-                                    f"Incorrect structure for paper {paper.title}. Expected order: {expected_order_titles}, Actual order: {actual_order_titles}",
+                positions = sorted([("Title", title_pos), ("Link", link_pos), ("Abstract", abstract_pos)], key=lambda x: x[1])
+                actual_order_str = " -> ".join([name for name, _ in positions if _ >= 0])
+                not_found = [name for name, pos in [("Title", title_pos), ("Link", link_pos), ("Abstract", abstract_pos)] if pos < 0]
+                detail = f"Incorrect structure for paper {paper.title}. Expected: Title -> Link -> Abstract, Actual: {actual_order_str}"
+                if not_found:
+                    detail += f" (not found: {', '.join(not_found)})"
+                checkpoint.add_step(f"Structure Check {i+1}", False, (i*5)+4, detail,
                                     execution_time=time.time() - step_start)
         else:
             checkpoint.add_step(f"Structure Check {i+1}", False, (i*5)+4,

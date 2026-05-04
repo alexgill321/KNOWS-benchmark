@@ -26,6 +26,7 @@ from src.browsergym.knows.eval.tasks.docs_5_influential_papers.utils import (
     is_within_x_years,
     extract_paper_links_from_text,
     extract_paper_id,
+    paper_id_to_ss_identifier,
     fetch_papers_from_semantic_scholar,
     match_paper_links_with_browsing_history,
 )
@@ -78,14 +79,16 @@ def setup_document(workspace_doc_id):
 def prefetch_papers():
     """Prefetch paper metadata from Semantic Scholar for reuse across checkpoints."""
     global cached_papers_info
+    import re
 
     doc_links = extract_paper_links_from_text(gold_text, PAPER_DOMAINS)
     paper_ids = []
+    seen = set()
     for link in doc_links:
         pid = extract_paper_id(link)
-        if pid:
+        if pid and pid not in seen:
             paper_ids.append(pid)
-    paper_ids = list(set(paper_ids))
+            seen.add(pid)
 
     if len(paper_ids) < NUM_PAPERS:
         print(f"Warning: Only found {len(paper_ids)} unique paper links in document, expected at least {NUM_PAPERS}.")
@@ -95,8 +98,31 @@ def prefetch_papers():
         cached_papers_info = []
         return
 
+    # Extract titles from doc for papers that need title-based S2 search (e.g. ChemRxiv)
+    fallback_titles = []
+    for pid in paper_ids:
+        title = None
+        if paper_id_to_ss_identifier(pid) is None:
+            # Find the link in doc text, look for title on the line before it
+            id_type, id_value = pid
+            link_pos = gold_text.find(id_value)
+            if link_pos > 0:
+                # Title is typically on the line before the link
+                preceding = gold_text[:link_pos].rstrip()
+                lines = preceding.split('\n')
+                # Walk back to find the title line (skip empty lines)
+                for line in reversed(lines):
+                    line = line.strip()
+                    if line and not line.startswith('http') and len(line) > 10:
+                        # Remove leading numbering like "4. "
+                        title = re.sub(r'^\d+\.\s*', '', line)
+                        break
+        fallback_titles.append(title)
+
     cached_papers_info = fetch_papers_from_semantic_scholar(
-        paper_ids, fields='citationCount,title,publicationDate,abstract,externalIds,url'
+        paper_ids,
+        fields='citationCount,title,publicationDate,abstract,externalIds,url',
+        fallback_titles=fallback_titles,
     )
     found = len([p for p in cached_papers_info if p and isinstance(p, dict)])
     print(f"  Prefetched {found} papers from Semantic Scholar")
@@ -270,7 +296,7 @@ def grade_checkpoint_3():
         # Abstract check
         abstract_match = None
         if abstract:
-            abstract_match, abstract_score = text_fuzzy_match_contained_long(abstract, gold_text)
+            abstract_match, abstract_score = text_fuzzy_match_contained_long(abstract, gold_text, threshold=70)
             if abstract_match:
                 checkpoint.add_step(f"Abstract Inclusion {i+1}", True, (i*5)+1,
                                 f"Abstract for paper '{title}' found in document",

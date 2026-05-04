@@ -1,3 +1,4 @@
+import os
 import re
 from typing import List, Optional, Tuple
 from urllib.parse import urlparse
@@ -152,9 +153,97 @@ def paper_id_to_ss_identifier(paper_id: Tuple[str, str]) -> Optional[str]:
     return None
 
 
+def search_s2_by_title(title: str, fields: str = 'citationCount,title,publicationDate,abstract,externalIds') -> Optional[dict]:
+    """
+    Search Semantic Scholar for a paper by title. Used as a fallback when
+    paper IDs (e.g. ChemRxiv) can't be directly looked up via batch API.
+
+    Args:
+        title: The paper title to search for.
+        fields: S2 fields to return.
+
+    Returns:
+        Paper dict if a good match is found, None otherwise.
+    """
+    from rapidfuzz import fuzz
+
+    response = _s2_request_with_backoff(
+        'get',
+        "https://api.semanticscholar.org/graph/v1/paper/search",
+        params={'query': title, 'fields': fields, 'limit': 3},
+    )
+    if response is None or response.status_code != 200:
+        return None
+
+    data = response.json()
+    results = data.get('data', [])
+    for paper in results:
+        s2_title = paper.get('title', '')
+        if fuzz.ratio(title.lower(), s2_title.lower()) >= 85:
+            return paper
+    return None
+
+
+def _s2_request_with_backoff(method, url, max_retries=3, **kwargs):
+    """
+    Make a Semantic Scholar API request with rate limiting (1 req/s) and backoff.
+
+    Args:
+        method: 'get' or 'post'
+        url: The API URL
+        max_retries: Number of retries on 429/5xx errors
+        **kwargs: Passed to requests.get/post
+
+    Returns:
+        requests.Response object, or None on total failure.
+    """
+    import time as _time
+
+    s2_headers = kwargs.pop('headers', {})
+    s2_api_key = os.environ.get("S2_API_KEY")
+    if s2_api_key:
+        s2_headers["x-api-key"] = s2_api_key
+
+    # Rate limit: wait 1s between requests
+    if not hasattr(_s2_request_with_backoff, '_last_call'):
+        _s2_request_with_backoff._last_call = 0
+    elapsed = _time.time() - _s2_request_with_backoff._last_call
+    if elapsed < 1.0:
+        _time.sleep(1.0 - elapsed)
+
+    for attempt in range(max_retries + 1):
+        try:
+            if method == 'post':
+                response = requests.post(url, headers=s2_headers, **kwargs)
+            else:
+                response = requests.get(url, headers=s2_headers, **kwargs)
+
+            _s2_request_with_backoff._last_call = _time.time()
+
+            if response.status_code == 200:
+                return response
+            elif response.status_code in (429, 500, 502, 503) and attempt < max_retries:
+                wait_time = 5 * (2 ** attempt)  # 5s, 10s, 20s
+                print(f"  S2 API {response.status_code}, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})...")
+                _time.sleep(wait_time)
+            else:
+                return response
+        except Exception as e:
+            if attempt < max_retries:
+                wait_time = 5 * (2 ** attempt)
+                print(f"  S2 request error: {e}, retrying in {wait_time}s...")
+                _time.sleep(wait_time)
+            else:
+                print(f"  S2 request failed after {max_retries + 1} attempts: {e}")
+                return None
+
+    return None
+
+
 def fetch_papers_from_semantic_scholar(
     paper_ids: List[Tuple[str, str]],
     fields: str = 'citationCount,title,publicationDate,abstract,externalIds',
+    fallback_titles: Optional[List[Optional[str]]] = None,
 ) -> List[Optional[dict]]:
     """
     Batch-fetch paper metadata from Semantic Scholar.
@@ -162,35 +251,90 @@ def fetch_papers_from_semantic_scholar(
     Args:
         paper_ids: List of (id_type, id_value) tuples from extract_paper_id.
         fields: Comma-separated Semantic Scholar fields to request.
+        fallback_titles: Optional list (same length as paper_ids) of paper titles.
+            Used as fallback for IDs that can't be batch-fetched (e.g. ChemRxiv).
 
     Returns:
         List of paper dicts (or None entries for papers not found).
         Returns an empty list on API errors.
     """
-    ss_ids = []
-    for pid in paper_ids:
+    # Separate papers into batch-fetchable and those needing title search
+    batch_ids = []
+    batch_indices = []
+    title_search_indices = []
+
+    for i, pid in enumerate(paper_ids):
         ss_id = paper_id_to_ss_identifier(pid)
         if ss_id:
-            ss_ids.append(ss_id)
+            batch_ids.append(ss_id)
+            batch_indices.append(i)
+        else:
+            title_search_indices.append(i)
 
-    if not ss_ids:
-        return []
+    results = [None] * len(paper_ids)
 
-    try:
-        response = requests.post(
+    # Batch fetch supported IDs
+    if batch_ids:
+        response = _s2_request_with_backoff(
+            'post',
             "https://api.semanticscholar.org/graph/v1/paper/batch",
             params={'fields': fields},
-            json={"ids": ss_ids},
+            json={"ids": batch_ids},
         )
-        result = response.json()
-        if isinstance(result, list):
-            return result
-        error_msg = result.get('message', result) if isinstance(result, dict) else result
-        print(f"Semantic Scholar API error: {error_msg}")
-        return []
-    except Exception as e:
-        print(f"Error fetching from Semantic Scholar: {e}")
-        return []
+        if response is not None:
+            data = response.json()
+            if isinstance(data, list):
+                for idx, paper in zip(batch_indices, data):
+                    results[idx] = paper
+            else:
+                error_msg = data.get('message', data) if isinstance(data, dict) else data
+                print(f"Semantic Scholar API error: {error_msg}")
+
+    # Title search fallback for unsupported IDs (e.g. ChemRxiv)
+    if title_search_indices and fallback_titles:
+        for idx in title_search_indices:
+            if idx < len(fallback_titles) and fallback_titles[idx]:
+                paper = search_s2_by_title(fallback_titles[idx], fields=fields)
+                if paper:
+                    print(f"  Found '{fallback_titles[idx]}' via title search on S2")
+                    results[idx] = paper
+
+    return results
+
+
+def s2_batch_fetch_by_arxiv_ids(
+    arxiv_ids: List[str],
+    fields: str = 'citationCount,title,publicationDate,externalIds',
+) -> Optional[list]:
+    """
+    Batch-fetch paper metadata from Semantic Scholar using arXiv IDs.
+    Includes rate limiting (1 req/s) and exponential backoff on failures.
+
+    Args:
+        arxiv_ids: List of arXiv paper IDs (e.g., ['2305.14314', '2309.12307'])
+        fields: Comma-separated Semantic Scholar fields to request.
+
+    Returns:
+        List of paper dicts on success, or None on API errors.
+    """
+    if not arxiv_ids:
+        return None
+
+    response = _s2_request_with_backoff(
+        'post',
+        "https://api.semanticscholar.org/graph/v1/paper/batch",
+        params={'fields': fields},
+        json={"ids": [f"ARXIV:{arxiv_id}" for arxiv_id in arxiv_ids]},
+    )
+    if response is None:
+        return None
+    result = response.json()
+    if isinstance(result, list):
+        return result
+
+    error_msg = result.get('message', result) if isinstance(result, dict) else result
+    print(f"Semantic Scholar API error: {error_msg}")
+    return None
 
 
 def match_paper_links_with_browsing_history(
@@ -264,9 +408,8 @@ def get_paper_info_ss(arxiv_id):
     """Query Semantic Scholar for a single arxiv paper."""
     arxiv_id = arxiv_id.replace('arXiv:', '')
     url = f"https://api.semanticscholar.org/graph/v1/paper/ARXIV:{arxiv_id}"
-    params = {'fields': 'citationCount,title,publicationDate'}
-    response = requests.get(url, params=params)
-    if response.status_code == 200:
+    response = _s2_request_with_backoff('get', url, params={'fields': 'citationCount,title,publicationDate'})
+    if response and response.status_code == 200:
         return response.json()
     return None
 
