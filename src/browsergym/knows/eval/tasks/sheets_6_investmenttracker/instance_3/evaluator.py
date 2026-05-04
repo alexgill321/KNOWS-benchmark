@@ -67,6 +67,7 @@ matched_columns = None
 df = None
 cached_url_contents = {}
 cached_price_source_urls = []
+full_sheet_data = []
 
 def setup(workspace_doc_id):
     """
@@ -75,7 +76,7 @@ def setup(workspace_doc_id):
     Args:
         workspace_doc_id (str, optional): Direct Google Sheets document ID to use
     """
-    global sheet_id, table_data, chart_data, gold_data, df
+    global sheet_id, table_data, chart_data, gold_data, df, full_sheet_data
 
     if workspace_doc_id:
         print(f"Using workspace document ID: {workspace_doc_id}")
@@ -87,12 +88,24 @@ def setup(workspace_doc_id):
     chart_data = extract_charts_from_sheet(sheet_id, SHEETS_SERVICE)
     gold_data = extract_tables_from_sheet(GOLD_LABELS_SHEET_ID, SHEETS_SERVICE)
 
+    # Fetch full sheet data (all columns) for chart validation fallback
+    try:
+        result = SHEETS_SERVICE.spreadsheets().values().get(
+            spreadsheetId=sheet_id, range='Sheet1'
+        ).execute()
+        full_sheet_data = result.get('values', [])
+    except Exception as e:
+        print(f"Warning: Could not fetch full sheet data: {e}")
+        full_sheet_data = []
+
     # Initialize df for use across checkpoints (first table's DataFrame)
     if table_data:
         first_table = table_data[0]
         df = first_table.df if hasattr(first_table, 'df') else first_table
         if isinstance(df, dict):
             df = pd.DataFrame(df)
+        # Drop completely empty rows (empty strings and NaN)
+        df = df.replace('', pd.NA).dropna(how='all').reset_index(drop=True)
 
 
 def preprocess_browsing_history(browsing_history):
@@ -154,22 +167,26 @@ def grade_checkpoint_1_and_2():
     global model, matched_columns, gold_to_user_ticker_map, df
     checkpoint_start = time.time()
     checkpoint1 = Checkpoint(total=7, result=0, name="Spreadsheet Structure")
-    checkpoint2 = Checkpoint(total=4, result=0, name="Data Accuracy")
+    checkpoint2 = Checkpoint(total=NUM_STOCKS + 3, result=0, name="Data Accuracy")
 
     cp1_step_names = [
         "Stock Name Column", "Ticker Symbol Column", "Current Price Column",
         "Past Price Column", "Gain/Loss Column", "Number Of Shares Owned Column",
         "Total Value Of Each Stock Column",
     ]
-    cp2_step_names = [
-        "Stock Selection Accuracy", "Past Price Accuracy",
+    # Stock selection steps are dynamically generated (one per gold stock).
+    # Remaining CP2 steps: Past Price, Current Price, Gain/Loss.
+    cp2_remaining_step_names = [
+        "Past Price Accuracy",
         "Current Price Accuracy", "Gain/Loss Calculation Accuracy",
     ]
 
     if not table_data:
         for i, name in enumerate(cp1_step_names, 1):
             checkpoint1.add_step(name, False, i, "No table data found in spreadsheet", execution_time=0)
-        for i, name in enumerate(cp2_step_names, 1):
+        for i in range(1, NUM_STOCKS + 1):
+            checkpoint2.add_step(f"Stock Match: unknown", False, i, "No table data found in spreadsheet", execution_time=0)
+        for i, name in enumerate(cp2_remaining_step_names, NUM_STOCKS + 1):
             checkpoint2.add_step(name, False, i, "No table data found in spreadsheet", execution_time=0)
         checkpoint1.execution_time = time.time() - checkpoint_start
         checkpoint2.execution_time = 0
@@ -183,11 +200,15 @@ def grade_checkpoint_1_and_2():
         df = first_table.df if hasattr(first_table, 'df') else first_table
         if isinstance(df, dict):
             df = pd.DataFrame(df)
+        # Drop completely empty rows (empty strings and NaN)
+        df = df.replace('', pd.NA).dropna(how='all').reset_index(drop=True)
 
     except Exception as e:
         for i, name in enumerate(cp1_step_names, 1):
             checkpoint1.add_step(name, False, i, f"Failed to parse table data: {str(e)}", execution_time=0)
-        for i, name in enumerate(cp2_step_names, 1):
+        for i in range(1, NUM_STOCKS + 1):
+            checkpoint2.add_step(f"Stock Match: unknown", False, i, f"Failed to parse table data: {str(e)}", execution_time=0)
+        for i, name in enumerate(cp2_remaining_step_names, NUM_STOCKS + 1):
             checkpoint2.add_step(name, False, i, f"Failed to parse table data: {str(e)}", execution_time=0)
         checkpoint1.execution_time = time.time() - checkpoint_start
         checkpoint2.execution_time = 0
@@ -216,6 +237,16 @@ def grade_checkpoint_1_and_2():
     if model is None:
         model = load_model(model_id)
     matched_columns = match_columns(df, required_columns, model=model, parallel=True)
+
+    # Relaxed check for "Number of shares owned": if no dedicated column was matched,
+    # accept any column header that references the expected share count
+    if "Number of shares owned" not in matched_columns:
+        shares_str = str(NUM_SHARES)
+        for col in original_columns:
+            if shares_str in col and "share" in col.lower():
+                matched_columns["Number of shares owned"] = col
+                print(f"  Relaxed shares match: column '{col}' references {NUM_SHARES} shares")
+                break
 
     # Add checkpoint steps for each required column
     for step_num, (col_name, keywords) in enumerate(required_columns, start=1):
@@ -307,17 +338,18 @@ def grade_checkpoint_1_and_2():
         total_match_count = exact_match_count + len(llm_matches)
         step_time = time.time() - step_start
 
-        if total_match_count == NUM_STOCKS:
-            match_details = f"{exact_match_count} exact"
-            if llm_matches:
-                match_details += f", {len(llm_matches)} LLM-matched"
-            checkpoint2.add_step("Stock Selection Accuracy", True, 1,
-                              f"All {NUM_STOCKS} stocks match ({match_details}): {', '.join(user_tickers[:NUM_STOCKS])}",
-                              execution_time=step_time)
-        else:
-            checkpoint2.add_step("Stock Selection Accuracy", False, 1,
-                              f"Only {total_match_count}/{NUM_STOCKS} stocks match ({exact_match_count} exact, {len(llm_matches)} LLM). Expected: {', '.join(reference_tickers[:NUM_STOCKS])}",
-                              execution_time=step_time)
+        # Add one step per gold stock
+        for step_idx, (ref_name, ref_ticker) in enumerate(zip(reference_names, reference_tickers), start=1):
+            if ref_ticker in gold_to_user_ticker_map:
+                user_ticker = gold_to_user_ticker_map[ref_ticker]
+                match_type = "exact" if ref_ticker == user_ticker else "LLM"
+                checkpoint2.add_step(f"Stock Match: {ref_ticker} ({ref_name})", True, step_idx,
+                                  f"Matched to user ticker '{user_ticker}' ({match_type} match)",
+                                  execution_time=step_time if step_idx == 1 else 0)
+            else:
+                checkpoint2.add_step(f"Stock Match: {ref_ticker} ({ref_name})", False, step_idx,
+                                  f"Gold stock {ref_ticker} ({ref_name}) not found in user spreadsheet. User tickers: {', '.join(user_tickers[:NUM_STOCKS])}",
+                                  execution_time=step_time if step_idx == 1 else 0)
     else:
         step_time = time.time() - step_start
         missing = []
@@ -325,11 +357,12 @@ def grade_checkpoint_1_and_2():
             missing.append("ticker symbol")
         if "Stock Name" not in matched_columns:
             missing.append("stock name")
-        checkpoint2.add_step("Stock Selection Accuracy", False, 1,
-                          f"Cannot validate stocks - {' and '.join(missing)} column(s) not found",
-                          execution_time=step_time)
+        for step_idx, (ref_name, ref_ticker) in enumerate(zip(reference_names, reference_tickers), start=1):
+            checkpoint2.add_step(f"Stock Match: {ref_ticker} ({ref_name})", False, step_idx,
+                              f"Cannot validate stocks - {' and '.join(missing)} column(s) not found",
+                              execution_time=step_time if step_idx == 1 else 0)
 
-    # Step 2 (checkpoint2): Verify past prices are correct (5% tolerance)
+    # Past Price step (checkpoint2): Verify past prices are correct (5% tolerance)
     step_start = time.time()
     if "Past Price" in matched_columns and "Ticker Symbol" in matched_columns and gold_to_user_ticker_map:
         past_price_col = matched_columns["Past Price"]
@@ -359,7 +392,11 @@ def grade_checkpoint_1_and_2():
                 continue
 
             user_price = parse_currency_value(matching_rows.iloc[0][past_price_col])
-            gold_price = gold_past_prices[gold_ticker]
+            gold_price_raw = gold_past_prices[gold_ticker]
+            gold_price = parse_currency_value(gold_price_raw)
+
+            if gold_price is None:
+                raise ValueError(f"Gold data error: could not parse past price '{gold_price_raw}' for ticker {gold_ticker}. Gold data must not contain #N/A or invalid values.")
 
             if user_price is None:
                 mismatches.append(f"{user_ticker} (gold: {gold_ticker}): could not parse user price")
@@ -400,28 +437,32 @@ def grade_checkpoint_1_and_2():
                     mismatches.append(f"{stock['ticker']}: {stock['user_price']} vs gold {stock['gold_price']} ({diff:.1f}% diff)")
         else:
             for stock in failed_stocks:
-                mismatches.append(f"{stock['ticker']}: {stock['user_price']} vs gold {stock['gold_price']} ({(stock['user_price'] - stock['gold_price'])/stock['gold_price'] * 100:.1f}% diff)")
+                try:
+                    diff_pct = (stock['user_price'] - stock['gold_price']) / stock['gold_price'] * 100
+                    mismatches.append(f"{stock['ticker']}: {stock['user_price']} vs gold {stock['gold_price']} ({diff_pct:.1f}% diff)")
+                except (TypeError, ZeroDivisionError):
+                    mismatches.append(f"{stock['ticker']}: {stock['user_price']} vs gold {stock['gold_price']}")
 
         step_time = time.time() - step_start
         if total_comparisons == 0:
-            checkpoint2.add_step("Past Price Accuracy", False, 2,
+            checkpoint2.add_step("Past Price Accuracy", False, NUM_STOCKS + 1,
                               "No past prices found to validate",
                               execution_time=step_time)
         elif match_count == total_comparisons:
-            checkpoint2.add_step("Past Price Accuracy", True, 2,
+            checkpoint2.add_step("Past Price Accuracy", True, NUM_STOCKS + 1,
                               f"All {match_count}/{total_comparisons} past prices match (gold or web-verified)",
                               execution_time=step_time)
         else:
-            checkpoint2.add_step("Past Price Accuracy", False, 2,
+            checkpoint2.add_step("Past Price Accuracy", False, NUM_STOCKS + 1,
                               f"Only {match_count}/{total_comparisons} past prices match. Mismatches: {'; '.join(mismatches[:3])}{'...' if len(mismatches) > 3 else ''}",
                               execution_time=step_time)
     else:
         step_time = time.time() - step_start
-        checkpoint2.add_step("Past Price Accuracy", False, 2,
+        checkpoint2.add_step("Past Price Accuracy", False, NUM_STOCKS + 1,
                           "Cannot validate past prices - required columns not found or no ticker mapping available",
                           execution_time=step_time)
 
-    # Step 3 (checkpoint2): Verify current prices are correct (5% tolerance)
+    # Current Price step (checkpoint2): Verify current prices are correct (5% tolerance)
     step_start = time.time()
     if "Current Price" in matched_columns and "Ticker Symbol" in matched_columns and gold_to_user_ticker_map:
         current_price_col = matched_columns["Current Price"]
@@ -451,7 +492,11 @@ def grade_checkpoint_1_and_2():
                 continue
 
             user_price = parse_currency_value(matching_rows.iloc[0][current_price_col])
-            gold_price = gold_current_prices[gold_ticker]
+            gold_price_raw = gold_current_prices[gold_ticker]
+            gold_price = parse_currency_value(gold_price_raw)
+
+            if gold_price is None:
+                raise ValueError(f"Gold data error: could not parse current price '{gold_price_raw}' for ticker {gold_ticker}. Gold data must not contain #N/A or invalid values.")
 
             if user_price is None:
                 mismatches.append(f"{user_ticker} (gold: {gold_ticker}): could not parse user price")
@@ -490,28 +535,32 @@ def grade_checkpoint_1_and_2():
                     mismatches.append(f"{stock['ticker']}: {stock['user_price']} vs gold {stock['gold_price']} ({diff:.1f}% diff)")
         else:
             for stock in failed_stocks:
-                mismatches.append(f"{stock['ticker']}: {stock['user_price']} vs gold {stock['gold_price']} ({(stock['user_price'] - stock['gold_price'])/stock['gold_price'] * 100:.1f}% diff)")
+                try:
+                    diff_pct = (stock['user_price'] - stock['gold_price']) / stock['gold_price'] * 100
+                    mismatches.append(f"{stock['ticker']}: {stock['user_price']} vs gold {stock['gold_price']} ({diff_pct:.1f}% diff)")
+                except (TypeError, ZeroDivisionError):
+                    mismatches.append(f"{stock['ticker']}: {stock['user_price']} vs gold {stock['gold_price']}")
 
         step_time = time.time() - step_start
         if total_comparisons == 0:
-            checkpoint2.add_step("Current Price Accuracy", False, 3,
+            checkpoint2.add_step("Current Price Accuracy", False, NUM_STOCKS + 2,
                               "No current prices found to validate",
                               execution_time=step_time)
         elif match_count == total_comparisons:
-            checkpoint2.add_step("Current Price Accuracy", True, 3,
+            checkpoint2.add_step("Current Price Accuracy", True, NUM_STOCKS + 2,
                               f"All {match_count}/{total_comparisons} current prices match (gold or web-verified)",
                               execution_time=step_time)
         else:
-            checkpoint2.add_step("Current Price Accuracy", False, 3,
+            checkpoint2.add_step("Current Price Accuracy", False, NUM_STOCKS + 2,
                               f"Only {match_count}/{total_comparisons} current prices match. Mismatches: {'; '.join(mismatches[:3])}{'...' if len(mismatches) > 3 else ''}",
                               execution_time=step_time)
     else:
         step_time = time.time() - step_start
-        checkpoint2.add_step("Current Price Accuracy", False, 3,
+        checkpoint2.add_step("Current Price Accuracy", False, NUM_STOCKS + 2,
                           "Cannot validate current prices - required columns not found or no ticker mapping available",
                           execution_time=step_time)
 
-    # Step 4 (checkpoint2): Verify gain/loss calculations are correct
+    # Gain/Loss step (checkpoint2): Verify gain/loss calculations are correct
     # Calculate expected gain/loss from actual current and past prices, then compare
     step_start = time.time()
     if "Gain/Loss" in matched_columns and "Current Price" in matched_columns and "Past Price" in matched_columns:
@@ -533,38 +582,52 @@ def grade_checkpoint_1_and_2():
                     print(f"Could not parse currency values for row {idx}")
                     continue
 
-                # Calculate expected gain/loss from actual prices
-                expected_gainloss = current_price - past_price
+                # Calculate expected gain/loss - accept dollar, percentage, or total interpretations
+                expected_dollar = current_price - past_price
+                expected_pct_decimal = (current_price - past_price) / past_price if past_price != 0 else None
+                expected_pct_100 = expected_pct_decimal * 100 if expected_pct_decimal is not None else None
+                expected_total = expected_dollar * NUM_SHARES
 
-                # Use numerical matching with 1% error
-                is_match, diff = numerical_match_with_error(expected_gainloss, user_gainloss, error_percent=1.0)
+                # Try all interpretations, accept whichever matches
+                is_match = False
+                best_diff = float('inf')
+                for expected in [expected_dollar, expected_pct_decimal, expected_pct_100, expected_total]:
+                    if expected is not None:
+                        match, diff = numerical_match_with_error(expected, user_gainloss, error_percent=5.0)
+                        if match:
+                            is_match = True
+                            best_diff = diff
+                            break
+                        if diff < best_diff:
+                            best_diff = diff
+                diff = best_diff
                 total_comparisons += 1
 
                 if is_match:
                     match_count += 1
                 else:
                     ticker = str(row[ticker_col]).strip() if "Ticker Symbol" in matched_columns else f"Row {idx}"
-                    mismatches.append(f"{ticker}: {user_gainloss} vs expected {expected_gainloss:.2f} ({diff:.1f}% diff)")
+                    mismatches.append(f"{ticker}: {user_gainloss} vs expected {expected_dollar:.2f} ({diff:.1f}% diff)")
             except (ValueError, TypeError, KeyError) as e:
                 print(f"Error processing gain/loss for row {idx}: {e}")
                 continue
 
         step_time = time.time() - step_start
         if total_comparisons == 0:
-            checkpoint2.add_step("Gain/Loss Calculation Accuracy", False, 4,
+            checkpoint2.add_step("Gain/Loss Calculation Accuracy", False, NUM_STOCKS + 3,
                               "No gain/loss values found to validate",
                               execution_time=step_time)
         elif match_count == total_comparisons:
-            checkpoint2.add_step("Gain/Loss Calculation Accuracy", True, 4,
+            checkpoint2.add_step("Gain/Loss Calculation Accuracy", True, NUM_STOCKS + 3,
                               f"All {match_count}/{total_comparisons} gain/loss calculations are correct within 5% tolerance",
                               execution_time=step_time)
         else:
-            checkpoint2.add_step("Gain/Loss Calculation Accuracy", False, 4,
+            checkpoint2.add_step("Gain/Loss Calculation Accuracy", False, NUM_STOCKS + 3,
                               f"Only {match_count}/{total_comparisons} gain/loss calculations are correct. Mismatches: {'; '.join(mismatches[:3])}{'...' if len(mismatches) > 3 else ''}",
                               execution_time=step_time)
     else:
         step_time = time.time() - step_start
-        checkpoint2.add_step("Gain/Loss Calculation Accuracy", False, 4,
+        checkpoint2.add_step("Gain/Loss Calculation Accuracy", False, NUM_STOCKS + 3,
                           "Cannot validate gain/loss - required columns not found",
                           execution_time=step_time)
 
@@ -787,7 +850,7 @@ def grade_checkpoint_4():
 
     # Extract chart categories (x-axis - should be stock names or tickers)
     try:
-        chart_categories = extract_chart_domain_data(chart, df)
+        chart_categories = extract_chart_domain_data(chart, df, full_sheet_data=full_sheet_data)
 
         if not chart_categories:
             step_time = time.time() - step_start
@@ -802,12 +865,13 @@ def grade_checkpoint_4():
 
         # Get expected stocks - try both ticker and name columns
         expected_stocks = []
+        expected_stocks_alt = []
         if "Ticker Symbol" in matched_columns:
             ticker_col = matched_columns["Ticker Symbol"]
             expected_stocks = df[ticker_col].dropna().astype(str).str.strip().tolist()
-        elif "Stock Name" in matched_columns:
+        if "Stock Name" in matched_columns:
             name_col = matched_columns["Stock Name"]
-            expected_stocks = df[name_col].dropna().astype(str).str.strip().tolist()
+            expected_stocks_alt = df[name_col].dropna().astype(str).str.strip().tolist()
 
         if not expected_stocks:
             step_time = time.time() - step_start
@@ -851,6 +915,13 @@ def grade_checkpoint_4():
             chart_categories, expected_stocks, tolerance='fuzzy'
         )
 
+        if expected_stocks_alt and match_count < NUM_STOCKS:
+            alt_count, alt_total, alt_missing = validate_chart_categories_match(
+                chart_categories, expected_stocks_alt, tolerance='fuzzy'
+            )
+            if alt_count > match_count:
+                match_count, total_expected, missing = alt_count, alt_total, alt_missing
+
         step_time = time.time() - step_start
 
         if match_count >= NUM_STOCKS:
@@ -879,7 +950,7 @@ def grade_checkpoint_4():
 
     try:
         # Extract chart values (y-axis - should be dollar values)
-        chart_values = extract_chart_series_data(chart, df)
+        chart_values = extract_chart_series_data(chart, df, full_sheet_data=full_sheet_data)
 
         if not chart_values:
             step_time = time.time() - step_start

@@ -76,7 +76,7 @@ def debug_chart_structure(chart: Dict[str, Any]) -> None:
     print("======================\n")
 
 
-def extract_chart_domain_data(chart: Dict[str, Any], table_data: pd.DataFrame) -> List[str]:
+def extract_chart_domain_data(chart: Dict[str, Any], table_data: pd.DataFrame, full_sheet_data: Optional[List[List[str]]] = None) -> List[str]:
     """
     Extract x-axis category labels from a chart's domain range.
 
@@ -85,6 +85,8 @@ def extract_chart_domain_data(chart: Dict[str, Any], table_data: pd.DataFrame) -
             - 'data_range': Dict with 'domain_range' containing row/col indices
             - 'raw_chart': Full raw chart specification (fallback)
         table_data (pd.DataFrame): DataFrame containing the sheet data
+        full_sheet_data (list, optional): Raw sheet values as list of rows (from Sheets API values().get()).
+            Used as fallback when chart references columns outside the table DataFrame.
 
     Returns:
         list: List of category labels (strings) from the chart's x-axis.
@@ -138,46 +140,76 @@ def extract_chart_domain_data(chart: Dict[str, Any], table_data: pd.DataFrame) -
                 return []
 
         # Get range values, handling None
-        # Note: Adjust for 0-indexing in DataFrame
-        start_row = domain_range.get('start_row')-1
-        end_row = domain_range.get('end_row')-1
+        # Note: Chart ranges from Google Sheets API are 0-indexed and include the header row.
+        # The DataFrame has the header stripped, so sheet row 1 = DataFrame row 0.
+        # Account for headerCount (default 1) to skip header rows.
+        raw_start = domain_range.get('start_row')
+        raw_end = domain_range.get('end_row')
         start_col = domain_range.get('start_col')
         end_col = domain_range.get('end_col')
 
         # Check if any required values are None
-        if start_row is None or end_row is None or start_col is None:
-            print(f"Warning: Incomplete domain range data: start_row={start_row}, end_row={end_row}, start_col={start_col}, end_col={end_col}")
+        if raw_start is None or raw_end is None or start_col is None:
+            print(f"Warning: Incomplete domain range data: start_row={raw_start}, end_row={raw_end}, start_col={start_col}, end_col={end_col}")
             return []
+
+        # Determine headerCount from raw chart (default 1)
+        header_count = 1
+        raw_chart_spec = chart.get('raw_chart', {}).get('spec', {})
+        for chart_type_key in ('basicChart', 'pieChart'):
+            if chart_type_key in raw_chart_spec:
+                header_count = raw_chart_spec[chart_type_key].get('headerCount', 1)
+                break
+
+        # Skip header rows and map to DataFrame indices
+        # Sheet row 0 = header -> DataFrame columns (already stripped)
+        # Sheet row 1 = DataFrame iloc[0], etc.
+        start_row = max(raw_start, header_count) - header_count
+        end_row = raw_end - header_count
 
         # Default end_col if not provided (assume single column)
         if end_col is None:
             end_col = start_col + 1
 
         # Extract data from the DataFrame
-        # Note: Chart ranges are 0-indexed, DataFrame.iloc uses 0-indexing too
-        # end_row is exclusive in the chart API
+        # Chart ranges are 0-indexed and end_row is exclusive
 
-        # Handle single column extraction (most common for categories)
-        if end_col - start_col == 1:
-            # Single column
-            col_idx = start_col
-            if col_idx < len(table_data.columns):
+        # Check if chart references columns outside the table DataFrame
+        columns_in_range = start_col < len(table_data.columns) and (end_col - 1) < len(table_data.columns)
+
+        if columns_in_range:
+            # Handle single column extraction (most common for categories)
+            if end_col - start_col == 1:
+                col_idx = start_col
                 values = table_data.iloc[start_row:end_row, col_idx].astype(str).tolist()
-                # Filter out empty strings and NaN
                 values = [v.strip() for v in values if v and str(v).strip() and str(v).lower() != 'nan']
                 return values
-        else:
-            # Multiple columns - concatenate or take first non-empty
+            else:
+                values = []
+                for row_idx in range(start_row, min(end_row, len(table_data))):
+                    row_values = []
+                    for col_idx in range(start_col, min(end_col, len(table_data.columns))):
+                        val = str(table_data.iloc[row_idx, col_idx])
+                        if val and val.strip() and val.lower() != 'nan':
+                            row_values.append(val.strip())
+                    if row_values:
+                        values.append(' '.join(row_values))
+                return values
+        elif full_sheet_data:
+            # Fallback: chart references columns outside the table, use raw sheet data
+            print(f"Chart domain columns ({start_col}-{end_col-1}) outside table range (0-{len(table_data.columns)-1}), using full_sheet_data fallback")
+            # full_sheet_data is raw rows including header; skip header_count rows
+            data_rows = full_sheet_data[header_count:raw_end]
             values = []
-            for row_idx in range(start_row, min(end_row, len(table_data))):
-                row_values = []
-                for col_idx in range(start_col, min(end_col, len(table_data.columns))):
-                    val = str(table_data.iloc[row_idx, col_idx])
-                    if val and val.strip() and val.lower() != 'nan':
-                        row_values.append(val.strip())
-                if row_values:
-                    values.append(' '.join(row_values))
+            for row in data_rows:
+                if start_col < len(row):
+                    val = str(row[start_col]).strip()
+                    if val and val.lower() != 'nan' and val != '':
+                        values.append(val)
             return values
+        else:
+            print(f"Warning: Chart domain columns ({start_col}-{end_col-1}) outside table range (0-{len(table_data.columns)-1}) and no full_sheet_data provided")
+            return []
 
     except Exception as e:
         print(f"Error extracting chart domain data: {e}")
@@ -188,7 +220,7 @@ def extract_chart_domain_data(chart: Dict[str, Any], table_data: pd.DataFrame) -
     return []
 
 
-def extract_chart_series_data(chart: Dict[str, Any], table_data: pd.DataFrame) -> List[float]:
+def extract_chart_series_data(chart: Dict[str, Any], table_data: pd.DataFrame, full_sheet_data: Optional[List[List[str]]] = None) -> List[float]:
     """
     Extract y-axis numeric values from a chart's series range.
 
@@ -265,43 +297,67 @@ def extract_chart_series_data(chart: Dict[str, Any], table_data: pd.DataFrame) -
         
 
         # Get range values, handling None
-        start_row = source_range.get('start_row')-1
-        end_row = source_range.get('end_row')-1
+        raw_start = source_range.get('start_row')
+        raw_end = source_range.get('end_row')
         start_col = source_range.get('start_col')
         end_col = source_range.get('end_col')
 
         # Check if any required values are None
-        if start_row is None or end_row is None or start_col is None:
-            print(f"Warning: Incomplete series range data: start_row={start_row}, end_row={end_row}, start_col={start_col}, end_col={end_col}")
+        if raw_start is None or raw_end is None or start_col is None:
+            print(f"Warning: Incomplete series range data: start_row={raw_start}, end_row={raw_end}, start_col={start_col}, end_col={end_col}")
             return []
+
+        # Determine headerCount from raw chart (default 1)
+        header_count = 1
+        raw_chart_spec = chart.get('raw_chart', {}).get('spec', {})
+        for chart_type_key in ('basicChart', 'pieChart'):
+            if chart_type_key in raw_chart_spec:
+                header_count = raw_chart_spec[chart_type_key].get('headerCount', 1)
+                break
+
+        # Skip header rows and map to DataFrame indices
+        start_row = max(raw_start, header_count) - header_count
+        end_row = raw_end - header_count
 
         # Default end_col if not provided (assume single column)
         if end_col is None:
             end_col = start_col + 1
 
-        # Extract numeric data from the DataFrame
+        # Extract numeric data
         values = []
+        columns_in_range = start_col < len(table_data.columns) and (end_col - 1) < len(table_data.columns)
 
-        # Handle single column extraction (most common for series data)
-        if end_col - start_col == 1:
-            # Single column
-            col_idx = start_col
-            if col_idx < len(table_data.columns):
+        if columns_in_range:
+            # Handle single column extraction (most common for series data)
+            if end_col - start_col == 1:
+                col_idx = start_col
                 raw_values = table_data.iloc[start_row:end_row, col_idx]
                 for val in raw_values:
                     numeric_val = _parse_numeric_cell(val)
                     if numeric_val is not None:
                         values.append(numeric_val)
                 return values
-        else:
-            # Multiple columns - extract all numeric values
-            for row_idx in range(start_row, min(end_row, len(table_data))):
-                for col_idx in range(start_col, min(end_col, len(table_data.columns))):
-                    val = table_data.iloc[row_idx, col_idx]
-                    numeric_val = _parse_numeric_cell(val)
+            else:
+                for row_idx in range(start_row, min(end_row, len(table_data))):
+                    for col_idx in range(start_col, min(end_col, len(table_data.columns))):
+                        val = table_data.iloc[row_idx, col_idx]
+                        numeric_val = _parse_numeric_cell(val)
+                        if numeric_val is not None:
+                            values.append(numeric_val)
+                return values
+        elif full_sheet_data:
+            # Fallback: chart references columns outside the table, use raw sheet data
+            print(f"Chart series columns ({start_col}-{end_col-1}) outside table range (0-{len(table_data.columns)-1}), using full_sheet_data fallback")
+            data_rows = full_sheet_data[header_count:raw_end]
+            for row in data_rows:
+                if start_col < len(row):
+                    numeric_val = _parse_numeric_cell(row[start_col])
                     if numeric_val is not None:
                         values.append(numeric_val)
             return values
+        else:
+            print(f"Warning: Chart series columns ({start_col}-{end_col-1}) outside table range (0-{len(table_data.columns)-1}) and no full_sheet_data provided")
+            return []
 
     except Exception as e:
         print(f"Error extracting chart series data: {e}")

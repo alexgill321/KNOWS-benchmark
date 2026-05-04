@@ -1,6 +1,6 @@
 # Checkpoints
 
-This task has 16 points in total.
+This task has 23 points in total.
 
 ## Checkpoint 1 (7pts):
 There is a spreadsheet with the requested information.
@@ -11,14 +11,14 @@ There is a spreadsheet with the requested information.
 - There is a column/row with the current price of each stock.
 - There is a column/row with the past price of each stock.
 - There is a column/row with the gain/loss of each stock.
-- There is a column/row with the number of shares owned for each stock.
+- There is a column/row accounting for the number of shares owned for each stock.
 - There is a column/row with the total value of each stock.
 
-## Checkpoint 2 (4pts):
+## Checkpoint 2 (11pts):
 The stocks and information are correct and match the task requirements.
 
 ### Outcome Evaluation:
-- The stocks are the top 8 highest market cap banks recorded at the end of Q1 2024.
+- Each of the 8 stocks matches a top 8 highest market cap bank from the end of Q1 2024 (1 point per correct stock).
 - The past price of each stock is correct.
 - The current price of each stock is correct.
 - The gain/loss of each stock is correct.
