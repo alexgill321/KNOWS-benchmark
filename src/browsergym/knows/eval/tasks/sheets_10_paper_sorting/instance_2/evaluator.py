@@ -106,7 +106,7 @@ DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 # Folder IDs (DEST_FOLDER_ID is set by setup_run.py before each benchmark)
 SOURCE_FOLDER_ID = "1Qm2gLrC3PhRqhlAI_WXBjYKqECdPOwBE"
-DEST_FOLDER_ID = ""
+DEST_FOLDER_ID = "1lwLNgxT9_S6SKW43Ag-lyed5qPrGLfcP"
 
 # Model configuration
 model = None

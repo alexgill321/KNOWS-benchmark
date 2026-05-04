@@ -102,7 +102,7 @@ DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 # Folder IDs
 SOURCE_FOLDER_ID = "1dfRMRjBHH4F1S9WMD6p6VqpYQZ-pbKWB"
-DEST_FOLDER_ID = "1vk3FB8IumyHMBuBjI8fsUSdSyOVlFZPf"
+DEST_FOLDER_ID = "1ID4WRSo5Zs9tfFzf6NFVUF5PbuesyuZE"
 
 # Model configuration
 model = None
