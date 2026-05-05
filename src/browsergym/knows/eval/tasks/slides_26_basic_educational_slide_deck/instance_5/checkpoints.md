@@ -1,5 +1,5 @@
 # Checkpoints
-This task has 155 points in total. The topic, presenter name, and number of content slides are parsed from task.md.
+This task has 165 points in total. The topic, presenter name, and number of content slides are parsed from task.md.
 
 ## Checkpoint 1 (20 pt): Title Slide
 Verify that the title slide contains the presentation topic in bold dark orange font, the presenter’s name, a relevant background image, and proper image attribution.
@@ -23,7 +23,7 @@ Verify that each content slide covers a distinct subsection of the topic with a 
 - The information in the slide is actually coming from the cited source (10 pt)
 - Each slide has a unique, clear heading related to its subsection (10 pt)
 - Heading is bold and italic (10 pt)
-- Information is presented in bullet points and text is not overflowing (10 pt)
+- Information is presented in bullet points, and no text box on the slide overflows (10 pt)
 - Content is paraphrased/summarized rather than verbatim copied from the source (10 pt)
 - The content is placed on the left side of the slide (10 pt)
 
@@ -37,7 +37,7 @@ Verify that the final slide summarizes all covered content in original language 
 - Slide includes a statement or prompt encouraging students to ask questions or engage (3 pt)
 
 
-## Checkpoint 4 (40 pt, 4 steps × 10 pt each): Visual Elements
+## Checkpoint 4 (50 pt, 5 steps × 10 pt each): Visual Elements
 Verify that each content slide has a relevant image placed on the right side with a valid, attributed source link. Each step awards partial credit proportional to the number of passing slides.
 
 ### Outcome Evaluation:
@@ -45,3 +45,4 @@ Verify that each content slide has a relevant image placed on the right side wit
 - Image is placed on the right side of the slide (10 pt)
 - Every image has a source credit in small font beneath it on the lower-right side (10 pt)
 - Image source URL is accessible and points to the same image or a page containing the image (10 pt)
+- The Images are unique (10 pt, proportional)

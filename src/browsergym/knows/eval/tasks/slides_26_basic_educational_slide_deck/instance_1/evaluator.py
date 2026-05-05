@@ -61,6 +61,9 @@ from src.browsergym.knows.eval.tasks.slides_26_basic_educational_slide_deck.util
     join_extras,
     has_min_slides,
     score_credit_match,
+    cluster_images_by_phash,
+    to_deck_positions,
+    llm_extract_source_url,
     CREDIT_KEYWORDS,
 )
 
@@ -68,17 +71,14 @@ from src.browsergym.knows.eval.tasks.slides_26_basic_educational_slide_deck.util
 TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/slides_26_basic_educational_slide_deck/instance_1/")
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 
-# Module-level task.md parse via parse_task_md (utils.py) — wrapped so import never fails
-# on malformed input. Each CP guards on `_task_parse_error` and emits a complete failure
-# report instead of crashing the workspace add-on at module load.
+# Module-level so the catastrophic-failure handler can still emit a complete report
+# if parse_task_md raises. Per-CP guards check `_task_parse_error` before running.
 _task_details, _task_parse_error = parse_task_md(TASK_DIR)
 EXPECTED_TOPIC = _task_details["topic"] if _task_details else None
 EXPECTED_PRESENTER = _task_details["presenter"] if _task_details else None
 EXPECTED_CONTENT_SLIDES = _task_details["num_content_slides"] if _task_details else None
 
-# Step specs (name, max_score) per CP. Module-level because grade_checkpoints' catastrophic-
-# failure handler needs them too — when a CP factory raises before producing its checkpoint,
-# we can't recover the spec from inside the function.
+# Module-level so grade_checkpoints' catastrophic-failure path can recover the spec.
 CP1_STEPS = [
     ("Topic Big Bold Font", 5), ("Topic Dark Orange", 2), ("Presenter Name", 3),
     ("Background Image Relevant", 5), ("Image Credit Small Font", 2),
@@ -87,12 +87,13 @@ CP1_STEPS = [
 CP2_STEPS = [
     ("Slide Count", 5), ("Topic Relevance", 10), ("Source in Lower-Left", 10),
     ("Info From Source", 10), ("Unique Headings", 10), ("Heading Bold Italic", 10),
-    ("Bullet Points No Overflow", 10), ("Content Paraphrased", 10), ("Content Left Side", 10),
+    ("Bullet Points and No Overflow", 10), ("Content Paraphrased", 10), ("Content Left Side", 10),
 ]
 CP3_STEPS = [("Covers All Concepts", 4), ("Original Text", 3), ("Engagement Prompt", 3)]
 CP4_STEPS = [
     ("Image Relevant", 10), ("Image Right Side", 10),
     ("Image Source Credit", 10), ("Image Source URL Matches", 10),
+    ("Images Unique", 10),
 ]
 
 # Global state
@@ -154,7 +155,7 @@ def grade_checkpoint_1():
     try:
         title_slide = presentation_data['slides'][0]
         text_boxes = extract_text_boxes_from_slide(title_slide)
-        _, slide_h = get_slide_dimensions(presentation_data)
+        slide_w, slide_h = get_slide_dimensions(presentation_data)
         if slide_h is None:
             fill_failure_steps(checkpoint, CP1_STEPS, "Slide dimensions unavailable")
             checkpoint.execution_time = time.time() - checkpoint_start
@@ -196,8 +197,6 @@ def grade_checkpoint_1():
                 if matched_tb:
                     placeholder_snippet = (matched_tb.get('text', '') or '').strip()[:40]
                     match_via = f"multi-box (TITLE='{placeholder_snippet}' for style)"
-                else:
-                    match_via = None
 
             if matched_tb is not None:
                 topic_text_found = True
@@ -207,9 +206,8 @@ def grade_checkpoint_1():
                 topic_style = get_text_style_from_shape(shape, presentation=presentation_data)
                 is_bold = bool(topic_style.get('bold'))
                 is_big = is_text_big(topic_style, min_pt=40)
-                # Inherited fontSize: look up the master/layout placeholder size rather
-                # than assuming ≥40pt. If master is also unspecified, fall back to "assume
-                # big enough" so we don't punish decks where the API hides master fontSizes.
+                # Inherited fontSize: try the master/layout size; if that's also unset,
+                # assume big enough rather than punishing decks where the API hides it.
                 if not is_big and topic_style.get('fontSize') is None:
                     ph_type = shape.get('placeholder', {}).get('type', '')
                     if ph_type in ('TITLE', 'CENTERED_TITLE'):
@@ -286,10 +284,24 @@ def grade_checkpoint_1():
             bg_url = title_slide.get('pageProperties', {}).get('pageBackgroundFill', {}).get('stretchedPictureFill', {}).get('contentUrl')
             if bg_url:
                 image_urls.append(bg_url)
-            image_urls.extend(info['contentUrl'] for info in image_metas)
+            # Regular images only count as backgrounds when sized like one — otherwise a
+            # small relevant decoration (logo/thumbnail) would falsely pass the step.
+            slide_area = (slide_w or 0) * (slide_h or 0)
+            BG_AREA_THRESHOLD = 0.70
+            small_image_count = 0
+            for info in image_metas:
+                if slide_area and img_area(info) >= BG_AREA_THRESHOLD * slide_area:
+                    image_urls.append(info['contentUrl'])
+                else:
+                    small_image_count += 1
 
             if not image_urls:
-                details = "No images found on title slide"
+                if small_image_count:
+                    details = (f"Title slide has {small_image_count} image(s) but none cover the slide "
+                               f"as a background (need ≥{int(BG_AREA_THRESHOLD * 100)}% of slide area "
+                               f"or pageBackgroundFill)")
+                else:
+                    details = "No images found on title slide"
             else:
                 # Pre-clean: a prior crash could leave stale title_img_*.png around.
                 if os.path.exists(temp_dir):
@@ -437,11 +449,37 @@ def grade_checkpoint_2():
         slide_data = []
         for slide in content_slides:
             try:
+                # Plain-text-paragraph slides return [] from extract_bullet_point_texts;
+                # fall back to lines from the largest non-title shape so steps 4/8 see
+                # body text. Step 7 is unaffected (it re-checks via validate_bullet_points).
+                bullets = extract_bullet_point_texts(slide)
+                if not bullets:
+                    title_norm = (extract_title_text(slide) or '').strip().lower()
+                    body_candidates = []
+                    for _el in slide.get('pageElements', []):
+                        if 'shape' not in _el or 'text' not in _el['shape']:
+                            continue
+                        if _el['shape'].get('placeholder', {}).get('type', '') in (
+                                'TITLE', 'CENTERED_TITLE', 'SUBTITLE'):
+                            continue
+                        _txt = ''
+                        for _tr in _el['shape']['text'].get('textElements', []):
+                            _run = _tr.get('textRun')
+                            if _run:
+                                _txt += _run.get('content', '')
+                        _txt = _txt.strip()
+                        if not _txt or _txt.lower() == title_norm:
+                            continue
+                        body_candidates.append((len(_txt), _txt))
+                    if body_candidates:
+                        body_candidates.sort(reverse=True, key=lambda c: c[0])
+                        bullets = [ln.strip() for ln in body_candidates[0][1].splitlines()
+                                   if len(ln.strip()) >= 3]
                 slide_data.append({
                     'text': extract_slide_text(slide),
                     'text_boxes': extract_text_boxes_from_slide(slide),
                     'title': extract_title_text(slide),
-                    'bullets': extract_bullet_point_texts(slide),
+                    'bullets': bullets,
                     'links_flat': extract_slide_links(slide),
                     'links_with_pos': extract_slide_links_with_positions(slide),
                     'source_url': None,
@@ -493,10 +531,20 @@ def grade_checkpoint_2():
                 relevance_results = parallel_execute(relevance_tasks, max_workers=5, timeout=120)
                 related_count = sum(1 for v in relevance_results.values() if v is True)
                 crashed = sum(1 for v in relevance_results.values() if v is None)
+                failed_slides = []
+                for tid, v in relevance_results.items():
+                    if v is True:
+                        continue
+                    try:
+                        failed_slides.append(int(tid.replace('relevance_', '')))
+                    except (ValueError, AttributeError):
+                        failed_slides.append(tid)
+                failed_slides.sort(key=lambda x: (isinstance(x, str), x))
                 success = related_count == actual_count
                 step_score = calculate_percentage_score(related_count, actual_count)
                 details = f"{related_count}/{actual_count} content slides related to topic" + join_extras(
                     f"{crashed} LLM call(s) crashed" if crashed else None,
+                    f"failed: slide(s) {to_deck_positions(failed_slides)}" if failed_slides else None,
                 )
         except Exception as e:
             details = f"Error during topic relevance check: {e}"
@@ -515,10 +563,12 @@ def grade_checkpoint_2():
             full_pass_count = 0
             partial_pass_count = 0
             extraction_failed_count = 0
+            failed_slides = []
             score_sum = 0.0  # 1.0 per full, 0.5 per partial
-            for sd in slide_data:
+            for i, sd in enumerate(slide_data):
                 if sd.get('extraction_failed'):
                     extraction_failed_count += 1
+                    failed_slides.append(i)
                     continue
                 non_image_links = filter_non_image_links(sd['links_flat'])
                 best_count = 0
@@ -535,6 +585,9 @@ def grade_checkpoint_2():
                 elif best_count == 3:
                     partial_pass_count += 1
                     score_sum += 0.5
+                    failed_slides.append(i)
+                else:
+                    failed_slides.append(i)
 
                 # Source URL: prefer link inside the best-match text box (when ≥3 criteria).
                 if best_count >= 3 and best_tb is not None:
@@ -543,9 +596,9 @@ def grade_checkpoint_2():
                     if tb_non_image:
                         sd['source_url'] = tb_non_image[0]
 
-                # Body-link fallback: only when some credit signal was detected (best_count >= 1)
-                # — otherwise a stray body link would be mistaken for a citation in step 4.
-                if best_count >= 1 and not sd['source_url'] and non_image_links:
+                # Body-link fallback when the credit box wasn't detected. Step 4's LLM
+                # judges traceability, so a wrong link gets rejected there.
+                if not sd['source_url'] and non_image_links:
                     # Prefer the lowest-on-slide link (most likely a footer citation).
                     non_image_set = set(non_image_links)
                     positioned = [l for l in sd.get('links_with_pos', []) if l.get('url') in non_image_set]
@@ -559,34 +612,69 @@ def grade_checkpoint_2():
             details = f"{full_pass_count}/{actual_count} slides have full credit citation" + join_extras(
                 f"{partial_pass_count} partial (3-of-4 criteria)" if partial_pass_count else None,
                 f"{extraction_failed_count} slide(s) extraction failed" if extraction_failed_count else None,
+                f"failed: slide(s) {to_deck_positions(failed_slides)}" if failed_slides else None,
             )
         except Exception as e:
             details = f"Error during source citation check: {e}"
         checkpoint.add_step("Source in Lower-Left", success, 3, details, score=step_score, max_score=10,
                             execution_time=time.time() - step_start)
 
-        # ---- Fetch source content for steps 4 and 8 (parallelized) ----
-        # Lazy import — Playwright may be missing in slim envs; steps 4/8 then surface
-        # "URL unfetchable" instead of crashing module load.
+        # ---- LLM fallback for source URLs the regex extractor missed ----
+        # Bare-domain citations (e.g. "kids.kiddle.co/page") have no protocol and
+        # slip past the regex; ask the LLM in parallel for slides still missing a URL.
         try:
-            from src.browsergym.knows.eval.eval_utils.web_utils import fetch_with_fallbacks
+            llm_model = ensure_model(model_id)
+            if llm_model is not None:
+                llm_url_tasks = [
+                    {'id': f'llm_url_{i}', 'func': llm_extract_source_url,
+                     'args': (sd['text'], llm_model)}
+                    for i, sd in enumerate(slide_data)
+                    if not sd.get('source_url') and sd.get('text')
+                ]
+                if llm_url_tasks:
+                    llm_url_results = parallel_execute(llm_url_tasks, max_workers=5, timeout=90)
+                    for tid, url in llm_url_results.items():
+                        if not url:
+                            continue
+                        try:
+                            slide_idx = int(tid.replace('llm_url_', ''))
+                        except (ValueError, AttributeError):
+                            continue
+                        if 0 <= slide_idx < len(slide_data):
+                            slide_data[slide_idx]['source_url'] = url
+        except Exception as e:
+            print(f"LLM source-URL fallback failed: {e}")
+
+        # ---- Fetch source content for steps 4 and 8 (parallelized) ----
+        # Lazy import: slim envs may lack Playwright; the wrapper adds curl-cffi as a
+        # 5th strategy for Cloudflare-protected hosts whose TLS fingerprint gets blocked.
+        try:
+            from src.browsergym.knows.eval.tasks.slides_26_basic_educational_slide_deck.utils import (
+                fetch_with_fallbacks_extended as fetch_with_fallbacks,
+            )
         except Exception as e:
             print(f"Source-content fetcher unavailable: {e}")
             fetch_with_fallbacks = None
 
         if fetch_with_fallbacks is not None:
+            # 30s/strategy (vs. 15s default) avoids false unfetchables on slow-rendering pages.
             fetch_tasks = [
-                {'id': f'fetch_{i}', 'func': fetch_with_fallbacks, 'args': (sd['source_url'],)}
+                {'id': f'fetch_{i}', 'func': fetch_with_fallbacks, 'args': (sd['source_url'],),
+                 'kwargs': {'timeout': 30}}
                 for i, sd in enumerate(slide_data) if sd['source_url']
             ]
             if fetch_tasks:
                 try:
-                    # max_workers=3 caps peak memory (each fetch may spawn a Chromium).
-                    fetch_results = parallel_execute(fetch_tasks, max_workers=3, timeout=180)
+                    # 3 workers keeps peak memory bounded (Chromium per fetch); 300s wall.
+                    fetch_results = parallel_execute(fetch_tasks, max_workers=3, timeout=300)
                     for i, sd in enumerate(slide_data):
                         res = fetch_results.get(f'fetch_{i}')
-                        if res and isinstance(res, tuple) and res[0]:
-                            sd['source_content'] = res[0]
+                        if res and isinstance(res, tuple):
+                            if res[0]:
+                                sd['source_content'] = res[0]
+                            sd['source_fetch_status'] = res[1] if len(res) > 1 else None
+                        elif res is None and sd['source_url']:
+                            sd['source_fetch_status'] = 'parallel timeout / crash'
                 except Exception as e:
                     print(f"Error fetching source content in parallel: {e}")
 
@@ -602,6 +690,8 @@ def grade_checkpoint_2():
                 no_url_count = 0
                 unfetchable_count = 0
                 no_bullets_count = 0
+                pre_skipped = []  # slides that never reached the LLM
+                unfetchable_reasons = []  # "deck_pos: status (url=...)" diagnostic strings
                 source_system_prompt = (
                     "You are verifying whether slide content could have been derived from a given source. "
                     "Answer 'Yes' if the bullet points cover topics or facts that appear in the source text, "
@@ -611,17 +701,25 @@ def grade_checkpoint_2():
                 for i, sd in enumerate(slide_data):
                     if not sd['source_url']:
                         no_url_count += 1
+                        pre_skipped.append(i)
                         continue
                     if not sd['source_content']:
                         unfetchable_count += 1
+                        pre_skipped.append(i)
+                        # Surface the URL so LLM-extractor casing/spacing bugs are visible.
+                        status = sd.get('source_fetch_status') or 'unknown'
+                        url_snippet = (sd.get('source_url') or '')[:80]
+                        unfetchable_reasons.append(f"{i + 2}: {status} (url={url_snippet!r})")
                         continue
                     if not sd['bullets']:
                         no_bullets_count += 1
+                        pre_skipped.append(i)
                         continue
                     # Threshold 3 chars so short factual bullets ("Atari 2600") aren't dropped.
                     all_bullets = "\n".join(f"- {b}" for b in sd['bullets'] if len(b.strip()) >= 3)
                     if not all_bullets:
                         no_bullets_count += 1
+                        pre_skipped.append(i)
                         continue
                     heading = (sd['title'] or '').strip()
                     source_text = sd['source_content']
@@ -649,14 +747,44 @@ def grade_checkpoint_2():
                 source_results = parallel_execute(source_check_tasks, max_workers=5, timeout=120) if source_check_tasks else {}
                 info_from_source_count = sum(1 for v in source_results.values() if v is True)
                 crashed = sum(1 for v in source_results.values() if v is None)
+                failed_slides = list(pre_skipped)
+                # Per-slide reasons (False = not traceable, None = LLM crashed) so
+                # the failure summary explains every slide, not just fetch failures.
+                llm_failure_reasons = []
+                for tid, v in source_results.items():
+                    try:
+                        idx = int(tid.replace('source_', ''))
+                    except (ValueError, AttributeError):
+                        if v is not True:
+                            failed_slides.append(tid)
+                        continue
+                    # Stash verdict for step 8's traceability-gated paraphrase award.
+                    if 0 <= idx < len(slide_data):
+                        slide_data[idx]['traceable'] = v
+                    if v is True:
+                        continue
+                    failed_slides.append(idx)
+                    reason = "LLM crashed" if v is None else "not traceable per LLM"
+                    llm_failure_reasons.append(f"{idx + 2}: {reason}")
+                failed_slides.sort(key=lambda x: (isinstance(x, str), x))
 
                 success = info_from_source_count == actual_count
                 step_score = calculate_percentage_score(info_from_source_count, actual_count)
+                unfetchable_summary = (
+                    f"{unfetchable_count} URL unfetchable [{'; '.join(unfetchable_reasons)}]"
+                    if unfetchable_reasons else
+                    (f"{unfetchable_count} URL unfetchable" if unfetchable_count else None)
+                )
+                llm_failure_summary = (
+                    f"{len(llm_failure_reasons)} LLM rejected [{'; '.join(llm_failure_reasons)}]"
+                    if llm_failure_reasons else None
+                )
                 details = f"{info_from_source_count}/{actual_count} slides have content traceable to cited source" + join_extras(
                     f"{no_url_count} no source URL" if no_url_count else None,
-                    f"{unfetchable_count} URL unfetchable" if unfetchable_count else None,
+                    unfetchable_summary,
                     f"{no_bullets_count} no evaluable bullets" if no_bullets_count else None,
-                    f"{crashed} LLM call(s) crashed" if crashed else None,
+                    llm_failure_summary,
+                    f"failed: slide(s) {to_deck_positions(failed_slides)}" if failed_slides else None,
                 )
         except Exception as e:
             details = f"Error during source-content check: {e}"
@@ -677,9 +805,10 @@ def grade_checkpoint_2():
                 all_unique = len(unique_headings) == len(non_empty)
                 all_have_headings = len(non_empty) == actual_count
 
+                # Task id encodes original slide index for direct failure-report mapping.
                 heading_tasks = [
                     {
-                        'id': f'heading_{i}',
+                        'id': f'heading_{slide_i}',
                         'func': evaluate_with_llm,
                         'args': (
                             f"Is this heading a valid subsection title for the topic '{EXPECTED_TOPIC}'?\n\n"
@@ -688,21 +817,45 @@ def grade_checkpoint_2():
                         ),
                         'kwargs': {'return_type': 'bool'},
                     }
-                    for i, heading in enumerate(non_empty)
+                    for slide_i, heading in enumerate(headings)
+                    if heading
                 ]
                 heading_results = parallel_execute(heading_tasks, max_workers=5, timeout=120) if heading_tasks else {}
                 related_headings = sum(1 for v in heading_results.values() if v is True)
 
-                missing_heading_slides = [i + 1 for i, h in enumerate(headings) if not h]
+                missing_heading_slides = [i for i, h in enumerate(headings) if not h]
+                # Duplicate slide indices: every slide whose normalized heading occurs >1 time.
+                norm_to_indices = {}
+                for i, h in enumerate(headings):
+                    if not h:
+                        continue
+                    norm_to_indices.setdefault(normalize_for_match(h), []).append(i)
+                duplicate_slides = [i for idxs in norm_to_indices.values() if len(idxs) > 1 for i in idxs]
+                # Non-related: LLM didn't return True for this slide's heading.
+                non_related_slides = []
+                for tid, v in heading_results.items():
+                    if v is True:
+                        continue
+                    try:
+                        non_related_slides.append(int(tid.replace('heading_', '')))
+                    except (ValueError, AttributeError):
+                        non_related_slides.append(tid)
+                failed_slides = sorted(
+                    set(missing_heading_slides) | set(duplicate_slides) | set(non_related_slides),
+                    key=lambda x: (isinstance(x, str), x),
+                )
+
                 success = all_have_headings and all_unique and related_headings == len(non_empty)
                 # Cap score at unique count so identical headings can't earn full credit.
                 effective_related = min(related_headings, len(unique_headings))
                 step_score = calculate_percentage_score(effective_related, actual_count)
                 details = f"{len(non_empty)}/{actual_count} slides have headings"
                 if missing_heading_slides:
-                    details += f" (missing on slides: {missing_heading_slides})"
+                    details += f" (missing on slides: {to_deck_positions(missing_heading_slides)})"
                 details += f", {'all unique' if all_unique else f'duplicates found ({len(non_empty) - len(unique_headings)})'}"
                 details += f", {related_headings}/{len(non_empty)} related to topic"
+                if failed_slides:
+                    details += f", failed: slide(s) {to_deck_positions(failed_slides)}"
         except Exception as e:
             details = f"Error during heading check: {e}"
         checkpoint.add_step("Unique Headings", success, 5, details, score=step_score, max_score=10,
@@ -716,13 +869,16 @@ def grade_checkpoint_2():
             no_heading_count = 0
             no_match_count = 0
             extraction_failed_count = 0
-            for sd in slide_data:
+            failed_slides = []
+            for i, sd in enumerate(slide_data):
                 if sd.get('extraction_failed'):
                     extraction_failed_count += 1
+                    failed_slides.append(i)
                     continue
                 heading = (sd['title'] or '').strip()
                 if not heading:
                     no_heading_count += 1
+                    failed_slides.append(i)
                     continue
                 # Prefer TITLE placeholder; else exact text; else substring fallback.
                 title_match = next((tb for tb in sd['text_boxes']
@@ -736,28 +892,34 @@ def grade_checkpoint_2():
                                        if contains_normalized(tb.get('text', ''), heading)), None)
                 if matched_tb is None:
                     no_match_count += 1
+                    failed_slides.append(i)
                     continue
                 style = get_text_style_from_shape(matched_tb['element'].get('shape', {}))
                 if bool(style.get('bold')) and bool(style.get('italic')):
                     bold_italic_count += 1
+                else:
+                    failed_slides.append(i)
             success = bold_italic_count == actual_count
             step_score = calculate_percentage_score(bold_italic_count, actual_count)
             details = f"{bold_italic_count}/{actual_count} slides have bold+italic headings" + join_extras(
                 f"{no_heading_count} no heading" if no_heading_count else None,
                 f"{no_match_count} heading text not located in any text box" if no_match_count else None,
                 f"{extraction_failed_count} slide(s) extraction failed" if extraction_failed_count else None,
+                f"failed: slide(s) {to_deck_positions(failed_slides)}" if failed_slides else None,
             )
         except Exception as e:
             details = f"Error during heading style check: {e}"
         checkpoint.add_step("Heading Bold Italic", success, 6, details, score=step_score, max_score=10,
                             execution_time=time.time() - step_start)
 
-        # ---- Step 7 (10 pt): Bullet points, text not overflowing ----
+        # ---- Step 7 (10 pt): Bullet points + no text box overflows the slide ----
         step_start = time.time()
         success, step_score, details = False, 0, ""
         try:
             bullet_ok_count = 0
             extraction_failed_count = 0
+            no_bullets_slides = []
+            overflow_slides = []
             for i, sd in enumerate(slide_data):
                 # Skip stubs — empty text_boxes would false-positive as "no overflow".
                 if sd.get('extraction_failed'):
@@ -766,6 +928,7 @@ def grade_checkpoint_2():
                 # Accept 2+ bullets — task says "short list" without a specific count.
                 has_bullets, _ = validate_bullet_points(content_slides[i], min_count=2)
                 if not has_bullets:
+                    no_bullets_slides.append(i)
                     continue
                 overflow = False
                 for tb in sd['text_boxes']:
@@ -776,14 +939,19 @@ def grade_checkpoint_2():
                         break
                 if not overflow:
                     bullet_ok_count += 1
+                else:
+                    overflow_slides.append(i)
+            failed_slides = sorted(set(no_bullets_slides) | set(overflow_slides))
             success = bullet_ok_count == actual_count
             step_score = calculate_percentage_score(bullet_ok_count, actual_count)
-            details = f"{bullet_ok_count}/{actual_count} slides have bullet points without overflow" + join_extras(
+            details = f"{bullet_ok_count}/{actual_count} slides have bullets and no text-box overflow" + join_extras(
                 f"{extraction_failed_count} slide(s) extraction failed" if extraction_failed_count else None,
+                f"no bullets: slide(s) {to_deck_positions(no_bullets_slides)}" if no_bullets_slides else None,
+                f"text box overflows slide: slide(s) {to_deck_positions(overflow_slides)}" if overflow_slides else None,
             )
         except Exception as e:
             details = f"Error during bullet overflow check: {e}"
-        checkpoint.add_step("Bullet Points No Overflow", success, 7, details, score=step_score, max_score=10,
+        checkpoint.add_step("Bullet Points and No Overflow", success, 7, details, score=step_score, max_score=10,
                             execution_time=time.time() - step_start)
 
         # ---- Step 8 (10 pt): Content is paraphrased, not verbatim copied ----
@@ -796,9 +964,11 @@ def grade_checkpoint_2():
             no_source_count = 0
             no_bullets_count = 0
             extraction_failed_count = 0
-            for sd in slide_data:
+            failed_slides = []
+            for i, sd in enumerate(slide_data):
                 if sd.get('extraction_failed'):
                     extraction_failed_count += 1
+                    failed_slides.append(i)
                     continue
                 if not sd['source_content']:
                     no_source_count += 1
@@ -807,9 +977,11 @@ def grade_checkpoint_2():
                     if sd['bullets']:
                         partial_credit_count += 1
                         score_sum += 0.5
+                    failed_slides.append(i)
                     continue
                 if not sd['bullets']:
                     no_bullets_count += 1
+                    failed_slides.append(i)
                     continue
                 # Capture matched substring so the LLM second-pass sees the relevant excerpt.
                 verbatim_match = None
@@ -823,6 +995,7 @@ def grade_checkpoint_2():
                 if verbatim_match is not None:
                     model = ensure_model(model_id)
                     if model is None:
+                        failed_slides.append(i)
                         continue  # Can't verify; conservatively don't award.
                     # Center a 1000-char window on the fuzzy-flagged substring.
                     src = sd['source_content']
@@ -846,9 +1019,15 @@ def grade_checkpoint_2():
                     if is_copy is False:
                         paraphrased_count += 1
                         score_sum += 1.0
-                else:
+                    else:
+                        failed_slides.append(i)
+                elif sd.get('traceable') is True:
+                    # No verbatim overlap + step 4 confirmed traceable = genuine paraphrase.
                     paraphrased_count += 1
                     score_sum += 1.0
+                else:
+                    # No overlap but not traceable either — likely off-source, not paraphrased.
+                    failed_slides.append(i)
             success = paraphrased_count == actual_count
             step_score = calculate_percentage_score(score_sum, actual_count)
             # `no_source_count` includes the partial-credit subset; subtract for clean display.
@@ -858,6 +1037,7 @@ def grade_checkpoint_2():
                 f"{no_source_no_bullets} no source + no bullets" if no_source_no_bullets else None,
                 f"{no_bullets_count} no bullets (had source)" if no_bullets_count else None,
                 f"{extraction_failed_count} slide(s) extraction failed" if extraction_failed_count else None,
+                f"failed: slide(s) {to_deck_positions(failed_slides)}" if failed_slides else None,
             )
         except Exception as e:
             details = f"Error during paraphrase check: {e}"
@@ -871,9 +1051,11 @@ def grade_checkpoint_2():
             left_count = 0
             no_content_count = 0
             extraction_failed_count = 0
-            for sd in slide_data:
+            failed_slides = []
+            for i, sd in enumerate(slide_data):
                 if sd.get('extraction_failed'):
                     extraction_failed_count += 1
+                    failed_slides.append(i)
                     continue
                 heading_norm = normalize_for_match((sd['title'] or '').strip())
                 content_boxes = []
@@ -896,17 +1078,21 @@ def grade_checkpoint_2():
                     content_boxes.append(tb)
                 if not content_boxes:
                     no_content_count += 1
+                    failed_slides.append(i)
                     continue
                 # Use box CENTER — symmetric to CP4 step 2's right-side check.
                 # A box without bbox info (cx is None) doesn't count as left-aligned.
                 centers = [bbox_center_x(tb['bbox']) for tb in content_boxes]
                 if all(cx is not None and cx < slide_w * 0.5 for cx in centers):
                     left_count += 1
+                else:
+                    failed_slides.append(i)
             success = left_count == actual_count
             step_score = calculate_percentage_score(left_count, actual_count)
             details = f"{left_count}/{actual_count} slides have content on the left side" + join_extras(
                 f"{no_content_count} slide(s) had no body content boxes" if no_content_count else None,
                 f"{extraction_failed_count} slide(s) extraction failed" if extraction_failed_count else None,
+                f"failed: slide(s) {to_deck_positions(failed_slides)}" if failed_slides else None,
             )
         except Exception as e:
             details = f"Error during content-left-side check: {e}"
@@ -954,7 +1140,32 @@ def grade_checkpoint_3():
                 if heading:
                     content_headings.append(heading)
                 # 3-char threshold matches step 8 — short factual bullets still trip detection.
-                all_content_text.extend(b for b in extract_bullet_point_texts(slide) if len(b.strip()) >= 3)
+                bullets = [b for b in extract_bullet_point_texts(slide) if len(b.strip()) >= 3]
+                if not bullets:
+                    # Same fallback as CP2 — keeps step 2's corpus non-empty for
+                    # plain-text-paragraph slides. See CP2 comment for rationale.
+                    title_norm = heading.lower()
+                    body_candidates = []
+                    for _el in slide.get('pageElements', []):
+                        if 'shape' not in _el or 'text' not in _el['shape']:
+                            continue
+                        if _el['shape'].get('placeholder', {}).get('type', '') in (
+                                'TITLE', 'CENTERED_TITLE', 'SUBTITLE'):
+                            continue
+                        _txt = ''
+                        for _tr in _el['shape']['text'].get('textElements', []):
+                            _run = _tr.get('textRun')
+                            if _run:
+                                _txt += _run.get('content', '')
+                        _txt = _txt.strip()
+                        if not _txt or _txt.lower() == title_norm:
+                            continue
+                        body_candidates.append((len(_txt), _txt))
+                    if body_candidates:
+                        body_candidates.sort(reverse=True, key=lambda c: c[0])
+                        bullets = [ln.strip() for ln in body_candidates[0][1].splitlines()
+                                   if len(ln.strip()) >= 3]
+                all_content_text.extend(bullets)
             except Exception as e:
                 print(f"Error extracting content slide for summary check: {e}")
 
@@ -1113,10 +1324,10 @@ def grade_checkpoint_3():
 
 
 def grade_checkpoint_4():
-    """Checkpoint 4 (40pt, 4 steps × 10 pt each): Visual Elements."""
+    """Checkpoint 4 (50pt, 5 steps × 10 pt each): Visual Elements."""
     print("----------------- CHECKPOINT 4 ----------------")
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=40, result=0, name="Visual Elements")
+    checkpoint = Checkpoint(total=50, result=0, name="Visual Elements")
 
     if _task_parse_error is not None:
         fill_failure_steps(checkpoint, CP4_STEPS, _task_parse_error)
@@ -1225,16 +1436,26 @@ def grade_checkpoint_4():
                     if sid['image'] and sid['image']['path']
                 ]
                 relevant_count = 0
+                failed_slides = []
                 if relevance_tasks:
                     rel_results = parallel_execute(relevance_tasks, max_workers=5, timeout=180)
                     # binary_judge_image returns matching path (truthy) or None (no match/crash).
                     relevant_count = sum(1 for v in rel_results.values() if v)
+                    for tid, v in rel_results.items():
+                        if v:
+                            continue
+                        try:
+                            failed_slides.append(int(tid.replace('img_rel_', '')))
+                        except (ValueError, AttributeError):
+                            failed_slides.append(tid)
+                    failed_slides.sort(key=lambda x: (isinstance(x, str), x))
 
                 success = relevant_count == actual_count
                 step_score = calculate_percentage_score(relevant_count, actual_count)
                 details = f"{relevant_count}/{actual_count} slides have relevant images" + join_extras(
                     f"{download_failed_count} image(s) undownloadable" if download_failed_count else None,
                     f"{no_image_count} slide(s) had no image" if no_image_count else None,
+                    f"failed: slide(s) {to_deck_positions(failed_slides)}" if failed_slides else None,
                 )
         except Exception as e:
             success = False
@@ -1251,16 +1472,21 @@ def grade_checkpoint_4():
                                  if not sid['image'] or not sid['image'].get('bbox'))
             # Image without a bbox (cx is None) doesn't count as right-aligned.
             right_count = 0
-            for sid in slide_image_data:
+            failed_slides = []
+            for i, sid in enumerate(slide_image_data):
                 if not sid['image'] or not sid['image']['bbox']:
+                    failed_slides.append(i)
                     continue
                 cx = bbox_center_x(sid['image']['bbox'])
                 if cx is not None and cx > slide_w / 2:
                     right_count += 1
+                else:
+                    failed_slides.append(i)
             success = right_count == actual_count
             step_score = calculate_percentage_score(right_count, actual_count)
             details = f"{right_count}/{actual_count} slides have images on the right side" + join_extras(
                 f"{no_image_count} slide(s) had no image" if no_image_count else None,
+                f"failed: slide(s) {to_deck_positions(failed_slides)}" if failed_slides else None,
             )
         except Exception as e:
             success = False
@@ -1274,17 +1500,18 @@ def grade_checkpoint_4():
         try:
             credit_count = 0
             no_image_count = 0
-            for sid in slide_image_data:
+            failed_slides = []
+            for i, sid in enumerate(slide_image_data):
                 if not sid['image'] or not sid['image']['bbox']:
                     no_image_count += 1
+                    failed_slides.append(i)
                     continue
                 bbox = sid['image']['bbox']
                 img_bottom = bbox.get('y', 0) + bbox.get('height', 0)
                 img_left = bbox.get('x', 0)
                 img_right = img_left + bbox.get('width', 0)
-                # Position rule: credit must sit below the image (5% slop) AND its x-range
-                # must overlap the image's x-range. A wide credit starting in the left half
-                # but extending under the image still passes.
+                # Credit must sit below the image (5% slop) AND its center-x must fall
+                # within the image's x-range — rejects wide CP2 S3 source-line false matches.
                 found = False
                 for tb in sid['text_boxes']:
                     text = (tb.get('text') or '').lower().strip()
@@ -1301,19 +1528,21 @@ def grade_checkpoint_4():
                         continue
                     if tb_bbox.get('y', 0) < img_bottom - (slide_h * 0.05):
                         continue
-                    tb_left = tb_bbox.get('x', 0)
-                    tb_right = tb_left + tb_bbox.get('width', 0)
-                    if tb_right < img_left or tb_left > img_right:
+                    tb_cx = bbox_center_x(tb_bbox)
+                    if tb_cx is None or tb_cx < img_left or tb_cx > img_right:
                         continue
                     if any(kw in text for kw in CREDIT_KEYWORDS):
                         found = True
                         break
                 if found:
                     credit_count += 1
+                else:
+                    failed_slides.append(i)
             success = credit_count == actual_count
             step_score = calculate_percentage_score(credit_count, actual_count)
             details = f"{credit_count}/{actual_count} slides have image source credit beneath image" + join_extras(
                 f"{no_image_count} slide(s) had no image" if no_image_count else None,
+                f"failed: slide(s) {to_deck_positions(failed_slides)}" if failed_slides else None,
             )
         except Exception as e:
             success = False
@@ -1378,13 +1607,50 @@ def grade_checkpoint_4():
                 details = f"{match_count}/{actual_count} slides have source URL matching the slide image" + join_extras(
                     f"{no_url_count} no URL below image or in ALT text" if no_url_count else None,
                     f"{crashed} match call(s) crashed" if crashed else None,
-                    f"failed: slide(s) {failed_slides}" if failed_slides else None,
+                    f"failed: slide(s) {to_deck_positions(failed_slides)}" if failed_slides else None,
                 )
         except Exception as e:
             success = False
             step_score = 0
             details = f"Error during image source URL match: {e}"
         checkpoint.add_step("Image Source URL Matches", success, 4, details, score=step_score, max_score=10,
+                            execution_time=time.time() - step_start)
+
+        # ---- Step 5 (10 pt): Images are unique across content slides ----
+        # Cluster images by perceptual similarity; score by clusters/actual_count so a
+        # missing image is already penalized (it can't contribute a unique cluster).
+        step_start = time.time()
+        try:
+            present_idx_paths = [(i, sid['image']['path']) for i, sid in enumerate(slide_image_data)
+                                 if sid['image'] and sid['image'].get('path')]
+            present_indices = [i for i, _ in present_idx_paths]
+            present_paths = [p for _, p in present_idx_paths]
+            no_image_count = actual_count - len(present_paths)
+            cluster_ids = cluster_images_by_phash(present_paths)
+            unique_clusters = len(set(cluster_ids))
+            duplicates = len(present_paths) - unique_clusters
+            # Failed slides: in a non-singleton cluster, or had no image at all.
+            failed_slides = [i for i, sid in enumerate(slide_image_data)
+                             if not sid['image'] or not sid['image'].get('path')]
+            cluster_size = {}
+            for cid in cluster_ids:
+                cluster_size[cid] = cluster_size.get(cid, 0) + 1
+            for slide_i, cid in zip(present_indices, cluster_ids):
+                if cluster_size[cid] > 1:
+                    failed_slides.append(slide_i)
+            failed_slides = sorted(set(failed_slides))
+            success = unique_clusters == actual_count
+            step_score = calculate_percentage_score(unique_clusters, actual_count)
+            details = f"{unique_clusters}/{actual_count} unique image(s) across content slides" + join_extras(
+                f"{no_image_count} slide(s) had no image" if no_image_count else None,
+                f"{duplicates} duplicate image(s) detected" if duplicates else None,
+                f"failed: slide(s) {to_deck_positions(failed_slides)}" if failed_slides else None,
+            )
+        except Exception as e:
+            success = False
+            step_score = 0
+            details = f"Error during image uniqueness check: {e}"
+        checkpoint.add_step("Images Unique", success, 5, details, score=step_score, max_score=10,
                             execution_time=time.time() - step_start)
 
     except Exception as e:
@@ -1419,7 +1685,7 @@ def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history=Non
         (grade_checkpoint_1, "Title Slide", 20, CP1_STEPS),
         (grade_checkpoint_2, "Content Slides", 85, CP2_STEPS),
         (grade_checkpoint_3, "Summary Slide", 10, CP3_STEPS),
-        (grade_checkpoint_4, "Visual Elements", 40, CP4_STEPS),
+        (grade_checkpoint_4, "Visual Elements", 50, CP4_STEPS),
     ]
 
     checkpoints = []

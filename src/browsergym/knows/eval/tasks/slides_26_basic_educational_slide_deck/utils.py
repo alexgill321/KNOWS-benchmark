@@ -16,17 +16,18 @@ from src.browsergym.knows.eval.eval_utils.slides_utils import (
     is_text_big,
     resolve_theme_color,
 )
-from src.browsergym.knows.eval.eval_utils.image_utils import match_image_tiered, binary_compare_images
+from src.browsergym.knows.eval.eval_utils.llm_utils import evaluate_with_llm
+from src.browsergym.knows.eval.eval_utils.image_utils import (
+    match_image_tiered,
+    binary_compare_images,
+    perceptual_hash_match,
+)
 from src.browsergym.knows.eval.eval_utils.web_utils import download_image_from_url, download_page_images
 from src.browsergym.knows.eval.eval_utils.models import load_model
 
 
 def _browser_headers(url: str) -> Dict[str, str]:
-    """Build browser-like headers for downloading an image URL.
-
-    Sets a Chrome User-Agent and a Referer matching the URL's own origin so
-    sites with hotlink protection (common on WordPress, Cloudflare) accept it.
-    """
+    """Chrome UA + same-origin Referer to defeat hotlink protection on image hosts."""
     parsed = urlparse(url)
     return {
         "User-Agent": (
@@ -52,9 +53,8 @@ IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp', '.bmp', '.
 
 CREDIT_KEYWORDS = (
     "source", "credit", "image", "photo", "courtesy",
-    # Bare "http" intentionally excluded — body bullets like "Visit https://..." would otherwise
-    # match. URL-shaped credits are still caught by the host suffixes (.com/.org/.net/.edu) and
-    # by the "www" hint.
+    # Bare "http" excluded — body bullets like "Visit https://..." would false-match.
+    # URL-shaped credits are still caught via the TLD/www hints below.
     "www", ".com", ".org", ".net", ".edu",
     "unsplash", "pexels", "pixabay", "wikimedia", "commons", "flickr", "getty",
 )
@@ -87,11 +87,9 @@ def parse_task_details(task_text: str) -> Dict[str, object]:
 
 
 def parse_task_md(task_dir: str) -> Tuple[Optional[Dict], Optional[str]]:
-    """Parse task.md from `task_dir`. Returns `(details, None)` on success or
-    `(None, error_message)` on any failure (file missing, regex miss, IO error).
-
-    Used at module load so a malformed task.md surfaces as per-CP failures rather
-    than crashing the import (which would brick the workspace add-on).
+    """Parse task.md. Returns `(details, None)` on success or `(None, error)`
+    on any failure — never raises, so a malformed file surfaces as per-CP
+    failures instead of bricking module load.
     """
     try:
         with open(os.path.join(task_dir, "task.md"), encoding="utf-8") as f:
@@ -105,6 +103,116 @@ def parse_task_md(task_dir: str) -> Tuple[Optional[Dict], Optional[str]]:
         return details, None
     except Exception as e:
         return None, f"Error reading task.md: {e}"
+
+
+def _fetch_with_curl_cffi(url: str, max_chars: int = 15000, timeout: int = 30) -> Tuple[Optional[str], str]:
+    """Fetch URL via curl-cffi (mimics Chrome's full TLS+HTTP/2 fingerprint).
+
+    Defeats most Cloudflare bot checks since CF inspects JA3/JA4 + H2 frame
+    ordering, which Python's `requests` can't fake. Returns `(content, status)`
+    matching the shared fetcher's shape.
+    """
+    try:
+        from curl_cffi import requests as curl_requests
+    except ImportError:
+        return None, "curl-cffi not installed"
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        return None, "beautifulsoup4 not installed"
+
+    try:
+        resp = curl_requests.get(url, impersonate="chrome120",
+                                 timeout=timeout, allow_redirects=True)
+        if resp.status_code != 200:
+            return None, f"curl-cffi HTTP {resp.status_code}"
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        for el in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
+            el.decompose()
+        text = soup.get_text(separator=' ')
+        text = re.sub(r'\s+', ' ', text).strip()
+        if len(text) > max_chars:
+            text = text[:max_chars] + '...'
+        if len(text) <= 200:
+            # Likely an error/challenge page, not real content.
+            return None, "curl-cffi response too short"
+        return text, "OK (curl-cffi)"
+    except Exception as e:
+        return None, f"curl-cffi failed: {str(e)[:80]}"
+
+
+def fetch_with_fallbacks_extended(url: str, max_chars: int = 15000, timeout: int = 30) -> Tuple[Optional[str], str]:
+    """`fetch_with_fallbacks` + curl-cffi as a 5th strategy for Cloudflare hosts
+    whose TLS/HTTP2 fingerprint blocks Python's `requests` and Playwright.
+    Returns `(content, status)` — the combined status surfaces every reason on failure.
+    """
+    try:
+        from src.browsergym.knows.eval.eval_utils.web_utils import fetch_with_fallbacks
+    except Exception:
+        # Slim env without Playwright/web_utils — curl-cffi only.
+        return _fetch_with_curl_cffi(url, max_chars=max_chars, timeout=timeout)
+
+    content, status = fetch_with_fallbacks(url, max_chars=max_chars, timeout=timeout)
+    if content:
+        return content, status
+    cf_content, cf_status = _fetch_with_curl_cffi(url, max_chars=max_chars, timeout=timeout)
+    if cf_content:
+        return cf_content, cf_status
+    return None, f"{status}; {cf_status}"
+
+
+def llm_extract_source_url(slide_text: str, model) -> Optional[str]:
+    """Ask the LLM to extract a source URL from a slide's text.
+
+    Handles citations the regex extractor misses — bare-domain references
+    like `kids.kiddle.co/page` (no protocol), URLs split across lines, or
+    natural-language citations ("Source: BBC News (bbc.com/article)").
+
+    Returns:
+        URL string with `https://` prefix, or None when no URL is identifiable
+        or the LLM response can't be parsed as a URL.
+    """
+    if not slide_text or not slide_text.strip():
+        return None
+
+    system_prompt = (
+        "You extract a single source URL from slide text. The URL may appear "
+        "without a protocol (e.g. 'kids.kiddle.co/page'). Output rules:\n"
+        "- Return ONLY the URL, with no surrounding text, quotes, or punctuation.\n"
+        "- If the URL has no protocol, prepend 'https://'.\n"
+        "- PRESERVE THE ORIGINAL CASING EXACTLY. Do NOT lowercase any part of "
+        "the URL. Path segments are case-sensitive on many sites (e.g. kiddle.co), "
+        "so `Great_Pyramid_of_Giza` and `great_pyramid_of_giza` are different pages.\n"
+        "- If multiple URLs are present, return the one cited as the source/reference.\n"
+        "- If no URL or domain reference is present, return exactly 'NONE'."
+    )
+    prompt = f"Slide text:\n{slide_text[:4000]}"
+    try:
+        raw = evaluate_with_llm(prompt, model, return_type="str", system_prompt=system_prompt)
+    except Exception:
+        return None
+    if not raw:
+        return None
+    candidate = raw.strip().strip('"').strip("'").strip('.')
+    if not candidate or candidate.lower() == 'none':
+        return None
+    if not candidate.lower().startswith(('http://', 'https://')):
+        candidate = 'https://' + candidate.lstrip('/')
+    # Sanity check: must look like a domain (has a dot in the host).
+    try:
+        scheme, host_path = candidate.split('://', 1)
+        host = host_path.split('/', 1)[0]
+    except (ValueError, IndexError):
+        return None
+    if '.' not in host or ' ' in host:
+        return None
+
+    # Restore original casing from the slide text — models often lowercase paths
+    # despite the prompt, and case-sensitive hosts (kiddle.co, GitHub) then 404.
+    idx = slide_text.lower().find(host_path.lower())
+    if idx >= 0:
+        candidate = f"{scheme}://{slide_text[idx:idx + len(host_path)]}"
+    return candidate
 
 
 def filter_non_image_links(links: List[str]) -> List[str]:
@@ -123,10 +231,8 @@ def find_small_font_credit(
     x_min: Optional[float] = None,
     x_max: Optional[float] = None,
 ) -> Tuple[bool, Optional[Dict]]:
-    """Find a small-font (<18pt) credit text box. All position bounds in EMUs.
-
-    Returns (found, text_box). Defaults: keywords=CREDIT_KEYWORDS, y_min=slide_h*0.65,
-    x_min/x_max=None (no x bound).
+    """Find a small-font (<18pt) credit text box (positions in EMU).
+    Returns (found, text_box). Defaults: y_min=slide_h*0.65, no x-bound.
     """
     if keywords is None:
         keywords = CREDIT_KEYWORDS
@@ -163,33 +269,18 @@ def match_source_image(
 ) -> Tuple[bool, str]:
     """Check if any link points to (or contains) an image matching the slide image.
 
-    For each candidate URL, downloads via direct GET (with browser headers) or
-    Wayback Machine, then via page-image extraction; each candidate image is
-    tested with match_image_tiered (exact + perceptual hash) plus a VLM
-    "replacement" comparison.
-
-    Args:
-        links (list): Candidate URLs to check.
-        slide_img_path (str): Path to the slide's image file.
-        temp_dir (str): Directory for temporary downloads.
-        slide_idx (int): Slide index for unique temp filenames.
-        model: Loaded VLM model for the tiered matching's VLM fallback.
-
-    Returns:
-        tuple: (matched: bool, details: str)
+    For each candidate URL: try direct GET → Wayback → page-image extraction.
+    Each candidate is tested via match_image_tiered (exact + pHash) plus a VLM
+    "replacement" comparison. Returns `(matched, details)`.
     """
     if not links or not slide_img_path or not os.path.exists(slide_img_path):
         return False, "No image or links available for comparison"
 
     for link in links:
-        # Build the browser headers once per link (used 2-3 times below).
         headers = _browser_headers(link)
-
-        # Try the URL as a direct image (with browser headers for hotlink protection).
         source_path = download_image_from_url(link, temp_dir, headers=headers, wayback_fallback=True)
         if not source_path:
-            # Hotlink-protection retry: hosts like upload.wikimedia.org 403 same-origin Referers.
-            # Retry once with the Referer stripped before falling through to the page strategy.
+            # Some hosts (e.g. upload.wikimedia.org) 403 same-origin Referers; retry without.
             no_ref_headers = {k: v for k, v in headers.items() if k != 'Referer'}
             source_path = download_image_from_url(link, temp_dir, headers=no_ref_headers, wayback_fallback=False)
         if source_path:
@@ -200,7 +291,7 @@ def match_source_image(
                 return True, f"VLM accepts as plausible source: {link}"
             continue
 
-        # Not a direct image: fetch the page and test each embedded image.
+        # Not a direct image — fetch the page and test embedded images.
         page_dir = os.path.join(temp_dir, f"page_{slide_idx}_{abs(hash(link))}")
         try:
             page_images = download_page_images(link, page_dir, headers=headers)
@@ -217,7 +308,44 @@ def match_source_image(
     return False, f"Found {len(links)} URL(s) but none point to the slide image"
 
 
-# ---- Model state + lifecycle (lifted from evaluator.py) ----
+def to_deck_positions(content_slide_indices):
+    """Convert 0-based content-slide indices to 1-based deck positions (+2: title is slide 1).
+    Non-int entries (e.g. unparsed task ids) pass through unchanged.
+    """
+    return [s + 2 if isinstance(s, int) else s for s in content_slide_indices]
+
+
+def cluster_images_by_phash(image_paths: List[str], threshold: int = 10) -> List[int]:
+    """Cluster by pHash similarity; return one cluster id per input. Pairs within
+    `threshold` are unioned; hashing errors leave the image as its own singleton.
+    """
+    n = len(image_paths)
+    parents = list(range(n))
+
+    def find(x):
+        while parents[x] != x:
+            parents[x] = parents[parents[x]]
+            x = parents[x]
+        return x
+
+    for a in range(n):
+        for b in range(a + 1, n):
+            if find(a) == find(b):
+                continue
+            try:
+                if perceptual_hash_match(image_paths[a], image_paths[b], threshold=threshold):
+                    parents[find(a)] = find(b)
+            except Exception:
+                continue
+    return [find(i) for i in range(n)]
+
+
+def count_unique_images(image_paths: List[str], threshold: int = 10) -> int:
+    """Number of distinct perceptual-hash clusters across `image_paths`."""
+    return len(set(cluster_images_by_phash(image_paths, threshold=threshold)))
+
+
+# ---- Model state + lifecycle ----
 
 _model_cache = None
 _model_load_failed = False
@@ -254,7 +382,7 @@ def reset_model_state():
     _model_load_failed = False
 
 
-# ---- Pure text/image/color helpers (lifted from evaluator.py) ----
+# ---- Pure text/image/color helpers ----
 
 def normalize_for_match(text: str) -> str:
     """Lower-case, collapse whitespace, fold curly quotes to straight (D1)."""
@@ -278,15 +406,14 @@ def find_with_flexible_whitespace(haystack: str, needle: str) -> int:
         return 0
     h_lower = haystack.lower()
     n_lower = needle.lower()
-    # Fast path: literal find usually works.
     idx = h_lower.find(n_lower)
     if idx >= 0:
         return idx
-    # Cap the regex slow path on huge haystacks — the \s+ between tokens is O(n*m) worst-case.
-    # Returning -1 is safe; callers default the excerpt-center offset to 0.
+    # Slow-path regex is O(n*m) worst-case — cap haystack to bound it. Callers
+    # default the excerpt offset to 0 when this returns -1.
     if len(h_lower) > _FLEX_SEARCH_HAYSTACK_CAP:
         return -1
-    # Slow path: build a regex that allows any whitespace run between needle's tokens.
+    # Allow any whitespace run between needle's tokens.
     tokens = n_lower.split()
     if not tokens:
         return -1
@@ -308,11 +435,7 @@ def img_area(meta: Dict) -> float:
 
 
 def font_pt(tb: Dict) -> float:
-    """Best-effort font size in points for ranking text boxes; 0 when fontSize is unset.
-
-    Used as the primary sort key in CP1 step 1 (prefer the bigger-font matching box
-    over a wider but smaller-font body box).
-    """
+    """Font size in PT for ranking text boxes; 0 when fontSize is unset."""
     style = get_text_style_from_shape(tb['element'].get('shape', {}))
     fs = style.get('fontSize') or {}
     mag = fs.get('magnitude', 0)
@@ -332,14 +455,8 @@ def bbox_center_x(bbox: Dict) -> Optional[float]:
 
 
 def get_master_placeholder_font_pt(presentation_data: Dict, ph_type: str) -> Optional[float]:
-    """Walk layouts then masters to find the first placeholder of `ph_type` (e.g. 'TITLE')
-    and return its explicit fontSize in PT. Returns None when no explicit size is found.
-
-    Used by CP1 step 1 to verify the inheritance assumption — if the master title is <40pt
-    we no longer credit a topic line that has no explicit fontSize.
-
-    Param name is `ph_type` (not `placeholder_type`) so it doesn't shadow the helper of the
-    same name imported by callers.
+    """First explicit fontSize (PT) for a `ph_type` placeholder in layouts then masters.
+    None when no explicit size is found. Used by CP1 step 1 to validate inheritance.
     """
     if not presentation_data:
         return None
@@ -406,7 +523,7 @@ def score_credit_match(tb: Dict, slide_w: float, slide_h: float, keywords) -> in
     is_small = font_size is not None and not is_text_big(style, min_pt=18)
     bbox = tb.get('bbox', {}) or {}
     y_low = bbox.get('y', 0) >= slide_h * 0.60
-    # Use box CENTER (via helper) so a centered box doesn't sneak past as "left half".
+    # Center-x check (vs. left edge) — a wide centered box wouldn't count as "left half".
     x_center = bbox_center_x(bbox)
     x_left = x_center is not None and x_center <= slide_w * 0.5
     has_keyword = any(kw in text for kw in keywords)
@@ -415,12 +532,8 @@ def score_credit_match(tb: Dict, slide_w: float, slide_h: float, keywords) -> in
 
 def is_dark_orange(text_style, hue_lo=0.04, hue_hi=0.13, min_sat=0.6, min_val=0.4, rgb_tolerance=0.20,
                    presentation_data=None):
-    """Robust dark-orange detection (D2): HSV-primary + relaxed RGB-box fallback.
-
-    Prefers the resolved `foregroundColor` (which auto-includes themeColor RGB when
-    `get_text_style_from_shape` was called with `presentation`). Falls back to resolving
-    `foregroundThemeColor` here when the caller passed `presentation_data` but didn't
-    pre-resolve at extract time.
+    """Dark-orange detection: HSV-primary + relaxed RGB-box fallback. Resolves
+    `foregroundThemeColor` via `presentation_data` when not pre-resolved upstream.
     """
     fg = text_style.get('foregroundColor') if text_style else None
     if not fg and text_style:

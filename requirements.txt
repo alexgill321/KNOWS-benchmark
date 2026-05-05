@@ -11,6 +11,7 @@ beautifulsoup4
 html2text
 playwright
 chromium
+curl-cffi
 
 # BrowserGym framework (provides browsergym.core.registration)
 browsergym-core
