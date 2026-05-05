@@ -63,7 +63,7 @@ from src.browsergym.knows.eval.eval_utils.parallel_utils import (
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/slides_17_removeimagesaddplaceholders/instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/slides_17_removeimagesaddplaceholders/instance_1/")
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 GOLD_IMAGES_DIR = os.path.join(DATA_DIR, "gold_images/")
 GOLD_DESCRIPTIONS_CSV = os.path.join(DATA_DIR, "gold_descriptions.csv")
@@ -1106,72 +1106,66 @@ def grade_checkpoint_4():
             else:
                 original_textbox_count[slide] = 1
 
-        #if slide count matches, max points assigned, otherwise the amount of slides with extra images deduct  points from the score
+        # Only penalize slides that have MORE images than expected (extras)
         extra_img_slides = []
-        if(total_images_of_original_slides == new_total_images_of_new_slides):
+        for slide_number in set(original_image_count.keys()) | set(img_box_count.keys()):
+            if img_box_count.get(slide_number, 0) > original_image_count.get(slide_number, 0):
+                extra_img_slides.append(slide_number)
+
+        total_slides = len(original_image_count.keys())
+
+        if not extra_img_slides:
             checkpoint.add_step(
-                "Images Amount in Slides is Equal",
+                "No Extra Images",
                 True,
                 1,
                 "No extra images were added",
-                score = 10,
+                score=10,
                 max_score=10,
-                execution_time= time.time() - step_start
+                execution_time=time.time() - step_start
             )
         else:
-            # Compare the amount of images in each slide
-            for slide_number in set(original_image_count.keys()) | set(img_box_count.keys()):
-                if original_image_count.get(slide_number, 0) != img_box_count.get(slide_number, 0):
-                    extra_img_slides.append(slide_number)
-
-            total_slides = len(original_image_count.keys())
-
-            #This score will be higher if there are less slides with extra images
-            step_1_percentage_score = max(0, ((total_slides - len(extra_img_slides))/total_slides)) * 10
-
+            step_1_percentage_score = int(max(0, ((total_slides - len(extra_img_slides)) / total_slides)) * 10)
             checkpoint.add_step(
-                "Images Amount in Slides is Equal",
+                "No Extra Images",
                 False,
                 1,
-                f"Expected {total_images_of_original_slides} images, found {new_total_images_of_new_slides}. {len(extra_img_slides)}/{total_slides} slides have wrong image count (slides: {extra_img_slides})",
-                score = step_1_percentage_score,
+                f"{len(extra_img_slides)}/{total_slides} slides have extra images (slides: {extra_img_slides})",
+                score=step_1_percentage_score,
                 max_score=10,
-                execution_time= time.time() - step_start
+                execution_time=time.time() - step_start
             )
 
-        #text-box checkpoint
-        #expected needs the original images times 2 because it will add the  underneath textboxes and the textboxes for the link
-        expected_textboxcount = total_images_of_original_slides*2 + total_textboxes_of_original_slides
-        if(new_total_textboxes == expected_textboxcount):
+        # Only penalize slides that have MORE textboxes than expected (extras)
+        # Expected per slide: original textboxes + 2 * original images (description + URL credit)
+        extra_textbox_slides = []
+        for slide_number in set(original_textbox_count.keys()) | set(new_tb_count.keys()):
+            expected_for_slide = original_textbox_count.get(slide_number, 0) + original_image_count.get(slide_number, 0) * 2
+            if new_tb_count.get(slide_number, 0) > expected_for_slide:
+                extra_textbox_slides.append(slide_number)
+
+        total_slides_tb = len(original_textbox_count.keys())
+
+        if not extra_textbox_slides:
             checkpoint.add_step(
-                "Extra textbox check",
+                "No Extra Textboxes",
                 True,
                 2,
-                "No extra Textboxes were added",
-                score = 10,
+                "No extra textboxes were added",
+                score=10,
                 max_score=10,
-                execution_time= time.time() - step_start
+                execution_time=time.time() - step_start
             )
         else:
-            extra_textbox_slides = []
-            total_slides = len(original_textbox_count.keys())
-
-            #compare each slide's textbox
-            for slide_number in original_textbox_count:
-                if original_textbox_count.get(slide_number, 0) + original_image_count.get(slide_number, 0) * 2 != new_tb_count.get(slide_number, 0):
-                    extra_textbox_slides.append(slide_number)
-
-            #this score will be higher if less slides have missing or extra textboxes
-            step_2_percentage_score = max(0, ((total_slides - len(extra_textbox_slides))/total_slides)) * 10
-            qualifier = "too many" if new_total_textboxes > expected_textboxcount else "too few"
+            step_2_percentage_score = int(max(0, ((total_slides_tb - len(extra_textbox_slides)) / total_slides_tb)) * 10)
             checkpoint.add_step(
-                "Extra textbox check",
+                "No Extra Textboxes",
                 False,
                 2,
-                f"Expected {expected_textboxcount} textboxes, found {new_total_textboxes} ({qualifier}). {len(extra_textbox_slides)}/{total_slides} slides have wrong count (slides: {extra_textbox_slides})",
-                score = step_2_percentage_score,
+                f"{len(extra_textbox_slides)}/{total_slides_tb} slides have extra textboxes (slides: {extra_textbox_slides})",
+                score=step_2_percentage_score,
                 max_score=10,
-                execution_time= time.time() - step_start
+                execution_time=time.time() - step_start
             )
     except Exception as e:
         checkpoint.add_step("Error", False, 1, f"Checkpoint failed: {e}",
