@@ -50,17 +50,25 @@ def get_sheet_content(sheet_id: str, service) -> Optional[dict]:
         return None
 
 
-def detect_header_row(rows: list, max_rows_to_check: int = 10) -> int:
+def detect_header_row(rows: list, max_rows_to_check: int = 10,
+                      required_columns: list = None, model=None) -> int:
     """Detect which row contains the table headers in Google Sheets data.
 
-    Uses heuristics to find the header row:
-    1. Row with the most non-empty cells
-    2. Row where values look like headers (text, not numbers)
-    3. Prefers rows early in the sheet
+    Detection strategy (in order):
+    1. Keyword matching: When required_columns is provided, scores each row by
+       how many expected column keywords match its cell values.
+    2. LLM fallback: When keyword matching finds 0 matches and a model is
+       provided, asks the LLM to identify the header row.
+    3. Heuristic fallback: Legacy path for callers that don't pass
+       required_columns (text ratio, density scoring).
 
     Args:
         rows: List of row data from Google Sheets API (rowData from get_sheet_content).
         max_rows_to_check: Maximum number of rows to scan for headers.
+        required_columns: Optional list of (col_name, keywords) tuples, same format
+            as match_columns(). Example:
+            [("Run Name", ["run name", "name"]), ("Price", ["price", "cost"])]
+        model: Optional LLM model for fallback when keyword matching fails.
 
     Returns:
         0-indexed row number most likely to be the header row.
@@ -68,6 +76,66 @@ def detect_header_row(rows: list, max_rows_to_check: int = 10) -> int:
     if not rows:
         return 0
 
+    # Phase 1: Keyword-based detection
+    if required_columns:
+        from .text_utils import keywords_exact_match
+
+        best_row = 0
+        best_matches = 0
+
+        for row_idx in range(min(len(rows), max_rows_to_check)):
+            row = rows[row_idx]
+            values = row.get('values', [])
+            if not values:
+                continue
+
+            cell_texts = [v.get('formattedValue', '') for v in values]
+            match_count = 0
+
+            for _col_name, keywords in required_columns:
+                for cell_text in cell_texts:
+                    if cell_text and keywords_exact_match(cell_text, keywords):
+                        match_count += 1
+                        break
+
+            if match_count > best_matches:
+                best_matches = match_count
+                best_row = row_idx
+
+        if best_matches > 0:
+            print(f"Header row detected via keyword matching: row {best_row} ({best_matches}/{len(required_columns)} keywords matched)")
+            return best_row
+
+        # Phase 2: LLM fallback
+        if model is not None:
+            row_descriptions = []
+            for row_idx in range(min(len(rows), max_rows_to_check)):
+                values = rows[row_idx].get('values', [])
+                cells = [v.get('formattedValue', '') for v in values if v.get('formattedValue', '')]
+                if cells:
+                    row_descriptions.append(f"Row {row_idx}: {cells}")
+
+            if row_descriptions:
+                prompt = (
+                    "Which row number contains the column headers for this spreadsheet?\n\n"
+                    + "\n".join(row_descriptions)
+                    + "\n\nRespond with ONLY the row number (integer)."
+                )
+                try:
+                    messages = [
+                        {"role": "user", "content": [{"type": "text", "text": prompt}]}
+                    ]
+                    response = model(messages)
+                    match = re.search(r'\d+', response.strip())
+                    if match:
+                        detected_row = int(match.group())
+                        if 0 <= detected_row < min(len(rows), max_rows_to_check):
+                            print(f"Header row detected via LLM: row {detected_row}")
+                            return detected_row
+                except Exception as e:
+                    print(f"WARNING: LLM header detection failed: {e}")
+
+    # Phase 3: Heuristic fallback (legacy path for callers without required_columns)
     best_row = 0
     best_score = -1
 
@@ -78,7 +146,6 @@ def detect_header_row(rows: list, max_rows_to_check: int = 10) -> int:
         if not values:
             continue
 
-        # Count non-empty cells
         non_empty_count = 0
         text_count = 0
         total_cells = len(values)
@@ -87,7 +154,6 @@ def detect_header_row(rows: list, max_rows_to_check: int = 10) -> int:
             formatted = cell.get('formattedValue', '')
             if formatted:
                 non_empty_count += 1
-                # Check if it looks like text (not purely numeric)
                 try:
                     float(formatted.replace(',', '').replace('$', '').replace('%', ''))
                 except ValueError:
@@ -96,16 +162,10 @@ def detect_header_row(rows: list, max_rows_to_check: int = 10) -> int:
         if non_empty_count == 0:
             continue
 
-        # Score: prioritize rows with many non-empty text cells
-        # Penalize rows that are too early (row 0 often has titles)
         text_ratio = text_count / non_empty_count if non_empty_count > 0 else 0
         density = non_empty_count / max(total_cells, 1)
-
-        # Score combines: text ratio (headers are text), density (headers fill row),
-        # non-empty count (more columns = more likely header)
         score = (text_ratio * 0.4) + (density * 0.3) + (non_empty_count * 0.02)
 
-        # Small bonus for rows 1-3 (common header positions)
         if 1 <= row_idx <= 3:
             score += 0.1
 
@@ -381,7 +441,8 @@ def extract_sheet_data(
     return (result, sheet_raw) if return_raw else result
 
 
-def parse_sheet_to_dataframe(sheet_raw: dict, header_row: int = None) -> Optional[pd.DataFrame]:
+def parse_sheet_to_dataframe(sheet_raw: dict, header_row: int = None,
+                             required_columns: list = None, model=None) -> Optional[pd.DataFrame]:
     """Parse raw Google Sheets API response into a pandas DataFrame.
 
     Takes the raw sheet data from get_sheet_content() and extracts table data
@@ -389,12 +450,16 @@ def parse_sheet_to_dataframe(sheet_raw: dict, header_row: int = None) -> Optiona
     doesn't detect a formal table structure.
 
     If header_row is not specified, the function will attempt to automatically
-    detect which row contains the column headers using heuristics.
+    detect which row contains the column headers. When required_columns is
+    provided, uses keyword matching (with LLM fallback) for detection.
 
     Args:
         sheet_raw: Raw sheet data from get_sheet_content() or similar API call.
         header_row: 0-indexed row number containing column headers.
             If None, will auto-detect the header row.
+        required_columns: Optional list of (col_name, keywords) tuples for
+            keyword-based header detection. Same format as match_columns().
+        model: Optional LLM model for fallback header detection.
 
     Returns:
         pandas DataFrame with the extracted data, or None if parsing fails.
@@ -412,7 +477,7 @@ def parse_sheet_to_dataframe(sheet_raw: dict, header_row: int = None) -> Optiona
 
         # Auto-detect header row if not specified
         if header_row is None:
-            header_row = detect_header_row(rows)
+            header_row = detect_header_row(rows, required_columns=required_columns, model=model)
             print(f"Auto-detected header row: {header_row}")
 
         if len(rows) <= header_row + 1:

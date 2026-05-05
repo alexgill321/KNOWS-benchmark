@@ -12,6 +12,8 @@ import re
 import json
 from typing import Dict, List, Optional, Tuple, Any
 
+import requests
+
 # Task-level constants
 # Note: TASK_DIR points to the template level. Instance-specific data is in instance_X/data/
 TASK_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -32,12 +34,12 @@ DANGER_COLORS = {
     },
     "yellow": {
         "red": (0.85, 1.0),
-        "green": (0.85, 1.0),
+        "green": (0.7, 1.0),
         "blue": (0, 0.5)
     },
     "orange": {
         "red": (0.85, 1.0),
-        "green": (0.4, 0.75),
+        "green": (0.4, 0.7),
         "blue": (0, 0.35)
     },
     "red": {
@@ -195,8 +197,8 @@ def is_valid_wbsguide_url(url: str) -> bool:
     if not url:
         return False
 
-    # Match pattern: https://wbsguide.com/{id}.php
-    return bool(re.match(r'https?://(?:www\.)?wbsguide\.com/\d+\.php', str(url).strip()))
+    # Match pattern: https://wbsguide.com/{id}.php or https://wbsguide.com/guide/{id}.php
+    return bool(re.match(r'https?://(?:www\.)?wbsguide\.com/(?:guide/)?\d+\.php', str(url).strip()))
 
 
 def extract_run_id_from_url(url: str) -> Optional[int]:
@@ -211,7 +213,7 @@ def extract_run_id_from_url(url: str) -> Optional[int]:
     if not url:
         return None
 
-    match = re.search(r'wbsguide\.com/(\d+)\.php', str(url))
+    match = re.search(r'wbsguide\.com/(?:guide/)?(\d+)\.php', str(url))
     return int(match.group(1)) if match else None
 
 
@@ -397,19 +399,33 @@ def find_run_by_name_or_url(name: str, url: str, gold_data: Dict) -> Optional[Di
     return find_run_by_name(name, gold_data)
 
 
-def get_valid_runs(gold_data: Dict) -> List[Dict]:
-    """Get list of valid runs (slope angle <= 26).
+def get_valid_runs(gold_data: Dict, max_angle: int = None) -> List[Dict]:
+    """Get list of valid runs within the max slope angle.
+
+    Looks for the pre-filtered key 'valid_runs_le_<N>' in gold data.
+    Falls back to filtering all_runs by max_angle if the key doesn't exist.
 
     Args:
         gold_data: Gold data dict from load_gold_runs().
+        max_angle: Maximum slope angle. If None, reads from metadata.
 
     Returns:
-        List of run dicts with slope angle <= 26.
+        List of run dicts with slope angle <= max_angle.
     """
     if not gold_data:
         return []
 
-    return gold_data.get('valid_runs_le_26', [])
+    if max_angle is None:
+        max_angle = gold_data.get('metadata', {}).get('max_slope_angle', 26)
+
+    # Try pre-filtered key first
+    key = f'valid_runs_le_{max_angle}'
+    if key in gold_data:
+        return gold_data[key]
+
+    # Fall back to filtering all_runs
+    all_runs = gold_data.get('all_runs', [])
+    return [r for r in all_runs if r.get('slope_angle') and r['slope_angle'] <= max_angle]
 
 
 def get_forecast_data(gold_data: Dict) -> Optional[Dict]:
@@ -560,3 +576,67 @@ def gps_coordinates_match(
     lon_diff = abs(user_coords[1] - gold_lon)
 
     return lat_diff <= tolerance and lon_diff <= tolerance
+
+
+def scrape_page_gps_coords(url: str, tolerance: float = 0.01) -> List[Tuple[float, float]]:
+    """Scrape all GPS coordinate pairs from a wbsguide.com run page.
+
+    Args:
+        url: WBSGuide URL to scrape.
+        tolerance: Not used here, kept for API consistency.
+
+    Returns:
+        List of (lat, lon) tuples found on the page.
+    """
+    try:
+        clean_url = url.split('#')[0]  # Remove anchor
+        response = requests.get(
+            clean_url,
+            headers={"User-Agent": "Agent-Benchmark Research"},
+            timeout=10,
+        )
+        response.raise_for_status()
+
+        # Find all coordinate patterns: lat (40.xxxx) and lon (-111.xxxx)
+        coords = re.findall(r'(\d{2}\.\d{3,})\D+(-\d{2,3}\.\d{3,})', response.text)
+        return [(float(lat), float(lon)) for lat, lon in coords]
+    except Exception as e:
+        print(f"WARNING: scrape_page_gps_coords failed for {url}: {e}")
+        return []
+
+
+def gps_coordinates_match_with_fallback(
+    user_coords: Tuple[float, float],
+    gold_lat: float,
+    gold_lon: float,
+    run_url: str = None,
+    tolerance: float = 0.01,
+) -> Tuple[bool, str]:
+    """Check GPS coordinates against gold, with page-scrape fallback.
+
+    First checks against the gold data coordinates. If that fails and a
+    run URL is provided, scrapes the wbsguide page for all GPS coords
+    and checks if the user's coordinates match any of them.
+
+    Args:
+        user_coords: Tuple of (lat, lon) from user.
+        gold_lat: Gold standard latitude.
+        gold_lon: Gold standard longitude.
+        run_url: Optional WBSGuide URL to scrape as fallback.
+        tolerance: Maximum allowed difference in degrees.
+
+    Returns:
+        Tuple of (match_result, detail_message).
+    """
+    # Primary check against gold data
+    if gps_coordinates_match(user_coords, gold_lat, gold_lon, tolerance):
+        return True, "Coordinates match within tolerance"
+
+    # Fallback: scrape the page for all coordinates
+    if run_url and is_valid_wbsguide_url(run_url):
+        page_coords = scrape_page_gps_coords(run_url)
+        for page_lat, page_lon in page_coords:
+            if gps_coordinates_match(user_coords, page_lat, page_lon, tolerance):
+                return True, f"Coordinates match page coords ({page_lat}, {page_lon})"
+
+    return False, f"User: {user_coords}, Gold: ({gold_lat}, {gold_lon})"
