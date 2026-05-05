@@ -79,7 +79,8 @@ if _HAS_BROWSERGYM:
     KNOWS_SLIDES_17_TASK_IDS = _register_task_family(SlidesRemoveImagesAddPlaceholdersTask)
     KNOWS_SLIDES_20_TASK_IDS = _register_task_family(SlidesIllustratedBookReportTask)
     KNOWS_SHEETS_25_TASK_IDS = _register_task_family(SheetsSkiTourPlanTask)
-    KNOWS_SLIDES_25_TASK_IDS = _register_task_family(SlidesBasicEducationalSlideDeckTask)
+    KNOWS_SLIDES_26_TASK_IDS = _register_task_family(SlidesBasicEducationalSlideDeckTask)
+    KNOWS_SLIDES_25_TASK_IDS = KNOWS_SLIDES_26_TASK_IDS
     KNOWS_SHEETS_28_TASK_IDS = _register_task_family(SheetsPersonalTravelPlannerTask)
     KNOWS_SLIDES_29_TASK_IDS = _register_task_family(SlidesBuyCarPresTask)
     KNOWS_SLIDES_30_TASK_IDS = _register_task_family(SlidesWikipediaPhotosTask)
@@ -119,6 +120,7 @@ __all__ = [
     "KNOWS_SLIDES_17_TASK_IDS",
     "KNOWS_SLIDES_20_TASK_IDS",
     "KNOWS_SLIDES_25_TASK_IDS",
+    "KNOWS_SLIDES_26_TASK_IDS",
     "KNOWS_SLIDES_29_TASK_IDS",
     "KNOWS_SLIDES_30_TASK_IDS",
     "KNOWS_SLIDES_39_TASK_IDS",

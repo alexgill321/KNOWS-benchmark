@@ -19,6 +19,7 @@ browsergym-core
 # Data Processing
 pandas
 numpy
+tabulate  # required by pandas.DataFrame.to_markdown() used in evaluators
 
 # Image Processing
 Pillow

@@ -40,7 +40,7 @@ from src.browsergym.knows.eval.eval_utils.chart_utils import (
 
 # Constants
 GOLD_LABELS_SHEET_ID = "1-kJJMnFSCFQD2oXPtjFS_2hZ57VTloInXIjOUxw_Teo"
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/sheets_6_investmenttracker/instance_2/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/sheets_6_investmenttracker/instance_2/")
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 

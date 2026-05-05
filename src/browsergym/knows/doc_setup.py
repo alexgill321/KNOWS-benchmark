@@ -598,16 +598,56 @@ def create_task_workspace(
         )
 
     if share_with_evaluator:
+        api_share_ok = False
         try:
-            _debug_progress(f"sharing {kind} id={doc_id} with evaluator")
-            share_doc_with_service_account(doc_id)
+            _debug_progress(f"sharing {kind} id={doc_id} with evaluator (Drive API)")
+            api_share_ok = bool(share_doc_with_service_account(doc_id))
         except Exception as exc:  # noqa: BLE001 - best-effort
             logger.warning(
-                "Could not share %s %s with the evaluator service account: %s",
+                "Could not share %s %s with the evaluator service account "
+                "via Drive API: %s",
                 workspace["kind_label"],
                 doc_id,
                 exc,
             )
+
+        # Playwright UI fallback: when the Drive API path fails (e.g. the
+        # service account cannot reshare the file, or googleapiclient is
+        # not installed in this env), drive the editor's Share dialog on
+        # the same ``page`` we already have open. The fallback is itself
+        # idempotent (it bails out if the SA is already listed), so it's
+        # safe to run on re-attempts.
+        ui_disabled = os.environ.get(
+            "KNOWS_DISABLE_UI_SHARE_FALLBACK", ""
+        ).strip().lower() in {"1", "true", "yes", "on"}
+        if not api_share_ok and not ui_disabled:
+            sa_email = _read_service_account_email()
+            if not sa_email:
+                logger.warning(
+                    "UI share fallback skipped for %s %s: no service-account email found.",
+                    workspace["kind_label"],
+                    doc_id,
+                )
+            else:
+                try:
+                    from .share_ui_fallback import share_workspace_via_ui
+
+                    _debug_progress(
+                        f"sharing {kind} id={doc_id} with evaluator (UI fallback)"
+                    )
+                    share_workspace_via_ui(
+                        page,
+                        doc_id=doc_id,
+                        kind=kind,
+                        sa_email=sa_email,
+                    )
+                except Exception as exc:  # noqa: BLE001 - best-effort
+                    logger.warning(
+                        "UI share fallback failed for %s %s: %s",
+                        workspace["kind_label"],
+                        doc_id,
+                        exc,
+                    )
 
     _debug_progress(f"workspace ready {kind} id={doc_id}")
     return doc_id, doc_url

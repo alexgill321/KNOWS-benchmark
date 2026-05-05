@@ -1119,7 +1119,7 @@ class DocsPersonalRecipeOcrTask(KnowsWorkspaceTask):
     TASK_FAMILY_FOLDER = "docs_11_personal_recipe_ocr"
     TASK_ID_PREFIX = "knows.docs_11_personal_recipe_ocr"
     WORKSPACE_KIND = WORKSPACE_KIND_DOCS
-    AVAILABLE_INSTANCES: Tuple[int, ...] = (1,)
+    AVAILABLE_INSTANCES: Tuple[int, ...] = (1, 2, 3, 4, 5)
 
 
 class DocsEducationLessonPlanTask(KnowsWorkspaceTask):
@@ -1129,7 +1129,7 @@ class DocsEducationLessonPlanTask(KnowsWorkspaceTask):
     TASK_FAMILY_FOLDER = "docs_31_education_lesson_plan"
     TASK_ID_PREFIX = "knows.docs_31_education_lesson_plan"
     WORKSPACE_KIND = WORKSPACE_KIND_DOCS
-    AVAILABLE_INSTANCES: Tuple[int, ...] = (1,)
+    AVAILABLE_INSTANCES: Tuple[int, ...] = (1, 2, 3, 4, 5)
 
 
 class DocsReferenceListTask(KnowsWorkspaceTask):
@@ -1139,7 +1139,7 @@ class DocsReferenceListTask(KnowsWorkspaceTask):
     TASK_FAMILY_FOLDER = "docs_37_reference_list"
     TASK_ID_PREFIX = "knows.docs_37_reference_list"
     WORKSPACE_KIND = WORKSPACE_KIND_DOCS
-    AVAILABLE_INSTANCES: Tuple[int, ...] = (1,)
+    AVAILABLE_INSTANCES: Tuple[int, ...] = (1, 2, 3, 4, 5)
 
 
 class SheetsPaperSortingTask(KnowsWorkspaceTask):
@@ -1149,7 +1149,7 @@ class SheetsPaperSortingTask(KnowsWorkspaceTask):
     TASK_FAMILY_FOLDER = "sheets_10_paper_sorting"
     TASK_ID_PREFIX = "knows.sheets_10_paper_sorting"
     WORKSPACE_KIND = WORKSPACE_KIND_SHEETS
-    AVAILABLE_INSTANCES: Tuple[int, ...] = (1,)
+    AVAILABLE_INSTANCES: Tuple[int, ...] = (1, 2, 3, 4, 5)
 
     def setup(self, page: playwright.sync_api.Page) -> Tuple[str, dict]:
         self._run_required_preprocess()
@@ -1233,7 +1233,7 @@ class SheetsWeddingPlannerTask(KnowsWorkspaceTask):
     TASK_FAMILY_FOLDER = "sheets_45_Personal_WeddingPlanner_weddingcolorpallette"
     TASK_ID_PREFIX = "knows.sheets_45_wedding_planner"
     WORKSPACE_KIND = WORKSPACE_KIND_SHEETS
-    AVAILABLE_INSTANCES: Tuple[int, ...] = (1,)
+    AVAILABLE_INSTANCES: Tuple[int, ...] = (1, 2, 3, 4, 5)
 
 
 class SheetsMovieRecommendationTask(KnowsWorkspaceTask):
@@ -1243,7 +1243,7 @@ class SheetsMovieRecommendationTask(KnowsWorkspaceTask):
     TASK_FAMILY_FOLDER = "sheets_55_Movie_Recommendation"
     TASK_ID_PREFIX = "knows.sheets_55_movie_recommendation"
     WORKSPACE_KIND = WORKSPACE_KIND_SHEETS
-    AVAILABLE_INSTANCES: Tuple[int, ...] = (1,)
+    AVAILABLE_INSTANCES: Tuple[int, ...] = (1, 2, 3, 4, 5)
 
 
 class SheetsRunningAnalysisTask(KnowsWorkspaceTask):
@@ -1257,13 +1257,13 @@ class SheetsRunningAnalysisTask(KnowsWorkspaceTask):
 
 
 class SlidesBasicEducationalSlideDeckTask(KnowsWorkspaceTask):
-    """slides_25_basic_educational_slide_deck — pre-creates a Google Slides
+    """slides_26_basic_educational_slide_deck — pre-creates a Google Slides
     deck and grades it against the educational slide deck evaluator."""
 
-    TASK_FAMILY_FOLDER = "slides_25_basic_educational_slide_deck"
-    TASK_ID_PREFIX = "knows.slides_25_basic_educational_slide_deck"
+    TASK_FAMILY_FOLDER = "slides_26_basic_educational_slide_deck"
+    TASK_ID_PREFIX = "knows.slides_26_basic_educational_slide_deck"
     WORKSPACE_KIND = WORKSPACE_KIND_SLIDES
-    AVAILABLE_INSTANCES: Tuple[int, ...] = (1,)
+    AVAILABLE_INSTANCES: Tuple[int, ...] = (1, 2, 3, 4, 5)
 
 
 class SlidesBuyCarPresTask(KnowsWorkspaceTask):
@@ -1273,7 +1273,7 @@ class SlidesBuyCarPresTask(KnowsWorkspaceTask):
     TASK_FAMILY_FOLDER = "slides_29_buy_car_pres"
     TASK_ID_PREFIX = "knows.slides_29_buy_car_pres"
     WORKSPACE_KIND = WORKSPACE_KIND_SLIDES
-    AVAILABLE_INSTANCES: Tuple[int, ...] = (1,)
+    AVAILABLE_INSTANCES: Tuple[int, ...] = (1, 2, 3, 4, 5)
 
 
 class SlidesWikipediaPhotosTask(KnowsWorkspaceTask):
@@ -1283,7 +1283,7 @@ class SlidesWikipediaPhotosTask(KnowsWorkspaceTask):
     TASK_FAMILY_FOLDER = "slides_30_Work_Wikipedia_Photos"
     TASK_ID_PREFIX = "knows.slides_30_wikipedia_photos"
     WORKSPACE_KIND = WORKSPACE_KIND_SLIDES
-    AVAILABLE_INSTANCES: Tuple[int, ...] = (1,)
+    AVAILABLE_INSTANCES: Tuple[int, ...] = (1, 2, 3, 4, 5)
 
 
 class SlidesProductComparisonTask(KnowsWorkspaceTask):
