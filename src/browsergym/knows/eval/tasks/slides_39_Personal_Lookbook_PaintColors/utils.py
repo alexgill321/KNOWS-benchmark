@@ -15,6 +15,7 @@ from src.browsergym.knows.eval.eval_utils.slides_utils import (
     download_slide_image,
 )
 from src.browsergym.knows.eval.eval_utils.image_utils import binary_judge_image
+from src.browsergym.knows.eval.eval_utils.web_utils import download_image_from_url
 
 
 # Two-word room types that should survive adjective stripping. Anything not
@@ -40,6 +41,17 @@ _KNOWN_ROOM_WORDS = {
     'porch', 'balcony', 'cellar', 'terrace', 'courtyard', 'workshop',
     'studio', 'entryway',
 }
+
+
+def download_alt_image(url, temp_dir, **kwargs):
+    """download_image_from_url with backoff retry; recovers transient 429s."""
+    for attempt in range(3):
+        result = download_image_from_url(url, temp_dir, **kwargs)
+        if result:
+            return result
+        if attempt < 2:
+            time.sleep(0.5 * (2 ** attempt))
+    return None
 
 
 def browser_headers(url):
@@ -77,6 +89,9 @@ def _download_slide_image_with_retry(image_url, max_retries=2):
     return None
 
 
+_GLUED_TO_COMPOUND = {c.replace(' ', ''): c for c in _COMPOUND_ROOM_TYPES}
+
+
 def _clean_vlm_topic(response):
     """Reduce a VLM 'what room is this?' response to the room noun(s)."""
     text = re.sub(r'\*+', '', response).strip().lower()
@@ -87,12 +102,15 @@ def _clean_vlm_topic(response):
         return ""
     if len(words) >= 2 and ' '.join(words[-2:]) in _COMPOUND_ROOM_TYPES:
         return ' '.join(words[-2:])
-    # Walk back; promote to compound if the preceding word forms one.
+    # Walk back; promote to compound if the preceding word forms one,
+    # or split a glued single-word compound (e.g. "livingroom" -> "living room").
     for i in range(len(words) - 1, -1, -1):
         if words[i] in _KNOWN_ROOM_WORDS:
             if i > 0 and f"{words[i-1]} {words[i]}" in _COMPOUND_ROOM_TYPES:
                 return f"{words[i-1]} {words[i]}"
             return words[i]
+        if words[i] in _GLUED_TO_COMPOUND:
+            return _GLUED_TO_COMPOUND[words[i]]
     return words[-1]
 
 
@@ -225,13 +243,13 @@ def identify_image_subject_vlm(images, model, data_dir):
         messages = [
             {
                 "role": "system",
-                "content": [{"type": "text", "text": "You are an image analysis assistant. Respond with only the room or space type in one word, nothing else."}]
+                "content": [{"type": "text", "text": "You are an image analysis assistant. Respond with only the room or space type as 1-2 words, nothing else. Use a space for compound rooms (e.g., 'living room', not 'livingroom')."}]
             },
             {
                 "role": "user",
                 "content": [
                     {"type": "image", "image": temp_img_path},
-                    {"type": "text", "text": "What type of room or space is shown in this image? Respond with only the room type in one word (e.g., garage, kitchen, bathroom, bedroom, office)."}
+                    {"type": "text", "text": "What type of room or space is shown in this image? Respond with the room type as 1-2 words (e.g., garage, kitchen, bathroom, bedroom, office, living room, dining room, home office)."}
                 ]
             }
         ]
@@ -297,7 +315,7 @@ def evaluate_image_relevance_vlm(images, topic, model, data_dir):
                 result = binary_judge_image(
                     model,
                     temp_img_path,
-                    f"Is this a high-quality image related to '{topic}'? The image should clearly depict or relate to '{topic}'."
+                    f"Could this real photograph serve as inspiration for '{topic}'? Reject paintings, drawings, or illustrations. Accept any real photograph that fits the theme of '{topic}'."
                 )
             except Exception as e:
                 print(f"VLM call failed for image {idx} in evaluate_image_relevance_vlm: {e}")

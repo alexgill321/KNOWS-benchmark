@@ -34,6 +34,7 @@ from src.browsergym.knows.eval.eval_utils.slides_utils import (
 from src.browsergym.knows.eval.tasks.slides_39_Personal_Lookbook_PaintColors.utils import (
     browser_headers,
     check_browsing_history,
+    download_alt_image,
     identify_image_subject_vlm,
     evaluate_image_relevance_vlm,
     find_color_slides,
@@ -175,11 +176,19 @@ def grade_checkpoint_1(ctx, browsing_history=None):
     images = extract_slide_images(title_slide, ctx['workspace_doc_id'], SLIDES_SERVICE)
 
     # Identify image subject via VLM for use by browsing-history and relevance steps.
-    topic = ""
+    vlm_topic = ""
     if images:
         if model is None:
             model = load_model(model_id)
-        topic = identify_image_subject_vlm(images, model, DATA_DIR)
+        vlm_topic = identify_image_subject_vlm(images, model, DATA_DIR)
+    # Reconcile with room_type.txt: if VLM saw a constituent of the authoritative
+    # compound (e.g., 'office' for room_type 'home office'), upgrade to the
+    # compound so downstream browsing-history / relevance checks match correctly.
+    # Genuine mismatches keep the VLM answer.
+    if room_type and (not vlm_topic or vlm_topic.lower() in room_type.lower().split()):
+        topic = room_type
+    else:
+        topic = vlm_topic
     ctx['topic'] = topic  # Reused by later checkpoints
 
     # Step 1: Title text contains the expected room type from task.md (2 pt)
@@ -393,7 +402,7 @@ def grade_checkpoint_2(ctx):
 
 def grade_checkpoint_3(ctx, browsing_history=None):
     """
-    Checkpoint 3 (60 pt): Verify each color slide contains two relevant images
+    Checkpoint 3 (70 pt): Verify each color slide contains two relevant images
     positioned correctly on the slide.
 
     Steps:
@@ -403,10 +412,11 @@ def grade_checkpoint_3(ctx, browsing_history=None):
         4. Image relevance to color and room/project (VLM judge) (10 pt, proportional)
         5. Each image has a source URL in its ALT text (10 pt, proportional)
         6. ALT text source URL leads to the same image (10 pt, proportional)
+        7. The two images on each color slide are unique (10 pt, proportional)
     """
     global model
     start = time.time()
-    checkpoint = Checkpoint(total=60, result=0, name="Color Slide Content")
+    checkpoint = Checkpoint(total=70, result=0, name="Color Slide Content")
 
     presentation_data = ctx.get('presentation_data')
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
@@ -417,6 +427,7 @@ def grade_checkpoint_3(ctx, browsing_history=None):
         checkpoint.add_step("Image Relevance (VLM)", False, 4, details=reason, max_score=10)
         checkpoint.add_step("ALT Text Has Source URL", False, 5, details=reason, max_score=10)
         checkpoint.add_step("Image Source Match (ALT URL)", False, 6, details=reason, max_score=10)
+        checkpoint.add_step("Two Images Are Unique", False, 7, details=reason, max_score=10)
         checkpoint.execution_time = time.time() - start
         return checkpoint
 
@@ -432,6 +443,7 @@ def grade_checkpoint_3(ctx, browsing_history=None):
         checkpoint.add_step("Image Relevance (VLM)", False, 4, details=reason, max_score=10)
         checkpoint.add_step("ALT Text Has Source URL", False, 5, details=reason, max_score=10)
         checkpoint.add_step("Image Source Match (ALT URL)", False, 6, details=reason, max_score=10)
+        checkpoint.add_step("Two Images Are Unique", False, 7, details=reason, max_score=10)
         checkpoint.execution_time = time.time() - start
         return checkpoint
 
@@ -488,6 +500,7 @@ def grade_checkpoint_3(ctx, browsing_history=None):
         checkpoint.add_step("Image Relevance (VLM)", False, 4, details="Slide dimensions unavailable", max_score=10)
         checkpoint.add_step("ALT Text Has Source URL", False, 5, details="Slide dimensions unavailable", max_score=10)
         checkpoint.add_step("Image Source Match (ALT URL)", False, 6, details="Slide dimensions unavailable", max_score=10)
+        checkpoint.add_step("Two Images Are Unique", False, 7, details="Slide dimensions unavailable", max_score=10)
         checkpoint.execution_time = time.time() - start
         return checkpoint
     position_pass_count = 0
@@ -609,6 +622,8 @@ def grade_checkpoint_3(ctx, browsing_history=None):
         download_tasks = []
         image_pair_map = {}      # object_id -> color name
         alt_count_per_obj = {}   # object_id -> number of ALT URLs queued
+        alt_task_url = {}        # alt task id -> URL (for dedup result fan-out)
+        url_to_canonical = {}    # ALT URL -> canonical task id that downloads it
 
         for cs in color_slides:
             images = slide_images[cs['index']]
@@ -634,17 +649,29 @@ def grade_checkpoint_3(ctx, browsing_history=None):
                     'args': (obj_to_content[object_id], temp_dir),
                 })
                 for alt_idx, alt_url in enumerate(alt_urls):
-                    # Browser headers + Wayback fallback defeat hotlink protection
-                    # on sites like sdkitchencabinets.com that 403 plain requests.
-                    download_tasks.append({
-                        'id': f"{object_id}_alt_{alt_idx}",
-                        'func': download_image_from_url,
-                        'args': (alt_url, temp_dir),
-                        'kwargs': {'headers': browser_headers(alt_url), 'wayback_fallback': True},
-                    })
+                    # Dedup: the same ALT URL across slides gets one download.
+                    # Multiple parallel requests to the same Wikimedia URL
+                    # can exceed retries on 429; one request + fan-out is
+                    # both faster and more reliable.
+                    tid = f"{object_id}_alt_{alt_idx}"
+                    alt_task_url[tid] = alt_url
+                    if alt_url not in url_to_canonical:
+                        url_to_canonical[alt_url] = tid
+                        download_tasks.append({
+                            'id': tid,
+                            'func': download_alt_image,
+                            'args': (alt_url, temp_dir),
+                            'kwargs': {'headers': browser_headers(alt_url), 'wayback_fallback': True},
+                        })
 
         # Phase 1: download all images in parallel.
         downloaded = parallel_download(download_tasks, max_workers=5, use_rate_limit=False) if download_tasks else {}
+
+        # Fan dedup'd ALT downloads back out to every task id that uses that URL.
+        for tid, alt_url in alt_task_url.items():
+            canonical = url_to_canonical.get(alt_url)
+            if canonical and canonical != tid:
+                downloaded[tid] = downloaded.get(canonical)
 
         # Phase 2: build match tasks — content vs every downloaded ALT.
         match_tasks = []
@@ -702,6 +729,62 @@ def grade_checkpoint_3(ctx, browsing_history=None):
             if failed_dl > 0:
                 parts.append(f"{failed_dl} download failed")
             source_details.append(f"{cs['color']}: {', '.join(parts)}")
+
+        # Step 7: Two images on each slide are distinct (10 pt, proportional)
+        # Pair the two content images per slide and call them duplicates if
+        # they exact- or perceptual-hash match. Must run before `finally`
+        # deletes temp_dir.
+        step7_start = time.time()
+        unique_match_tasks = []
+        slide_pair_status = {}  # cs['index'] -> 'pending' | 'too_few' | 'no_paths'
+        for cs in color_slides:
+            images = slide_images[cs['index']]
+            if len(images) != 2:
+                slide_pair_status[cs['index']] = 'too_few'
+                continue
+            obj_a = images[0].get('objectId')
+            obj_b = images[1].get('objectId')
+            path_a = downloaded.get(f"{obj_a}_content") if obj_a else None
+            path_b = downloaded.get(f"{obj_b}_content") if obj_b else None
+            if not path_a or not path_b:
+                slide_pair_status[cs['index']] = 'no_paths'
+                continue
+            slide_pair_status[cs['index']] = 'pending'
+            unique_match_tasks.append({
+                'id': cs['index'],
+                'candidate_path': path_a,
+                'gold_path': path_b,
+            })
+
+        unique_match_results = (
+            parallel_image_match(unique_match_tasks, max_workers=5)
+            if unique_match_tasks else {}
+        )
+
+        unique_pass_count = 0
+        unique_details = []
+        for cs in color_slides:
+            status = slide_pair_status.get(cs['index'])
+            if status == 'too_few':
+                unique_details.append(f"{cs['color']}: only {len(slide_images[cs['index']])} image(s)")
+                continue
+            if status == 'no_paths':
+                unique_details.append(f"{cs['color']}: download failed")
+                continue
+            matched, _ = unique_match_results.get(cs['index'], (False, None))
+            if matched:
+                unique_details.append(f"{cs['color']}: duplicate")
+            else:
+                unique_pass_count += 1
+                unique_details.append(f"{cs['color']}: unique")
+
+        step7_score = calculate_percentage_score(unique_pass_count, num_colors, max_points=10)
+        checkpoint.add_step(
+            "Two Images Are Unique", unique_pass_count == num_colors, 7,
+            score=step7_score, max_score=10,
+            details=f"{unique_pass_count}/{num_colors} slides have unique images: {'; '.join(unique_details)}",
+            execution_time=time.time() - step7_start,
+        )
 
     finally:
         if os.path.exists(temp_dir):
@@ -899,13 +982,14 @@ def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history=Non
             ('Color Name Titles', 10),
             ('Colors Distinct & Appropriate (LLM)', 10),
         ], lambda: grade_checkpoint_2(ctx)),
-        ('Color Slide Content', 60, [
+        ('Color Slide Content', 70, [
             ('Browsing History for Color Images', 10),
             ('Two Images Per Slide', 10),
             ('Image Positioning (BL + BR)', 10),
             ('Image Relevance (VLM)', 10),
             ('ALT Text Has Source URL', 10),
             ('Image Source Match (ALT URL)', 10),
+            ('Two Images Are Unique', 10),
         ], lambda: grade_checkpoint_3(ctx, browsing_history)),
         ('Recommendation Slide', 10, [
             ('Recommendation Slide Exists (Last)', 2),
