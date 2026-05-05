@@ -1,6 +1,6 @@
 # Checkpoints
 
-This task has 55 points in total.
+This task has 57 points in total.
 
 ## Checkpoint 1 (6pt):
 
@@ -81,11 +81,13 @@ Recommendation slide meets all requirements.
 - Summaries aligns with the comparison data.
 - Recommendations based on different student styles are provided.
 
-## Checkppoint 7 (2pt):
+## Checkpoint 7 (4pt):
 
-The overall structure follows the specified task requirements.
+The overall structure follows the specified task requirements and the deck addresses the stated audience and tone.
 
 ### Outcome Evaluation:
 
 - Exactly 8 slides found.
-- All slides follow the required sequence and titles
+- All slides follow the required sequence and titles.
+- Tone is exciting, supportive, and easy to understand (matching the task brief).
+- Content is tailored to the recent-grad student audience and the family decision-maker.

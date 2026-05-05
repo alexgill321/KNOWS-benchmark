@@ -106,12 +106,12 @@ def grade_checkpoint_1():
     Checkpoint 1 (6pt): Title slide has all required elements.
 
     Outcome Evaluation:
-    - Exact match on "A Gift for Kathy!" found.
+    - Exact match on "A Gift for Hiroshi!" found.
     - Title is in bold.
-    - Subtitle correctly lists all 3 device options from the gold list.
-    - Image represents the University of Utah found.
+    - Subtitle correctly lists all 3 tattoo ink brand options from the gold list.
+    - Image represents Portland's independent tattoo art scene, such as a studio or street art scene, found.
     - Image is to the right of the title.
-    - The university's official colors are used.
+    - Deep charcoal, muted gold, and crimson tones are used.
     """
     print("----------------- CHECKPOINT 1 ----------------")
     checkpoint_start = time.time()
@@ -120,10 +120,10 @@ def grade_checkpoint_1():
     checkpoint_1_step_names = [
         "Title Match",
         "Title Is Bold",
-        "Subtitle Includes All Devices",
-        "University Image Found",
+        "Subtitle Includes All Ink Brands",
+        "Portland Tattoo Image Found",
         "Title Left of Image",
-        "University Colors",
+        "Charcoal/Gold/Crimson Colors",
     ]
 
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
@@ -139,12 +139,12 @@ def grade_checkpoint_1():
     if model is None:
         model = load_model(model_id)
 
-    # Step 1: Match on 'A Gift for Kathy!' (robust: exact then LLM fallback)
+    # Step 1: Match on 'A Gift for Hiroshi!' (robust: exact then LLM fallback)
     step_start = time.time()
     title_text = extract_title_text(title_slide)
-    title_found = bool(keywords_match_robust(title_text, "A Gift for Kathy!", model=model))
+    title_found = bool(keywords_match_robust(title_text, "A Gift for Hiroshi!", model=model))
 
-    checkpoint.add_step("Title Match", title_found, 1, "Found title 'A Gift for Kathy!'" if title_found else "Title does not match 'A Gift for Kathy!'", execution_time=time.time() - step_start)
+    checkpoint.add_step("Title Match", title_found, 1, "Found title 'A Gift for Hiroshi!'" if title_found else "Title does not match 'A Gift for Hiroshi!'", execution_time=time.time() - step_start)
 
     # Step 2: Title is bold (any run carrying the title text is bold)
     step_start = time.time()
@@ -182,17 +182,17 @@ def grade_checkpoint_1():
             devices_matched = False
             unmatched += device + "; "
 
-    checkpoint.add_step("Subtitle Includes All Devices", devices_matched, 3, "Subtitle lists all 3 devices" if devices_matched else f"Subtitle missing devices: {unmatched}", execution_time=time.time() - step_start)
+    checkpoint.add_step("Subtitle Includes All Ink Brands", devices_matched, 3, "Subtitle lists all 3 ink brands" if devices_matched else f"Subtitle missing ink brands: {unmatched}", execution_time=time.time() - step_start)
 
     # Steps 4 & 5: Image found and title-left-of-image. Both must record a step
     # regardless of any exceptions while downloading/judging images.
     step_start = time.time()
     images = extract_slide_images(title_slide, presentation_id, SLIDES_SERVICE)
     uni_image_valid = False
-    uni_image_detail = "No valid University of Utah image found"
+    uni_image_detail = "No valid Portland tattoo scene image found"
     matching_image = None
     title_left_of_image = False
-    title_left_detail = "Title is not to the left of the university image"
+    title_left_detail = "Title is not to the left of the Portland tattoo scene image"
 
     temp_dir = os.path.join(DATA_DIR, "temp_images")
     try:
@@ -217,16 +217,16 @@ def grade_checkpoint_1():
                 matching_image = binary_judge_image(
                     model,
                     temp_dir,
-                    "Is this an image of the University of Utah campus?"
+                    "Is this an image representing Portland's independent tattoo art scene, such as a tattoo studio or street art scene?"
                 )
             except Exception as e:
-                print(f"University image LLM check failed: {e}")
+                print(f"Portland tattoo image LLM check failed: {e}")
                 matching_image = None
-                uni_image_detail = f"University image check failed: {e}"
+                uni_image_detail = f"Portland tattoo image check failed: {e}"
 
             if matching_image:
                 uni_image_valid = True
-                uni_image_detail = "Found an image representing University of Utah"
+                uni_image_detail = "Found an image representing Portland's tattoo art scene"
         else:
             uni_image_detail = "No images available on title slide"
     except Exception as e:
@@ -234,7 +234,7 @@ def grade_checkpoint_1():
         uni_image_detail = f"Unexpected error during image processing: {e}"
     finally:
         # Step 4 always recorded
-        checkpoint.add_step("University Image Found", uni_image_valid, 4, uni_image_detail, execution_time=time.time() - step_start)
+        checkpoint.add_step("Portland Tattoo Image Found", uni_image_valid, 4, uni_image_detail, execution_time=time.time() - step_start)
 
         # Step 5: Title-left-of-image (best-effort; always recorded)
         step5_start = time.time()
@@ -267,13 +267,13 @@ def grade_checkpoint_1():
                     title_center_x = title_x + title_width / 2
                     title_left_of_image = image_x > title_center_x
                     title_left_detail = (
-                        "Title is to the left of the university image" if title_left_of_image
-                        else "Title is not to the left of the university image"
+                        "Title is to the left of the Portland tattoo image" if title_left_of_image
+                        else "Title is not to the left of the Portland tattoo image"
                     )
                 else:
                     title_left_detail = "Could not determine title or image position"
             else:
-                title_left_detail = "Skipping position check: no valid university image"
+                title_left_detail = "Skipping position check: no valid Portland tattoo image"
         except Exception as e:
             print(f"Title-left-of-image check failed: {e}")
             title_left_detail = f"Position check failed: {e}"
@@ -282,8 +282,13 @@ def grade_checkpoint_1():
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir, ignore_errors=True)
 
-    # Step 6: University colors used (red prominent in background, title/subtitle text, or shape fills)
-    official_color = {'r': 0.75, 'g': 0.0, 'b': 0.0}
+    # Step 6: Portland tattoo aesthetic colors (deep charcoal, muted gold, crimson) used somewhere
+    # on the slide (background, title/subtitle text, or shape fills).
+    official_colors = [
+        ("deep charcoal", {'r': 0.227, 'g': 0.227, 'b': 0.227}),
+        ("muted gold", {'r': 0.722, 'g': 0.525, 'b': 0.043}),
+        ("crimson", {'r': 0.863, 'g': 0.078, 'b': 0.235}),
+    ]
     step_start = time.time()
     color_valid = False
     color_detail_parts = []
@@ -299,45 +304,58 @@ def grade_checkpoint_1():
             return False
         return not colors_are_different({'r': r, 'g': g, 'b': b}, official, threshold=threshold)
 
+    def _match_any_official(rgb_dict, threshold=0.2):
+        for name, color in official_colors:
+            if _color_close(rgb_dict, color, threshold=threshold):
+                return name
+        return None
+
     try:
         bg_color = get_slide_background_color(title_slide, presentation_data)
-        if _color_close(bg_color, official_color, threshold=0.2):
+        bg_match = _match_any_official(bg_color, threshold=0.2)
+        if bg_match:
             color_valid = True
-            color_detail_parts.append("background uses university red")
+            color_detail_parts.append(f"background uses {bg_match}")
 
         if not color_valid:
-            # Check title/subtitle text run colors for university red.
+            # Check title/subtitle text run colors for one of the aesthetic tones.
             for text_box in text_boxes:
                 element = text_box.get('element', {})
                 shape = element.get('shape', {})
                 style = get_text_style_from_shape(shape, presentation_data)
                 fg = style.get('foregroundColor')
-                if _color_close(fg, official_color, threshold=0.2):
+                fg_match = _match_any_official(fg, threshold=0.2)
+                if fg_match:
                     color_valid = True
-                    color_detail_parts.append(f"text run on '{text_box.get('text', '')[:30]}' uses university red")
+                    color_detail_parts.append(f"text run on '{text_box.get('text', '')[:30]}' uses {fg_match}")
                     break
 
         if not color_valid:
-            # Check shape fills (e.g., colored bars/accents) for university red.
+            # Check shape fills (e.g., colored bars/accents) for one of the aesthetic tones.
             for element in title_slide.get('pageElements', []):
                 shape = element.get('shape', {})
                 fill = shape.get('shapeProperties', {}).get('shapeBackgroundFill', {})
                 solid = fill.get('solidFill', {})
                 color_info = solid.get('color', {})
                 rgb = color_info.get('rgbColor', {})
-                if rgb and _color_close({'r': rgb.get('red', 0), 'g': rgb.get('green', 0), 'b': rgb.get('blue', 0)}, official_color, threshold=0.2):
-                    color_valid = True
-                    color_detail_parts.append("a shape fill uses university red")
-                    break
+                if rgb:
+                    fill_match = _match_any_official(
+                        {'r': rgb.get('red', 0), 'g': rgb.get('green', 0), 'b': rgb.get('blue', 0)},
+                        threshold=0.2,
+                    )
+                    if fill_match:
+                        color_valid = True
+                        color_detail_parts.append(f"a shape fill uses {fill_match}")
+                        break
     except Exception as e:
-        print(f"University colors check error: {e}")
+        print(f"Portland tattoo color check error: {e}")
         color_detail_parts.append(f"check error: {e}")
 
     color_detail = (
-        "University official color found on slide (" + "; ".join(color_detail_parts) + ")"
-        if color_valid else "No strong University official color detected on background, title text, or shape fills"
+        "Portland tattoo aesthetic color found on slide (" + "; ".join(color_detail_parts) + ")"
+        if color_valid else "No deep charcoal, muted gold, or crimson detected on background, title text, or shape fills"
     )
-    checkpoint.add_step("University Colors", bool(color_valid), 6, color_detail, execution_time=time.time() - step_start)
+    checkpoint.add_step("Charcoal/Gold/Crimson Colors", bool(color_valid), 6, color_detail, execution_time=time.time() - step_start)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -384,11 +402,11 @@ def grade_checkpoint_2():
         messages = [
             {
                 "role": "system",
-                "content": [{"type": "text", "text": "You are a helpful assistant who evaluates whether the text describes at least one challenge in choosing an electronic device for a new college student. Response with ONLY 'yes' or 'no'."}]
+                "content": [{"type": "text", "text": "You are a helpful assistant who evaluates whether the text describes at least one challenge in choosing a tattoo ink brand for an emerging professional tattoo artist opening their first studio. Response with ONLY 'yes' or 'no'."}]
             },
             {
                 "role": "user",
-                "content": [{"type": "text", "text": f"Is there at least one challenge in choosing an electronic device for a new college student in this text?\n\nText: {slide_text}"}]
+                "content": [{"type": "text", "text": f"Is there at least one challenge in choosing a tattoo ink brand for an emerging professional tattoo artist in this text?\n\nText: {slide_text}"}]
             }
         ]
         response = model(messages).strip().lower()
@@ -404,11 +422,11 @@ def grade_checkpoint_2():
         messages = [
             {
                 "role": "system",
-                "content": [{"type": "text", "text": "You are a helpful assistant who evaluates whether the text describes at least one goal in choosing an electronic device for a new college student. Response with ONLY 'yes' or 'no'."}]
+                "content": [{"type": "text", "text": "You are a helpful assistant who evaluates whether the text describes at least one goal in choosing a tattoo ink brand for an emerging professional tattoo artist opening their first studio. Response with ONLY 'yes' or 'no'."}]
             },
             {
                 "role": "user",
-                "content": [{"type": "text", "text": f"Is there at least one goal in choosing an electronic device for a new college student in this text?\n\nText: {slide_text}"}]
+                "content": [{"type": "text", "text": f"Is there at least one goal in choosing a tattoo ink brand for an emerging professional tattoo artist in this text?\n\nText: {slide_text}"}]
             }
         ]
         response = model(messages).strip().lower()
@@ -427,18 +445,24 @@ def grade_checkpoint_3():
     Checkpoint 3 (5pt): All evaluation criteria are listed.
 
     Outcome Evaluation:
-    - Battery life found.
-    - Weight found.
-    - Memory capacity found.
-    - Budget considerations found.
-    - Processor.
+    - Color vibrancy and consistency across skin tones found.
+    - Ink longevity and resistance to fading over time found.
+    - Safety certifications and vegan/cruelty-free status found.
+    - Viscosity and needle compatibility for different styles found.
+    - Range of available shades and mixing flexibility found.
     """
     print("----------------- CHECKPOINT 3 ----------------")
     global model
     
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=5, result=0, name="Evaluation Criteria")
-    categories = ["Battery life", "Weight", "Memory", "Budget", "Processor"]
+    categories = [
+        "Color vibrancy and consistency across skin tones",
+        "Ink longevity and resistance to fading over time",
+        "Safety certifications and vegan/cruelty-free status",
+        "Viscosity and needle compatibility for different styles",
+        "Range of available shades and mixing flexibility",
+    ]
     if not presentation_data or 'slides' not in presentation_data:
         for i, name in enumerate(categories, 1):
             checkpoint.add_step(name, False, i, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
@@ -458,11 +482,11 @@ def grade_checkpoint_3():
     slide_text = extract_slide_text(slide)
 
     category_keyword_list = [
-        ["Battery life", "battery", "lasting", "hours"],
-        ["Weight", "lbs", "portability", "lightweight"],
-        ["Memory", "RAM"],
-        ["Budget", "price", "cost", "affordability"],
-        ["Processor", "CPU", "chipset"],
+        ["Color vibrancy", "vibrancy", "skin tones", "consistency"],
+        ["Ink longevity", "longevity", "fading", "fade-resistant"],
+        ["Safety certifications", "vegan", "cruelty-free", "certification"],
+        ["Viscosity", "needle compatibility", "fine line", "traditional", "realism"],
+        ["Range of shades", "shades", "mixing flexibility", "palette"],
     ]
     
     if model is None:
@@ -477,17 +501,17 @@ def grade_checkpoint_3():
         
 def grade_checkpoint_4():
     """
-    Checkpoint 4 (24pt): The device slides meet the requirements.
+    Checkpoint 4 (24pt): The tattoo ink brand slides meet the requirements.
 
-    Outcome Evaluation (x3 devices, 8 pts each):
-    - Title of the slide is the device name.
+    Outcome Evaluation (x3 ink brands, 8 pts each):
+    - Title of the slide is the ink brand name.
     - Each slide contains at least one source link.
     - Two product images from different angles found.
-    - Key features and specificications section found.
+    - Key features and specifications section found.
     - Pros are listed.
     - Cons are listed.
     - Product images are from the source link(s) in the slide.
-    - Product key features is accurate according to the sources."""
+    - Product key features are accurate according to the sources."""
     print("----------------- CHECKPOINT 4 ----------------")
     global model
     checkpoint_start = time.time()
@@ -533,9 +557,9 @@ def grade_checkpoint_4():
         model = load_model(model_id)
 
     image_file_map = {
-        "M4 MacBook Air": "ma",
-        "Lenovo Yoga 9i Aura Edition": "ly",
-        "Surface Laptop": "sl",
+        "Intenze Ink": "intenze",
+        "Eternal Ink": "eternal",
+        "Dynamic Ink": "dynamic",
     }
 
     def _parse_percentage(value):
@@ -661,7 +685,7 @@ def grade_checkpoint_4():
                             {
                                 "id": idx,
                                 "func": binary_judge_image,
-                                "args": (model, img_path, "Is this an image of a laptop of the same or similar model as those in the examples?", examples_path),
+                                "args": (model, img_path, "Is this an image of a tattoo ink product of the same or similar brand as those in the examples?", examples_path),
                             }
                             for idx, img_path in enumerate(slide_image_paths)
                         ]
@@ -692,7 +716,7 @@ def grade_checkpoint_4():
                                 image_from_different_angle = binary_judge_image(
                                     model,
                                     temp_dir,
-                                    "Is this image showing the laptop from a different perspective or angle compared to the example?",
+                                    "Is this image showing the tattoo ink product from a different perspective, angle, or product line compared to the example?",
                                     temp_example_dir,
                                 )
                             except Exception as e:
@@ -713,7 +737,7 @@ def grade_checkpoint_4():
                     if valid_images:
                         valid_images_detail = "Found 2 product images from 2 different angles"
                     elif valid_image_count < 2:
-                        valid_images_detail = f"Only {valid_image_count}/2 slide images matched the device"
+                        valid_images_detail = f"Only {valid_image_count}/2 slide images matched the ink brand"
                     elif not image_from_different_angle:
                         valid_images_detail = "Slide images are not from different angles"
                 except Exception as e:
@@ -756,7 +780,7 @@ def grade_checkpoint_4():
                         matching_image = binary_judge_image(
                             model,
                             url_temp_dir,
-                            "Is this an image of a laptop of the same or similar model as the examples?",
+                            "Is this an image of a tattoo ink product of the same or similar brand as the examples?",
                             temp_dir,
                         )
                     except Exception as e:
@@ -787,7 +811,7 @@ def grade_checkpoint_4():
     for i, slide in enumerate(all_slides):
         slide_title = slide["title"]
         slide_text = "\n".join(slide["text_tokens"])
-        task_text = f"""Extract the content for key features, pros, and cons of an electronic device from the given slide text.
+        task_text = f"""Extract the content for key features, pros, and cons of a tattoo ink brand from the given slide text.
 
 Respond ONLY with this exact JSON format:
 
@@ -936,18 +960,18 @@ def grade_checkpoint_5():
     Outcome Evaluation:
 
     - Table has exactly 3 columns.
-    - All devices are included as column headers.
+    - All ink brands are included as column headers.
     - Three colors red, yellow, and green are used for the coding scheme in the table content.
-    - Battery life is covered.
-    - An appropriate color applied for each cell under Battery life.
-    - Weight is covered.
-    - An appropriate color applied for each cell under Weight.
-    - Processor is covered.
-    - An appropriate color applied for each cell under Processor.
-    - Budget consideration is covered.
-    - An appropriate color applied for each cell under Budget consideration.
-    - Memory capacity is covered.
-    - An appropriate color applied for each cell under Memory capacity.
+    - Color vibrancy and consistency across skin tones is covered.
+    - An appropriate color applied for each cell under Color vibrancy and consistency across skin tones.
+    - Ink longevity and resistance to fading over time is covered.
+    - An appropriate color applied for each cell under Ink longevity and resistance to fading over time.
+    - Safety certifications and vegan/cruelty-free status is covered.
+    - An appropriate color applied for each cell under Safety certifications and vegan/cruelty-free status.
+    - Viscosity and needle compatibility for different styles is covered.
+    - An appropriate color applied for each cell under Viscosity and needle compatibility for different styles.
+    - Range of available shades and mixing flexibility is covered.
+    - An appropriate color applied for each cell under Range of available shades and mixing flexibility.
     """
     print("----------------- CHECKPOINT 5 ----------------")
     global model
@@ -958,18 +982,18 @@ def grade_checkpoint_5():
     
     comparison_step_names = [
         "Table Has 3 Columns",
-        "All Devices as Headers",
+        "All Ink Brands as Headers",
         "Green, Yellow, and Red as Color Coding Scheme",
-        "Found Battery life Row",
-        "Battery life - Correct Color Coding",
-        "Found Weight Row",
-        "Weight - Correct Color Coding",
-        "Found Processor Row",
-        "Processor - Correct Color Coding",
-        "Found Budget Row",
-        "Budget - Correct Color Coding",
-        "Found Memory Row",
-        "Memory - Correct Color Coding",
+        "Found color vibrancy Row",
+        "color vibrancy - Correct Color Coding",
+        "Found ink longevity Row",
+        "ink longevity - Correct Color Coding",
+        "Found safety certifications Row",
+        "safety certifications - Correct Color Coding",
+        "Found viscosity Row",
+        "viscosity - Correct Color Coding",
+        "Found range of shades Row",
+        "range of shades - Correct Color Coding",
     ]
 
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
@@ -1006,7 +1030,7 @@ def grade_checkpoint_5():
                        execution_time=time.time() - step_start)
     step_id += 1
     
-    # Step 2: Verify all devices are column headers
+    # Step 2: Verify all ink brands are column headers
     step_start = time.time()
     headers = table_data.get('headers', [])
     missing_devices = ""
@@ -1016,13 +1040,19 @@ def grade_checkpoint_5():
         if not bool(header_match):
             missing_devices += f"{device}; " 
     headers_valid = len(missing_devices) == 0
-    checkpoint.add_step("All Devices as Headers", headers_valid, step_id,
-                       "All devices found as column headers" if headers_valid else f"Missing header(s) for the following devices: {missing_devices}",
+    checkpoint.add_step("All Ink Brands as Headers", headers_valid, step_id,
+                       "All ink brands found as column headers" if headers_valid else f"Missing header(s) for the following ink brands: {missing_devices}",
                        execution_time=time.time() - step_start)
     step_id += 1
     
     print(f"2. Validating category coverage based on the table content.")
-    categories = ["battery life", "weight", "processor", "budget", "memory"]
+    categories = [
+        "color vibrancy",
+        "ink longevity",
+        "safety certifications",
+        "viscosity",
+        "range of shades",
+    ]
     color_rank_map = {
         'green': 1,
         'yellow': 2,
@@ -1226,9 +1256,9 @@ def grade_checkpoint_6():
     Checkpoint 6 (3pt): Recommendation slide meets all requirements.
 
     Outcome Evaluation:
-    - All three devices found in the slide.
-    - Summaries aligns with the comparison data.
-    - Recommendations based on different student styles are provided.
+    - All three tattoo ink brand options found in the slide.
+    - Summaries align with the comparison data.
+    - Recommendations based on different artist styles or studio needs are provided.
     """
     print("----------------- CHECKPOINT 6 ----------------")
     global model
@@ -1236,9 +1266,9 @@ def grade_checkpoint_6():
     checkpoint = Checkpoint(total=3, result=0, name="Recommendation Slide")
 
     recommendation_step_names = [
-        "All Devices Mentioned",
+        "All Ink Brands Mentioned",
         "Summaries Align with Comparison Data",
-        "Recommendations Based on Student Styles",
+        "Recommendations Based on Artist Styles",
     ]
 
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
@@ -1265,10 +1295,10 @@ def grade_checkpoint_6():
     if model is None:
         model = load_model(model_id)
 
-    task_text = f"""Extract the following electronic device summaries and recommendations from this Google slide text.
+    task_text = f"""Extract the following tattoo ink brand summaries and recommendations from this Google slide text.
 
-IMPORTANT: This text may contain multiple devices or none at all.
-Extract the information for EACH device separately.
+IMPORTANT: This text may contain multiple ink brands or none at all.
+Extract the information for EACH ink brand separately.
 
 Respond ONLY with this exact JSON format:
 {{
@@ -1355,7 +1385,7 @@ Slide text:
         else:
             print(f"    Found device: {device}")
 
-    checkpoint.add_step("All Devices Mentioned", len(missing_devices) == 0, 1, "All three correct devices discussed in the slide" if len(missing_devices) == 0 else f"Missing information for: {missing_devices}", execution_time=time.time() - step_start)
+    checkpoint.add_step("All Ink Brands Mentioned", len(missing_devices) == 0, 1, "All three correct ink brands discussed in the slide" if len(missing_devices) == 0 else f"Missing information for: {missing_devices}", execution_time=time.time() - step_start)
 
     # Step 2 (Summaries) and Step 3 (Recommendations) - prepared inside their own
     # try/except so any failure still records a step.
@@ -1406,7 +1436,7 @@ Slide text:
                 recommendation_tasks.append({
                     'id': f'{device}',
                     'func': evaluate_device_info_with_llm,
-                    'args': (f"Is the following recommendation of {device} based on a student style?\n\nRecommendation: {recommendation}", model),
+                    'args': (f"Is the following recommendation of {device} based on an artist style or studio need (e.g. fine line specialist, traditional artist, mixed-style studio)?\n\nRecommendation: {recommendation}", model),
                 })
             else:
                 missing_rec += 1
@@ -1450,10 +1480,10 @@ Slide text:
                 rec_eval_results = {}
             for device, isValid in rec_eval_results.items():
                 if isValid:
-                    print(f"    Recommendation for {device} is based on student style.")
+                    print(f"    Recommendation for {device} is based on artist style/studio need.")
                 else:
                     invalid_recommendations += 1
-                    print(f"    Recommendation for {device} is not based on student style.")
+                    print(f"    Recommendation for {device} is not based on artist style/studio need.")
         valid_recommendations = invalid_recommendations == 0 and missing_rec == 0 and len(recommendation_tasks) >= len(gold_devices)
         if valid_recommendations:
             recommendations_detail = "All recommendations are valid"
@@ -1463,7 +1493,7 @@ Slide text:
         print(f"Unexpected error evaluating recommendations: {e}")
         recommendations_detail = f"Unexpected error evaluating recommendations: {e}"
 
-    checkpoint.add_step("Recommendations Based on Student Styles", valid_recommendations, 3, recommendations_detail, execution_time=time.time() - step_start)
+    checkpoint.add_step("Recommendations Based on Artist Styles", valid_recommendations, 3, recommendations_detail, execution_time=time.time() - step_start)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -1476,8 +1506,8 @@ def grade_checkpoint_7():
     Outcome Evaluation:
     - Exactly 8 slides found.
     - All slides follow the required sequence and titles.
-    - Tone is exciting/supportive/easy-to-understand (per task brief).
-    - Content is tailored to the recent-grad student audience and family decision-maker.
+    - Tone is creative/respectful-of-the-craft/easy-to-understand (per task brief).
+    - Content is tailored to the emerging professional tattoo artist audience and the mentor decision-maker.
     """
     print("----------------- CHECKPOINT 7 ----------------")
     global model
@@ -1487,7 +1517,7 @@ def grade_checkpoint_7():
     step_names = [
         "Exactly 8 Slides",
         "Correct Titles and Order",
-        "Tone Is Exciting and Supportive",
+        "Tone Is Creative and Respectful of the Craft",
         "Audience-Tailored Content",
     ]
 
@@ -1510,7 +1540,7 @@ def grade_checkpoint_7():
     checkpoint.add_step("Exactly 8 Slides", True, 1, "Found exactly 8 slides", execution_time=time.time() - step_start)
 
     expected_titles_keywords = [
-        ["A Gift for Kathy!"],
+        ["A Gift for Hiroshi!"],
         ["challenge", "goal"],
         ["evaluation", "criteria", "considerations", "factors", "judge"],
         [],
@@ -1591,22 +1621,22 @@ def grade_checkpoint_7():
             tone_messages = [
                 {
                     "role": "system",
-                    "content": [{"type": "text", "text": "You evaluate presentation deck text. Given the deck text, judge whether the overall tone is exciting, supportive, and easy to understand (avoiding dry, overly technical, or jargon-heavy language). Respond ONLY with 'yes' or 'no'."}],
+                    "content": [{"type": "text", "text": "You evaluate presentation deck text. Given the deck text, judge whether the overall tone is creative, respectful of the craft, and easy to understand (avoiding dry, overly clinical, or jargon-heavy language). Respond ONLY with 'yes' or 'no'."}],
                 },
                 {
                     "role": "user",
-                    "content": [{"type": "text", "text": f"Is the tone of this deck exciting, supportive, and easy to understand?\n\nDeck text:\n{deck_text}"}],
+                    "content": [{"type": "text", "text": f"Is the tone of this deck creative, respectful of the craft, and easy to understand?\n\nDeck text:\n{deck_text}"}],
                 },
             ]
             tone_response = model(tone_messages).strip().lower()
             tone_ok = 'yes' in tone_response
-            tone_detail = "Tone is exciting/supportive/easy to understand" if tone_ok else "Tone is not exciting/supportive/easy to understand"
+            tone_detail = "Tone is creative/respectful/easy to understand" if tone_ok else "Tone is not creative/respectful/easy to understand"
         except Exception as e:
             print(f"    Tone LLM check failed: {e}")
             tone_detail = f"Tone check failed: {e}"
-    checkpoint.add_step("Tone Is Exciting and Supportive", tone_ok, 3, tone_detail, execution_time=time.time() - step_start)
+    checkpoint.add_step("Tone Is Creative and Respectful of the Craft", tone_ok, 3, tone_detail, execution_time=time.time() - step_start)
 
-    # Step 4: Audience-tailoring (recent grad heading to college; family decision-maker).
+    # Step 4: Audience-tailoring (emerging professional tattoo artist; mentor decision-maker).
     step_start = time.time()
     audience_ok = False
     audience_detail = "Could not evaluate audience tailoring"
@@ -1615,11 +1645,11 @@ def grade_checkpoint_7():
             audience_messages = [
                 {
                     "role": "system",
-                    "content": [{"type": "text", "text": "You evaluate presentation deck text. Given the deck text, judge whether the content is clearly tailored to a recent high school graduate heading to college and useful to a family member making the purchase decision (e.g. references campus/college life, student-relatable examples, practical considerations for both audiences). Respond ONLY with 'yes' or 'no'."}],
+                    "content": [{"type": "text", "text": "You evaluate presentation deck text. Given the deck text, judge whether the content is clearly tailored to an emerging professional tattoo artist opening their first studio and useful to a master tattoo artist mentor making the purchase decision (e.g. references client consultations, long sessions, diverse skin tones, style specializations, running an independent tattoo studio). Respond ONLY with 'yes' or 'no'."}],
                 },
                 {
                     "role": "user",
-                    "content": [{"type": "text", "text": f"Is the content tailored to a recent high school graduate heading to college and helpful to a family member making the purchase decision?\n\nDeck text:\n{deck_text}"}],
+                    "content": [{"type": "text", "text": f"Is the content tailored to an emerging professional tattoo artist and helpful to a mentor making the purchase decision?\n\nDeck text:\n{deck_text}"}],
                 },
             ]
             audience_response = model(audience_messages).strip().lower()

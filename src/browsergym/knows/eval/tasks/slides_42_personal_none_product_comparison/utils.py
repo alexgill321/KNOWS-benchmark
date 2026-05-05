@@ -86,25 +86,49 @@ def detect_color_name(color: Dict, threshold: float = 0.2) -> str:
 
 def validate_rankings(expected_ranking: Dict[str, int], actual_ranking: Dict[str, int]) -> bool:
     """
-    Validate that two rankings are consistent (e.g., higher score means better rank).
-    
+    Validate that two rankings express the same ordering of items.
+
+    Compares rankings by group (one group per distinct rank value) rather than
+    by index, so ties are considered consistent regardless of the order the
+    tied items appear in. Items keys are compared case-insensitively.
+
     Args:
         expected_ranking (Dict[str, int]): First ranking mapping item to rank (lower is better).
         actual_ranking (Dict[str, int]): Second ranking mapping item to rank.
-    
+
     Returns:
-        bool: True if rankings are consistent, False otherwise.
+        bool: True if rankings express the same ordering, False otherwise.
     """
-    issues = []
-    
-    sorted_expected = sorted(expected_ranking.items(), key=lambda x: x[1])
-    sorted_actual = sorted(actual_ranking.items(), key=lambda x: x[1])
-    # Check if ranks are consistent (e.g., if rank1 is better than another item, rank2 should also reflect that)
-    for expected_item, actual_item in zip(sorted_expected, sorted_actual):
-        if expected_item[0].lower() != actual_item[0].lower():
-            return False
-    
-    return True
+    if not isinstance(expected_ranking, dict) or not isinstance(actual_ranking, dict):
+        return False
+    # Both must contain the same set of items (case-insensitive) for the
+    # comparison to be meaningful.
+    exp_keys = {str(k).strip().lower() for k in expected_ranking.keys()}
+    act_keys = {str(k).strip().lower() for k in actual_ranking.keys()}
+    if exp_keys != act_keys:
+        return False
+
+    def _group_by_rank(ranking):
+        groups = {}
+        for k, v in ranking.items():
+            try:
+                rank_val = int(v)
+            except (TypeError, ValueError):
+                return None
+            groups.setdefault(rank_val, set()).add(str(k).strip().lower())
+        return groups
+
+    exp_groups = _group_by_rank(expected_ranking)
+    act_groups = _group_by_rank(actual_ranking)
+    if exp_groups is None or act_groups is None:
+        return False
+
+    # Sort groups by rank (lower = better) and compare the sequence of item
+    # sets. Equal sets at the same position mean the orderings match (with
+    # ties handled correctly).
+    exp_sequence = [items for _, items in sorted(exp_groups.items())]
+    act_sequence = [items for _, items in sorted(act_groups.items())]
+    return exp_sequence == act_sequence
 
 def download_images_from_url(url, folder):
     from PIL import Image
@@ -120,8 +144,8 @@ def download_images_from_url(url, folder):
 
     # 3. Find all <img> tags
     img_tags = soup.find_all('img')
-    # print(f"Found {len(img_tags)} images.")
     downloaded_files = []
+    download_errors = []
     for i, img in enumerate(img_tags):
         # Get the 'src' attribute
         img_url = img.get('src')
@@ -159,7 +183,6 @@ def download_images_from_url(url, folder):
 
             # Skip if extension is not allowed
             if not chosen_ext or chosen_ext not in allowed_exts:
-                # print(f"Skipping {img_url} (unsupported type)")
                 continue
             
             # Create a filename
@@ -178,12 +201,21 @@ def download_images_from_url(url, folder):
             try:
                 img = Image.open(filepath)
                 img.verify()
-            except Exception:
-                os.remove(filepath)
+            except Exception as e:
+                try:
+                    os.remove(filepath)
+                except OSError:
+                    pass
+                download_errors.append(f"{img_url}: invalid image ({e})")
                 continue
-            # print(f"Downloaded: {filename}")
             downloaded_files.append(filename)
         except Exception as e:
-            # print(f"Could not download {img_url}: {e}")
-            pass
+            # Capture the error per-image so callers can distinguish "no images
+            # in source" from "every download failed".
+            download_errors.append(f"{img_url}: {e}")
+            continue
+    if download_errors and not downloaded_files:
+        # Surface a brief summary so failures are visible in stdout (without
+        # printing every failed URL when partial successes occurred).
+        print(f"download_images_from_url: {len(download_errors)} image(s) failed for {url}; first error: {download_errors[0]}")
     return downloaded_files
