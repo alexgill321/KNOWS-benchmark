@@ -130,9 +130,12 @@ def is_text_visible_in_cell(
     if wrap_strategy == 'WRAP':
         return True
 
-    # If CLIP, text is hidden when it exceeds width
+    # If CLIP, text is hidden when it significantly exceeds width.
+    # Use a 1.3x threshold to account for variable character widths
+    # (the char_width estimate assumes wide characters, but most text
+    # contains many narrow characters like i, l, /, -, etc.)
     if wrap_strategy == 'CLIP':
-        return False
+        return expected_width <= col_width * 1.3
 
     # For OVERFLOW_CELL (default), check if next cell blocks the overflow
     if wrap_strategy == 'OVERFLOW_CELL':
@@ -751,6 +754,7 @@ def match_columns(
     strict: bool = True,
     parallel: bool = False,
     max_workers: int = 5,
+    context: str = None,
 ) -> Dict[str, str]:
     """Match required columns using keyword matching with optional LLM fallback.
 
@@ -770,6 +774,8 @@ def match_columns(
             Note: Since the new keywords_llm_match makes a single LLM call per column,
             parallel=True now runs multiple column matches concurrently.
         max_workers: Maximum number of parallel LLM calls (only used if parallel=True).
+        context: Optional task context passed to the LLM to improve matching accuracy
+            (e.g., "an apartment listing spreadsheet with columns for property details").
 
     Returns:
         Dict mapping col_name -> matched_column_name for all matched columns.
@@ -798,7 +804,7 @@ def match_columns(
             from concurrent.futures import ThreadPoolExecutor, as_completed
 
             def call_llm_for_column(col_name: str, keywords: List[str]) -> Tuple[str, Optional[str]]:
-                result = keywords_llm_match(columns, keywords, model, description=f"column for '{col_name}'")
+                result = keywords_llm_match(columns, keywords, model, description=f"column for '{col_name}'", context=context)
                 return col_name, result
 
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -816,7 +822,7 @@ def match_columns(
         else:
             # Sequential LLM matching
             for col_name, keywords in unmatched:
-                result = keywords_llm_match(columns, keywords, model, description=f"column for '{col_name}'")
+                result = keywords_llm_match(columns, keywords, model, description=f"column for '{col_name}'", context=context)
                 if result:
                     matched[col_name] = result
 

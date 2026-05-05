@@ -193,7 +193,8 @@ def keywords_exact_match(text: str, keywords: List[str], *,
 def keywords_llm_match(texts: Union[str, List[str]],
                        keywords: List[str],
                        model: Any,
-                       description: str = None) -> Optional[str]:
+                       description: str = None,
+                       context: str = None) -> Optional[str]:
     """Use LLM to find semantic match between texts and keywords.
 
     Makes a single LLM call that evaluates all texts at once against the keywords.
@@ -205,6 +206,8 @@ def keywords_llm_match(texts: Union[str, List[str]],
         keywords: List of keywords describing what we're looking for.
         model: LLM model callable that accepts messages list.
         description: Optional description of what we're matching (e.g., "stock symbol column").
+        context: Optional task context to help the LLM make better matching decisions
+            (e.g., "an apartment listing spreadsheet with columns for property details").
 
     Returns:
         The matching text from the texts list, or None if no match.
@@ -234,22 +237,25 @@ def keywords_llm_match(texts: Union[str, List[str]],
     # Build prompt
     keywords_hint = f"Example keywords that might match: {', '.join(keywords)}"
     desc_text = f"'{description}'" if description else "the specified criteria"
+    context_text = f"\nContext: {context}" if context else ""
 
-    prompt = f"""You are analyzing text values to find one that best matches specific criteria.
+    prompt = f"""You are analyzing text values to find one that matches specific criteria.
 
 Criteria: Find the text that represents {desc_text}.
-{keywords_hint}
+{keywords_hint}{context_text}
 
 Available texts:
 {texts_numbered}
 
-Please analyze each text and determine which one best matches the criteria. Consider:
+Please analyze each text and determine which one matches the criteria. Consider:
 - Exact matches
 - Synonyms and semantically similar terms
 - Common abbreviations
 - Naming conventions
 
-Respond with ONLY the number (1, 2, 3, etc.) of the best matching text, or "NONE" if no text adequately matches."""
+If none of the texts are a reasonable semantic match for the criteria, you MUST respond "NONE". Do not force a match — only return a number if the text is clearly related to the criteria.
+
+Respond with ONLY the number (1, 2, 3, etc.) of the matching text, or "NONE" if no text adequately matches."""
 
     try:
         messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]

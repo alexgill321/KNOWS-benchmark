@@ -144,13 +144,16 @@ def normalize_boolean_value(value: str) -> Optional[bool]:
         return None  # Unknown
 
 
-def compare_addresses(addr1: str, addr2: str) -> bool:
+def compare_addresses(addr1: str, addr2: str, model=None) -> bool:
     """
     Compare two addresses for approximate match.
+
+    Uses fast string matching first, then LLM fallback for semantic comparison.
 
     Args:
         addr1: First address string.
         addr2: Second address string.
+        model: Optional LLM model for semantic fallback.
 
     Returns:
         True if addresses are considered a match.
@@ -194,14 +197,30 @@ def compare_addresses(addr1: str, addr2: str) -> bool:
     if norm1 in norm2 or norm2 in norm1:
         return True
 
-    # Check if the main street address matches (first part before comma usually)
-    parts1 = norm1.split()
-    parts2 = norm2.split()
+    # LLM fallback for semantic address comparison
+    if model is not None:
+        try:
+            prompt = f"""You are comparing two address strings from a rental listing to determine if they refer to the same street address.
 
-    # Match if first few significant parts match
-    if len(parts1) >= 2 and len(parts2) >= 2:
-        if parts1[0] == parts2[0] and parts1[1] == parts2[1]:
-            return True
+Address 1: "{addr1}"
+Address 2: "{addr2}"
+
+They match if they clearly refer to the same street address, allowing for:
+- Abbreviation differences (St vs Street, Ave vs Avenue, N vs North)
+- Minor formatting differences
+- Slightly different levels of detail (e.g., "North Damen Ave" vs "North Damen Ave near Wolfram")
+
+They do NOT match if:
+- One is a neighborhood/area name and the other is a street address (e.g., "Wicker Park" vs "1316 North Artesian Ave")
+- They refer to different streets or locations
+
+Respond with ONLY "YES" or "NO"."""
+
+            messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
+            response = model(messages).strip().upper()
+            return response == "YES"
+        except Exception as e:
+            print(f"Error in LLM address comparison: {e}")
 
     return False
 

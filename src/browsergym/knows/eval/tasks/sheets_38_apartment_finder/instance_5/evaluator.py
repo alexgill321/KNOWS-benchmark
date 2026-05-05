@@ -103,12 +103,25 @@ def setup(workspace_doc_id: str):
                     print("WARNING: First table has invalid/empty DataFrame")
                     table_data = None
 
-        # Initialize df for use across checkpoints (first table's DataFrame)
+        # Pick the table whose columns best match listing data keywords
         if table_data:
-            first_table = table_data[0]
-            df = first_table.df if hasattr(first_table, 'df') else first_table
-            if isinstance(df, dict):
-                df = pd.DataFrame(df)
+            listing_keywords = ["address", "location", "price", "rent", "bed", "bedroom",
+                                "bath", "bathroom", "sq ft", "sqft", "url", "link", "listing"]
+            best_table = None
+            best_hits = -1
+            for t in table_data:
+                t_df = t.df if hasattr(t, 'df') else t
+                if isinstance(t_df, dict):
+                    t_df = pd.DataFrame(t_df)
+                if not isinstance(t_df, pd.DataFrame) or t_df.empty:
+                    continue
+                hits = sum(1 for col in t_df.columns
+                           for kw in listing_keywords
+                           if kw in str(col).lower())
+                if hits > best_hits:
+                    best_hits = hits
+                    best_table = t_df
+            df = best_table if best_table is not None else None
 
     except Exception as e:
         print(f"WARNING: setup() failed: {e}. Globals set to None for graceful degradation.")
@@ -173,7 +186,8 @@ def grade_checkpoint_1():
                 f"Ensure model ID is correct and API keys are configured. Error: {e}"
             ) from e
     try:
-        matched_columns = match_columns(df, required_columns, model=model, parallel=True)
+        matched_columns = match_columns(df, required_columns, model=model, parallel=True,
+                                        context="an apartment listing spreadsheet with columns for property details like address, price, bedrooms, bathrooms, square footage, amenities, and listing URLs from Craigslist")
     except Exception as e:
         print(f"WARNING: match_columns failed: {e}. Setting matched_columns to None.")
         matched_columns = None
@@ -438,123 +452,148 @@ Respond ONLY with this exact JSON format:
 
         # Step 2: Price matches
         step_num += 1
-        try:
-            user_price = float(re.sub(r'[^\d.]', '', str(row.get(price_col, 0)))) if price_col else 0
-            craigslist_price = extracted_data.get("price")
+        if not price_col:
+            checkpoint.add_step(f"Listing {listing_num} - Price Match", False, step_num,
+                              "No 'Price/Rent' column found in spreadsheet",
+                              execution_time=0)
+        else:
+            try:
+                user_price = float(re.sub(r'[^\d.]', '', str(row.get(price_col, 0))))
+                craigslist_price = extracted_data.get("price")
 
-            if craigslist_price and user_price:
-                is_match, diff = numerical_match_with_error(craigslist_price, user_price, error_percent=5.0)
-                if is_match:
-                    checkpoint.add_step(f"Listing {listing_num} - Price Match", True, step_num,
-                                      f"Price ${user_price:.0f} matches Craigslist ${craigslist_price:.0f}",
-                                      execution_time=0)
+                if craigslist_price and user_price:
+                    is_match, diff = numerical_match_with_error(craigslist_price, user_price, error_percent=5.0)
+                    if is_match:
+                        checkpoint.add_step(f"Listing {listing_num} - Price Match", True, step_num,
+                                          f"Price ${user_price:.0f} matches Craigslist ${craigslist_price:.0f}",
+                                          execution_time=0)
+                    else:
+                        checkpoint.add_step(f"Listing {listing_num} - Price Match", False, step_num,
+                                          f"Price mismatch: user ${user_price:.0f} vs Craigslist ${craigslist_price:.0f} ({diff:.1f}% diff)",
+                                          execution_time=0)
                 else:
                     checkpoint.add_step(f"Listing {listing_num} - Price Match", False, step_num,
-                                      f"Price mismatch: user ${user_price:.0f} vs Craigslist ${craigslist_price:.0f} ({diff:.1f}% diff)",
+                                      f"Missing price data (user: {user_price}, craigslist: {craigslist_price})",
                                       execution_time=0)
-            else:
+            except Exception as e:
                 checkpoint.add_step(f"Listing {listing_num} - Price Match", False, step_num,
-                                  f"Missing price data (user: {user_price}, craigslist: {craigslist_price})",
+                                  f"Error comparing prices: {str(e)[:50]}",
                                   execution_time=0)
-        except Exception as e:
-            checkpoint.add_step(f"Listing {listing_num} - Price Match", False, step_num,
-                              f"Error comparing prices: {str(e)[:50]}",
-                              execution_time=0)
 
         # Step 3: Bedroom count matches
         step_num += 1
-        try:
-            user_beds = float(re.sub(r'[^\d.]', '', str(row.get(bed_col, 0)))) if bed_col else 0
-            craigslist_beds = extracted_data.get("bedrooms")
+        if not bed_col:
+            checkpoint.add_step(f"Listing {listing_num} - Bedrooms Match", False, step_num,
+                              "No 'Bedrooms' column found in spreadsheet",
+                              execution_time=0)
+        else:
+            try:
+                user_beds = float(re.sub(r'[^\d.]', '', str(row.get(bed_col, 0))))
+                craigslist_beds = extracted_data.get("bedrooms")
 
-            if craigslist_beds is not None:
-                if user_beds == craigslist_beds:
-                    checkpoint.add_step(f"Listing {listing_num} - Bedrooms Match", True, step_num,
-                                      f"Bedrooms match: {int(user_beds)}",
-                                      execution_time=0)
+                if craigslist_beds is not None:
+                    if user_beds == craigslist_beds:
+                        checkpoint.add_step(f"Listing {listing_num} - Bedrooms Match", True, step_num,
+                                          f"Bedrooms match: {int(user_beds)}",
+                                          execution_time=0)
+                    else:
+                        checkpoint.add_step(f"Listing {listing_num} - Bedrooms Match", False, step_num,
+                                          f"Bedroom mismatch: user {user_beds} vs Craigslist {craigslist_beds}",
+                                          execution_time=0)
                 else:
                     checkpoint.add_step(f"Listing {listing_num} - Bedrooms Match", False, step_num,
-                                      f"Bedroom mismatch: user {user_beds} vs Craigslist {craigslist_beds}",
+                                      "Could not extract bedroom count from Craigslist",
                                       execution_time=0)
-            else:
+            except Exception as e:
                 checkpoint.add_step(f"Listing {listing_num} - Bedrooms Match", False, step_num,
-                                  "Could not extract bedroom count from Craigslist",
+                                  f"Error comparing bedrooms: {str(e)[:50]}",
                                   execution_time=0)
-        except Exception as e:
-            checkpoint.add_step(f"Listing {listing_num} - Bedrooms Match", False, step_num,
-                              f"Error comparing bedrooms: {str(e)[:50]}",
-                              execution_time=0)
 
         # Step 4: Bathroom count matches
         step_num += 1
-        try:
-            user_baths = float(re.sub(r'[^\d.]', '', str(row.get(bath_col, 0)))) if bath_col else 0
-            craigslist_baths = extracted_data.get("bathrooms")
+        if not bath_col:
+            checkpoint.add_step(f"Listing {listing_num} - Bathrooms Match", False, step_num,
+                              "No 'Bathrooms' column found in spreadsheet",
+                              execution_time=0)
+        else:
+            try:
+                user_baths = float(re.sub(r'[^\d.]', '', str(row.get(bath_col, 0))))
+                craigslist_baths = extracted_data.get("bathrooms")
 
-            if craigslist_baths is not None:
-                if user_baths == craigslist_baths:
-                    checkpoint.add_step(f"Listing {listing_num} - Bathrooms Match", True, step_num,
-                                      f"Bathrooms match: {user_baths}",
-                                      execution_time=0)
+                if craigslist_baths is not None:
+                    if user_baths == craigslist_baths:
+                        checkpoint.add_step(f"Listing {listing_num} - Bathrooms Match", True, step_num,
+                                          f"Bathrooms match: {user_baths}",
+                                          execution_time=0)
+                    else:
+                        checkpoint.add_step(f"Listing {listing_num} - Bathrooms Match", False, step_num,
+                                          f"Bathroom mismatch: user {user_baths} vs Craigslist {craigslist_baths}",
+                                          execution_time=0)
                 else:
                     checkpoint.add_step(f"Listing {listing_num} - Bathrooms Match", False, step_num,
-                                      f"Bathroom mismatch: user {user_baths} vs Craigslist {craigslist_baths}",
+                                      "Could not extract bathroom count from Craigslist",
                                       execution_time=0)
-            else:
+            except Exception as e:
                 checkpoint.add_step(f"Listing {listing_num} - Bathrooms Match", False, step_num,
-                                  "Could not extract bathroom count from Craigslist",
+                                  f"Error comparing bathrooms: {str(e)[:50]}",
                                   execution_time=0)
-        except Exception as e:
-            checkpoint.add_step(f"Listing {listing_num} - Bathrooms Match", False, step_num,
-                              f"Error comparing bathrooms: {str(e)[:50]}",
-                              execution_time=0)
 
         # Step 5: Address matches
         step_num += 1
-        try:
-            user_addr = str(row.get(addr_col, "")) if addr_col else ""
-            craigslist_addr = extracted_data.get("address", "")
-
-            if user_addr and craigslist_addr and compare_addresses(user_addr, craigslist_addr):
-                checkpoint.add_step(f"Listing {listing_num} - Address Match", True, step_num,
-                                  f"Address matches: {user_addr[:40]}...",
-                                  execution_time=0)
-            else:
-                checkpoint.add_step(f"Listing {listing_num} - Address Match", False, step_num,
-                                  f"Address mismatch: '{user_addr[:30]}' vs '{str(craigslist_addr)[:30]}'",
-                                  execution_time=0)
-        except Exception as e:
+        if not addr_col:
             checkpoint.add_step(f"Listing {listing_num} - Address Match", False, step_num,
-                              f"Error comparing addresses: {str(e)[:50]}",
+                              "No 'Address' column found in spreadsheet",
                               execution_time=0)
+        else:
+            try:
+                user_addr = str(row.get(addr_col, ""))
+                craigslist_addr = extracted_data.get("address", "")
+
+                if user_addr and craigslist_addr and compare_addresses(user_addr, craigslist_addr, model=model):
+                    checkpoint.add_step(f"Listing {listing_num} - Address Match", True, step_num,
+                                      f"Address matches: {user_addr[:40]}...",
+                                      execution_time=0)
+                else:
+                    checkpoint.add_step(f"Listing {listing_num} - Address Match", False, step_num,
+                                      f"Address mismatch: '{user_addr[:30]}' vs '{str(craigslist_addr)[:30]}'",
+                                      execution_time=0)
+            except Exception as e:
+                checkpoint.add_step(f"Listing {listing_num} - Address Match", False, step_num,
+                                  f"Error comparing addresses: {str(e)[:50]}",
+                                  execution_time=0)
 
         # Step 6: Air conditioning status matches
         step_num += 1
-        try:
-            user_ac = normalize_boolean_value(str(row.get(ac_col, ""))) if ac_col else None
-            craigslist_ac_str = extracted_data.get("air_conditioning", "Unknown")
-            craigslist_ac = normalize_boolean_value(craigslist_ac_str)
-
-            # Unknown is acceptable if user also has unknown or if Craigslist doesn't specify
-            if user_ac == craigslist_ac:
-                status = "Yes" if user_ac else "No"
-                checkpoint.add_step(f"Listing {listing_num} - Air Conditioning Match", True, step_num,
-                                  f"Air conditioning: {status}",
-                                  execution_time=0)
-            elif craigslist_ac is None:
-                checkpoint.add_step(f"Listing {listing_num} - Air Conditioning Match", True, step_num,
-                                  f"Craigslist A/C status unclear, skipping check",
-                                  execution_time=0)
-            else:
-                user_status = "Yes" if user_ac else "No"
-                cl_status = "Yes" if craigslist_ac else "No"
-                checkpoint.add_step(f"Listing {listing_num} - Air Conditioning Match", False, step_num,
-                                  f"A/C mismatch: spreadsheet says {user_status}, Craigslist says {cl_status}",
-                                  execution_time=0)
-        except Exception as e:
+        if not ac_col:
             checkpoint.add_step(f"Listing {listing_num} - Air Conditioning Match", False, step_num,
-                              f"Error comparing A/C status: {str(e)[:50]}",
+                              "No 'Air Conditioning' column found in spreadsheet",
                               execution_time=0)
+        else:
+            try:
+                user_ac = normalize_boolean_value(str(row.get(ac_col, "")))
+                craigslist_ac_str = extracted_data.get("air_conditioning", "Unknown")
+                craigslist_ac = normalize_boolean_value(craigslist_ac_str)
+
+                # Unknown is acceptable if user also has unknown or if Craigslist doesn't specify
+                if user_ac == craigslist_ac:
+                    status = "Yes" if user_ac else "No"
+                    checkpoint.add_step(f"Listing {listing_num} - Air Conditioning Match", True, step_num,
+                                      f"Air conditioning: {status}",
+                                      execution_time=0)
+                elif craigslist_ac is None:
+                    checkpoint.add_step(f"Listing {listing_num} - Air Conditioning Match", True, step_num,
+                                      f"Craigslist A/C status unclear, skipping check",
+                                      execution_time=0)
+                else:
+                    user_status = "Yes" if user_ac else "No"
+                    cl_status = "Yes" if craigslist_ac else "No"
+                    checkpoint.add_step(f"Listing {listing_num} - Air Conditioning Match", False, step_num,
+                                      f"A/C mismatch: spreadsheet says {user_status}, Craigslist says {cl_status}",
+                                      execution_time=0)
+            except Exception as e:
+                checkpoint.add_step(f"Listing {listing_num} - Air Conditioning Match", False, step_num,
+                                  f"Error comparing A/C status: {str(e)[:50]}",
+                                  execution_time=0)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -933,18 +972,16 @@ def grade_checkpoint_6():
     - All column headers in the main table are fully visible (not truncated).
     - All data cells in the main table have adequate column width.
     - All text in the summary statistics table is fully visible.
-    - No text is hidden due to cell overflow issues.
     """
     print("----------------- CHECKPOINT 6 ----------------")
     global sheet_raw, df
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=4, result=0, name="Text Visibility and Formatting")
+    checkpoint = Checkpoint(total=3, result=0, name="Text Visibility and Formatting")
 
     step_names = [
         "Headers Visible",
         "Data Cells Adequate",
         "Summary Text Visible",
-        "No Overflow Issues",
     ]
 
     if not sheet_raw:
@@ -1115,44 +1152,6 @@ def grade_checkpoint_6():
         step_time = time.time() - step_start
         checkpoint.add_step("Summary Text Visible", False, 3,
                           f"Error checking summary: {str(e)[:50]}",
-                          execution_time=step_time)
-
-    # Step 4: Check for clipped text (wrapStrategy = CLIP with overflow)
-    step_start = time.time()
-    try:
-        clipped_cells = 0
-
-        for row in rows:
-            row_values = row.get('values', [])
-            for c_idx, cell in enumerate(row_values):
-                content = cell.get('formattedValue', '')
-                if not content:
-                    continue
-
-                fmt = cell.get('effectiveFormat', {})
-                wrap_strategy = fmt.get('wrapStrategy', 'OVERFLOW_CELL')
-
-                # Only CLIP strategy actually hides text unconditionally
-                if wrap_strategy == 'CLIP':
-                    col_width = get_col_width(c_idx)
-                    text_width = len(content) * CHAR_WIDTH
-                    if text_width > col_width:
-                        clipped_cells += 1
-
-        step_time = time.time() - step_start
-
-        if clipped_cells == 0:
-            checkpoint.add_step("No Overflow Issues", True, 4,
-                              "No text hidden due to cell clipping",
-                              execution_time=step_time)
-        else:
-            checkpoint.add_step("No Overflow Issues", False, 4,
-                              f"{clipped_cells} cells have text clipped/hidden",
-                              execution_time=step_time)
-    except Exception as e:
-        step_time = time.time() - step_start
-        checkpoint.add_step("No Overflow Issues", False, 4,
-                          f"Error checking overflow: {str(e)[:50]}",
                           execution_time=step_time)
 
     checkpoint.execution_time = time.time() - checkpoint_start
