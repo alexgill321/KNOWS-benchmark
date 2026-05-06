@@ -112,8 +112,8 @@ def setup(workspace_doc_id):
         if isinstance(df, dict):
             df = pd.DataFrame(df)
 
-    # Fallback: parse raw sheet data if no formal tables detected
-    if df is None and sheet_raw is not None:
+    # Fallback: parse raw sheet data if no formal tables detected or table detection is empty
+    if (df is None or df.empty) and sheet_raw is not None:
         rows = sheet_raw.get('sheets', [{}])[0].get('data', [{}])[0].get('rowData', [])
         detected_header_row = detect_header_row(rows, required_columns=REQUIRED_COLUMNS)
         df = parse_sheet_to_dataframe(sheet_raw, header_row=detected_header_row)

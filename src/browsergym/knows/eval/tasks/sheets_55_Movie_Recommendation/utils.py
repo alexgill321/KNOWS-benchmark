@@ -7,6 +7,7 @@ is not available.
 """
 
 import json
+import html
 import re
 import time
 import urllib.parse
@@ -129,6 +130,7 @@ def _fetch_page_html(url: str, timeout: int = 15000, max_retries: int = 3) -> Op
 
 def _normalize_title(title: str) -> str:
     """Normalize movie titles for comparison."""
+    title = html.unescape(title)
     title = title.lower().strip()
     title = re.sub(r"[^\w\s]", "", title)
     title = re.sub(r"\s+", " ", title)
