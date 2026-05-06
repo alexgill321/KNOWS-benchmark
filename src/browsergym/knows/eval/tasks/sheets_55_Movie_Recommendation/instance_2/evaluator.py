@@ -29,6 +29,8 @@ from src.browsergym.knows.eval.eval_utils.google_services_utils import initializ
 from src.browsergym.knows.eval.eval_utils.google_sheets_utils import (
     get_sheet_content,
     extract_tables_from_sheet,
+    parse_sheet_to_dataframe,
+    detect_header_row,
 )
 from src.browsergym.knows.eval.eval_utils.table_utils import (
     match_columns,
@@ -112,6 +114,12 @@ def setup(workspace_doc_id):
         df = first_table.df if hasattr(first_table, "df") else first_table
         if isinstance(df, dict):
             df = pd.DataFrame(df)
+
+    # Fallback: parse raw sheet data if no formal tables detected
+    if df is None and sheet_raw is not None:
+        rows = sheet_raw.get('sheets', [{}])[0].get('data', [{}])[0].get('rowData', [])
+        detected_header_row = detect_header_row(rows, required_columns=REQUIRED_COLUMNS)
+        df = parse_sheet_to_dataframe(sheet_raw, header_row=detected_header_row)
 
 
 def grade_checkpoint_1():
@@ -340,13 +348,10 @@ def grade_checkpoint_2(browsing_history: List[str] = None):
     if model is None:
         model = load_model(model_id)
 
-    # Pre-flight: gate non-visited movies up front; queue the rest for parallel LLM
+    # Queue movies for parallel LLM genre verification
     genre_tasks = []
     for idx, row in df.iterrows():
         movie = str(row[title_col]).strip()
-        if movie not in visited_movies:
-            genre_failures.append(f"{movie} (IMDb page not visited)")
-            continue
         genre_tasks.append({
             'id': movie,
             'func': verify_genre,
@@ -382,9 +387,6 @@ def grade_checkpoint_2(browsing_history: List[str] = None):
     year_not_found = []
     for idx, row in df.iterrows():
         movie = str(row[title_col]).strip()
-        if movie not in visited_movies:
-            year_failures.append(f"{movie} (IMDb page not visited)")
-            continue
         data = imdb_data_map.get(movie)
         if data is None:
             year_not_found.append(movie)
@@ -423,9 +425,6 @@ def grade_checkpoint_2(browsing_history: List[str] = None):
         movies_to_check = []  # list of (movie, imdb_id, cell_text)
         for idx, row in df.iterrows():
             movie = str(row[title_col]).strip()
-            if movie not in visited_movies:
-                oscar_failures.append(f"{movie} (IMDb page not visited)")
-                continue
             if imdb_data_map.get(movie) is None:
                 oscar_not_found.append(movie)
                 continue
@@ -435,27 +434,17 @@ def grade_checkpoint_2(browsing_history: List[str] = None):
                 continue
             movies_to_check.append((movie, imdb_id_map.get(movie), cell))
 
-        # Sequential: fetch awards page text (Playwright sync API isn't thread-safe)
-        awards_results = {
-            movie: fetch_imdb_awards_text(imdb_id) or ""
-            for movie, imdb_id, _ in movies_to_check
-        }
-
-        # Filter out movies whose awards text is too short (fetch failure or empty page)
-        llm_tasks = []
+        # Extract Oscar wins programmatically (sequential — Playwright isn't thread-safe)
+        extracted = {}
         for movie, imdb_id, cell in movies_to_check:
-            text = awards_results.get(movie) or ""
-            if len(text) < 10:
-                oscar_not_found.append(f"{movie} (IMDb awards text too short to analyze)")
-                continue
-            llm_tasks.append({
-                'id': movie,
-                'func': extract_qualifying_oscars_won,
-                'args': (model, movie, QUALIFYING_OSCARS, text),
-            })
-
-        # Parallel: run LLM Oscar extraction for all movies with valid awards text
-        extracted = parallel_execute(llm_tasks, max_workers=4) if llm_tasks else {}
+            result = extract_qualifying_oscars_won(
+                model, movie, QUALIFYING_OSCARS,
+                awards_text=None, imdb_id=imdb_id,
+            )
+            if result is None:
+                oscar_not_found.append(f"{movie} (could not parse awards page)")
+            else:
+                extracted[movie] = result
 
         # Compare each movie's extracted Oscars to its sheet cell
         for movie, _, cell in movies_to_check:
@@ -509,9 +498,6 @@ def grade_checkpoint_2(browsing_history: List[str] = None):
         score_not_found = []
         for idx, row in df.iterrows():
             movie = str(row[title_col]).strip()
-            if movie not in visited_movies:
-                score_failures.append(f"{movie} (IMDb page not visited)")
-                continue
             try:
                 sheet_score = float(row[score_col])
             except (ValueError, TypeError):
@@ -555,9 +541,6 @@ def grade_checkpoint_2(browsing_history: List[str] = None):
         rating_not_found = []
         for idx, row in df.iterrows():
             movie = str(row[title_col]).strip()
-            if movie not in visited_movies:
-                rating_failures.append(f"{movie} (IMDb page not visited)")
-                continue
             sheet_rating = str(row[rating_col]).strip()
             ok = verify_mpa_rating(imdb_data_map.get(movie), sheet_rating)
             if ok is None:
@@ -631,7 +614,7 @@ def grade_checkpoint_3():
 
     # Steps 2 & 3: Conditional formatting on IMDb Score cells
     score_col = matched_columns.get("IMDb Score")
-    if score_col and table_data:
+    if score_col and (table_data or sheet_raw):
         scores = []
         for _, row in df.iterrows():
             try:
@@ -647,13 +630,19 @@ def grade_checkpoint_3():
 
             # Find raw sheet column index for IMDb Score
             try:
-                table = table_data[0]
-                header_row_idx = table.start_row
+                if table_data:
+                    table = table_data[0]
+                    header_row_idx = table.start_row
+                    start_col = table.start_col
+                else:
+                    rows = sheet_raw.get('sheets', [{}])[0].get('data', [{}])[0].get('rowData', [])
+                    header_row_idx = detect_header_row(rows, required_columns=REQUIRED_COLUMNS)
+                    start_col = 0
                 sheet_tab = sheet_raw["sheets"][0]
                 score_col_idx = None
                 for i, col in enumerate(df.columns):
                     if col == matched_columns["IMDb Score"]:
-                        score_col_idx = table.start_col + i
+                        score_col_idx = start_col + i
                         break
                 structure_error = None
             except (AttributeError, KeyError, IndexError, TypeError) as e:

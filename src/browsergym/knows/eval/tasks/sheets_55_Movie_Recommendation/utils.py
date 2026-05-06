@@ -148,18 +148,18 @@ def _titles_match(search_norm: str, candidate_norm: str) -> bool:
     return False
 
 
-def _suggest_imdb_ids(movie_title: str, year: Optional[str] = None) -> List[str]:
+def _suggest_imdb_ids_full(movie_title: str, year: Optional[str] = None) -> List[Dict]:
     """Look up IMDb tt ID candidates via the suggest autocomplete endpoint.
 
     Filters results by content type (movies only), title match, and year.
-    Returns all matching candidates sorted by rank (most popular first).
+    Returns full entry dicts sorted by rank (most popular first).
 
     Args:
         movie_title: Title of the movie.
         year: Optional release year to disambiguate remakes.
 
     Returns:
-        List of IMDb title ID strings (e.g. ['tt0120338']), most likely match first.
+        List of suggest entry dicts (with 'id', 'y', 'l', etc.), most likely match first.
         Empty list if no candidates match.
     """
     target_norm = re.sub(r'[^\w\s]', '', movie_title.lower()).strip()
@@ -196,7 +196,16 @@ def _suggest_imdb_ids(movie_title: str, year: Optional[str] = None) -> List[str]
     ids = [c["id"] for c in candidates if c.get("id")]
     if ids:
         print(f"[IMDb] Suggest API matches for '{movie_title}' ({year}) -> {ids}")
-    return ids
+    return candidates
+
+
+def _suggest_imdb_ids(movie_title: str, year: Optional[str] = None) -> List[str]:
+    """Look up IMDb tt ID candidates via the suggest autocomplete endpoint.
+
+    Returns just the IDs (wrapper around _suggest_imdb_ids_full for backward compat).
+    """
+    entries = _suggest_imdb_ids_full(movie_title, year)
+    return [e["id"] for e in entries if e.get("id")]
 
 
 def _extract_imdb_ids_from_search(movie_title: str, year: Optional[str] = None, max_retries: int = 3) -> List[str]:
@@ -298,7 +307,9 @@ def fetch_imdb_data(movie_title: str, year: Optional[str] = None) -> Tuple[Optio
     """
     # Try the suggest endpoint first — fast, structured, can match by year/type.
     # Fall back to Playwright search only if suggest returns no candidates.
-    candidates = _suggest_imdb_ids(movie_title, year)
+    suggest_entries = _suggest_imdb_ids_full(movie_title, year)
+    candidates = [e["id"] for e in suggest_entries] if suggest_entries else []
+    suggest_year_map = {e["id"]: e.get("y") for e in suggest_entries}  # year from suggest API
     if not candidates:
         candidates = _extract_imdb_ids_from_search(movie_title, year)
     if not candidates:
@@ -339,13 +350,20 @@ def fetch_imdb_data(movie_title: str, year: Optional[str] = None) -> Tuple[Optio
             print(f"[IMDb] Title mismatch ({imdb_id}): searched '{movie_title}', got '{page_title}' (alt={alt_names})")
             continue
 
-        # Validate year if provided
+        # Validate year if provided (±1 tolerance for limited vs wide release dates)
         if year:
             year_published = data.get("datePublished", "")[:4]
             year_str = str(year)[:4]
-            if year_str != year_published:
-                print(f"[IMDb] Year mismatch ({imdb_id}): expected {year_str}, got '{year_published}'")
-                continue
+            try:
+                if abs(int(year_str) - int(year_published)) > 1:
+                    print(f"[IMDb] Year mismatch ({imdb_id}): expected {year_str}, got '{year_published}'")
+                    continue
+            except ValueError:
+                pass
+
+        # Backfill datePublished from suggest API if JSON-LD is missing it
+        if not data.get("datePublished") and suggest_year_map.get(imdb_id):
+            data["datePublished"] = str(suggest_year_map[imdb_id])
 
         print(f"[IMDb] Got data for '{data.get('name')}' ({imdb_id}) "
               f"(genre={data.get('genre')}, rating={data.get('contentRating')}, "
@@ -384,6 +402,123 @@ def fetch_imdb_awards_text(imdb_id: str) -> Optional[str]:
     if len(text) > 30000:
         text = text[:30000]
     return text
+
+
+def fetch_academy_award_wins(imdb_id: str) -> Optional[List[str]]:
+    """Fetch Academy Award wins from IMDb awards page by parsing HTML structure.
+
+    Parses the Academy Awards section directly from the rendered HTML,
+    extracting only entries marked as "Winner" with their category names.
+
+    Args:
+        imdb_id: IMDb title ID (e.g. 'tt1375666').
+
+    Returns:
+        List of Oscar category names won (e.g. ['Best Achievement in Cinematography']),
+        or None if fetch failed. Empty list if no wins found.
+    """
+    if not imdb_id:
+        return None
+
+    from bs4 import BeautifulSoup
+
+    awards_url = IMDB_AWARDS_URL.format(imdb_id=imdb_id)
+    print(f"[IMDb] Fetching awards (structured): {awards_url}")
+
+    # Fetch with retry — these pages are large and sometimes don't fully render
+    html = None
+    for attempt in range(2):
+        context = None
+        try:
+            browser = get_browser()
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                           "AppleWebKit/537.36 (KHTML, like Gecko) "
+                           "Chrome/120.0.0.0 Safari/537.36"
+            )
+            page = context.new_page()
+            page.goto(awards_url, wait_until="domcontentloaded", timeout=15000)
+
+            # Wait for the Academy Awards section to render
+            try:
+                page.wait_for_selector(
+                    "section.ipc-page-section h3",
+                    timeout=5000,
+                )
+            except Exception:
+                pass
+            page.wait_for_timeout(1000)
+
+            # Click expand buttons in the Academy Awards section
+            try:
+                sections = page.query_selector_all("section.ipc-page-section")
+                for section in sections:
+                    h3 = section.query_selector("h3")
+                    if h3 and "Academy Awards" in h3.inner_text():
+                        for btn in section.query_selector_all("button"):
+                            btn_text = btn.inner_text().lower()
+                            if "more" in btn_text or "see all" in btn_text:
+                                btn.click()
+                                page.wait_for_timeout(1000)
+                        break
+            except Exception:
+                pass
+
+            html = page.content()
+        except Exception as e:
+            if attempt == 1:
+                print(f"[IMDb] Failed to fetch awards page: {e}")
+                return None
+        finally:
+            if context:
+                try:
+                    context.close()
+                except Exception:
+                    pass
+
+        # Quick validation: check if we got the section before parsing
+        if html and "Academy Awards" in html:
+            break
+        elif attempt == 0:
+            print(f"[IMDb] Retry awards fetch for {imdb_id} (page may not have rendered)")
+            time.sleep(1)
+
+    if not html or len(html) < 200:
+        return None
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    # Find the Academy Awards section
+    for h3 in soup.find_all("h3"):
+        if "Academy Awards" in h3.get_text():
+            section = h3.find_parent("section")
+            if not section:
+                continue
+
+            wins = []
+            items = section.find_all("div", class_="ipc-metadata-list-summary-item__tc")
+            for item in items:
+                a_tag = item.find("a", class_="ipc-metadata-list-summary-item__t")
+                if not a_tag:
+                    continue
+                title_text = a_tag.get_text(strip=True)
+                if "Winner" not in title_text:
+                    continue
+
+                # Extract category from the item text
+                full_text = item.get_text(separator=" | ", strip=True)
+                # Format is: "YEAR Winner | Oscar | Category Name | Person Names..."
+                parts = [p.strip() for p in full_text.split("|")]
+                # Category is typically the 3rd part (after "YEAR Winner" and "Oscar")
+                if len(parts) >= 3:
+                    category = parts[2].strip()
+                    wins.append(category)
+
+            print(f"[IMDb] Academy Award wins for {imdb_id}: {wins}")
+            return wins
+
+    print(f"[IMDb] Academy Awards section not found for {imdb_id}")
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -555,25 +690,106 @@ def verify_oscar_awards(
     return parse_yes_no(response)
 
 
+def _match_oscar_category(win_text: str, qualifying_oscars: List[str]) -> Optional[str]:
+    """Match an IMDb award category string to a qualifying Oscar name.
+
+    Handles IMDb's verbose category names like "Best Achievement in Cinematography"
+    mapping to the canonical "Best Cinematography". Also handles full IMDb names
+    in the qualifying list (e.g. "Best Actor in a Leading Role").
+
+    Args:
+        win_text: Category text from IMDb (e.g. "Best Achievement in Cinematography").
+        qualifying_oscars: List of qualifying Oscar names (short or full form).
+
+    Returns:
+        Matching qualifying Oscar name, or None if no match.
+    """
+    win_lower = win_text.lower()
+
+    # First try direct/substring match — handles cases where qualifying_oscars
+    # uses full IMDb names (e.g. "Best Actor in a Leading Role")
+    for oscar_name in qualifying_oscars:
+        oscar_lower = oscar_name.lower()
+        if oscar_lower == win_lower:
+            return oscar_name
+        # Only match if the qualifying name is long enough to be specific (>20 chars)
+        # to avoid false positives like "Best Actor" matching "Best Actor in a Supporting Role"
+        if len(oscar_lower) > 20 and (oscar_lower in win_lower or win_lower in oscar_lower):
+            return oscar_name
+
+    # Regex-based matching for short canonical names
+    # Includes both modern and vintage Oscar category names
+    match_patterns = {
+        "Best Actor": [r"\bactor\b(?!.*(?:support))", r"\bperformance by an actor in a leading\b"],
+        "Best Actress": [r"\bactress\b(?!.*(?:support))", r"\bperformance by an actress in a leading\b"],
+        "Best Director": [r"\bdirect(?:or|ing)\b"],
+        "Best Original Screenplay": [
+            r"\boriginal\s+screenplay\b",
+            r"\bwriting,?\s+original\b",
+            r"\bscreenplay\s+written\s+directly\b",
+            r"\bstory\s+and\s+screenplay\b",
+            r"\bwritten\s+directly\s+for\s+the\s+screen\b",
+        ],
+        "Best Adapted Screenplay": [
+            r"\badapted\s+screenplay\b",
+            r"\bwriting,?\s+adapted\b",
+            r"\bscreenplay\s+based\s+on\b",
+            r"\bmaterial\s+previously\s+produced\b",
+            r"\bscreenplay\s*-?\s*adapted\b",
+            r"\bbased\s+on\s+material\s+from\s+another\s+medium\b",
+        ],
+        "Best Cinematography": [r"\bcinematography\b"],
+    }
+
+    for oscar_name in qualifying_oscars:
+        patterns = match_patterns.get(oscar_name, [])
+        for pattern in patterns:
+            if re.search(pattern, win_lower):
+                return oscar_name
+
+    return None
+
+
 def extract_qualifying_oscars_won(
     model: Any,
     movie_title: str,
     qualifying_oscars: List[str],
     awards_text: Optional[str],
+    imdb_id: Optional[str] = None,
 ) -> Optional[set]:
     """Extract which qualifying Oscars a movie actually won.
 
+    Uses programmatic HTML parsing of the IMDb awards page first.
+    Falls back to LLM-based extraction from plain text only if
+    structured parsing fails.
+
     Args:
-        model: LLM model callable.
+        model: LLM model callable (used as fallback).
         movie_title: Title of the movie.
         qualifying_oscars: List of qualifying Oscar category names.
-        awards_text: Plain text from the IMDb awards page.
+        awards_text: Plain text from the IMDb awards page (fallback).
+        imdb_id: IMDb title ID for structured parsing.
 
     Returns:
         Set of canonical category names (from qualifying_oscars) that the movie
-        won according to the awards text. Empty set if it won none of them.
-        None if the awards text is unavailable.
+        won according to the awards page. Empty set if it won none of them.
+        None if the awards data is unavailable.
     """
+    # Try programmatic parsing first
+    if imdb_id:
+        wins = fetch_academy_award_wins(imdb_id)
+        if wins is not None:
+            matched = set()
+            for win_category in wins:
+                match = _match_oscar_category(win_category, qualifying_oscars)
+                if match:
+                    matched.add(match)
+            print(f"[Oscar] Programmatic result for '{movie_title}': {sorted(matched) if matched else 'none'}")
+            return matched
+
+    # Fallback to LLM if structured parsing failed
+    if not awards_text and imdb_id:
+        awards_text = fetch_imdb_awards_text(imdb_id)
     if not awards_text:
         return None
 
