@@ -68,9 +68,24 @@ def download_image_from_url(url: str, temp_dir: str, timeout: int = 15, headers:
             return temp_path
         return None
 
-    default_headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    }
+    # Wikimedia (Wikipedia/Wikimedia Commons) requires a descriptive, identifying
+    # User-Agent per https://meta.wikimedia.org/wiki/User-Agent_policy. Generic
+    # browser UAs are rate-limited (HTTP 429), so use a compliant UA for those
+    # hosts to avoid throttling.
+    parsed_host = urlparse(url).netloc.lower()
+    is_wikimedia = ("wikimedia.org" in parsed_host) or ("wikipedia.org" in parsed_host)
+    if is_wikimedia:
+        default_headers = {
+            'User-Agent': (
+                'BrowserGym-Knows-Eval/1.0 '
+                '(https://github.com/utahnlp/Agent-Benchmark; eval-bot) '
+                'requests/python'
+            )
+        }
+    else:
+        default_headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
     request_headers = headers or default_headers
 
     # Strategy 1: Direct download
@@ -180,11 +195,26 @@ def fetch_api_with_retry(
     """
     import time
 
+    # Wikimedia (Wikipedia/Wikimedia Commons) requires a descriptive User-Agent
+    # per https://meta.wikimedia.org/wiki/User-Agent_policy; generic browser UAs
+    # are aggressively rate-limited (HTTP 429).
+    parsed_host = urlparse(url).netloc.lower()
+    is_wikimedia = ("wikimedia.org" in parsed_host) or ("wikipedia.org" in parsed_host)
+
     for attempt in range(max_retries):
         try:
-            default_headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
+            if is_wikimedia:
+                default_headers = {
+                    'User-Agent': (
+                        'BrowserGym-Knows-Eval/1.0 '
+                        '(https://github.com/utahnlp/Agent-Benchmark; eval-bot) '
+                        'requests/python'
+                    )
+                }
+            else:
+                default_headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
             request_headers = headers or default_headers
             response = requests.get(url, timeout=timeout, headers=request_headers)
 

@@ -12,6 +12,18 @@ from src.browsergym.knows.eval.eval_utils.web_utils import download_image_from_u
 _, SLIDES_SERVICE = initialize_google_services(service_type="slides")
 
 
+# Per-instance metadata. The featured-client name (row 1 of gold_wikis.csv) is
+# discovered automatically; photographer_city varies by theme and is recorded
+# here keyed by the contents of each instance's id.txt.
+INSTANCE_CONFIG = {
+    "30a": {"photographer_city": "San Francisco"},  # Science / Tom Hanks
+    "30b": {"photographer_city": "Springfield, MA"},  # Music / Madonna
+    "30c": {"photographer_city": "Seoul"},            # K-Pop / Psy
+    "30d": {"photographer_city": "Milan"},            # Fashion / Anna Wintour
+    "30e": {"photographer_city": "Tel Aviv"},         # Dance / Anne Teresa De Keersmaeker
+}
+
+
 def download_image_with_retry(url, temp_dir, timeout=15, max_retries=3, delay=2):
     """Download an image with retry logic for flaky sources like Wikimedia.
 
