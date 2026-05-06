@@ -40,6 +40,8 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -72,6 +74,86 @@ def _file_url(doc_id: str, kind: str) -> str:
             f"Unknown workspace kind {kind!r}; expected one of {sorted(_URL_SEGMENT)}."
         )
     return f"https://docs.google.com/{segment}/d/{doc_id}/edit"
+
+
+# URL fragments that indicate Google bounced us to a sign-in surface
+# instead of the editor. When ``page.goto(_file_url(...))`` lands on any
+# of these, the storage_state cookies are stale and we must re-mint
+# before the Share dialog can be opened.
+_SIGNIN_URL_FRAGMENTS = (
+    "accounts.google.com/ServiceLogin",
+    "accounts.google.com/AccountChooser",
+    "accounts.google.com/v3/signin",
+    "accounts.google.com/signin/",
+)
+
+
+def _is_signin_url(url: str) -> bool:
+    if not url:
+        return False
+    return any(frag in url for frag in _SIGNIN_URL_FRAGMENTS)
+
+
+def _refresh_storage_state(
+    storage_state: Path, *, timeout_s: float = 240.0
+) -> bool:
+    """Best-effort re-mint of *storage_state* via ``scripts/google_auto_login.py``.
+
+    Used to recover from stale Google session cookies: if the standalone
+    UI fallback navigates to the editor and is redirected to a sign-in
+    page, this helper spawns the auto-login subprocess (the same one the
+    benchmark's per-PID mint pool uses) to overwrite the snapshot in
+    place. Returns ``True`` if the file was refreshed and exists on disk
+    afterwards, ``False`` on any failure (caller should surface a clear
+    error to the operator).
+    """
+    script = _REPO_ROOT / "scripts" / "google_auto_login.py"
+    if not script.is_file():
+        logger.warning(
+            "Cannot refresh storage state: %s not found.", script
+        )
+        return False
+
+    cmd = [
+        sys.executable,
+        str(script),
+        "--output",
+        str(storage_state),
+        "--headless",
+    ]
+    logger.info("Refreshing storage state via %s", " ".join(cmd))
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
+            cwd=str(_REPO_ROOT),
+        )
+    except subprocess.TimeoutExpired as exc:
+        logger.warning(
+            "storage_state refresh timed out after %.1fs: %s", timeout_s, exc
+        )
+        return False
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("storage_state refresh failed to start: %s", exc)
+        return False
+
+    if result.returncode != 0:
+        logger.warning(
+            "storage_state refresh exited with %d. stderr=%s",
+            result.returncode,
+            (result.stderr or "").strip(),
+        )
+        return False
+
+    if not storage_state.is_file():
+        logger.warning(
+            "storage_state refresh reported success but %s does not exist.",
+            storage_state,
+        )
+        return False
+    return True
 
 
 # The Share dialog's content is rendered inside an iframe (Drive's
@@ -302,8 +384,21 @@ def _disable_notification(frame) -> None:
     """Best-effort: untick the "Notify people" checkbox if present.
 
     Scoped to the share-dialog iframe. The checkbox is only present in
-    the "Add people" sub-flow, not in the link-sharing tab.
+    the "Add people" sub-flow, not in the link-sharing tab. Failures
+    here are not fatal -- the worst case is the SA receives a useless
+    notification email; the actual share still goes through.
     """
+    try:
+        cb = frame.get_by_role(
+            "checkbox", name="Notify people", exact=False
+        ).first
+        if cb.count() > 0 and cb.is_checked():
+            cb.click()
+        return
+    except Exception:  # noqa: BLE001 -- the role-based query may fail on
+        # builds where the checkbox is rendered as a styled <div role="checkbox">.
+        pass
+
     candidates = (
         'div[role="checkbox"][aria-label*="Notify"]',
         'input[type="checkbox"][aria-label*="Notify"]',
@@ -327,19 +422,44 @@ def _click_send_or_share(frame, timeout_ms: int) -> None:
 
     Scoped to the share-dialog iframe. After the SA email has been
     entered, the primary action button is labeled "Send" (when "Notify
-    people" is checked) or "Share" / "Done" otherwise. We try the
-    candidates in order with short individual timeouts so an unmatched
-    layout fails quickly instead of spending ``timeout_ms`` on each one.
+    people" is checked) or "Share" / "Done" otherwise.
+
+    Strategy:
+
+    1. ``get_by_role("button", name=..., exact=True)`` for the three
+       known labels. Most reliable on Material-Design-rendered buttons
+       where the visible text lives inside a nested ``<span jsname="V67aGc">``
+       and ``has-text`` matches against descendants but ``.first`` may
+       resolve to a hidden ancestor.
+    2. Fall back to the historical attribute / text selectors. We
+       deliberately drop the over-broad ``:has-text("Share")`` candidates
+       that used to match the dialog's title (``Share "..."``) instead
+       of the action button.
     """
+    settle_ms = min(2000, max(800, timeout_ms // 10))
+    time.sleep(settle_ms / 1000.0)
+
+    role_names = ("Send", "Share", "Done")
+    role_timeout_ms = min(4000, max(1500, timeout_ms // 5))
+    for name in role_names:
+        try:
+            btn = frame.get_by_role("button", name=name, exact=True).first
+            btn.wait_for(state="visible", timeout=role_timeout_ms)
+            btn.click()
+            time.sleep(2)
+            return
+        except Exception:  # noqa: BLE001 -- many DOM variants, try them all
+            continue
+
     candidates = (
+        'div[role="button"][aria-label="Send"]',
+        'button[aria-label="Send"]',
         'div[role="button"][aria-label*="Send"]',
         'button[aria-label*="Send"]',
         'button:has-text("Send")',
         'div[role="button"]:has-text("Send")',
         'div[role="button"][aria-label*="Share"]',
         'button[aria-label*="Share"]',
-        'button:has-text("Share")',
-        'div[role="button"]:has-text("Share")',
     )
     per_candidate_ms = min(3000, max(1000, timeout_ms // len(candidates)))
     last_err: Optional[Exception] = None
@@ -475,7 +595,17 @@ def share_workspace_via_ui_standalone(
 
     Mirrors the historical behaviour of the root-level ``share_doc_with_sa.py``
     CLI: load ``storage_state``, open a fresh browser, navigate to the file,
-    and invoke :func:`share_workspace_via_ui` with ``navigate=True``.
+    and drive the editor's Share dialog.
+
+    Resilience to stale auth: if the post-navigation URL lands on a
+    Google sign-in surface (``accounts.google.com/...``) the function
+    closes the context, re-mints ``storage_state`` via
+    :func:`_refresh_storage_state`, opens a fresh context with the new
+    snapshot, and retries the navigation once. This is what previously
+    failed with ``Could not click Share button (Locator.wait_for: ...)``
+    when ``storage_state.json`` had aged past Google's session window
+    (visible in the dumped ``_debug_artifacts/share_*_share_failed.txt``
+    URL pointing at ``accounts.google.com/v3/signin/...``).
     """
     from playwright.sync_api import sync_playwright
 
@@ -483,22 +613,88 @@ def share_workspace_via_ui_standalone(
     print(f"Service account: {sa_email}")
     print(f"Doc id         : {doc_id} ({kind})")
 
+    target_url = _file_url(doc_id, kind)
+    refreshed = False
+
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=headless)
-        context = browser.new_context(storage_state=str(storage_state))
-        page = context.new_page()
         try:
-            return share_workspace_via_ui(
-                page,
-                doc_id=doc_id,
-                kind=kind,
-                sa_email=sa_email,
-                timeout_ms=timeout_ms,
-                navigate=True,
-            )
+            for attempt in range(2):
+                context = browser.new_context(storage_state=str(storage_state))
+                page = context.new_page()
+                try:
+                    try:
+                        page.goto(target_url, timeout=timeout_ms)
+                    except Exception as exc:  # noqa: BLE001
+                        logger.warning(
+                            "share_workspace_via_ui_standalone: page.goto(%s) failed: %s",
+                            target_url,
+                            exc,
+                        )
+                    try:
+                        page.wait_for_load_state(
+                            "domcontentloaded", timeout=timeout_ms
+                        )
+                    except Exception:  # noqa: BLE001
+                        pass
+                    # Settle so Google's client-side redirect chain has
+                    # time to bounce us to either the editor or the
+                    # sign-in page before we sample ``page.url``.
+                    time.sleep(2)
+
+                    current_url = page.url
+                    if _is_signin_url(current_url):
+                        if attempt == 0 and not refreshed:
+                            print(
+                                f"[share] storage_state.json stale -- landed on sign-in page "
+                                f"({current_url}); refreshing and retrying once."
+                            )
+                            try:
+                                context.close()
+                            except Exception:  # noqa: BLE001
+                                pass
+                            if not _refresh_storage_state(storage_state):
+                                print(
+                                    f"[share] Could not auto-refresh {storage_state}. "
+                                    "Run `python scripts/google_auto_login.py "
+                                    f"--output {storage_state}` (or `--headed` once "
+                                    "for first-run device trust) and retry."
+                                )
+                                return False
+                            refreshed = True
+                            continue  # Retry navigation with the freshly minted state.
+                        print(
+                            f"[share] Still on Google sign-in after refreshing storage_state "
+                            f"({current_url}); cannot drive Share dialog. "
+                            "See _debug_artifacts/share_*_share_failed.{png,txt}."
+                        )
+                        _dump_debug_state(
+                            page, doc_id, kind, reason="signin_after_refresh"
+                        )
+                        return False
+
+                    # Page is on the editor (or close enough); hand off
+                    # to the shared share-driving logic. ``navigate=False``
+                    # because we already navigated above.
+                    return share_workspace_via_ui(
+                        page,
+                        doc_id=doc_id,
+                        kind=kind,
+                        sa_email=sa_email,
+                        timeout_ms=timeout_ms,
+                        navigate=False,
+                    )
+                finally:
+                    try:
+                        context.close()
+                    except Exception:  # noqa: BLE001
+                        pass
+            return False
         finally:
-            context.close()
-            browser.close()
+            try:
+                browser.close()
+            except Exception:  # noqa: BLE001
+                pass
 
 
 # Default paths used by the CLI -- match the layout the rest of the package
@@ -508,6 +704,161 @@ _DEFAULT_STORAGE_STATE = _REPO_ROOT / "storage_state.json"
 _DEFAULT_SERVICE_ACCOUNT = (
     _REPO_ROOT / "browsergym" / "knows" / "auth-data" / "service-account.json"
 )
+
+# Recognized workspace kinds for the UI fallback dispatch. Mirrors the
+# keys of ``_URL_SEGMENT`` above; kept as a frozenset so callers can
+# membership-test without importing the segment table itself.
+_KNOWN_KINDS = frozenset(_URL_SEGMENT.keys())
+
+
+def _ui_fallback_disabled() -> bool:
+    """Mirror the gate used by ``doc_setup.create_task_workspace``."""
+    return os.environ.get("KNOWS_DISABLE_UI_SHARE_FALLBACK", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def share_doc_with_fallback(
+    doc_id: str,
+    *,
+    kind: Optional[str],
+    storage_state: Optional[Path] = None,
+    service_account_path: Optional[Path] = None,
+    headless: bool = True,
+    timeout_ms: int = 20000,
+) -> bool:
+    """Two-tier share for *doc_id* used by helper scripts.
+
+    1. Calls :func:`browsergym.knows.doc_setup.share_doc_with_service_account`
+       (Drive API). Fast path; returns ``True`` when the SA was newly added
+       *or* already had access (idempotent).
+    2. On failure, falls back to :func:`share_workspace_via_ui_standalone`,
+       which drives the editor's Share dialog with a freshly-minted (or
+       just-refreshed) ``storage_state.json``.
+
+    Parameters
+    ----------
+    doc_id :
+        Drive file id (long token from the doc URL).
+    kind :
+        ``"docs"`` / ``"sheets"`` / ``"slides"``. Required for the UI
+        fallback. Pass ``None`` to skip the fallback entirely (e.g. when
+        the caller can't infer the kind reliably).
+    storage_state, service_account_path :
+        Override paths. Default to the package-level defaults next to this
+        file (``_DEFAULT_STORAGE_STATE`` / ``_DEFAULT_SERVICE_ACCOUNT``).
+    headless, timeout_ms :
+        Forwarded to :func:`share_workspace_via_ui_standalone`.
+
+    Returns
+    -------
+    bool
+        ``True`` if either tier succeeded; ``False`` otherwise. The
+        function never raises -- diagnostic context is printed via
+        ``print`` so callers see it in their CLI output.
+
+    Set ``KNOWS_DISABLE_UI_SHARE_FALLBACK=1`` to skip the UI fallback
+    (useful when isolating Drive-API failures during debugging).
+    """
+    api_ok = False
+    try:
+        from .doc_setup import share_doc_with_service_account  # type: ignore
+
+        api_ok = bool(share_doc_with_service_account(doc_id))
+        if api_ok:
+            print(f"[share] Document {doc_id} shared via Drive API.")
+        else:
+            print(
+                f"[share] Drive API share returned False for {doc_id} -- "
+                "trying Playwright UI fallback."
+            )
+    except Exception as exc:  # noqa: BLE001 - best-effort
+        print(
+            f"[share] Drive API share raised {exc!r}; "
+            "trying Playwright UI fallback."
+        )
+
+    if api_ok:
+        return True
+
+    if kind is None:
+        print(
+            "[share] Warning: cannot run UI fallback (workspace kind unknown); "
+            "grading may fail if the doc isn't already accessible."
+        )
+        return False
+
+    if kind not in _KNOWN_KINDS:
+        print(
+            f"[share] Warning: unknown workspace kind {kind!r}; "
+            f"expected one of {sorted(_KNOWN_KINDS)}. Skipping UI fallback."
+        )
+        return False
+
+    if _ui_fallback_disabled():
+        print(
+            "[share] UI fallback disabled via KNOWS_DISABLE_UI_SHARE_FALLBACK; "
+            "grading may fail if the doc isn't already accessible."
+        )
+        return False
+
+    storage_state = storage_state or _DEFAULT_STORAGE_STATE
+    service_account_path = service_account_path or _DEFAULT_SERVICE_ACCOUNT
+
+    if not storage_state.is_file():
+        # Cold-start: no snapshot at all. Mint one before driving the UI.
+        print(
+            f"[share] storage_state.json not found at {storage_state}; "
+            "minting a fresh one via google_auto_login.py..."
+        )
+        if not _refresh_storage_state(storage_state):
+            print(
+                f"[share] UI fallback skipped: could not mint {storage_state}. "
+                "Run `python scripts/google_auto_login.py --headed "
+                f"--output {storage_state}` once for first-run device trust."
+            )
+            return False
+
+    try:
+        print(f"[share] Trying Playwright UI fallback (kind={kind})...")
+        ui_ok = share_workspace_via_ui_standalone(
+            doc_id=doc_id,
+            kind=kind,
+            storage_state=storage_state,
+            service_account_path=service_account_path,
+            headless=headless,
+            timeout_ms=timeout_ms,
+        )
+    except Exception as exc:  # noqa: BLE001 - best-effort
+        print(f"[share] Warning: UI fallback raised {exc!r}; continuing anyway.")
+        return False
+
+    if ui_ok:
+        print(f"[share] Document {doc_id} shared via Playwright UI fallback.")
+        return True
+
+    print(
+        f"[share] Warning: UI fallback could not share {doc_id} -- "
+        "grading may fail if the doc isn't already accessible. "
+        "See _debug_artifacts/share_*_share_failed.{png,txt} for state."
+    )
+    return False
+
+
+def kind_from_split_or_family(name: str) -> Optional[str]:
+    """Extract the workspace kind from a split short-name or task-family folder.
+
+    ``"docs_1"`` / ``"docs_1_formal_letter"`` -> ``"docs"``.
+    ``"slides_51"`` / ``"slides_51_event_announcement_poster"`` -> ``"slides"``.
+    Returns ``None`` when the prefix is not recognized.
+    """
+    if not name:
+        return None
+    head = name.split("_", 1)[0].lower()
+    return head if head in _KNOWN_KINDS else None
 
 
 def _cli_main(argv: Optional[list[str]] = None) -> int:
