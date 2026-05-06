@@ -69,6 +69,7 @@ alt_directions_cache = {}
 pairwise_transit_cache = {}
 day_specific_transit_cache = {}
 day_return_transit_cache = {}
+url_geocode_cache = {}
 all_dest_names = []
 all_alt_names = []
 all_alt_types = []
@@ -588,7 +589,7 @@ def grade_checkpoint_6():
          "No day-aware transit data to verify"),
     ], reasons=vlm_reasons)
 
-    # --- Step 7: Transit time limits ---
+    # --- Step 7: Transit time limits (includes return-to-hotel leg) ---
     step_start = time.time()
     correct_days = 0
     failures = []
@@ -598,11 +599,19 @@ def grade_checkpoint_6():
             failures.append(f"{day}: no travel time data")
             continue
 
+        # Include return-to-hotel leg if available
+        return_min = day_return_transit_cache.get(indices[-1])
+        all_legs = list(travel_times) + ([return_min] if return_min is not None else [])
+
         reasons = []
-        if max(travel_times) > 30:
-            reasons.append(f"max leg {max(travel_times)} min > 30")
-        if sum(travel_times) > 90:
-            reasons.append(f"total {sum(travel_times)} min > 90")
+        if max(all_legs) > 30:
+            over_30 = [t for t in all_legs if t > 30]
+            if return_min is not None and return_min > 30:
+                reasons.append(f"return leg {return_min} min > 30")
+            if max(travel_times) > 30:
+                reasons.append(f"max leg {max(travel_times)} min > 30")
+        if sum(all_legs) > 120:
+            reasons.append(f"total {sum(all_legs)} min > 120")
 
         if not reasons:
             correct_days += 1
@@ -636,7 +645,8 @@ def grade_checkpoints(
     cp34_vlm_results: dict = {}
     cp34_vlm_reasons: dict = {}
     if df is not None and not df.empty:
-        cp34_vlm_results, cp34_vlm_reasons = build_cp3_cp4_vlm_results(
+        try:
+            cp34_vlm_results, cp34_vlm_reasons = build_cp3_cp4_vlm_results(
             ctx={
                 "df": df,
                 "matched_columns": matched_columns,
@@ -652,9 +662,13 @@ def grade_checkpoints(
                 "url_content": url_content,
                 "all_review_urls": all_review_urls,
                 "trip_details": trip_details,
+                "url_geocode_cache": url_geocode_cache,
+                "maps_api_key": maps_api_key,
             },
             model=model,
         )
+        except Exception as e:
+            print(f"Error in build_cp3_cp4_vlm_results: {e}")
 
     return Result(
         checkpoints=[

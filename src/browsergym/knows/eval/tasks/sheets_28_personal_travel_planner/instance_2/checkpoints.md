@@ -70,4 +70,4 @@ The itinerary follows a sensible daily order with realistic timing, minimal back
 - Each row's start time is feasible: it falls within the correct time block for its Time of Day slot (e.g., Morning starts between 8–11 AM, Lunch between 11 AM–2 PM, Afternoon between 12–5 PM, Dinner between 5–9 PM, Evening between 5–10 PM), and does not start before the previous event's departure time plus its travel time.
 - Each row's departure time is feasible: it comes after the start time, the gap between start and departure is consistent with the stated duration, and it does not overlap with the next event's start time.
 - Transit time estimates are adjusted accordingly for each day depending on whether it is a weekday or weekend (e.g., rush hour delays on weekdays, reduced service or increased congestion on weekends).
-- Individual transit times are ≤ 30 minutes and total transit time per day is under 90 minutes.
+- Individual transit times are ≤ 30 minutes and total transit time per day is under 120 minutes.

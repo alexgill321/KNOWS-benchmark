@@ -15,4 +15,4 @@ under $100 = green, $100–$200 = yellow, above $200 = orange
 - If two places are far apart, adjust the order so the day makes geographic sense, and the pacing feels realistic (not jam-packed, but no big idle gaps).
 - Include the following columns: Date, Time of Day, Destination (Food/Activity), Cuisine, Opening time, Start time, Departure Time, Duration, Review link, Transportation Mode, Travel Time, Cost (with color coding), Alternative Option (in blue).
 - Freeze the top row (header).
-- Individual transit times should be <= 30 minutes and keep total transit times under 90 min per day
+- Individual transit times should be <= 30 minutes and keep total transit times under 120 min per day

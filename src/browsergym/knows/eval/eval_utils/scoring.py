@@ -1,9 +1,10 @@
+import math
 from dataclasses import dataclass, field
 from typing import List, Callable, Optional, Dict, Any
 
 
 def calculate_percentage_score(success_count: int, total_count: int, max_points: int = 10) -> int:
-    """Calculate score based on percentage, rounded to nearest 10%.
+    """Calculate score based on percentage, floored to nearest 10%.
 
     Args:
         success_count: Number of successful items.
@@ -16,8 +17,8 @@ def calculate_percentage_score(success_count: int, total_count: int, max_points:
     if total_count == 0:
         return 0
     percentage = success_count / total_count
-    rounded_percentage = round(percentage, 1)  # Round to nearest 10%
-    return int(rounded_percentage * max_points)
+    floored_percentage = math.floor(percentage * max_points) / max_points
+    return int(floored_percentage * max_points)
 
 
 @dataclass

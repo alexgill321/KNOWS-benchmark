@@ -6,7 +6,7 @@ import os
 import re
 import time
 import unicodedata
-from datetime import datetime as _dt, date as _date, time as _time
+from datetime import datetime as _dt, date as _date, time as _time, timedelta
 from itertools import permutations
 from typing import Optional, List, Dict, Tuple
 from urllib.parse import quote
@@ -178,6 +178,9 @@ _DATE_FORMATS = (
 _WEEKDAY_PREFIX_RE = re.compile(
     r"^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*\.?[,\s-]+", re.IGNORECASE
 )
+_DAY_TYPE_SUFFIX_RE = re.compile(
+    r"\s*\((Weekday|Weekend|Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*\.?\)\s*$", re.IGNORECASE
+)
 _YEARLESS_FORMATS = ("%B %d", "%b %d", "%m/%d", "%d %B", "%d %b")
 
 
@@ -205,6 +208,8 @@ def parse_trip_date(date_str) -> Optional[_date]:
     s = s.split(" 00:00:00")[0]
     # Strip a leading weekday + separator, e.g. "Mon, May 20, 2026" → "May 20, 2026".
     s = _WEEKDAY_PREFIX_RE.sub("", s).strip()
+    # Strip trailing day-type suffix, e.g. "May 5, 2026 (Weekday)" → "May 5, 2026".
+    s = _DAY_TYPE_SUFFIX_RE.sub("", s).strip()
     for fmt in _DATE_FORMATS:
         try:
             return _dt.strptime(s, fmt).date()
@@ -690,8 +695,9 @@ def get_place_details(name: str, city: str, api_key: str, timeout: int = 10) -> 
         candidate = _find_place_candidate(f"{name} {city}", "place_id,name", api_key, timeout)
         if not candidate:
             return None
+        pid = candidate['place_id']
         details = fetch_api_with_retry(
-            f"{_MAPS_BASE}/place/details/json?place_id={candidate['place_id']}"
+            f"{_MAPS_BASE}/place/details/json?place_id={pid}"
             f"&fields=name,types,price_level,editorial_summary,formatted_address,"
             f"user_ratings_total,opening_hours&key={api_key}",
             timeout=timeout,
@@ -700,6 +706,7 @@ def get_place_details(name: str, city: str, api_key: str, timeout: int = 10) -> 
             return None
         r = details.get("result", {})
         return {
+            "place_id": pid,
             "name": r.get("name", ""),
             "types": r.get("types", []),
             "price_level": r.get("price_level"),
@@ -723,6 +730,70 @@ def get_canonical_address(name: str, api_key: str, timeout: int = 10) -> Optiona
         return {"name": c.get("name", ""), "address": c.get("formatted_address", "")}
     except (KeyError, IndexError, ValueError):
         return None
+
+
+def reverse_geocode(lat: str, lng: str, api_key: str, timeout: int = 10) -> Optional[str]:
+    """Reverse geocode coordinates to a formatted address string."""
+    if not api_key:
+        return None
+    try:
+        resp = fetch_api_with_retry(
+            f"{_MAPS_BASE}/geocode/json?latlng={lat},{lng}&key={api_key}",
+            timeout=timeout,
+        )
+        if resp and resp.get("status") == "OK" and resp.get("results"):
+            return resp["results"][0].get("formatted_address", "")
+    except Exception:
+        pass
+    return None
+
+
+def extract_url_coords(url: str) -> Optional[tuple]:
+    """Extract (lat, lng) from a Google Maps URL.
+    Prefers the protobuf !3d/!4d fields (actual place coords) over
+    the @lat,lng viewport coords which may differ."""
+    # Protobuf coords: !3d<lat>!4d<lng>
+    m = re.search(r"!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)", url)
+    if m:
+        return (m.group(1), m.group(2))
+    # Viewport coords fallback
+    m = re.search(r"@(-?\d+\.\d+),(-?\d+\.\d+)", url)
+    return (m.group(1), m.group(2)) if m else None
+
+
+def extract_url_place_name(url: str) -> Optional[str]:
+    """Extract the place name from a Google Maps URL.
+    Supports /place/Name, /search/Name, and ?q=Name formats."""
+    from urllib.parse import unquote, urlparse, parse_qs
+    # /maps/place/Name or /maps/search/Name
+    m = re.search(r"/maps/(?:place|search)/([^/@?]+)", url)
+    if m:
+        return unquote(m.group(1).replace("+", " "))
+    # maps.google.com/?q=Name
+    parsed = urlparse(url)
+    q = parse_qs(parsed.query).get("q", [None])[0]
+    if q:
+        return unquote(q.replace("+", " "))
+    return None
+
+
+def _normalize_addr(s: str) -> str:
+    """Normalize an address for comparison: lowercase, strip punctuation/whitespace."""
+    return re.sub(r"[^a-z0-9\s]", "", s.lower()).strip()
+
+
+def _addr_city_match(addr_a: str, addr_b: str) -> bool:
+    """Check if two Google-formatted addresses are in the same city/state area.
+    Strips street address and zip code, compares city + state + country."""
+    def _city_part(addr: str) -> str:
+        parts = addr.split(",")
+        # Drop street (first part), keep city/state/country
+        tail = ",".join(parts[1:]) if len(parts) > 1 else addr
+        # Strip zip codes (sequences of 5+ digits)
+        tail = re.sub(r"\b\d{5,}\b", "", tail)
+        return _normalize_addr(tail)
+    a, b = _city_part(addr_a), _city_part(addr_b)
+    return bool(a and b and (a == b or a in b or b in a))
 
 
 def _names_match(a: str, b: str) -> bool:
@@ -757,6 +828,33 @@ def get_directions_travel_time(
         return None
 
 
+def _llm_metro_check(name: str, addr: str, city: str, model) -> bool:
+    """Ask the LLM if a place's address is within the metro area of the target city."""
+    messages = [
+        {"role": "system", "content": [{"type": "text", "text": "Answer only Yes or No."}]},
+        {"role": "user", "content": [{"type": "text", "text":
+            f"Place: {name}\nAddress: {addr}\n\n"
+            f"Is this place located in or within the greater metropolitan area of {city}? "
+            f"Answer Yes or No."}]},
+    ]
+    try:
+        resp = model(messages).strip().lower()
+        return resp.startswith("yes")
+    except Exception:
+        return False
+
+
+def _future_same_weekday(d: _date) -> _date:
+    """If d is today or in the past, shift to the next future occurrence of the same weekday."""
+    today = _date.today()
+    if d > today:
+        return d
+    days_ahead = (d.weekday() - today.weekday()) % 7
+    if days_ahead == 0:
+        days_ahead = 7  # must be strictly in the future
+    return today + timedelta(days=days_ahead)
+
+
 def _to_api_mode(mode: str) -> str:
     """Map internal mode to Directions API mode (train → transit; API doesn't accept 'train')."""
     return "transit" if mode == "train" else mode
@@ -785,7 +883,7 @@ def _period_ranges(opening_periods):
 
 def count_rows_per_day(df: pd.DataFrame, date_col: str, row_types: List[str]) -> List[Dict]:
     """Group by date; return dicts {date, activity_count, food_count, parsed_date, is_weekend}."""
-    if df is None or df.empty or not row_types:
+    if df is None or df.empty or not row_types or not date_col:
         return []
     d = df[[date_col]].copy()
     d["_rt"] = list(row_types[:len(d)]) + ["activity"] * max(0, len(d) - len(row_types))
@@ -914,7 +1012,8 @@ def build_task_context(
     pairwise_transit_cache: Dict = {}
     alt_directions_cache: Dict = {}
     day_specific_transit_cache: Dict = {}
-    day_return_transit_cache: Dict = {}  # {last_idx_of_day: return-to-hotel minutes at last.depart_min}
+    day_return_transit_cache: Dict = {}
+    url_geocode_cache: Dict = {}  # {row_idx: reverse-geocoded address from review URL coords}  # {last_idx_of_day: return-to-hotel minutes at last.depart_min}
     maps_api_key = os.environ.get("GOOGLE_MAPS_API_KEY", "")
 
     if maps_api_key:
@@ -986,7 +1085,8 @@ def build_task_context(
                         hh, mm = int(depart_min) // 60, int(depart_min) % 60
                     else:
                         hh, mm = 12, 0
-                    ts = int(_dt.combine(parsed_date, _time(hh, mm)).timestamp())
+                    api_date = _future_same_weekday(parsed_date)
+                    ts = int(_dt.combine(api_date, _time(hh, mm)).timestamp())
                     leg_task(f"dayleg_{idx}", origin, dest, mode, departure_time=ts)
                     # Return-to-hotel leg at the last activity of the day (last → hotel at last.depart_min).
                     # Use the first row of the day's mode (hotel→first stop) as the assumed return mode,
@@ -997,11 +1097,21 @@ def build_task_context(
                             day_first_idx = day_groups[day_last_idx[idx]][0]
                             return_mode = row_data[day_first_idx].get("transport_mode") or mode
                             rhh, rmm = int(last_depart) // 60, int(last_depart) % 60
-                            rts = int(_dt.combine(parsed_date, _time(rhh, rmm)).timestamp())
+                            rts = int(_dt.combine(api_date, _time(rhh, rmm)).timestamp())
                             leg_task(f"dayreturn_{idx}", dest, hotel, return_mode, departure_time=rts)
             alt = all_alt_names[idx] if idx < len(all_alt_names) else ""
             if alt and dest:
                 leg_task(f"altd_{idx}", dest, alt, "transit")
+
+        # Reverse-geocode review URL coordinates for deterministic address matching.
+        for idx, url in all_review_urls.items():
+            coords = extract_url_coords(url)
+            if coords:
+                all_tasks.append({
+                    "id": f"revgeo_{idx}",
+                    "func": reverse_geocode,
+                    "args": (coords[0], coords[1], maps_api_key),
+                })
 
         # Pairwise transit legs (CP6 S1 TSP check)
         pw_seen = set()
@@ -1025,6 +1135,8 @@ def build_task_context(
         # Prefer biased's in-city result when its name matches the query (handles multi-city
         # franchises where canonical points at a different city's location). Fall back to
         # canonical when biased is missing or untrustworthy.
+        metro_check_tasks = []  # LLM metro-area check for trusted-but-not-in-city names
+        metro_check_data = {}   # name -> (best_result, addr)
         for n in unique_names:
             biased = all_results.get(f"place_{n}")
             canon = all_results.get(f"canon_{n}")
@@ -1039,9 +1151,26 @@ def build_task_context(
             elif canon_trusted and canon_in_city:
                 place_cache[n.lower()] = biased or canon
             elif (biased_trusted and not biased_in_city) or (canon_trusted and not canon_in_city):
-                # Trusted match exists but outside the target city → genuinely out of city.
-                places_out_of_city.add(n.lower())
+                # Name matches but address doesn't contain city token — could be
+                # a metro-area location (e.g. Giza for Cairo). LLM check.
+                best = biased if biased_trusted else canon
+                addr = best.get("address", "") if best else ""
+                metro_check_data[n] = (best, addr)
+                metro_check_tasks.append({
+                    "id": f"metro_{n}",
+                    "func": _llm_metro_check,
+                    "args": (n, addr, city_name, model),
+                })
             # else: untrusted match or no info → fall through to LLM existence check
+
+        # Run metro-area LLM checks in parallel
+        if metro_check_tasks:
+            metro_results = parallel_execute(metro_check_tasks, max_workers=10, timeout=30)
+            for n, (best, addr) in metro_check_data.items():
+                if metro_results.get(f"metro_{n}"):
+                    place_cache[n.lower()] = best
+                else:
+                    places_out_of_city.add(n.lower())
         for idx, prefix, cache in (
             (i, p, c) for i in range(total_rows)
             for p, c in (("dir", directions_cache),
@@ -1056,6 +1185,10 @@ def build_task_context(
             m = all_results.get(tid)
             if m is not None:
                 pairwise_transit_cache[key] = m
+        for idx in all_review_urls:
+            m = all_results.get(f"revgeo_{idx}")
+            if m is not None:
+                url_geocode_cache[idx] = m
 
     return {
         "matched_columns": matched_columns,
@@ -1075,6 +1208,7 @@ def build_task_context(
         "pairwise_transit_cache": pairwise_transit_cache,
         "day_specific_transit_cache": day_specific_transit_cache,
         "day_return_transit_cache": day_return_transit_cache,
+        "url_geocode_cache": url_geocode_cache,
     }
 
 
@@ -1093,6 +1227,8 @@ def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[s
     alt_directions_cache = ctx["alt_directions_cache"]
     url_content = ctx["url_content"]
     all_review_urls = ctx["all_review_urls"]
+    url_geocode_cache = ctx.get("url_geocode_cache", {})
+    maps_api_key = ctx.get("maps_api_key", "")
     trip_details = ctx["trip_details"]
 
     total_rows = len(df)
@@ -1113,6 +1249,7 @@ def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[s
     vlm_results: Dict[str, bool] = {}
     reasons: Dict[str, str] = {}
     vlm_tasks = []
+    _review_check_data: Dict[int, Dict] = {}  # stash for post-VLM review link assembly
 
     # --- CP3 Steps 1 & 2: destination / alternative exists in city ---
     exists_sys = (
@@ -1156,7 +1293,7 @@ def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[s
 
         tod = cell(col["tod"])
         fetched = url_content.get(f"url_{idx}")
-        excerpt = fetched[0][:2000] if fetched and fetched[0] else ""
+        excerpt = fetched[0][:2000] if isinstance(fetched, (list, tuple)) and fetched and fetched[0] else ""
         rd = row_data[idx]
         is_day_start = idx == 0 or (idx > 0 and rd.get("date") != row_data[idx - 1].get("date"))
         prev_name = hotel if is_day_start else (dest_names.get(idx - 1) or hotel)
@@ -1292,28 +1429,50 @@ def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[s
                     p,
                 ))
 
-        # CP4 Step 6: Review link content
+        # CP4 Step 6: Review link — 3-part deterministic check:
+        #   1. Place name in URL matches destination (LLM compare)
+        #   2. Reverse-geocoded URL coords match place_cache address
+        #   3. Review tab flag (!9m1!1b1) present
+        # /maps/search/ URLs resolve to the place page directly, so only
+        # the name match is required (coords and review flag are implicit).
         url = all_review_urls.get(idx, "")
         if url:
-            raw_dest = cell(col["dest"]) or name
-            if excerpt:
-                p = (
-                    f"Place: {name}\nFull listing: {raw_dest}\n\n"
-                    f"Content from the review URL:\n{excerpt}\n\n"
-                    "Does this contain reviews or information about this place? Answer Yes or No."
-                )
-            else:
-                p = (
-                    f"Place: {name}\nFull listing: {raw_dest}\nReview URL: {url}\n\n"
-                    "Based on the URL pattern, does this appear to be a review page "
-                    "for this place? Answer Yes or No."
-                )
-            vlm_tasks.append(yes_no_task(
-                f"review_{idx}",
-                "You are verifying review links. Answer only Yes or No. "
-                "The URL may reference the place by its full business name.",
-                p,
-            ))
+            tid = f"review_{idx}"
+            url_place_name = extract_url_place_name(url)
+            is_search_url = "/maps/search/" in url or "?q=" in url
+            place = place_cache.get(name.lower())
+            place_addr = place.get("address", "") if place else ""
+            url_addr = url_geocode_cache.get(idx, "")
+            has_review_flag = "!9m1!1b1" in url
+            has_coords = extract_url_coords(url) is not None
+
+            # Check 1: Place name match (LLM)
+            if url_place_name:
+                vlm_tasks.append(yes_no_task(
+                    f"review_name_{idx}",
+                    "You are verifying that a review URL is relevant to a destination. "
+                    "Answer only Yes or No.",
+                    f"Destination: {name}\nName from URL: {url_place_name}\n\n"
+                    "Does the URL name refer to the same place, or to one of the places "
+                    "listed in the destination (if the destination is a compound name "
+                    "like 'A & B')? Answer Yes or No.",
+                ))
+
+            # Check 2: Address match — same city/area (deterministic)
+            addr_match = None
+            if place_addr and url_addr:
+                addr_match = _addr_city_match(place_addr, url_addr)
+
+            # Stash partial results for post-VLM assembly
+            _review_check_data[idx] = {
+                "has_name": url_place_name is not None,
+                "addr_match": addr_match,
+                "has_review_flag": has_review_flag,
+                "has_coords": has_coords,
+                "is_search_url": is_search_url,
+                "place_addr": place_addr,
+                "url_addr": url_addr,
+            }
         else:
             vlm_results[f"review_{idx}"] = False
 
@@ -1361,6 +1520,34 @@ def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[s
                     ))
 
     vlm_results.update(run_vlm_batch(vlm_tasks, model))
+
+    # --- Post-VLM: assemble review link results from 3-part check ---
+    for idx, data in _review_check_data.items():
+        tid = f"review_{idx}"
+        fail_parts = []
+
+        # Check 1: Place name match (from VLM)
+        name_match = vlm_results.pop(f"review_name_{idx}", None)
+        if name_match is False:
+            fail_parts.append("name mismatch")
+
+        # /maps/search/ URLs resolve to the place page directly —
+        # only the name match is required.
+        if not data.get("is_search_url"):
+            # Check 2: Address match (deterministic)
+            if data["addr_match"] is False:
+                fail_parts.append(f"address mismatch (place: {data['place_addr']}, url: {data['url_addr']})")
+            elif data["addr_match"] is None and not data["has_coords"]:
+                fail_parts.append("no coordinates in URL")
+
+            # Check 3: Review tab flag (toggleable)
+            if not data["has_review_flag"]:
+                fail_parts.append("missing review tab parameter")
+
+        vlm_results[tid] = len(fail_parts) == 0
+        if fail_parts:
+            reasons[tid] = "; ".join(fail_parts)
+
     # Drop stale reasons for LLM-seeded altv tasks that ended up passing.
     for tid in list(reasons):
         if vlm_results.get(tid) is True:
@@ -1466,9 +1653,6 @@ def seed_cp6_route_and_daytype(
                 else:
                     dest_label = row_data[i].get("dest_name") or f"Row {i+1}"
                     off_legs.append(f"{dest_label} stated {stated}min vs API {api_min}min")
-            # Return leg has no stated value; require it to be reasonable (≤45 min).
-            return_api = day_return_transit_cache.get(indices[-1]) if indices else None
-            return_ok = return_api is None or return_api <= 45
             # For short days (<=2 comparable legs), require all legs match exactly so
             # a single-leg day cannot trivially pass. For longer days, allow 1 off-leg.
             strict = compared <= 2
@@ -1476,7 +1660,6 @@ def seed_cp6_route_and_daytype(
             ok = (
                 compared >= min_compared
                 and (passed == compared if strict else passed >= compared - 1)
-                and return_ok
             )
             results[tid] = ok
             if not ok:
@@ -1487,8 +1670,6 @@ def seed_cp6_route_and_daytype(
                     parts.append(f"only {compared}/{len(indices)} legs comparable")
                 if passed < compared - 1 and off_legs:
                     parts.append(f"{compared - passed} off: {'; '.join(off_legs[:3])}")
-                if not return_ok:
-                    parts.append(f"return {return_api}min >45")
                 reasons[tid] = "; ".join(parts) or "unknown"
 
     return results, vlm_tasks, reasons
