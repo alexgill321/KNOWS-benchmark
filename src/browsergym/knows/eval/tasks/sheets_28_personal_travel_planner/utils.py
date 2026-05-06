@@ -1,8 +1,11 @@
 """Template-specific utilities for the Personal Travel Planner task."""
 
+import math
 import operator
 import os
+import re
 import time
+import unicodedata
 from datetime import datetime as _dt, date as _date, time as _time
 from itertools import permutations
 from typing import Optional, List, Dict, Tuple
@@ -54,8 +57,8 @@ EXPECTED_FOOD_STOPS_PER_DAY = 2
 TIME_SLOT_BLOCKS = {
     "morning":   (8 * 60,  11 * 60),
     "lunch":     (11 * 60, 14 * 60),
-    "afternoon": (12 * 60, 16 * 60),
-    "dinner":    (16 * 60, 20 * 60),
+    "afternoon": (12 * 60, 17 * 60),
+    "dinner":    (17 * 60, 21 * 60),
     "evening":   (17 * 60, 22 * 60),
 }
 # Hour-of-day windows for the Places-API "is open during slot?" check.
@@ -71,7 +74,69 @@ _PARSED_ROW_KEYS = (
     "opening_min", "start_min", "depart_min", "dur_min",
     "travel_min", "transport_mode", "cost_amount",
 )
+_PARSED_INT_KEYS = {"opening_min", "start_min", "depart_min", "dur_min", "travel_min"}
+_PARSED_FLOAT_KEYS = {"cost_amount"}
 _MAPS_BASE = "https://maps.googleapis.com/maps/api"
+
+
+def _fold(s: str) -> str:
+    """NFKD-normalize, strip diacritics, lowercase. For accent-insensitive comparison."""
+    if not s:
+        return ""
+    return unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii").lower()
+
+
+def _city_tokens(city_name: str) -> List[str]:
+    """Split city name into accent-folded tokens, dropping punctuation. So 'Washington D.C.' → ['washington', 'dc']."""
+    cleaned = re.sub(r"[^\w\s]", "", city_name or "")
+    return [_fold(w) for w in cleaned.split() if len(w) > 1]
+
+
+def _coerce_int(v):
+    if v is None or isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        return int(v)
+    if isinstance(v, str):
+        s = v.strip()
+        if not s:
+            return None
+        try:
+            return int(float(s))
+        except ValueError:
+            return None
+    return None
+
+
+def _coerce_float(v):
+    if v is None or isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    if isinstance(v, str):
+        s = v.strip()
+        if not s:
+            return None
+        try:
+            return float(s)
+        except ValueError:
+            return None
+    return None
+
+
+def _coerce_parsed_row(e):
+    if not isinstance(e, dict):
+        return {k: None for k in _PARSED_ROW_KEYS}
+    out = {}
+    for k in _PARSED_ROW_KEYS:
+        v = e.get(k)
+        if k in _PARSED_INT_KEYS:
+            out[k] = _coerce_int(v)
+        elif k in _PARSED_FLOAT_KEYS:
+            out[k] = _coerce_float(v)
+        else:  # transport_mode
+            out[k] = v.strip().lower() if isinstance(v, str) else None
+    return out
 
 
 # --- Header validation / time-of-day classification -------------------------
@@ -110,18 +175,47 @@ _DATE_FORMATS = (
 )
 
 
-def parse_trip_date(date_str: str) -> Optional[_date]:
+_WEEKDAY_PREFIX_RE = re.compile(
+    r"^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*\.?[,\s-]+", re.IGNORECASE
+)
+_YEARLESS_FORMATS = ("%B %d", "%b %d", "%m/%d", "%d %B", "%d %b")
+
+
+def parse_trip_date(date_str) -> Optional[_date]:
     """Parse a Date cell (e.g. '20 May 2026', 'May 20, 2026') to a date object.
-    Returns None if the value is empty or matches no known format.
+    Accepts strings, datetime/date instances, and pandas Timestamp.
+    Strips weekday prefixes ("Mon, ", "Monday, ") and assumes the current year
+    when one isn't given. Returns None if the value is empty or unparseable.
     """
+    if isinstance(date_str, _date) and not isinstance(date_str, _dt):
+        return date_str
+    if isinstance(date_str, _dt):
+        return date_str.date()
+    if hasattr(date_str, "to_pydatetime"):  # pandas Timestamp
+        try:
+            return date_str.to_pydatetime().date()
+        except (ValueError, AttributeError):
+            pass
     if not isinstance(date_str, str):
         return None
     s = date_str.strip()
     if not s:
         return None
+    # If a Timestamp got stringified earlier, drop the trailing time component.
+    s = s.split(" 00:00:00")[0]
+    # Strip a leading weekday + separator, e.g. "Mon, May 20, 2026" → "May 20, 2026".
+    s = _WEEKDAY_PREFIX_RE.sub("", s).strip()
     for fmt in _DATE_FORMATS:
         try:
             return _dt.strptime(s, fmt).date()
+        except ValueError:
+            continue
+    # Year-less fallback: assume current year for "May 20"-style cells.
+    current_year = _date.today().year
+    for fmt in _YEARLESS_FORMATS:
+        try:
+            d = _dt.strptime(s, fmt)
+            return d.replace(year=current_year).date()
         except ValueError:
             continue
     return None
@@ -137,9 +231,13 @@ def parse_gold_file(gold_path: str, model) -> Dict[str, str]:
     except FileNotFoundError:
         return {}
 
+    current_year = _date.today().year
     parsed = extract_json_with_llm(
         prompt=(
             "Extract the following details from this trip description. "
+            f"The current year is {current_year}; if the description says 'this' "
+            "month or otherwise omits a year, assume the trip is in the current year. "
+            "Use that to compute day_type accurately. "
             "Return a JSON object with these keys: "
             '"people" (number of travelers as string), '
             '"city" (destination city), '
@@ -153,7 +251,7 @@ def parse_gold_file(gold_path: str, model) -> Dict[str, str]:
         model=model,
         expect_type="object",
     )
-    return {k: str(v).strip() for k, v in parsed.items()} if isinstance(parsed, dict) else {}
+    return {k: str(v).strip() for k, v in parsed.items() if v is not None} if isinstance(parsed, dict) else {}
 
 
 def classify_destinations_activity_food(names: List[str], model) -> List[str]:
@@ -237,8 +335,13 @@ def match_and_extract(df: pd.DataFrame, model) -> tuple:
 # --- Small helpers ----------------------------------------------------------
 
 def _query_name(n: str) -> str:
-    """Return the first part of a compound name (splits on '&')."""
-    return n.split("&", 1)[0].strip()
+    """Return the first part of a compound name. Only splits on '&' when both sides look
+    like distinct destinations (>=2 words each), so 'Capitol Building & Library of Congress'
+    splits but 'Ben & Jerry's' does not."""
+    parts = n.split("&", 1)
+    if len(parts) == 2 and len(parts[0].split()) >= 2 and len(parts[1].split()) >= 2:
+        return parts[0].strip()
+    return n.strip()
 
 
 def yes_no_task(tid: str, system: str, user: str) -> Dict:
@@ -311,11 +414,11 @@ def find_semantic_duplicates(names: List[str], model) -> List[List[str]]:
 
 
 def empty_checkpoint(name: str, total: int) -> Checkpoint:
-    """Build an empty checkpoint with a single 'no data' failure step."""
+    """Build an empty checkpoint with a single 'no data' failure step whose max_score equals the total."""
     cp = Checkpoint(total=total, result=0, name=name)
     cp.add_step(
         "Data Extraction", False, 1, "No data found in spreadsheet",
-        score=0, max_score=10,
+        score=0, max_score=total,
     )
     return cp
 
@@ -386,16 +489,11 @@ def fetch_review_url_contents(all_review_urls: Dict[int, str], max_workers: int 
 # --- VLM batch runner / scoring ---------------------------------------------
 
 def run_vlm_batch(vlm_tasks: list, model, max_workers: int = 20) -> Dict[str, bool]:
-    """Execute VLM tasks in parallel and retry failures once."""
+    """Execute VLM tasks in parallel. No retry: legitimate "No" answers and transient errors
+    both surface as False from fast_parallel_vlm_calls, so retrying flips real Nos to Yes nondeterministically."""
     if not vlm_tasks:
         return {}
-    results = fast_parallel_vlm_calls(vlm_tasks, model, max_workers=max_workers)
-    failed = [t for t in vlm_tasks if not results.get(t["id"], False)]
-    if failed:
-        for tid, ok in fast_parallel_vlm_calls(failed, model, max_workers=max_workers).items():
-            if ok:
-                results[tid] = True
-    return results
+    return fast_parallel_vlm_calls(vlm_tasks, model, max_workers=max_workers)
 
 
 def score_vlm_steps(checkpoint, vlm_results: Dict[str, bool], steps: list,
@@ -442,13 +540,13 @@ def expected_cost_color(amount: float) -> str:
 
 
 
-# Google Sheets conditional-format comparator → operator map.
+# Google Sheets conditional-format comparator → operator map. NUMBER_BETWEEN
+# uses two thresholds (low, high) and is handled separately below.
 _COND_CMP = {
     "NUMBER_LESS": operator.lt,
     "NUMBER_LESS_THAN_EQ": operator.le,
     "NUMBER_GREATER": operator.gt,
     "NUMBER_GREATER_THAN_EQ": operator.ge,
-    "NUMBER_BETWEEN": operator.ge,
 }
 
 
@@ -462,25 +560,37 @@ def evaluate_cost_color_coding(sheet_raw: Dict, sheet_tab: Dict, row_data: List[
             if rng.get("startColumnIndex", -1) <= cost_col_idx < rng.get("endColumnIndex", 0):
                 bool_rule = rule.get("booleanRule", {})
                 cond = bool_rule.get("condition", {})
+                cond_type = cond.get("type", "")
                 cond_values = cond.get("values", [])
-                try:
-                    threshold = float(cond_values[0].get("userEnteredValue", "")) if cond_values else None
-                except ValueError:
-                    threshold = None
                 color = classify_row_color(bool_rule.get("format", {}).get("backgroundColor", {}))
-                if threshold is not None and color != "none":
-                    cost_rules.append({
-                        "type": cond.get("type", ""),
-                        "threshold": threshold,
-                        "color": color,
-                    })
+                if color == "none":
+                    break
+                if cond_type == "NUMBER_BETWEEN":
+                    try:
+                        low = float(cond_values[0].get("userEnteredValue", ""))
+                        high = float(cond_values[1].get("userEnteredValue", ""))
+                    except (ValueError, AttributeError, IndexError):
+                        low = high = None
+                    if low is not None and high is not None:
+                        cost_rules.append({
+                            "type": cond_type, "low": low, "high": high, "color": color,
+                        })
+                else:
+                    try:
+                        threshold = float(cond_values[0].get("userEnteredValue", "")) if cond_values else None
+                    except (ValueError, AttributeError, IndexError):
+                        threshold = None
+                    if threshold is not None:
+                        cost_rules.append({
+                            "type": cond_type, "threshold": threshold, "color": color,
+                        })
                 break
 
     correct = checked = 0
     failures: List[str] = []
     for idx in range(total_rows):
         amount = row_data[idx].get("cost_amount") if idx < len(row_data) else None
-        if amount is None:
+        if amount is None or not math.isfinite(amount):
             continue
         checked += 1
         expected = expected_cost_color(amount)
@@ -490,10 +600,15 @@ def evaluate_cost_color_coding(sheet_raw: Dict, sheet_tab: Dict, row_data: List[
 
         if actual == "none":
             for rc in cost_rules:
-                cmp = _COND_CMP.get(rc["type"])
-                if cmp and cmp(amount, rc["threshold"]):
-                    actual = rc["color"]
-                    break
+                if rc["type"] == "NUMBER_BETWEEN":
+                    if rc["low"] <= amount <= rc["high"]:
+                        actual = rc["color"]
+                        break
+                else:
+                    cmp = _COND_CMP.get(rc["type"])
+                    if cmp and cmp(amount, rc["threshold"]):
+                        actual = rc["color"]
+                        break
 
         if actual == expected:
             correct += 1
@@ -548,11 +663,8 @@ def extract_row_structured_data(df: pd.DataFrame, matched_columns: Dict, model) 
     )
 
     if not isinstance(parsed, list) or len(parsed) != total_rows:
-        return [{} for _ in range(total_rows)]
-    return [
-        {k: e.get(k) for k in _PARSED_ROW_KEYS} if isinstance(e, dict) else {}
-        for e in parsed
-    ]
+        return [{k: None for k in _PARSED_ROW_KEYS} for _ in range(total_rows)]
+    return [_coerce_parsed_row(e) for e in parsed]
 
 
 # --- Google Maps API helpers ------------------------------------------------
@@ -614,9 +726,11 @@ def get_canonical_address(name: str, api_key: str, timeout: int = 10) -> Optiona
 
 
 def _names_match(a: str, b: str) -> bool:
-    """Loose name-match: case-insensitive, 'the ' stripped, substring either way."""
-    a = (a or "").lower().strip().removeprefix("the ")
-    b = (b or "").lower().strip().removeprefix("the ")
+    """Loose name-match: accent/case folded, 'the ' stripped, punctuation collapsed, substring either way."""
+    def _norm(s: str) -> str:
+        s = _fold(s).removeprefix("the ").strip()
+        return re.sub(r"[^a-z0-9]+", " ", s).strip()
+    a, b = _norm(a), _norm(b)
     return bool(a and b and (a == b or a in b or b in a))
 
 
@@ -674,7 +788,7 @@ def count_rows_per_day(df: pd.DataFrame, date_col: str, row_types: List[str]) ->
     if df is None or df.empty or not row_types:
         return []
     d = df[[date_col]].copy()
-    d["_rt"] = list(row_types[:len(d)]) + [None] * max(0, len(d) - len(row_types))
+    d["_rt"] = list(row_types[:len(d)]) + ["activity"] * max(0, len(d) - len(row_types))
     d[date_col] = d[date_col].replace("", pd.NA).ffill()
     d = d.dropna(subset=[date_col])
     results = []
@@ -730,21 +844,24 @@ def build_task_context(
     header_row_idx: int,
     task_dir: str,
     model,
+    gold_path: Optional[str] = None,
 ) -> Dict:
     """Build all pre-computed runtime state for the evaluator (returns a context dict)."""
     total_rows = len(df)
 
     # Phase 1: column matching + gold file parsing (parallel, both are LLM calls).
+    resolved_gold_path = gold_path or os.path.join(task_dir, "data", "gold.txt")
     phase1 = parallel_execute(
         [
             {"id": "match", "func": match_and_extract, "args": (df, model)},
             {"id": "gold", "func": parse_gold_file,
-             "args": (os.path.join(task_dir, "data", "gold.txt"), model)},
+             "args": (resolved_gold_path, model)},
         ],
         max_workers=2,
+        timeout=60,
     )
-    matched_columns, dest_names = phase1["match"]
-    trip_details = phase1["gold"] or {}
+    matched_columns, dest_names = phase1.get("match") or ({}, {})
+    trip_details = phase1.get("gold") or {}
 
     all_review_urls = extract_review_urls(df, matched_columns, raw_rows, header_row_idx)
 
@@ -764,21 +881,25 @@ def build_task_context(
             {"id": "urls", "func": fetch_review_url_contents, "args": (all_review_urls,)},
         ],
         max_workers=4,
+        timeout=90,
     )
-    parsed_rows = phase2["rows"] or []
-    row_types = phase2["types"] or []
-    all_alt_types = phase2["alt_types"] or []
-    url_content = phase2["urls"] or {}
+    parsed_rows = phase2.get("rows") or []
+    row_types = phase2.get("types") or []
+    all_alt_types = phase2.get("alt_types") or []
+    url_content = phase2.get("urls") or {}
 
     time_col_name = matched_columns.get("Time of Day")
     date_col_name = matched_columns.get("Date")
-    dates = df[date_col_name].replace("", pd.NA).ffill() if date_col_name else None
+    dates = (df[date_col_name].replace("", pd.NA).ffill()
+             if date_col_name and date_col_name in df.columns else None)
 
     row_data: List[Dict] = []
     for idx in range(total_rows):
         tod = str(df.iloc[idx].get(time_col_name, "")).strip() if time_col_name else ""
         row_data.append({
-            "date": str(dates.iloc[idx]) if dates is not None else "",
+            "date": (str(dates.iloc[idx]).strip()
+                     if dates is not None and pd.notna(dates.iloc[idx])
+                     else ""),
             "time_of_day": tod,
             "classification": classify_time_of_day(tod),
             "row_type": row_types[idx] if idx < len(row_types) else "activity",
@@ -799,7 +920,7 @@ def build_task_context(
     if maps_api_key:
         city_name = trip_details.get("city", "")
         hotel = trip_details.get("hotel", "")
-        city_words = [w.lower() for w in city_name.split() if len(w) > 2]
+        city_words = _city_tokens(city_name)
 
         # Day-start indices (first row of each day uses hotel as origin)
         day_starts = set()
@@ -868,12 +989,16 @@ def build_task_context(
                     ts = int(_dt.combine(parsed_date, _time(hh, mm)).timestamp())
                     leg_task(f"dayleg_{idx}", origin, dest, mode, departure_time=ts)
                     # Return-to-hotel leg at the last activity of the day (last → hotel at last.depart_min).
+                    # Use the first row of the day's mode (hotel→first stop) as the assumed return mode,
+                    # since the last row's transport_mode describes how they ARRIVED, not how they leave.
                     if idx in day_last_idx and hotel:
                         last_depart = rd.get("depart_min")
                         if isinstance(last_depart, (int, float)) and 0 <= last_depart < 1440:
+                            day_first_idx = day_groups[day_last_idx[idx]][0]
+                            return_mode = row_data[day_first_idx].get("transport_mode") or mode
                             rhh, rmm = int(last_depart) // 60, int(last_depart) % 60
                             rts = int(_dt.combine(parsed_date, _time(rhh, rmm)).timestamp())
-                            leg_task(f"dayreturn_{idx}", dest, hotel, mode, departure_time=rts)
+                            leg_task(f"dayreturn_{idx}", dest, hotel, return_mode, departure_time=rts)
             alt = all_alt_names[idx] if idx < len(all_alt_names) else ""
             if alt and dest:
                 leg_task(f"altd_{idx}", dest, alt, "transit")
@@ -895,25 +1020,28 @@ def build_task_context(
                     pw_task_keys[tid] = key
                     leg_task(tid, a, b, "transit")
 
-        all_results = parallel_execute(all_tasks, max_workers=30) if all_tasks else {}
+        all_results = parallel_execute(all_tasks, max_workers=30, timeout=120) if all_tasks else {}
 
-        # Trust canonical address if its name ≈ input; else fall back to biased.
+        # Prefer biased's in-city result when its name matches the query (handles multi-city
+        # franchises where canonical points at a different city's location). Fall back to
+        # canonical when biased is missing or untrustworthy.
         for n in unique_names:
             biased = all_results.get(f"place_{n}")
             canon = all_results.get(f"canon_{n}")
-            canon_addr = (canon.get("address", "") if canon else "").lower()
-            biased_addr = (biased.get("address", "") if biased else "").lower()
+            canon_addr = _fold(canon.get("address", "") if canon else "")
+            biased_addr = _fold(biased.get("address", "") if biased else "")
+            biased_trusted = biased and _names_match(_query_name(n), biased.get("name", ""))
             canon_trusted = canon and _names_match(_query_name(n), canon.get("name", ""))
-            if canon_trusted:
-                in_city = any(w in canon_addr for w in city_words)
-            elif biased:
-                in_city = any(w in biased_addr for w in city_words)
-            else:
-                continue  # no info at all → LLM fallback for existence check
-            if in_city and biased:
-                place_cache[n.lower()] = biased   # use biased details (opening hours, etc.)
-            else:
+            biased_in_city = bool(biased and any(w in biased_addr for w in city_words))
+            canon_in_city = bool(canon and any(w in canon_addr for w in city_words))
+            if biased_trusted and biased_in_city:
+                place_cache[n.lower()] = biased
+            elif canon_trusted and canon_in_city:
+                place_cache[n.lower()] = biased or canon
+            elif (biased_trusted and not biased_in_city) or (canon_trusted and not canon_in_city):
+                # Trusted match exists but outside the target city → genuinely out of city.
                 places_out_of_city.add(n.lower())
+            # else: untrusted match or no info → fall through to LLM existence check
         for idx, prefix, cache in (
             (i, p, c) for i in range(total_rows)
             for p, c in (("dir", directions_cache),
@@ -995,6 +1123,9 @@ def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[s
     for prefix, name_list in (("dest", all_dest_names), ("alt", all_alt_names)):
         for i, name in enumerate(name_list):
             if not name:
+                # Empty cell → can't exist in any city. Mark as failure rather than
+                # silently dropping it from the denominator.
+                vlm_results[f"{prefix}_{i}"] = False
                 continue
             ln = name.lower()
             if ln in place_cache:
@@ -1011,9 +1142,12 @@ def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[s
             ))
 
     # --- CP3 Step 4 + CP4 Steps 1-7: per-row checks ---
+    dest_col_name = matched_columns.get("Destination", "")
     for idx in range(total_rows):
         row = df.iloc[idx]
         name = dest_names.get(idx, "")
+        if not name:
+            name = str(row.get(dest_col_name, "")).strip() if dest_col_name else ""
         if not name:
             continue
 
@@ -1023,8 +1157,9 @@ def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[s
         tod = cell(col["tod"])
         fetched = url_content.get(f"url_{idx}")
         excerpt = fetched[0][:2000] if fetched and fetched[0] else ""
-        prev_name = dest_names.get(idx - 1, hotel) if idx > 0 else hotel
         rd = row_data[idx]
+        is_day_start = idx == 0 or (idx > 0 and rd.get("date") != row_data[idx - 1].get("date"))
+        prev_name = hotel if is_day_start else (dest_names.get(idx - 1) or hotel)
 
         # CP3 Step 4: Open during visit time
         if tod:
@@ -1179,6 +1314,8 @@ def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[s
                 "The URL may reference the place by its full business name.",
                 p,
             ))
+        else:
+            vlm_results[f"review_{idx}"] = False
 
         # CP4 Step 7: Alternative viable — same category (food↔food, activity↔activity),
         # open during the time slot, and reachable within 30 min transit.
@@ -1272,13 +1409,17 @@ def seed_cp6_route_and_daytype(
             row_data[i]["dest_name"] and row_data[i]["dest_name"].lower() in places_out_of_city
             for i in indices
         )
+        seeded = True  # route_{di} will be deterministically set unless we explicitly defer to LLM
         if day_has_out_of_city:
             results[f"route_{di}"] = False
-        elif len(dests) <= 1:
+        elif len(dests) == 0:
+            results[f"route_{di}"] = False
+            reasons[f"route_{di}"] = "day has no destinations"
+        elif len(dests) == 1:
             results[f"route_{di}"] = True
-        else:
-            actual_total = route_time(full_loop(dests))
+        elif len(dests) <= 7:
             seeded = False
+            actual_total = route_time(full_loop(dests))
             if actual_total is not None:
                 best = None
                 for perm in permutations(dests):
@@ -1288,20 +1429,23 @@ def seed_cp6_route_and_daytype(
                 if best is not None and best > 0:
                     results[f"route_{di}"] = actual_total <= best * 1.4
                     seeded = True
-            if not seeded:
-                sequence = "\n".join(f"  {j+1}. {d}" for j, d in enumerate(dests))
-                vlm_tasks.append(yes_no_task(
-                    f"route_{di}",
-                    f"You are a travel routing expert for {city_name}. Answer only Yes or No. "
-                    "The itinerary is a round trip from the hotel: hotel → stops → hotel. "
-                    "Restaurants may not be in the same neighborhood as activities — that is "
-                    "acceptable as long as the day doesn't involve excessive back-and-forth. "
-                    "Say Yes if the order is reasonable, even if not perfectly optimal.",
-                    f"City: {city_name}\nDay: {day}\nHotel: {hotel_name or '(unknown)'}\n"
-                    f"Itinerary order (round trip from hotel):\n{sequence}\n\n"
-                    "Is this a reasonable geographic order for a day of sightseeing and dining, "
-                    "without excessive backtracking? Answer Yes or No.",
-                ))
+        else:
+            # >7 stops: n! would lock the evaluator. Defer to LLM.
+            seeded = False
+        if not seeded:
+            sequence = "\n".join(f"  {j+1}. {d}" for j, d in enumerate(dests))
+            vlm_tasks.append(yes_no_task(
+                f"route_{di}",
+                f"You are a travel routing expert for {city_name}. Answer only Yes or No. "
+                "The itinerary is a round trip from the hotel: hotel → stops → hotel. "
+                "Restaurants may not be in the same neighborhood as activities — that is "
+                "acceptable as long as the day doesn't involve excessive back-and-forth. "
+                "Say Yes if the order is reasonable, even if not perfectly optimal.",
+                f"City: {city_name}\nDay: {day}\nHotel: {hotel_name or '(unknown)'}\n"
+                f"Itinerary order (round trip from hotel):\n{sequence}\n\n"
+                "Is this a reasonable geographic order for a day of sightseeing and dining, "
+                "without excessive backtracking? Answer Yes or No.",
+            ))
 
         # --- Day-aware transit accuracy + reasonable return to hotel ---
         tid = f"daytype_{di}"
@@ -1325,9 +1469,14 @@ def seed_cp6_route_and_daytype(
             # Return leg has no stated value; require it to be reasonable (≤45 min).
             return_api = day_return_transit_cache.get(indices[-1]) if indices else None
             return_ok = return_api is None or return_api <= 45
+            # For short days (<=2 comparable legs), require all legs match exactly so
+            # a single-leg day cannot trivially pass. For longer days, allow 1 off-leg.
+            strict = compared <= 2
+            min_compared = max(2, len(indices) // 2)
             ok = (
-                compared > 0 and passed >= compared - 1
-                and compared >= (len(indices) // 2) and return_ok
+                compared >= min_compared
+                and (passed == compared if strict else passed >= compared - 1)
+                and return_ok
             )
             results[tid] = ok
             if not ok:

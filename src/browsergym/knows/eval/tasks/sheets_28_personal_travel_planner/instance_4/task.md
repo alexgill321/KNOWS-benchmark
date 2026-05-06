@@ -1,4 +1,4 @@
-A family of 4 people is traveling to Washington D.C this May for 3 days, and they need a detailed day-by-day itinerary. Please prepare this travel plan and put everything into a Google Sheet so it’s easy to follow. They will stay at the same hotel Hyatt Regency Washington on Capitol Hill for all 3 days of the trip and use Public Transportation for travel during the trip. They plan to do a weekday trip.
+A family of 6 people is traveling to Istanbul this December for 5 days, and they need a detailed day-by-day itinerary. Please prepare this travel plan and put everything into a Google Sheet so it’s easy to follow. They will stay at the same hotel Çırağan Palace Kempinski for all 5 days of the trip and use Public Transportation for travel during the trip. They plan to do a weekday trip.
 
 Here’s what they are looking for:
 - Activities & Sightseeing: Each day should have a mix of morning, afternoon, and evening plans at popular attractions in the city. Please include the opening hours, suggested duration, and any entrance fees. (For Activities & Sightseeing, there should be three rows per day: morning, afternoon, evening.)

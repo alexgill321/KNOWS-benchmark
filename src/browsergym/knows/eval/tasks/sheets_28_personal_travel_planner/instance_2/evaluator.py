@@ -47,7 +47,7 @@ from src.browsergym.knows.eval.tasks.sheets_28_personal_travel_planner.utils imp
 
 TASK_DIR = os.path.join(
     BASE_PATH,
-    "src/browsergym/knows/eval/tasks/sheets_28_personal_travel_planner/instance_1/",
+    "src/browsergym/knows/eval/tasks/sheets_28_personal_travel_planner/instance_2/",
 )
 model_id = "gemini-3-flash-google-ai"
 GOOGLE_MAPS_DOMAINS = ("google.com/maps", "maps.app.goo.gl", "goo.gl/maps", "maps.google.com")

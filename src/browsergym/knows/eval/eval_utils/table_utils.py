@@ -417,6 +417,59 @@ def get_sheet_row_index_from_dataframe_row(df_row, header_rows: int = 1) -> int:
 # Google Sheets Row Color/Formatting Utilities
 # =============================================================================
 
+def resolve_sheets_theme_color(sheet_raw: Dict, theme_color_name: str) -> Dict:
+    """Resolve a Sheets themeColor name (e.g. 'ACCENT1', 'TEXT') to an RGB dict via the
+    spreadsheet's theme. Returns empty dict if the theme or color isn't found.
+
+    Modern Google Sheets writes colors as `themeColor: "ACCENT_1"` rather than `rgbColor`,
+    so checks against rgbColor alone miss user-picked theme colors. The actual RGB lives
+    in `spreadsheetProperties.spreadsheetTheme.themeColors[]`.
+
+    Args:
+        sheet_raw: Raw sheet data from Google Sheets API (with `properties.spreadsheetTheme`).
+        theme_color_name: Theme color name like 'ACCENT1' or 'ACCENT_1' (underscore variants accepted).
+
+    Returns:
+        Dict with 'red', 'green', 'blue' keys (0-1 scale), or empty dict.
+    """
+    if not theme_color_name:
+        return {}
+    # Sheets API uses unsuffixed names ('ACCENT1') in themeColors[].colorType,
+    # but cell-level themeColor may appear with or without underscore.
+    normalized = theme_color_name.replace("_", "").upper()
+    theme = (sheet_raw.get("properties", {})
+             .get("spreadsheetTheme", {}))
+    for entry in theme.get("themeColors", []):
+        if entry.get("colorType", "").replace("_", "").upper() == normalized:
+            return entry.get("color", {}).get("rgbColor", {}) or {}
+    return {}
+
+
+def get_text_foreground_color(cell: Dict, sheet_raw: Optional[Dict] = None) -> Dict:
+    """Extract a cell's effective text foreground color as an RGB dict.
+
+    Tries (in order): `effectiveFormat.textFormat.foregroundColorStyle.rgbColor`,
+    then resolves `foregroundColorStyle.themeColor` via the sheet's theme,
+    then falls back to legacy `effectiveFormat.textFormat.foregroundColor`.
+
+    Args:
+        cell: Cell dict from `rowData[i].values[j]`.
+        sheet_raw: Raw sheet data (needed only for themeColor resolution).
+
+    Returns:
+        Dict with 'red', 'green', 'blue' keys (0-1 scale), or empty dict.
+    """
+    text_format = cell.get("effectiveFormat", {}).get("textFormat", {})
+    fg_style = text_format.get("foregroundColorStyle", {})
+    rgb = fg_style.get("rgbColor")
+    if rgb:
+        return rgb
+    theme_name = fg_style.get("themeColor")
+    if theme_name and sheet_raw:
+        return resolve_sheets_theme_color(sheet_raw, theme_name)
+    return text_format.get("foregroundColor", {}) or {}
+
+
 def get_background_color(sheet_raw: Dict, row_idx: int, col_idx: int = 0) -> Dict:
     """Get background color of a cell in raw sheet data.
 
