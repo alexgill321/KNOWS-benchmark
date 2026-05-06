@@ -105,62 +105,6 @@ def parse_task_md(task_dir: str) -> Tuple[Optional[Dict], Optional[str]]:
         return None, f"Error reading task.md: {e}"
 
 
-def _fetch_with_curl_cffi(url: str, max_chars: int = 15000, timeout: int = 30) -> Tuple[Optional[str], str]:
-    """Fetch URL via curl-cffi (mimics Chrome's full TLS+HTTP/2 fingerprint).
-
-    Defeats most Cloudflare bot checks since CF inspects JA3/JA4 + H2 frame
-    ordering, which Python's `requests` can't fake. Returns `(content, status)`
-    matching the shared fetcher's shape.
-    """
-    try:
-        from curl_cffi import requests as curl_requests
-    except ImportError:
-        return None, "curl-cffi not installed"
-    try:
-        from bs4 import BeautifulSoup
-    except ImportError:
-        return None, "beautifulsoup4 not installed"
-
-    try:
-        resp = curl_requests.get(url, impersonate="chrome120",
-                                 timeout=timeout, allow_redirects=True)
-        if resp.status_code != 200:
-            return None, f"curl-cffi HTTP {resp.status_code}"
-        soup = BeautifulSoup(resp.text, 'html.parser')
-        for el in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
-            el.decompose()
-        text = soup.get_text(separator=' ')
-        text = re.sub(r'\s+', ' ', text).strip()
-        if len(text) > max_chars:
-            text = text[:max_chars] + '...'
-        if len(text) <= 200:
-            # Likely an error/challenge page, not real content.
-            return None, "curl-cffi response too short"
-        return text, "OK (curl-cffi)"
-    except Exception as e:
-        return None, f"curl-cffi failed: {str(e)[:80]}"
-
-
-def fetch_with_fallbacks_extended(url: str, max_chars: int = 15000, timeout: int = 30) -> Tuple[Optional[str], str]:
-    """`fetch_with_fallbacks` + curl-cffi as a 5th strategy for Cloudflare hosts
-    whose TLS/HTTP2 fingerprint blocks Python's `requests` and Playwright.
-    Returns `(content, status)` — the combined status surfaces every reason on failure.
-    """
-    try:
-        from src.browsergym.knows.eval.eval_utils.web_utils import fetch_with_fallbacks
-    except Exception:
-        # Slim env without Playwright/web_utils — curl-cffi only.
-        return _fetch_with_curl_cffi(url, max_chars=max_chars, timeout=timeout)
-
-    content, status = fetch_with_fallbacks(url, max_chars=max_chars, timeout=timeout)
-    if content:
-        return content, status
-    cf_content, cf_status = _fetch_with_curl_cffi(url, max_chars=max_chars, timeout=timeout)
-    if cf_content:
-        return cf_content, cf_status
-    return None, f"{status}; {cf_status}"
-
-
 def llm_extract_source_url(slide_text: str, model) -> Optional[str]:
     """Ask the LLM to extract a source URL from a slide's text.
 

@@ -414,6 +414,10 @@ def fetch_page_text_content_playwright(
         import html2text
         from bs4 import BeautifulSoup
         from playwright.sync_api import sync_playwright
+        try:
+            from playwright_stealth import Stealth
+        except ImportError:
+            Stealth = None
 
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True, args=[
@@ -428,9 +432,11 @@ def fetch_page_text_content_playwright(
                     'Accept-Language': 'en-US,en;q=0.5',
                 }
             )
+            if Stealth is not None:
+                Stealth().apply_stealth_sync(context)
             page = context.new_page()
 
-            # Remove webdriver flag that bot detectors check
+            # Belt-and-braces: even with stealth, keep this baseline.
             page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
             timeout_ms = timeout * 1000
@@ -497,6 +503,14 @@ def fetch_page_text_content_playwright(
         return fetch_page_text_content(url, timeout=timeout, max_chars=max_chars)
 
 
+def _looks_like_deny_page(content: Optional[str]) -> bool:
+    """Heuristic: True if `content` is a 200-served bot/access-denied page."""
+    if not content:
+        return False
+    head = content[:5000].lower()
+    return any(m in head for m in _DENY_PAGE_MARKERS)
+
+
 def fetch_with_fallbacks(url: str, max_chars: int = 15000, timeout: int = 15) -> Tuple[Optional[str], str]:
     """Fetch URL content with multiple fallback strategies.
 
@@ -505,6 +519,7 @@ def fetch_with_fallbacks(url: str, max_chars: int = 15000, timeout: int = 15) ->
     2. Playwright with stealth (for JS-rendered pages)
     3. Playwright retry with longer timeout (2x)
     4. Wayback Machine archived snapshot
+    5. archive.today snapshot (via curl-cffi; archive.ph is Cloudflare-fronted)
 
     Returns on first success (content > 200 chars to avoid error pages).
 
@@ -516,19 +531,22 @@ def fetch_with_fallbacks(url: str, max_chars: int = 15000, timeout: int = 15) ->
     Returns:
         Tuple of (text_content or None, status_details).
     """
+    def _is_real_content(c: Optional[str]) -> bool:
+        return bool(c and len(c.strip()) > 200 and not _looks_like_deny_page(c))
+
     # Strategy 1: Plain requests + HTML parsing (fast, handles most sites)
     content, status = fetch_page_text_content(url, max_chars=max_chars, timeout=timeout)
-    if content and len(content.strip()) > 200:
+    if _is_real_content(content):
         return content, "OK (requests)"
 
-    # Strategy 2: Playwright (for JS-rendered pages)
+    # Strategy 2: Playwright with stealth (for JS-rendered pages and bot-detection bypass)
     content, status = fetch_page_text_content_playwright(url, max_chars=max_chars, timeout=timeout)
-    if content and len(content.strip()) > 200:
+    if _is_real_content(content):
         return content, "OK (playwright)"
 
     # Strategy 3: Playwright retry with longer timeout
     content, status = fetch_page_text_content_playwright(url, max_chars=max_chars, timeout=timeout * 2)
-    if content and len(content.strip()) > 200:
+    if _is_real_content(content):
         return content, "OK (playwright-retry)"
 
     # Strategy 4: Wayback Machine archived snapshot
@@ -539,12 +557,87 @@ def fetch_with_fallbacks(url: str, max_chars: int = 15000, timeout: int = 15) ->
         wb_url = snapshot.get('url', '')
         if wb_url:
             content, status = fetch_page_text_content(wb_url, timeout=timeout, max_chars=max_chars)
-            if content and len(content.strip()) > 200:
+            if _is_real_content(content):
                 return content, "OK (wayback)"
     except Exception:
         pass
 
+    # Strategy 5: archive.today snapshot (often has pages Wayback doesn't).
+    # Use curl-cffi because archive.ph is itself Cloudflare-protected.
+    try:
+        archive_url = f"https://archive.ph/newest/{url}"
+        content, status = _fetch_with_curl_cffi(archive_url, max_chars=max_chars, timeout=timeout)
+        if _is_real_content(content):
+            head = content[:1500].lower()
+            if 'no results' not in head and 'no archive' not in head:
+                return content, "OK (archive.today)"
+    except Exception:
+        pass
+
     return None, "All fetch strategies failed"
+
+
+_CURL_CFFI_PROFILES = ("safari17_0", "chrome120", "chrome131", "edge99")
+_DENY_PAGE_MARKERS = (
+    "access denied", "permission to access", "verify you are human",
+    "request blocked", "forbidden", "are you a robot",
+)
+
+
+def _fetch_with_curl_cffi(url: str, max_chars: int = 15000, timeout: int = 30) -> Tuple[Optional[str], str]:
+    """Fetch URL via curl-cffi, sweeping browser TLS/HTTP2 fingerprints.
+
+    Edmunds-style sites block Chrome fingerprints but accept Safari; some
+    Cloudflare hosts are the inverse. Tries each profile until one returns a
+    200 that doesn't look like a deny/challenge page. Returns `(content, status)`.
+    """
+    try:
+        from curl_cffi import requests as curl_requests
+    except ImportError:
+        return None, "curl-cffi not installed"
+
+    last_status = "curl-cffi all profiles failed"
+    for profile in _CURL_CFFI_PROFILES:
+        try:
+            resp = curl_requests.get(url, impersonate=profile,
+                                     timeout=timeout, allow_redirects=True)
+        except Exception as e:
+            last_status = f"curl-cffi[{profile}] {str(e)[:60]}"
+            continue
+        if resp.status_code != 200:
+            last_status = f"curl-cffi[{profile}] HTTP {resp.status_code}"
+            continue
+        body = resp.text or ""
+        head = body[:5000].lower()
+        if any(m in head for m in _DENY_PAGE_MARKERS):
+            last_status = f"curl-cffi[{profile}] deny-page (200 body)"
+            continue
+        soup = BeautifulSoup(body, 'html.parser')
+        for el in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
+            el.decompose()
+        text = soup.get_text(separator=' ')
+        text = re.sub(r'\s+', ' ', text).strip()
+        if len(text) > max_chars:
+            text = text[:max_chars] + '...'
+        if len(text) <= 200:
+            last_status = f"curl-cffi[{profile}] response too short"
+            continue
+        return text, f"OK (curl-cffi {profile})"
+    return None, last_status
+
+
+def fetch_with_fallbacks_extended(url: str, max_chars: int = 15000, timeout: int = 30) -> Tuple[Optional[str], str]:
+    """`fetch_with_fallbacks` (5 strategies) + curl-cffi profile sweep as a 6th
+    strategy for Cloudflare/edmunds-style hosts whose TLS/HTTP2 fingerprint blocks
+    Python's `requests` and Playwright. Returns `(content, status)`.
+    """
+    content, status = fetch_with_fallbacks(url, max_chars=max_chars, timeout=timeout)
+    if content:
+        return content, status
+    cf_content, cf_status = _fetch_with_curl_cffi(url, max_chars=max_chars, timeout=timeout)
+    if cf_content:
+        return cf_content, cf_status
+    return None, f"{status}; {cf_status}"
 
 
 def fetch_page_title(url: str, timeout: int = 10, headers: Optional[Dict[str, str]] = None) -> Optional[str]:

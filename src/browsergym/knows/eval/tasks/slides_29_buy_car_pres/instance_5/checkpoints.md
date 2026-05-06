@@ -1,6 +1,6 @@
 # Checkpoints
 
-This task has 63 points in total.
+This task has 68 points in total.
 
 ## Checkpoint 1 (2pt):
 
@@ -20,7 +20,7 @@ Car content slides exists and have correct cars.
 - The browsing history contains a visit to the article talking about 2010 best sports cars.
 - There are at least 5 slides, each contains the name of a car that meets the category and year. (5pts total).
 
-# Checkpoint 3 (50pt):
+# Checkpoint 3 (55pt):
 
 Car slides meet the requirements.
 
@@ -30,6 +30,7 @@ Car slides meet the requirements.
 - The make and model of the car are listed in the slide title.
 - A picture of the correct model is found.
 - The car picture takes up at least 50% of the slide.
+- The car picture does not overlap the title text or the stats/URL combined text box (>20% overlap with rendered text region fails).
 - Sticker price matches the price listed on Kelly Blue Book.
 - Fuel efficiency stat matches the listed value on Kelly Blue Book.
 - Horsepower stat matches the listed value on Kelly Blue Book.

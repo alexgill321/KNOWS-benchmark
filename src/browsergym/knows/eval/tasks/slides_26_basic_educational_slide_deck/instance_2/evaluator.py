@@ -649,7 +649,7 @@ def grade_checkpoint_2():
         # Lazy import: slim envs may lack Playwright; the wrapper adds curl-cffi as a
         # 5th strategy for Cloudflare-protected hosts whose TLS fingerprint gets blocked.
         try:
-            from src.browsergym.knows.eval.tasks.slides_26_basic_educational_slide_deck.utils import (
+            from src.browsergym.knows.eval.eval_utils.web_utils import (
                 fetch_with_fallbacks_extended as fetch_with_fallbacks,
             )
         except Exception as e:

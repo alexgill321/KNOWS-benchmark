@@ -19,10 +19,7 @@ sys.path.append(BASE_PATH)
 # imports from eval_utils
 from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
-from src.browsergym.knows.eval.eval_utils.text_utils import (
-    keyword_exact_match,
-    keywords_match_robust
-)
+from src.browsergym.knows.eval.eval_utils.text_utils import keyword_exact_match
 from src.browsergym.knows.eval.eval_utils.slides_utils import (
     extract_slide_text,
     extract_text_boxes_from_slide,
@@ -34,7 +31,7 @@ from src.browsergym.knows.eval.eval_utils.slides_utils import (
 )
 from src.browsergym.knows.eval.eval_utils.parallel_utils import parallel_download, parallel_execute
 from src.browsergym.knows.eval.eval_utils.models import load_model
-from src.browsergym.knows.eval.eval_utils.web_utils import download_page_images, fetch_page_text_content
+from src.browsergym.knows.eval.eval_utils.web_utils import download_page_images, fetch_page_text_content, fetch_with_fallbacks_extended
 
 from src.browsergym.knows.eval.tasks.slides_29_buy_car_pres.utils import (
     CP3_PER_CAR_STEPS,
@@ -44,6 +41,7 @@ from src.browsergym.knows.eval.tasks.slides_29_buy_car_pres.utils import (
     evaluate_slide_for_cars,
     evaluate_with_llm,
     expected_car_in_text,
+    find_year_category_article,
     extract_all_slide_urls,
     extract_info_with_llm,
     find_kbb_url_for_car,
@@ -129,7 +127,7 @@ def grade_checkpoint_1():
             # (#5) Only check font if title was found
             element = text_box.get('element', {})
             title_style = get_text_style_from_shape(element.get('shape', {}))
-            font_big = is_text_big(title_style, min_pt=30)
+            font_big = is_text_big(title_style, min_pt=30, element=element)
             break
 
     checkpoint.add_step("Title Match", title_found, 1,
@@ -168,15 +166,10 @@ def grade_checkpoint_2(browsing_history=None):
     # (#6) Parameterized keywords from CATEGORY/YEAR
     article_url = ""
     if browsing_history:
-        article_url = keywords_match_robust(
-            browsing_history,
-            keywords=[CATEGORY, f"{CATEGORY}s", f"best {YEAR} {CATEGORY}"],
-            model=model,
-            description=f"best {YEAR} {CATEGORY}s article",
-        )
+        article_url = find_year_category_article(browsing_history, YEAR, CATEGORY, model)
 
     checkpoint.add_step("Article Visit", bool(article_url), 1,
-                       f"Browsing history contains visit to a valid article about best {CATEGORY}s" if bool(article_url)
+                       f"Browsing history contains visit to a valid article about best {CATEGORY}s: {article_url}" if bool(article_url)
                        else f"No visit to {CATEGORY} article found in browsing history",
                        execution_time=time.time() - step_start)
 
@@ -245,7 +238,7 @@ Article content:
 
 def grade_checkpoint_3(browsing_history=None):
      """
-     Checkpoint 3 (50pt): Car slides meet the requirements (x5 cars, 10 pts each).
+     Checkpoint 3 (55pt): Car slides meet the requirements (x5 cars, 11 pts each).
 
      Outcome Evaluation (repeats for 5 cars):
      - The browsing history contains a visit to the corresponding KBB vehicle page.
@@ -264,7 +257,7 @@ def grade_checkpoint_3(browsing_history=None):
      checkpoint_start = time.time()
 
      NUM_CARS = 5
-     checkpoint = Checkpoint(total=50, result=0, name="Car Slides Validation")
+     checkpoint = Checkpoint(total=55, result=0, name="Car Slides Validation")
 
      step_names = CP3_PER_CAR_STEPS
 
@@ -385,7 +378,7 @@ Slide text:
              urls_to_fetch.add(review_urls[idx])
 
      web_content_tasks = [
-         {'id': url, 'func': fetch_page_text_content, 'args': (url,)}
+         {'id': url, 'func': fetch_with_fallbacks_extended, 'args': (url,)}
          for url in urls_to_fetch
      ]
 
@@ -464,7 +457,7 @@ Slide text:
 
      # Run all car evaluations in parallel
      eval_tasks = [
-         {'id': car_idx, 'func': evaluate_single_car, 'args': (car_idx, car_slides, step_names, car_infos, kbb_urls, review_urls, web_contents, browsing_history, slide_image_dirs, kbb_example_dirs, slide_width_emu, slide_height_emu, model)}
+         {'id': car_idx, 'func': evaluate_single_car, 'args': (car_idx, car_slides, step_names, car_infos, kbb_urls, review_urls, web_contents, browsing_history, slide_image_dirs, kbb_example_dirs, slide_width_emu, slide_height_emu, model, presentation_data)}
          for car_idx in range(NUM_CARS)
      ]
      car_results = parallel_execute(eval_tasks, max_workers=NUM_CARS)

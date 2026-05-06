@@ -13,12 +13,18 @@ from src.browsergym.knows.eval.eval_utils.llm_utils import (
 )
 from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint
 from src.browsergym.knows.eval.eval_utils.slides_utils import (
+    estimate_text_render_bbox,
     extract_slide_links,
     extract_slide_text,
+    extract_text_boxes_from_slide,
     extract_title_text,
+    get_element_bbox,
     get_image_area_percentage_from_api,
 )
 from src.browsergym.knows.eval.eval_utils.text_utils import keywords_match_robust
+from src.browsergym.knows.eval.eval_utils.utils import bbox_overlap_ratio
+from src.browsergym.knows.eval.eval_utils.parallel_utils import parallel_download
+from src.browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_content
 
 
 def make_failure_checkpoint(name: str, total: int, step_names: List[str], reason: str) -> Checkpoint:
@@ -63,6 +69,7 @@ CP3_PER_CAR_STEPS = [
     "Make and Model Listed as Title",
     "Correct Model Picture",
     "Picture >= 50% of Slide",
+    "Picture Does Not Overlap Text",
     "Sticker Price Matches KBB",
     "Fuel Efficiency Matches KBB",
     "Horsepower Matches KBB",
@@ -73,7 +80,7 @@ CP3_PER_CAR_STEPS = [
 CP_STEP_SHAPES = [
     ("Title Slide", 2, ["Title Match", "Title Font Size at least 30pt"]),
     ("Car Content Slides", 6, ["Article Visit", "At Least 5 Car Slides"]),
-    ("Car Slides Validation", 50,
+    ("Car Slides Validation", 55,
      [f"Car {c+1} - {n}" for c in range(5) for n in CP3_PER_CAR_STEPS]),
     ("Summary Slide", 5, [
         "Title Denotes Best Car Stats",
@@ -304,6 +311,109 @@ def find_kbb_url_for_car(browsing_history: List[str], make_model: str) -> Option
     return None
 
 
+_STATS_KEYWORDS = ('$', 'mpg', 'hp', 'horsepower', 'rating', '/5', '/10', 'review', 'price')
+
+
+def find_title_and_stats_text_boxes(slide: Any) -> "tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]":
+    """Identify the title and stats/URL combined text boxes on a car slide.
+
+    Title: first text box backed by a TITLE/CENTERED_TITLE/SUBTITLE placeholder,
+    falling back to the box whose text matches extract_title_text(slide).
+    Stats: largest remaining text box that contains stats keywords ($, mpg, hp,
+    rating, /5, review, etc.). Falls back to largest non-title box if no
+    keyword match. Either may be None if not found.
+    """
+    text_boxes = extract_text_boxes_from_slide(slide)
+    if not text_boxes:
+        return (None, None)
+
+    title_box = None
+    for tb in text_boxes:
+        ph_type = tb.get('element', {}).get('shape', {}).get('placeholder', {}).get('type', '')
+        if ph_type in ('TITLE', 'CENTERED_TITLE', 'SUBTITLE'):
+            title_box = tb
+            break
+    if title_box is None:
+        title_text = (extract_title_text(slide) or '').strip()
+        if title_text:
+            for tb in text_boxes:
+                if tb.get('text', '').strip() == title_text:
+                    title_box = tb
+                    break
+
+    candidates = [tb for tb in text_boxes if tb is not title_box]
+    if not candidates:
+        return (title_box, None)
+
+    def _area(tb):
+        b = tb.get('bbox') or {}
+        return b.get('width', 0) * b.get('height', 0)
+
+    keyword_matches = [
+        tb for tb in candidates
+        if any(kw in tb.get('text', '').lower() for kw in _STATS_KEYWORDS)
+    ]
+    pool = keyword_matches or candidates
+    stats_box = max(pool, key=_area, default=None)
+    return (title_box, stats_box)
+
+
+_PRODUCT_DOMAIN_HINTS = ('kbb.com',)
+
+
+def find_year_category_article(
+    browsing_history: List[str],
+    year: int,
+    category: str,
+    model: Any,
+) -> Optional[str]:
+    """Return a browsing-history URL the LLM accepts as a relevant {year} {category} article, else None."""
+    if not browsing_history or model is None or not category:
+        return None
+
+    candidates = [
+        u for u in browsing_history
+        if u and not any(hint in u.lower() for hint in _PRODUCT_DOMAIN_HINTS)
+    ]
+    if not candidates:
+        return None
+
+    fetch_tasks = [
+        {'id': url, 'func': fetch_page_text_content, 'args': (url,)}
+        for url in candidates
+    ]
+    fetched = parallel_download(fetch_tasks, max_workers=5, use_rate_limit=False)
+
+    for url in candidates:
+        page = fetched.get(url)
+        content = page[0] if page else None
+        if not content:
+            continue
+
+        prompt = f"""Decide whether this web page is an article that could serve as a source for a presentation about {year} {category} cars.
+
+Accept if:
+- The article discusses or lists multiple {category} models. The article may also cover other car types (SUVs, trucks, etc.) — that's fine as long as several {category}s are included.
+- The models discussed are reasonably relevant to model year {year}. Lenient on year — guides from a few years earlier or later are fine when the models remained on sale.
+- The page is a real article, not a single-vehicle product listing or homepage.
+
+Reject single-car product/listing pages, homepages, unrelated topics, or articles that don't actually cover any {category}s.
+
+URL: {url}
+Page content (truncated):
+{content[:5000]}
+
+Answer YES or NO."""
+        try:
+            verdict = evaluate_with_llm(prompt, model, return_type="bool")
+        except Exception as e:
+            print(f"Warning: LLM relevance check failed for {url}: {e}")
+            continue
+        if verdict:
+            return url
+    return None
+
+
 def find_review_url_in_history(browsing_history: List[str], review_url: str) -> bool:
     """Check if a review URL (or its domain) appears in the browsing history."""
     if not browsing_history or not review_url:
@@ -323,7 +433,7 @@ def find_review_url_in_history(browsing_history: List[str], review_url: str) -> 
     return False
 
 
-def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, review_urls, web_contents, browsing_history, slide_image_dirs, kbb_example_dirs, slide_width_emu, slide_height_emu, model):
+def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, review_urls, web_contents, browsing_history, slide_image_dirs, kbb_example_dirs, slide_width_emu, slide_height_emu, model, presentation=None):
     """Evaluate all 10 steps for a single car. Returns list of step result dicts."""
     steps = []
 
@@ -394,6 +504,42 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
     steps.append({"name": f"Car {car_idx+1} - Picture >= 50% of Slide", "success": picture_large,
                 "detail": f"Largest image covers {max_coverage:.2f}% of slide" if picture_large
                 else f"Largest image covers {max_coverage:.2f}% (need >= 50%)",
+                "execution_time": time.time() - step_start})
+
+    # Step 5: Picture does not overlap title or stats text boxes (>20% of tight
+    # text region inside any image bbox => fail). Only the title and the stats
+    # /URL combined box are in scope.
+    step_start = time.time()
+    title_box, stats_box = find_title_and_stats_text_boxes(slide)
+    in_scope_text = [tb for tb in (title_box, stats_box) if tb]
+
+    image_bboxes = []
+    for element in slide.get('pageElements', []) or []:
+        if 'image' in element:
+            image_bboxes.append(get_element_bbox(element))
+
+    overlap_threshold = 0.2
+    overlapping_text = None
+    for img_bbox in image_bboxes:
+        if not img_bbox.get('width') or not img_bbox.get('height'):
+            continue
+        for tb in in_scope_text:
+            tight = estimate_text_render_bbox(tb, presentation=presentation)
+            if bbox_overlap_ratio(tight, img_bbox) > overlap_threshold:
+                overlapping_text = (tb.get('text', '') or '')[:60]
+                break
+        if overlapping_text:
+            break
+
+    picture_clear = overlapping_text is None
+    if not in_scope_text:
+        no_overlap_detail = "No title or stats text boxes found; overlap check skipped"
+    elif picture_clear:
+        no_overlap_detail = "Picture does not overlap title or stats text"
+    else:
+        no_overlap_detail = f"Picture overlaps text region: '{overlapping_text}...'"
+    steps.append({"name": f"Car {car_idx+1} - Picture Does Not Overlap Text", "success": picture_clear,
+                "detail": no_overlap_detail,
                 "execution_time": time.time() - step_start})
 
     # Steps 5-7: Sticker price, fuel efficiency, horsepower from KBB

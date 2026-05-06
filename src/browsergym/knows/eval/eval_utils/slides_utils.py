@@ -771,6 +771,167 @@ def get_element_bbox(element: Dict[str, Any]) -> Dict[str, float]:
     }
 
 
+_EMU_PER_PT = 12700
+_AVG_CHAR_WIDTH_FACTOR = 0.55  # avg proportional-font glyph width in pt-units
+_DEFAULT_FONT_PT = 14.0
+
+
+def _find_parent_placeholder(parent_object_id: str, presentation: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Look up a placeholder element by objectId in layouts then masters."""
+    if not parent_object_id or not presentation:
+        return None
+    for collection_key in ('layouts', 'masters'):
+        for page in presentation.get(collection_key, []) or []:
+            for el in page.get('pageElements', []) or []:
+                if el.get('objectId') == parent_object_id and 'shape' in el:
+                    return el
+    return None
+
+
+def _extract_paragraphs(element: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Pull per-paragraph (alignment, font_pt, char_count) from an element's text."""
+    paragraphs: List[Dict[str, Any]] = []
+    text_element = (element.get('shape') or {}).get('text') or {}
+    current = None
+    for te in text_element.get('textElements', []):
+        if 'paragraphMarker' in te:
+            if current is not None:
+                paragraphs.append(current)
+            alignment = te['paragraphMarker'].get('style', {}).get('alignment')
+            current = {'alignment': alignment, 'font_pt': None, 'chars': 0}
+        elif 'textRun' in te:
+            if current is None:
+                current = {'alignment': None, 'font_pt': None, 'chars': 0}
+            content = te['textRun'].get('content', '') or ''
+            if content.endswith('\n'):
+                content = content[:-1]
+            current['chars'] += len(content)
+            mag = te['textRun'].get('style', {}).get('fontSize', {}).get('magnitude')
+            if mag and (current['font_pt'] is None or mag > current['font_pt']):
+                current['font_pt'] = mag
+    if current is not None:
+        paragraphs.append(current)
+    return paragraphs
+
+
+def _resolve_paragraph_styles(element: Dict[str, Any], presentation: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Resolve missing alignment / font_pt by walking parent placeholders."""
+    paragraphs = _extract_paragraphs(element)
+    if not paragraphs:
+        return paragraphs
+    parent_id = element.get('shape', {}).get('placeholder', {}).get('parentObjectId')
+    seen_parents: set = set()
+    while presentation and parent_id and parent_id not in seen_parents:
+        if all(p.get('alignment') and p.get('font_pt') for p in paragraphs):
+            break
+        seen_parents.add(parent_id)
+        parent_el = _find_parent_placeholder(parent_id, presentation)
+        if not parent_el:
+            break
+        parent_paragraphs = _extract_paragraphs(parent_el)
+        default = parent_paragraphs[0] if parent_paragraphs else {}
+        for p in paragraphs:
+            if not p.get('alignment') and default.get('alignment'):
+                p['alignment'] = default['alignment']
+            if not p.get('font_pt') and default.get('font_pt'):
+                p['font_pt'] = default['font_pt']
+        parent_id = parent_el.get('shape', {}).get('placeholder', {}).get('parentObjectId')
+    for p in paragraphs:
+        if not p.get('alignment'):
+            p['alignment'] = 'START'
+        if not p.get('font_pt'):
+            p['font_pt'] = _DEFAULT_FONT_PT
+    return paragraphs
+
+
+def estimate_text_render_bbox(text_box: Dict[str, Any], presentation: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
+    """Approximate the bbox of rendered text within a text-box element.
+
+    Tightens the container bbox down to where the glyphs actually live:
+    height = sum of (line-height per paragraph, accounting for word-wrap),
+    width = max paragraph text width (chars * font * char-factor), and the
+    tight bbox is positioned within the container per (horizontal alignment,
+    vertical contentAlignment).
+
+    Inherited fontSize and paragraph alignment are resolved by walking the
+    placeholder's parentObjectId chain through layouts/masters when
+    `presentation` is provided. Autofit fontScale and lineSpacingReduction
+    are applied to shrink the estimate when the text is auto-shrunk.
+
+    Args:
+        text_box: Entry from extract_text_boxes_from_slide() (needs 'bbox',
+            'element').
+        presentation: Optional full presentation dict for inheritance lookup.
+            Without it, missing alignment defaults to START and missing font
+            size defaults to 14pt.
+
+    Returns:
+        Tight bbox dict {x, y, width, height} in EMUs. Returns the raw
+        container bbox if input is malformed.
+    """
+    bbox = text_box.get('bbox') or {}
+    element = text_box.get('element') or {}
+    shape = element.get('shape') or {}
+
+    box_x = bbox.get('x', 0)
+    box_y = bbox.get('y', 0)
+    box_w = bbox.get('width', 0)
+    box_h = bbox.get('height', 0)
+    if box_h <= 0 or box_w <= 0:
+        return dict(bbox)
+
+    paragraphs = _resolve_paragraph_styles(element, presentation)
+    if not paragraphs:
+        return dict(bbox)
+
+    autofit = shape.get('shapeProperties', {}).get('autofit', {}) or {}
+    font_scale = autofit.get('fontScale') if autofit.get('fontScale') is not None else 1.0
+    line_spacing_reduction = autofit.get('lineSpacingReduction') or 0.0
+    line_height_factor = max(0.5, 1.2 * (1.0 - line_spacing_reduction))
+
+    total_height = 0.0
+    max_text_width = 0.0
+    align_counts: Dict[str, int] = {}
+    for p in paragraphs:
+        font_pt = (p['font_pt'] or _DEFAULT_FONT_PT) * font_scale
+        char_w = font_pt * _EMU_PER_PT * _AVG_CHAR_WIDTH_FACTOR
+        line_h = font_pt * _EMU_PER_PT * line_height_factor
+        chars = max(1, p['chars']) if p['chars'] else 1
+        wrapped_lines = 1
+        if char_w > 0:
+            chars_per_line = max(1, int(box_w // char_w))
+            wrapped_lines = max(1, (chars + chars_per_line - 1) // chars_per_line)
+        total_height += wrapped_lines * line_h
+        text_w = min(chars * char_w, box_w)
+        if text_w > max_text_width:
+            max_text_width = text_w
+        align = (p['alignment'] or 'START').upper()
+        align_counts[align] = align_counts.get(align, 0) + 1
+
+    text_height = min(total_height, box_h)
+    text_width = min(max_text_width, box_w)
+    if text_width <= 0 or text_height <= 0:
+        return dict(bbox)
+
+    v_align = (shape.get('shapeProperties', {}).get('contentAlignment') or 'TOP').upper()
+    if v_align == 'MIDDLE':
+        tight_y = box_y + (box_h - text_height) / 2
+    elif v_align == 'BOTTOM':
+        tight_y = box_y + (box_h - text_height)
+    else:
+        tight_y = box_y
+
+    h_align = max(align_counts, key=align_counts.get) if align_counts else 'START'
+    if h_align in ('CENTER', 'JUSTIFIED'):
+        tight_x = box_x + (box_w - text_width) / 2
+    elif h_align == 'END':
+        tight_x = box_x + (box_w - text_width)
+    else:
+        tight_x = box_x
+
+    return {'x': tight_x, 'y': tight_y, 'width': text_width, 'height': text_height}
+
+
 def extract_text_boxes_from_slide(slide: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
     Extract all text box elements from a slide with their positions and content.
