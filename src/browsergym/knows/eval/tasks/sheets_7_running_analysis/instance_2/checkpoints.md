@@ -12,7 +12,7 @@ The spreadsheet contains a properly structured table with required columns for r
 - All table content is fully visible (no text overflow/truncation).
 
 ## Checkpoint 2 (30 pts): Data Table Content Accuracy
-The data in the table matches the source running data for all 109 Run activities. Each step is scored out of 10 points using `floor(matches/109 * 10)`. The boolean PASS state requires every row to match exactly.
+The data in the table matches the source running data for all 169 Run activities. Each step is scored out of 10 points using `floor(matches/169 * 10)`. The boolean PASS state requires every row to match exactly.
 
 ### Outcome Evaluation:
 - Run activity rows have an exact date match to gold data (10 pts, proportional credit).
@@ -29,10 +29,10 @@ A scatter plot showing average running speed (min/mile) over time.
 - Chart is not placed over any other charts or tables.
 - Chart main data series comes from the average speed column.
 - Speed values are present as circular points in the chart.
-- Male 5K baseline is properly displayed (labeled in legend + dotted/dashed style).
-- Male 5K baseline data is constant and within expected range (8-10 min/mile).
-- Kipchoge baseline is properly displayed (labeled in legend + dotted/dashed style).
-- Kipchoge baseline data is constant and within expected range (4.5-4.8 min/mile).
+- Intermediate Male 30 Half-Marathon baseline is properly displayed (labeled in legend + dotted/dashed style).
+- Intermediate Male 30 Half-Marathon baseline data is constant and within expected range (7.0–9.0 min/mile).
+- Jacob Kiplimo Half Marathon baseline is properly displayed (labeled in legend + dotted/dashed style).
+- Jacob Kiplimo Half Marathon baseline data is constant and within expected range (4.15–4.45 min/mile).
 - Both baselines are visually distinguishable from the main data.
 - Source URLs are valid and accessible below the speed chart.
 - Chart is on the same sheet tab as the data table.
@@ -53,7 +53,7 @@ A chart showing cumulative distance ran in miles over time.
 The agent visited the required websites to gather data. URL relevance is determined first by keyword matching against the URL string, with an LLM-as-judge backup that fetches and inspects page content when the keyword filter returns no candidates. Content validity is determined first by structured LLM pace extraction + numeric comparison against the sheet baseline (≤5% tolerance), with an LLM-as-judge backup that asks the model whether the page supports a baseline within ~5% of the sheet value when extraction fails for every URL.
 
 ### Outcome Evaluation:
-- A source URL for male 5K running speed was visited (keyword match, then LLM judge backup).
-- A source URL for Eliud Kipchoge marathon data was visited (keyword match, then LLM judge backup).
-- Male 5K source URL content matches the sheet baseline within 5% (pace extraction, then LLM judge backup).
-- Kipchoge source URL content matches the sheet baseline within 5% (pace extraction, then LLM judge backup).
+- A source URL for intermediate male 30 half-marathon running speed was visited (keyword match, then LLM judge backup).
+- A source URL for Jacob Kiplimo half marathon data was visited (keyword match, then LLM judge backup).
+- Intermediate Male 30 Half-Marathon source URL content matches the sheet baseline within 5% (pace extraction, then LLM judge backup).
+- Jacob Kiplimo source URL content matches the sheet baseline within 5% (pace extraction, then LLM judge backup).

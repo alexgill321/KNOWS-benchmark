@@ -92,7 +92,7 @@ def is_text_visible_in_cell(
     wrap_strategy: str,
     row_values: List[Dict],
     col_idx: int,
-    char_width: int = 7
+    char_width: int = 6
 ) -> bool:
     """
     Check if text is fully visible in a Google Sheets cell.
@@ -120,22 +120,22 @@ def is_text_visible_in_cell(
     if not content:
         return True
 
+    # Use a 1.3x tolerance to account for variable character widths
+    # (the char_width estimate assumes wide characters, but most text
+    # contains many narrow characters like i, l, /, -, etc.)
     expected_width = len(content) * char_width
 
-    # If text fits in column, it's visible
-    if expected_width <= col_width:
+    # If text fits in column (with tolerance), it's visible
+    if expected_width <= col_width * 1.3:
         return True
 
     # If wrapping is enabled, text is visible (wraps to multiple lines)
     if wrap_strategy == 'WRAP':
         return True
 
-    # If CLIP, text is hidden when it significantly exceeds width.
-    # Use a 1.3x threshold to account for variable character widths
-    # (the char_width estimate assumes wide characters, but most text
-    # contains many narrow characters like i, l, /, -, etc.)
+    # If CLIP, text is hidden (already exceeded tolerance above)
     if wrap_strategy == 'CLIP':
-        return expected_width <= col_width * 1.3
+        return False
 
     # For OVERFLOW_CELL (default), check if next cell blocks the overflow
     if wrap_strategy == 'OVERFLOW_CELL':

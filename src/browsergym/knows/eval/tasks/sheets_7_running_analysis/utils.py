@@ -17,6 +17,33 @@ from src.browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_conte
 
 
 # =============================================================================
+# Prompt Building Helpers
+# =============================================================================
+
+def build_keyword_match_prompt(text: str, keywords: List[str], description: str) -> str:
+    """Build a yes/no VLM prompt that asks whether a text matches a set of keywords.
+
+    Used by grade_checkpoint_N() functions to construct consistent prompts for
+    fast_parallel_vlm_calls() when matching chart axis labels and titles.
+
+    Args:
+        text: The text to evaluate (e.g. an axis label or chart title).
+        keywords: List of concept keywords the text should match.
+        description: Human-readable context string appended to the prompt.
+
+    Returns:
+        A prompt string suitable for a yes/no LLM call.
+    """
+    return (
+        f"Is the text '{text}' a short, descriptive label whose primary purpose is to indicate "
+        f"any of these concepts: {', '.join(keywords)}? "
+        f"Context: {description}. "
+        f"A source citation, URL, or long explanatory note should be answered No. "
+        f"Answer only Yes or No."
+    )
+
+
+# =============================================================================
 # Unit Conversion Functions
 # =============================================================================
 
@@ -170,6 +197,11 @@ def convert_pace_to_min_per_mile(value: float, unit: str) -> Tuple[Optional[floa
             result = race_time_to_min_per_mile(value, five_k_miles)
             return result, f"Converted {value:.1f} min 5K to {result:.2f} min/mile"
 
+        elif unit_lower == "half_marathon_time_minutes":
+            half_marathon_miles = 13.1094  # Half marathon distance in miles
+            result = race_time_to_min_per_mile(value, half_marathon_miles)
+            return result, f"Converted {value:.1f} min half-marathon to {result:.2f} min/mile"
+
         else:
             return None, f"Unknown unit: {unit}"
 
@@ -183,10 +215,11 @@ def convert_pace_to_min_per_mile(value: float, unit: str) -> Tuple[Optional[floa
 
 def normalize_date(date_str) -> str:
     """
-    Normalize date string for comparison (full timestamp).
+    Normalize date string for comparison (date-only).
 
     Handles formats like:
-    - "Sep 27, 2021, 2:13:42 AM" (gold format)
+    - "Sep 27, 2021, 2:13:42 AM" (gold format with timestamp)
+    - "9/27/2021" (sheet format, date-only)
     - "2021-09-27 02:13:42"
     - Various other common formats
 
@@ -194,34 +227,31 @@ def normalize_date(date_str) -> str:
         date_str: Date string to normalize.
 
     Returns:
-        Normalized date string in format "YYYY-MM-DD HH:MM:SS".
+        Normalized date string in format "YYYY-MM-DD" (date-only for comparison).
     """
     if pd.isna(date_str):
         return ""
 
     date_str = str(date_str).strip()
 
-    # Try parsing the gold format: "Sep 27, 2021, 2:13:42 AM"
-    try:
-        dt = datetime.strptime(date_str, "%b %d, %Y, %I:%M:%S %p")
-        return dt.strftime("%Y-%m-%d %H:%M:%S")
-    except ValueError:
-        pass
-
-    # Try other common formats with time
     formats_to_try = [
+        "%b %d, %Y, %I:%M:%S %p",  # Gold format: "Sep 27, 2021, 2:13:42 AM"
         "%Y-%m-%d %H:%M:%S",
         "%m/%d/%Y %H:%M:%S",
         "%Y-%m-%dT%H:%M:%S",
         "%d/%m/%Y %H:%M:%S",
         "%b %d, %Y, %H:%M:%S",
         "%Y-%m-%d %I:%M:%S %p",
+        "%m/%d/%Y",                 # Sheet format: "9/27/2021"
+        "%Y-%m-%d",
+        "%d/%m/%Y",
+        "%b %d, %Y",
     ]
 
     for fmt in formats_to_try:
         try:
             dt = datetime.strptime(date_str, fmt)
-            return dt.strftime("%Y-%m-%d %H:%M:%S")
+            return dt.strftime("%Y-%m-%d")
         except ValueError:
             continue
 
@@ -233,8 +263,8 @@ def normalize_date(date_str) -> str:
 # Data Loading
 # =============================================================================
 
-def load_gold_run_activities(csv_path: str):
-    """Load gold data, filtering only Run activities.
+def load_gold_run_activities(csv_path: str, activity_type: str = 'Run'):
+    """Load gold data, filtering only the requested activity type.
 
     The CSV has duplicate 'Distance' columns - pandas renames them to 'Distance' and 'Distance.1'.
     - 'Distance' is in km (rounded)
@@ -244,12 +274,13 @@ def load_gold_run_activities(csv_path: str):
 
     Args:
         csv_path: Path to the gold_activities.csv file.
+        activity_type: Strava activity type to filter on (e.g. 'Run', 'Nordic Ski'). Defaults to 'Run' for backward compatibility with instances 1 and 2.
 
     Returns:
-        DataFrame containing only Run activities with normalized Distance column.
+        DataFrame containing only activities of the requested type with normalized Distance column.
     """
     gold_df = pd.read_csv(csv_path)
-    runs = gold_df[gold_df['Activity Type'] == 'Run'].copy()
+    runs = gold_df[gold_df['Activity Type'] == activity_type].copy()
 
     # Use Distance.1 (meters) converted to km for more precision
     # This fixes discrepancies like "Anas run" where Distance=0.44 km but Distance.1=448.1 m
@@ -324,6 +355,101 @@ def find_cumulative_chart_by_metadata(
         axis_description="Y-axis label related to cumulative distance",
         matched_columns=matched_columns,
         column_name=None,  # No specific column name for cumulative
+        df=df,
+        model=model
+    )
+
+
+def find_daily_miles_chart_by_metadata(
+    charts: List[Dict[str, Any]],
+    matched_columns: Optional[Dict[str, str]],
+    df: Optional[pd.DataFrame],
+    model: Any = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Identify the daily total miles chart using metadata.
+
+    Uses the general find_chart_by_metadata() with daily miles keywords.
+
+    Args:
+        charts: List of chart objects from extract_charts_from_sheet()
+        matched_columns: Column mapping (may contain distance column)
+        df: DataFrame with sheet data
+        model: Optional LLM model for fallback matching
+
+    Returns:
+        Chart object or None if not found
+    """
+    return find_chart_by_metadata(
+        charts=charts,
+        title_keywords=['daily', 'total miles', 'daily miles', 'miles per day', 'daily total'],
+        y_axis_keywords=['miles', 'distance', 'total miles', 'total'],
+        title_description="chart title related to daily total miles",
+        axis_description="Y-axis label related to daily miles or distance",
+        matched_columns=matched_columns,
+        column_name=None,
+        df=df,
+        model=model
+    )
+
+
+def find_sets_chart_by_metadata(
+    charts: List[Dict[str, Any]],
+    matched_columns: Optional[Dict[str, str]],
+    df: Optional[pd.DataFrame],
+    model: Any = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Identify the workout sets chart using metadata.
+
+    Args:
+        charts: List of chart objects from extract_charts_from_sheet()
+        matched_columns: Column mapping (may contain Total Sets column)
+        df: DataFrame with sheet data
+        model: Optional LLM model for fallback matching
+
+    Returns:
+        Chart object or None if not found
+    """
+    return find_chart_by_metadata(
+        charts=charts,
+        title_keywords=['sets', 'workout', 'daily sets', 'sets per workout', 'workout sets'],
+        y_axis_keywords=['sets', 'total sets', 'workout sets'],
+        title_description="chart title related to workout sets over time",
+        axis_description="Y-axis label related to workout sets",
+        matched_columns=matched_columns,
+        column_name="Total Sets",
+        df=df,
+        model=model
+    )
+
+
+def find_cumulative_reps_chart_by_metadata(
+    charts: List[Dict[str, Any]],
+    matched_columns: Optional[Dict[str, str]],
+    df: Optional[pd.DataFrame],
+    model: Any = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Identify the cumulative reps chart using metadata.
+
+    Args:
+        charts: List of chart objects from extract_charts_from_sheet()
+        matched_columns: Column mapping
+        df: DataFrame with sheet data
+        model: Optional LLM model for fallback matching
+
+    Returns:
+        Chart object or None if not found
+    """
+    return find_chart_by_metadata(
+        charts=charts,
+        title_keywords=['cumulative', 'reps', 'total reps', 'cumulative reps'],
+        y_axis_keywords=['cumulative', 'reps', 'total reps'],
+        title_description="chart title related to cumulative reps",
+        axis_description="Y-axis label related to cumulative reps",
+        matched_columns=matched_columns,
+        column_name=None,
         df=df,
         model=model
     )
@@ -487,6 +613,55 @@ Report the value exactly as found on the page with its original unit."""
         extraction_prompt = """Extract Eliud Kipchoge's marathon pace or marathon finish time.
 Look for his fastest marathon times (around 2:01-2:02 range) or his pace in any format.
 Report the value exactly as found on the page with its original unit."""
+    elif pace_type == "intermediate_male_30_half_marathon":
+        extraction_prompt = """Extract the average running pace for a half-marathon for an intermediate male runner at age 30.
+
+The page may contain MULTIPLE pace tables stacked together (e.g. one labeled "Pace (min/km)" and one labeled "Pace (min/mile)"), each with the same Age x Ability layout. You MUST prefer the min/mile table; do NOT take the min/km value. Also do NOT use the Finish Time table (HH:MM:SS values).
+
+Specifically: locate the Male section, then within it the table whose header indicates "min/mile" (per-mile pace), then read the value at row "30" (or "Age 30") and column "Intermediate". Report it with UNIT=min/mile.
+
+If the value is in MM:SS format (e.g. "07:54"), report VALUE as the decimal equivalent (7 + 54/60 = 7.9), NOT 7.54. The seconds component must be divided by 60.
+
+If only a min/km table is present, take the Intermediate-30 value from it and report with UNIT=min/km so conversion happens downstream."""
+    elif pace_type == "kiplimo":
+        extraction_prompt = """Extract Jacob Kiplimo's half-marathon pace or half-marathon finish time.
+Look for his fastest half-marathon times (around 56-58 minute range) or his pace in any format.
+Report the value exactly as found on the page with its original unit."""
+    elif pace_type == "klaebo":
+        extraction_prompt = """Extract Johannes Høsflot Klæbo's Nordic skiing pace or finish time, ideally averaged across the 20 km skiathlon and the sprint classic at the 2026 Olympics (or an equivalent recent World Cup race).
+Look for his pace in any format: min/mile, min/km, mph, km/h, or total race finish time (e.g. 47:00 for a 20 km skiathlon, 3:00 for a sprint).
+If the page only reports a single race time, take it; the caller will average elsewhere if needed.
+Report the value exactly as found on the page with its original unit."""
+    elif pace_type == "female_5k":
+        extraction_prompt = """Extract the average running pace for a 5K race for females (especially around age 25).
+
+The page may contain MULTIPLE pace tables stacked together (e.g. one labeled "Pace (min/km)" and one labeled "Pace (min/mile)"), each with the same Age x Ability layout. You MUST prefer the min/mile table; do NOT take the min/km value. Also do NOT use the Finish Time table (HH:MM:SS values).
+
+Specifically: locate the Female section, then within it the table whose header indicates "min/mile" (per-mile pace), then read the value at row "25" (or "Age 25") and column "Intermediate" or "Novice". Report it with UNIT=min/mile.
+
+If the value is in MM:SS format (e.g. "10:30"), report VALUE as the decimal equivalent (10 + 30/60 = 10.5), NOT 10.30. The seconds component must be divided by 60.
+
+If only a min/km table is present, take the value from it and report with UNIT=min/km so conversion happens downstream."""
+    elif pace_type == "chebet":
+        extraction_prompt = """Extract Beatrice Chebet's 5K pace or 5K finish time.
+Look for her fastest 5K times (around sub-14 minutes or ~13:56 range) or her pace in any format.
+Report the value exactly as found on the page with its original unit."""
+    elif pace_type == "female_daily_miles":
+        extraction_prompt = """Extract the recommended or average daily walking/trekking distance in miles for a 25-year-old female (or general adult female).
+Look for daily mileage recommendations, average daily walking distance, or similar data.
+If the page mentions steps, convert using ~2000 steps per mile.
+Report the value exactly as found on the page with its original unit.
+Use UNIT=miles if the value is already in miles, or UNIT=km if in kilometers."""
+    elif pace_type == "adult_sets":
+        extraction_prompt = """Extract the average or recommended number of sets per workout for an average adult.
+Look for total sets per workout session, not sets per exercise or per body part.
+If the page gives a range (e.g. 15-20 sets), take the midpoint.
+Report the value as a number with UNIT=sets."""
+    elif pace_type == "cutler":
+        extraction_prompt = """Extract Jay Cutler's recommended or typical number of sets per workout.
+Look for his total sets per workout session or per body part training session.
+If the page gives sets per body part, report that value.
+Report the value as a number with UNIT=sets."""
     else:
         return None, f"Unknown pace_type: {pace_type}"
 
@@ -512,6 +687,7 @@ For UNIT, use one of these exact values:
 - km/h (for kilometers per hour speed)
 - marathon_time_minutes (for total marathon time, convert H:MM:SS to total minutes, e.g., "2:01:39" -> VALUE: 121.65)
 - 5k_time_minutes (for total 5K time, convert MM:SS to total minutes, e.g., "25:30" -> VALUE: 25.5)
+- half_marathon_time_minutes (for total half-marathon time, convert H:MM:SS or MM:SS to total minutes, e.g., "56:42" -> VALUE: 56.7)
 
 For pace in MM:SS format, convert to decimal minutes (e.g., "8:30" = 8.5 minutes).
 
@@ -611,3 +787,147 @@ def extract_and_convert_pace_from_url(
         return None, f"Converted value {pace_min_mile:.2f} min/mile outside reasonable range (3-20)"
 
     return pace_min_mile, f"{extract_details} -> {convert_details}"
+
+
+# =============================================================================
+# LLM-as-Judge Backups for Checkpoint 5
+# =============================================================================
+
+def judge_url_relevance(
+    url: str,
+    category: str,
+    model: Any,
+    timeout: int = 10
+) -> Tuple[bool, str]:
+    """Use LLM as backup judge to decide if a URL is relevant to a baseline category.
+
+    Used when keyword-string URL filtering returns no candidates.
+
+    Args:
+        url: URL to fetch and judge.
+        category: Either "male_5k" or "kipchoge".
+        model: LLM model with the standard messages interface.
+        timeout: Request timeout in seconds.
+
+    Returns:
+        Tuple of (is_relevant, details).
+    """
+    content, fetch_status = fetch_page_text_content(url, timeout)
+    if not content:
+        return False, f"Failed to fetch URL: {fetch_status}"
+
+    if category == "male_5k":
+        question = "Does this webpage contain information about average running speeds or pace for a 5K race (especially for males around age 25)?"
+    elif category == "kipchoge":
+        question = "Does this webpage contain information about Eliud Kipchoge's marathon times or pace?"
+    elif category == "intermediate_male_30_half_marathon":
+        question = "Does this webpage contain information about average running speeds or pace for a half-marathon (especially for intermediate male runners around age 30)?"
+    elif category == "kiplimo":
+        question = "Does this webpage contain information about Jacob Kiplimo's half-marathon times or pace?"
+    elif category == "klaebo":
+        question = "Does this webpage contain information about Johannes Høsflot Klæbo's Nordic skiing race times or pace (e.g. 20 km skiathlon, sprint classic, or related World Cup / Olympic results)?"
+    elif category == "female_5k":
+        question = "Does this webpage contain information about average running speeds or pace for a 5K race (especially for females around age 25)?"
+    elif category == "chebet":
+        question = "Does this webpage contain information about Beatrice Chebet's 5K times or pace?"
+    elif category == "female_daily_miles":
+        question = "Does this webpage contain information about recommended or average daily walking/trekking distance (especially for females or adults around age 25)?"
+    elif category == "adult_sets":
+        question = "Does this webpage contain information about the average or recommended number of workout sets per session for an average adult?"
+    elif category == "cutler":
+        question = "Does this webpage contain information about Jay Cutler's workout sets or training volume?"
+    else:
+        return False, f"Unknown category: {category}"
+
+    truncated_content = content[:5000]
+    messages = [
+        {"role": "system", "content": [{"type": "text", "text": "You are a yes/no classifier. Answer only Yes or No."}]},
+        {"role": "user", "content": [{"type": "text", "text": f"URL: {url}\n\n{question}\n\nContent excerpt:\n{truncated_content}\n\nAnswer Yes or No only:"}]}
+    ]
+    try:
+        response = str(model(messages)).strip().lower()
+        is_relevant = response.startswith("yes")
+        return is_relevant, f"LLM judge: {response[:50]}"
+    except Exception as e:
+        return False, f"LLM judge error: {str(e)[:50]}"
+
+
+def judge_url_pace_match(
+    url: str,
+    category: str,
+    sheet_pace: float,
+    model: Any,
+    timeout: int = 10
+) -> Tuple[bool, str]:
+    """Use LLM as backup judge to decide if a URL's content supports a baseline pace within ~5% of sheet_pace.
+
+    Used when structured pace extraction (extract_and_convert_pace_from_url) returns None
+    for every candidate URL of a category.
+
+    Args:
+        url: URL to fetch and judge.
+        category: Either "male_5k" or "kipchoge".
+        sheet_pace: Baseline pace in min/mile from the user's sheet.
+        model: LLM model with the standard messages interface.
+        timeout: Request timeout in seconds.
+
+    Returns:
+        Tuple of (is_match, details).
+    """
+    content, fetch_status = fetch_page_text_content(url, timeout)
+    if not content:
+        return False, f"Failed to fetch URL: {fetch_status}"
+
+    if category == "male_5k":
+        topic = "an average male 5K running pace (around age 25)"
+    elif category == "kipchoge":
+        topic = "Eliud Kipchoge's marathon pace"
+    elif category == "intermediate_male_30_half_marathon":
+        topic = "an average half-marathon pace for an intermediate male runner (around age 30)"
+    elif category == "kiplimo":
+        topic = "Jacob Kiplimo's half-marathon pace"
+    elif category == "klaebo":
+        topic = "Johannes Høsflot Klæbo's Nordic skiing race pace (averaged across the 20 km skiathlon and the sprint classic, or equivalent)"
+    elif category == "female_5k":
+        topic = "an average female 5K running pace (around age 25)"
+    elif category == "chebet":
+        topic = "Beatrice Chebet's 5K pace"
+    elif category == "female_daily_miles":
+        topic = "average daily walking/trekking distance for a 25-year-old female"
+    elif category == "adult_sets":
+        topic = "average or recommended workout sets per session for an average adult"
+    elif category == "cutler":
+        topic = "Jay Cutler's recommended or typical workout sets per session"
+    else:
+        return False, f"Unknown category: {category}"
+
+    low = sheet_pace * 0.95
+    high = sheet_pace * 1.05
+    truncated_content = content[:5000]
+
+    # Use appropriate unit in prompt based on category
+    if category == "female_daily_miles":
+        unit_str = "miles"
+        equiv_str = "or any equivalent unit like km that converts into that range"
+    elif category in ("adult_sets", "cutler"):
+        unit_str = "sets"
+        equiv_str = "or sets per body part that sum to that range"
+    else:
+        unit_str = "min/mile"
+        equiv_str = "or any equivalent unit like km/h, min/km, or marathon/5K time that converts into that range"
+
+    messages = [
+        {"role": "system", "content": [{"type": "text", "text": "You are a yes/no classifier. Answer only Yes or No."}]},
+        {"role": "user", "content": [{"type": "text", "text": (
+            f"This webpage should describe {topic}. The user's spreadsheet records this baseline as "
+            f"{sheet_pace:.2f} {unit_str}. Does the webpage content support a baseline within roughly 5% of "
+            f"{sheet_pace:.2f} {unit_str} (i.e. {low:.2f}–{high:.2f} {unit_str}, {equiv_str})?\n\n"
+            f"Content excerpt:\n{truncated_content}\n\nAnswer Yes or No only:"
+        )}]}
+    ]
+    try:
+        response = str(model(messages)).strip().lower()
+        is_match = response.startswith("yes")
+        return is_match, f"LLM judge ({sheet_pace:.2f} {unit_str}): {response[:50]}"
+    except Exception as e:
+        return False, f"LLM judge error: {str(e)[:50]}"

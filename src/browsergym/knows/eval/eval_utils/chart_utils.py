@@ -1313,6 +1313,7 @@ def find_chart_by_metadata(
         matched_title = keywords_match_robust(
             texts=chart_titles,
             keywords=title_keywords,
+            substring=True,
             model=model,
             description=title_description if title_description else "chart title"
         )
@@ -1336,6 +1337,7 @@ def find_chart_by_metadata(
             matched_label = keywords_match_robust(
                 texts=labels_only,
                 keywords=y_axis_keywords,
+                substring=True,
                 model=model,
                 description=axis_description if axis_description else "Y-axis label"
             )

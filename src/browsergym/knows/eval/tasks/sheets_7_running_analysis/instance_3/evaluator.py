@@ -61,13 +61,12 @@ from src.browsergym.knows.eval.tasks.sheets_7_running_analysis.utils import (
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/sheets_7_running_analysis/instance_1/")
+TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/sheets_7_running_analysis/instance_3/")
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 # Gold baseline values for checkpoint 3
-MALE_5K_PACE_RANGE = (8.0, 10.0)  # min/mile for 25yo male
-KIPCHOGE_PACE_RANGE = (4.6, 4.65)  # min/mile (4:36-4:39, based on top 3 marathons)
+KLAEBO_PACE_RANGE = (3.6, 3.9)  # min/mile (Johannes Høsflot Klæbo, 2026 Olympics: skiathlon 46:11/20km + sprint 3:39.74/1.585km, avg ~3.72-3.82)
 
 model = None
 model_id = "gemini-2.5-flash-google-ai"
@@ -82,8 +81,7 @@ table_sheet_id = None  # sheetId of the tab containing the data table
 rows = None  # Raw row data from sheet
 matched_columns = None  # Shared across checkpoints
 chart_data = None  # All charts extracted from the sheet
-sheet_male_5k_pace = None  # Male 5K baseline value from sheet (for checkpoint 5)
-sheet_kipchoge_pace = None  # Kipchoge baseline value from sheet (for checkpoint 5)
+sheet_klaebo_pace = None  # Klæbo baseline value from sheet (for checkpoint 5)
 
 
 def setup(workspace_doc_id):
@@ -234,9 +232,9 @@ def grade_checkpoint_2():
     Grade Checkpoint 2: Data Table Content Accuracy (3 pts).
 
     Outcome Evaluation:
-    - All 109 Run activities have exact date match to gold data.
-    - All 109 Run activities have exact distance match to gold data (converted to miles).
-    - All 109 Run activities have exact average speed match to gold data (converted to min/mile).
+    - All 34 Run activities have exact date match to gold data.
+    - All 34 Run activities have exact distance match to gold data (converted to miles).
+    - All 34 Run activities have exact average speed match to gold data (converted to min/mile).
 
     Also identifies which columns contain the converted values (miles, min/mile)
     for use in Checkpoint 3 (charts).
@@ -254,10 +252,10 @@ def grade_checkpoint_2():
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    # Load gold data
+    # Load gold data (Nordic Ski activities for instance_3)
     gold_csv_path = os.path.join(DATA_DIR, "gold_activities.csv")
     try:
-        gold_runs = load_gold_run_activities(gold_csv_path)
+        gold_runs = load_gold_run_activities(gold_csv_path, activity_type='Nordic Ski')
     except Exception as e:
         checkpoint.add_step("Date Match", False, 1, f"Error loading gold data: {str(e)}", execution_time=0)
         checkpoint.add_step("Distance Match", False, 2, "Gold data error", execution_time=0)
@@ -265,8 +263,8 @@ def grade_checkpoint_2():
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    if len(gold_runs) != 109:
-        checkpoint.add_step("Date Match", False, 1, f"Expected 109 Run activities, found {len(gold_runs)}", execution_time=0)
+    if len(gold_runs) != 34:
+        checkpoint.add_step("Date Match", False, 1, f"Expected 34 Nordic Ski activities, found {len(gold_runs)}", execution_time=0)
         checkpoint.add_step("Distance Match", False, 2, "Gold data error", execution_time=0)
         checkpoint.add_step("Speed Match", False, 3, "Gold data error", execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
@@ -291,16 +289,19 @@ def grade_checkpoint_2():
         speed_col = matched_columns.get("Speed (min/mile)")
 
     # Build gold data lookup by normalized date
+    # Each entry: normalized_date -> {distance_km, distance_miles, distance_m, speed_ms, speed_kmh, speed_minmile}
     gold_lookup = {}
     for idx, row in gold_runs.iterrows():
         norm_date = normalize_date(row['Activity Date'])
-        dist_km = row['Distance']  # Already normalized to Distance.1/1000 by load_gold_run_activities
+        dist_km = row['Distance']
         speed_ms = row['Average Speed']
         gold_lookup[norm_date] = {
             'distance_km': dist_km,
             'distance_miles': dist_km / 1.60934,
             'distance_meters': dist_km * 1000,
-            'speed_minmile': 26.8224 / speed_ms if speed_ms > 0 else float('inf'),
+            'speed_ms': speed_ms,
+            'speed_kmh': speed_ms * 3.6,
+            'speed_minmile': 26.8224 / speed_ms if speed_ms > 0 else float('inf')
         }
 
     # Track matches for each criterion
@@ -369,13 +370,13 @@ def grade_checkpoint_2():
 
     # Step 1: Date matching (proportional, out of 10)
     if date_col:
-        date_score = math.floor(date_matches / 109 * 10)
-        all_dates_match = date_matches == 109
+        date_score = math.floor(date_matches / 34 * 10)
+        all_dates_match = date_matches == 34
         checkpoint.add_step(
             "Date Match",
             all_dates_match,
             1,
-            f"{date_matches}/109 dates match ({date_matches/109:.0%}), {date_score}/10 pts",
+            f"{date_matches}/34 dates match ({date_matches/34:.0%}), {date_score}/10 pts",
             score=date_score,
             max_score=10,
             execution_time=per_step_time
@@ -385,8 +386,8 @@ def grade_checkpoint_2():
 
     # Step 2: Distance matching (row-level, proportional, out of 10)
     if dist_col:
-        dist_score = math.floor(distance_matches / 109 * 10)
-        all_dist_match = distance_matches == 109
+        dist_score = math.floor(distance_matches / 34 * 10)
+        all_dist_match = distance_matches == 34
         unit_str = f" ({detected_dist_unit})" if detected_dist_unit else ""
         # Debug: Print failed distance rows
         if DEBUG and failed_distance_rows:
@@ -399,7 +400,7 @@ def grade_checkpoint_2():
             "Distance Match",
             all_dist_match,
             2,
-            f"{distance_matches}/109 distances match ({distance_matches/109:.0%}){unit_str}, {dist_score}/10 pts",
+            f"{distance_matches}/34 distances match ({distance_matches/34:.0%}){unit_str}, {dist_score}/10 pts",
             score=dist_score,
             max_score=10,
             execution_time=per_step_time
@@ -409,14 +410,14 @@ def grade_checkpoint_2():
 
     # Step 3: Speed matching (row-level, proportional, out of 10)
     if speed_col:
-        speed_score = math.floor(speed_matches / 109 * 10)
-        all_speed_match = speed_matches == 109
+        speed_score = math.floor(speed_matches / 34 * 10)
+        all_speed_match = speed_matches == 34
         unit_str = f" ({detected_speed_unit})" if detected_speed_unit else ""
         checkpoint.add_step(
             "Speed Match",
             all_speed_match,
             3,
-            f"{speed_matches}/109 speeds match ({speed_matches/109:.0%}){unit_str}, {speed_score}/10 pts",
+            f"{speed_matches}/34 speeds match ({speed_matches/34:.0%}){unit_str}, {speed_score}/10 pts",
             score=speed_score,
             max_score=10,
             execution_time=per_step_time
@@ -430,30 +431,28 @@ def grade_checkpoint_2():
 
 def grade_checkpoint_3():
     """
-    Grade Checkpoint 3: Speed Over Time Plot (13 steps).
+    Grade Checkpoint 3: Pace Over Time Plot (11 steps).
 
     Outcome Evaluation:
     1. X-axis label indicates activity date
-    2. Y-axis label indicates speed (min/mile or similar)
-    3. Chart title indicates speed over time
+    2. Y-axis label indicates pace (min/mile or similar)
+    3. Chart title indicates pace over time
     4. Chart is not placed over any other charts or tables
     5. Chart main data series comes from the average speed column (min/mile)
-    6. Speed values are present as circular points in the chart
-    7. Male 5K baseline is properly displayed (labeled in legend + dotted/dashed style)
-    8. Male 5K baseline data is constant and within expected range (8-10 min/mile)
-    9. Kipchoge baseline is properly displayed (labeled in legend + dotted/dashed style)
-    10. Kipchoge baseline data is constant and within expected range (4.5-4.8 min/mile)
-    11. Both baselines are visually distinguishable from the main data
-    12. Source URLs are valid and accessible below the speed chart
-    13. Chart is on the same sheet tab as the data table
+    6. Pace values are present as circular points in the chart
+    7. Klæbo baseline is properly displayed (labeled in legend + dotted/dashed style)
+    8. Klæbo baseline data is constant and within expected range (4.5-7.0 min/mile)
+    9. Klæbo baseline is visually distinguishable from the main data
+    10. Source URLs are valid and accessible below the pace chart
+    11. Chart is on the same sheet tab as the data table
     """
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=13, result=0, name="Speed Over Time Plot")
+    checkpoint = Checkpoint(total=11, result=0, name="Pace Over Time Plot")
 
     # Check if any charts exist
     if not chart_data:
         error_msg = "No charts found in spreadsheet"
-        for i in range(1, 14):
+        for i in range(1, 12):
             checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -464,66 +463,42 @@ def grade_checkpoint_3():
     )
 
     if not speed_chart:
-        error_msg = "Could not identify speed chart by title, axis labels, or series data"
-        for i in range(1, 14):
+        error_msg = "Could not identify pace chart by title, axis labels, or series data"
+        for i in range(1, 12):
             checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     chart_type = speed_chart.get('chart_type', 'UNKNOWN')
 
-    # Identify series by content using parallel calls for baseline series
+    # Identify series by content
     df = table_data.df if table_data else None
 
-    # Keywords for identifying each series type
-    male_5k_keywords = ["male", "5k", "5 k", "baseline", "men", "25 year", "25-year", "25yo"]
-    kipchoge_keywords = ["kipchoge", "eliud", "marathon", "world", "record"]
+    # Keywords for identifying the Klæbo baseline series
+    klaebo_keywords = ["klaebo", "klæbo", "johannes", "olympic", "skiathlon", "sprint", "baseline", "world", "record"]
 
-    # Parallel: Identify both baseline series concurrently (they're independent)
-    baseline_tasks = [
-        {
-            'id': 'male_5k',
-            'func': identify_series_by_content,
-            'kwargs': {
-                'chart': speed_chart,
-                'rows': rows,
-                'keywords': male_5k_keywords,
-                'expected_value_range': MALE_5K_PACE_RANGE,
-                'require_constant': True,
-                'model': model,
-                'description': "legend label for male 5K running baseline"
-            }
-        },
-        {
-            'id': 'kipchoge',
-            'func': identify_series_by_content,
-            'kwargs': {
-                'chart': speed_chart,
-                'rows': rows,
-                'keywords': kipchoge_keywords,
-                'expected_value_range': KIPCHOGE_PACE_RANGE,
-                'require_constant': True,
-                'model': model,
-                'description': "legend label for Kipchoge marathon baseline"
-            }
-        },
-    ]
-    baseline_results = parallel_execute(baseline_tasks, max_workers=2)
-    male_5k_idx = baseline_results.get('male_5k')
-    kipchoge_idx = baseline_results.get('kipchoge')
+    klaebo_idx = identify_series_by_content(
+        chart=speed_chart,
+        rows=rows,
+        keywords=klaebo_keywords,
+        expected_value_range=KLAEBO_PACE_RANGE,
+        require_constant=True,
+        model=model,
+        description="legend label for Johannes Høsflot Klæbo Nordic skiing baseline"
+    )
 
-    # Fallback: if Male 5K not found by value range, find by keyword alone for display checks
-    male_5k_candidate_idx = male_5k_idx
-    if male_5k_idx is None and rows is not None:
-        male_5k_candidate_idx = identify_series_by_content(
+    # Fallback: if Klæbo not found by value range, find by keyword alone for display checks
+    klaebo_candidate_idx = klaebo_idx
+    if klaebo_idx is None and rows is not None:
+        klaebo_candidate_idx = identify_series_by_content(
             chart=speed_chart, rows=rows,
-            keywords=male_5k_keywords,
+            keywords=klaebo_keywords,
             require_constant=True, model=model,
-            description="legend label for male 5K running baseline"
+            description="legend label for Johannes Høsflot Klæbo Nordic skiing baseline"
         )
 
-    # Sequential: Identify main data series (depends on both baselines for exclude_indices)
-    exclude_baselines = [i for i in [male_5k_idx, kipchoge_idx] if i is not None]
+    # Sequential: Identify main data series (depends on baseline for exclude_indices)
+    exclude_baselines = [i for i in [klaebo_idx] if i is not None]
     main_idx = identify_series_by_content(
         chart=speed_chart,
         rows=rows,
@@ -609,7 +584,7 @@ def grade_checkpoint_3():
     # Step 2: Y-axis label indicates speed
     y_label_match = keyword_results.get('y_axis', False) if y_label else False
     y_label_keyword_fallback = keywords_match_robust(
-        texts=y_label, keywords=speed_keywords, model=model, description="Y-axis label indicating running speed or pace"
+        texts=y_label, keywords=speed_keywords, model=model, description="Y-axis label indicating skiing speed or pace"
     ) if y_label else False
     has_speed_label = bool(y_label_match) or bool(y_label_keyword_fallback)
     checkpoint.add_step(
@@ -624,7 +599,7 @@ def grade_checkpoint_3():
     title_speed_match = keyword_results.get('title_speed', False) if chart_title else False
     title_time_match = keyword_results.get('title_time', False) if chart_title else False
     title_keyword_fallback = keywords_match_robust(
-        texts=chart_title, keywords=speed_title_keywords + time_title_keywords, model=model, description="chart title indicating running speed or pace over time"
+        texts=chart_title, keywords=speed_title_keywords + time_title_keywords, model=model, description="chart title indicating skiing speed or pace over time"
     ) if chart_title else False
     has_good_title = bool(title_speed_match) or bool(title_time_match) or bool(title_keyword_fallback)
     checkpoint.add_step(
@@ -636,7 +611,10 @@ def grade_checkpoint_3():
     )
 
     # Step 4: Chart not placed over other charts/tables
-    # Workaround: Google Sheets API omits anchor_cell.row when it's 0, causing None + int crash
+    # Workaround: Google Sheets API returns anchor_cell.row=None when a chart is anchored at row 0
+    # (the JSON omits row 0 as the default). check_chart_overlap in eval_utils/chart_utils.py:862-866
+    # then crashes on `None + int`. Filter such charts out of the comparison list before calling.
+    # TODO(eval_utils): fix `chart_utils.check_chart_overlap` to treat None anchor as 0.
     step_start = time.time()
     safe_other_charts = [
         c for c in (chart_data or [])
@@ -683,7 +661,6 @@ def grade_checkpoint_3():
                         main_series_valid = True
                         series_details = f"Main series (index {main_idx}) uses '{speed_col_name}' (column {expected_col_idx})"
                     else:
-                        # Column doesn't match CP2 — fallback: check if series header is a pace/speed column
                         header_label = get_series_header_label(speed_chart, main_idx, rows) if rows else ""
                         header_label_match = keywords_match_robust(
                             texts=header_label, keywords=["pace", "min/mile", "min/mi", "speed"], substring=True
@@ -696,7 +673,6 @@ def grade_checkpoint_3():
                 else:
                     series_details = f"Main series index {main_idx} out of range (only {len(series_list)} series)"
             else:
-                # Fallback: verify via series header label since CP2 didn't populate Speed column
                 header_label = get_series_header_label(speed_chart, main_idx, rows) if rows else ""
                 header_label_match = keywords_match_robust(
                     texts=header_label, keywords=["pace", "min/mile", "min/mi", "speed"], substring=True
@@ -728,197 +704,116 @@ def grade_checkpoint_3():
         execution_time=time.time() - step_start
     )
 
-    # Step 7: Male 5K baseline display check (legend label + line style)
+    # Step 7: Klæbo baseline display check (legend label + line style)
     step_start = time.time()
-    male_5k_display_valid = False
-    male_5k_display_details = "Could not identify Male 5K baseline series"
+    klaebo_display_valid = False
+    klaebo_display_details = "Could not identify Klæbo baseline series"
 
-    if male_5k_candidate_idx is not None and rows is not None:
+    if klaebo_candidate_idx is not None and rows is not None:
         # Get legend label from identified series
-        male_5k_label = get_series_header_label(speed_chart, male_5k_candidate_idx, rows)
-        male_5k_keywords = ["male", "5k", "5 k", "baseline", "average", "men", "25"]
+        klaebo_label = get_series_header_label(speed_chart, klaebo_candidate_idx, rows)
+        klaebo_label_keywords = ["klaebo", "klæbo", "johannes", "olympic", "skiathlon", "sprint", "baseline"]
 
         # Use substring matching for legend labels (faster than LLM, more reliable)
         label_match = keywords_match_robust(
-            texts=male_5k_label,
-            keywords=male_5k_keywords,
+            texts=klaebo_label,
+            keywords=klaebo_label_keywords,
             substring=True  # Check if any keyword is contained in the label
-        ) if male_5k_label else None
+        ) if klaebo_label else None
 
-        # Check line style
-        male_5k_line_style = get_series_line_style(speed_chart, male_5k_candidate_idx)
-        is_dashed = male_5k_line_style and male_5k_line_style.upper() in [
+        # Check line style — task.md requires the baseline to be dotted
+        klaebo_line_style = get_series_line_style(speed_chart, klaebo_candidate_idx)
+        is_dashed = klaebo_line_style and klaebo_line_style.upper() in [
             'DOTTED', 'DASHED', 'LONG_DASHED', 'MEDIUM_DASHED', 'LONG_DASHED_DOTTED'
         ]
 
         if label_match and is_dashed:
-            male_5k_display_valid = True
-            male_5k_display_details = f"Label: '{male_5k_label}', Style: {male_5k_line_style} (series index {male_5k_candidate_idx})"
+            klaebo_display_valid = True
+            klaebo_display_details = f"Label: '{klaebo_label}', Style: {klaebo_line_style} (series index {klaebo_candidate_idx})"
         elif label_match:
-            male_5k_display_details = f"Label: '{male_5k_label}' OK, but line style is {male_5k_line_style or 'SOLID'} (series index {male_5k_candidate_idx})"
+            klaebo_display_details = f"Label: '{klaebo_label}' OK, but line style is {klaebo_line_style or 'SOLID'} (series index {klaebo_candidate_idx})"
         elif is_dashed:
-            male_5k_display_details = f"Line style {male_5k_line_style} OK, but label '{male_5k_label}' doesn't match keywords (series index {male_5k_candidate_idx})"
+            klaebo_display_details = f"Line style {klaebo_line_style} OK, but label '{klaebo_label}' doesn't match keywords (series index {klaebo_candidate_idx})"
         else:
-            male_5k_display_details = f"Label: '{male_5k_label}', Style: {male_5k_line_style or 'SOLID'} - both need improvement (series index {male_5k_candidate_idx})"
+            klaebo_display_details = f"Label: '{klaebo_label}', Style: {klaebo_line_style or 'SOLID'} - both need improvement (series index {klaebo_candidate_idx})"
 
     checkpoint.add_step(
-        "Male 5K Display",
-        male_5k_display_valid,
+        "Klæbo Display",
+        klaebo_display_valid,
         7,
-        male_5k_display_details,
+        klaebo_display_details,
         execution_time=time.time() - step_start
     )
 
-    # Step 8: Male 5K baseline data validation (constant value in range)
+    # Step 8: Klæbo baseline data validation (constant value in range)
     step_start = time.time()
-    global sheet_male_5k_pace
-    male_5k_data_valid = False
-    male_5k_data_details = "Could not identify Male 5K baseline series"
+    global sheet_klaebo_pace
+    klaebo_data_valid = False
+    klaebo_data_details = "Could not identify Klæbo baseline series"
 
-    if male_5k_candidate_idx is not None and rows is not None:
-        male_5k_values = get_series_column_values(speed_chart, male_5k_candidate_idx, rows)
-        if male_5k_values:
-            male_5k_data_valid, _, male_5k_data_details = validate_constant_series(
-                male_5k_values, MALE_5K_PACE_RANGE, tolerance=0.01
+    if klaebo_candidate_idx is not None and rows is not None:
+        klaebo_values = get_series_column_values(speed_chart, klaebo_candidate_idx, rows)
+        if klaebo_values:
+            klaebo_data_valid, _, klaebo_data_details = validate_constant_series(
+                klaebo_values, KLAEBO_PACE_RANGE, tolerance=0.01
             )
             # Store the baseline value for use in checkpoint 5
-            if male_5k_values:
-                sheet_male_5k_pace = male_5k_values[0]  # Constant series, all values same
+            if klaebo_values:
+                sheet_klaebo_pace = klaebo_values[0]  # Constant series, all values same
         else:
-            male_5k_data_details = f"Could not extract values from baseline series (index {male_5k_candidate_idx})"
-    elif male_5k_candidate_idx is not None:
-        male_5k_data_details = "Sheet rows unavailable from setup() — cannot extract baseline values"
+            klaebo_data_details = f"Could not extract values from baseline series (index {klaebo_candidate_idx})"
+    elif klaebo_candidate_idx is not None:
+        klaebo_data_details = "Sheet rows unavailable from setup() — cannot extract baseline values"
 
     checkpoint.add_step(
-        "Male 5K Data",
-        male_5k_data_valid,
+        "Klæbo Data",
+        klaebo_data_valid,
         8,
-        male_5k_data_details,
+        klaebo_data_details,
         execution_time=time.time() - step_start
     )
 
-    # Step 9: Kipchoge baseline display check (legend label only - no line style requirement per task.md)
+    # Step 9: Klæbo baseline visually distinguishable from main data
     step_start = time.time()
-    kipchoge_display_valid = False
-    kipchoge_display_details = "Could not identify Kipchoge baseline series"
+    baseline_distinguishable = False
+    distinguishable_details = "Need both series identified (main, Klæbo)"
 
-    if kipchoge_idx is not None and rows is not None:
-        # Get legend label from identified series
-        kipchoge_label = get_series_header_label(speed_chart, kipchoge_idx, rows)
-        kipchoge_keywords = ["kipchoge", "eliud", "marathon", "world", "record"]
-
-        # Use substring matching for legend labels (faster than LLM, more reliable)
-        label_match = keywords_match_robust(
-            texts=kipchoge_label,
-            keywords=kipchoge_keywords,
-            substring=True  # Check if any keyword is contained in the label
-        ) if kipchoge_label else None
-
-        # Get line style for informational purposes only
-        kipchoge_line_style = get_series_line_style(speed_chart, kipchoge_idx)
-
-        if label_match:
-            kipchoge_display_valid = True
-            kipchoge_display_details = f"Label: '{kipchoge_label}', Style: {kipchoge_line_style or 'SOLID'} (series index {kipchoge_idx})"
-        else:
-            kipchoge_display_details = f"Label '{kipchoge_label}' doesn't match Kipchoge keywords (series index {kipchoge_idx})"
-
-    checkpoint.add_step(
-        "Kipchoge Display",
-        kipchoge_display_valid,
-        9,
-        kipchoge_display_details,
-        execution_time=time.time() - step_start
-    )
-
-    # Step 10: Kipchoge baseline data validation (constant value in range)
-    step_start = time.time()
-    global sheet_kipchoge_pace
-    kipchoge_data_valid = False
-    kipchoge_data_details = "Could not identify Kipchoge baseline series"
-
-    if kipchoge_idx is not None and rows is not None:
-        kipchoge_values = get_series_column_values(speed_chart, kipchoge_idx, rows)
-        if kipchoge_values:
-            kipchoge_data_valid, _, kipchoge_data_details = validate_constant_series(
-                kipchoge_values, KIPCHOGE_PACE_RANGE, tolerance=0.01
-            )
-            # Store the baseline value for use in checkpoint 5
-            if kipchoge_values:
-                sheet_kipchoge_pace = kipchoge_values[0]  # Constant series, all values same
-        else:
-            kipchoge_data_details = f"Could not extract values from baseline series (index {kipchoge_idx})"
-    elif kipchoge_idx is not None:
-        kipchoge_data_details = "Sheet rows unavailable from setup() — cannot extract baseline values"
-
-    checkpoint.add_step(
-        "Kipchoge Data",
-        kipchoge_data_valid,
-        10,
-        kipchoge_data_details,
-        execution_time=time.time() - step_start
-    )
-
-    # Step 11: Both baselines visually distinguishable from main data AND from each other
-    # Per task.md: only male 5K needs to be dotted, Kipchoge just needs to be distinguishable
-    step_start = time.time()
-    baselines_distinguishable = False
-    distinguishable_details = "Need all three series identified (main, male 5K, Kipchoge)"
-
-    if main_idx is not None and male_5k_candidate_idx is not None and kipchoge_idx is not None:
-        # Get line styles for all series
+    if main_idx is not None and klaebo_candidate_idx is not None:
         main_line_style = get_series_line_style(speed_chart, main_idx)
-        male_5k_style = get_series_line_style(speed_chart, male_5k_candidate_idx)
-        kipchoge_style = get_series_line_style(speed_chart, kipchoge_idx)
-
-        # Get colors for all series
+        klaebo_style = get_series_line_style(speed_chart, klaebo_candidate_idx)
         main_color = get_series_color(speed_chart, main_idx)
-        male_5k_color = get_series_color(speed_chart, male_5k_candidate_idx)
-        kipchoge_color = get_series_color(speed_chart, kipchoge_idx)
+        klaebo_color = get_series_color(speed_chart, klaebo_candidate_idx)
 
-        # Per task.md: only male 5K baseline needs to be dotted/dashed
-        male_5k_is_styled = male_5k_style and male_5k_style.upper() != 'SOLID'
+        # Per task.md: Klæbo baseline must be dotted/dashed (the only baseline)
+        klaebo_is_styled = klaebo_style and klaebo_style.upper() != 'SOLID'
 
-        # Check if baselines are distinguishable from each other (different styles OR different colors)
-        baselines_have_different_styles = male_5k_style != kipchoge_style
-        baselines_have_different_colors = not colors_are_similar(male_5k_color or {}, kipchoge_color or {})
-        baselines_distinguishable_from_each_other = baselines_have_different_styles or baselines_have_different_colors
+        # Klæbo distinguishable from main (different style OR different color)
+        klaebo_different_style = main_line_style != klaebo_style
+        klaebo_different_color = not colors_are_similar(main_color or {}, klaebo_color or {})
+        klaebo_distinguishable_from_main = klaebo_different_style or klaebo_different_color
 
-        # Check if Kipchoge is distinguishable from main data (different style OR different color)
-        kipchoge_different_from_main_style = main_line_style != kipchoge_style
-        kipchoge_different_from_main_color = not colors_are_similar(main_color or {}, kipchoge_color or {})
-        kipchoge_distinguishable_from_main = kipchoge_different_from_main_style or kipchoge_different_from_main_color
-
-        # All conditions must be met:
-        # 1. Male 5K baseline is dotted/dashed (per task.md requirement)
-        # 2. Baselines are distinguishable from each other (different style OR different color)
-        # 3. Kipchoge is distinguishable from main data (different style OR different color)
-        if male_5k_is_styled and baselines_distinguishable_from_each_other and kipchoge_distinguishable_from_main:
-            baselines_distinguishable = True
+        if klaebo_is_styled and klaebo_distinguishable_from_main:
+            baseline_distinguishable = True
             distinguishable_details = (
-                f"Male 5K: {male_5k_style} (dotted per task.md), "
-                f"Kipchoge: {kipchoge_style or 'SOLID'}, Main: {main_line_style or 'SOLID'}"
+                f"Klæbo: {klaebo_style} (dotted per task.md), Main: {main_line_style or 'SOLID'}"
             )
         else:
-            # Build detailed failure message
             issues = []
-            if not male_5k_is_styled:
-                issues.append(f"Male 5K not dotted/dashed ({male_5k_style or 'SOLID'})")
-            if not baselines_distinguishable_from_each_other:
-                issues.append(f"baselines not distinguishable from each other")
-            if not kipchoge_distinguishable_from_main:
-                issues.append(f"Kipchoge not distinguishable from main data")
+            if not klaebo_is_styled:
+                issues.append(f"Klæbo not dotted/dashed ({klaebo_style or 'SOLID'})")
+            if not klaebo_distinguishable_from_main:
+                issues.append("Klæbo not distinguishable from main data")
             distinguishable_details = f"Issues: {'; '.join(issues)}"
 
     checkpoint.add_step(
-        "Baselines Distinguishable",
-        baselines_distinguishable,
-        11,
+        "Baseline Distinguishable",
+        baseline_distinguishable,
+        9,
         distinguishable_details,
         execution_time=time.time() - step_start
     )
 
-    # Step 12: Source URLs valid and accessible below chart
+    # Step 10: Source URLs valid and accessible below chart
     step_start = time.time()
     urls_valid = False
     url_details = "No URLs found in spreadsheet"
@@ -930,8 +825,10 @@ def grade_checkpoint_3():
         anchor_row = anchor_cell.get('row') if anchor_cell else None
         chart_height = chart_position.get('height')
         if chart_position.get('type') == 'overlay' and anchor_row is not None and chart_height:
+            # Chart is overlaid on the data sheet — search below it
             search_start_row = anchor_row + (chart_height // 20) + 1
         else:
+            # Chart is on a separate tab or position unknown — search below the data table
             search_start_row = table_data.end_row if table_data else 0
 
         urls = find_urls_in_sheet(rows, search_start_row, num_rows=50)
@@ -955,12 +852,12 @@ def grade_checkpoint_3():
     checkpoint.add_step(
         "Source URLs Valid",
         urls_valid,
-        12,
+        10,
         url_details,
         execution_time=time.time() - step_start
     )
 
-    # Step 13: Chart is on the same sheet tab as the data table
+    # Step 11: Chart is on the same sheet tab as the data table
     chart_tab_id = speed_chart.get('sheet_id')
     chart_position = speed_chart.get('position', {})
     chart_on_same_tab = False
@@ -981,7 +878,7 @@ def grade_checkpoint_3():
     checkpoint.add_step(
         "Chart on Same Tab",
         chart_on_same_tab,
-        13,
+        11,
         same_tab_details,
         execution_time=0
     )
@@ -992,7 +889,7 @@ def grade_checkpoint_3():
 
 def grade_checkpoint_4():
     """
-    Grade Checkpoint 4: Cumulative Distance Plot (6 pts).
+    Grade Checkpoint 4: Cumulative Distance Plot (7 pts).
 
     Outcome Evaluation:
     1. X-axis label indicates activity date
@@ -1129,6 +1026,8 @@ def grade_checkpoint_4():
     )
 
     # Step 4: Chart not placed over other charts/tables
+    # Workaround: see CP3 step 4 — check_chart_overlap crashes on charts with row=None anchor.
+    # TODO(eval_utils): fix `chart_utils.check_chart_overlap` to treat None anchor as 0.
     step_start = time.time()
     df = table_data.df if table_data else None
     safe_other_charts = [
@@ -1228,223 +1127,132 @@ def grade_checkpoint_4():
 
 def grade_checkpoint_5(browsing_history=None):
     """
-    Grade Checkpoint 5: Website Visit Validation (4 pts).
+    Grade Checkpoint 5: Website Visit Validation (2 pts).
 
-    Validates that the agent visited required websites to gather baseline data.
+    Validates that the agent visited the required website to gather Klæbo's race data.
 
     Outcome Evaluation:
-    - A source URL for male 5K running speed was visited.
-    - A source URL for Eliud Kipchoge marathon data was visited.
-    - Male 5K source URL contains relevant pace/speed information.
-    - Kipchoge source URL contains relevant marathon time information.
+    - A source URL for Klæbo's race data was visited.
+    - Klæbo source URL content matches the sheet baseline within 5%.
     """
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=4, result=0, name="Website Visit Validation")
+    checkpoint = Checkpoint(total=2, result=0, name="Website Visit Validation")
 
     if not browsing_history:
-        checkpoint.add_step("Male 5K URL Visited", False, 1, "No browsing history provided", execution_time=0)
-        checkpoint.add_step("Kipchoge URL Visited", False, 2, "No browsing history provided", execution_time=0)
-        checkpoint.add_step("Male 5K Content Valid", False, 3, "No browsing history provided", execution_time=0)
-        checkpoint.add_step("Kipchoge Content Valid", False, 4, "No browsing history provided", execution_time=0)
+        checkpoint.add_step("Klæbo URL Visited", False, 1, "No browsing history provided", execution_time=0)
+        checkpoint.add_step("Klæbo Content Valid", False, 2, "No browsing history provided", execution_time=0)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     browsing_lower = [url.lower() for url in browsing_history]
 
-    # Keywords for identifying relevant URLs
-    male_5k_keywords = ['5k', '5-k', 'running', 'pace', 'speed', 'average', 'runner', 'race time']
-    kipchoge_keywords = ['kipchoge', 'eliud', 'marathon record', 'world record marathon']
+    # Keywords for identifying relevant Klæbo URLs
+    klaebo_keywords = ['klaebo', 'klæbo', 'johannes', 'olympic', 'skiathlon', 'sprint', 'cross-country', 'cross country', 'nordic']
 
-    # Find candidate URLs for each category
-    male_5k_urls = []
-    kipchoge_urls = []
-    male_5k_judge_details = ""
-    kipchoge_judge_details = ""
+    # Find candidate URLs
+    klaebo_urls = []
+    klaebo_judge_details = ""
 
     for i, url_lower in enumerate(browsing_lower):
         original_url = browsing_history[i]
-        if any(kw in url_lower for kw in male_5k_keywords):
-            male_5k_urls.append(original_url)
-        if any(kw in url_lower for kw in kipchoge_keywords):
-            kipchoge_urls.append(original_url)
+        if any(kw in url_lower for kw in klaebo_keywords):
+            klaebo_urls.append(original_url)
 
-    # LLM-as-judge backup: if either category has no URL keyword hit, judge each
-    # browsing URL by content. Promote any "Yes" hits into the candidate list.
+    # LLM-as-judge backup: if no URL keyword hit, judge each browsing URL by content.
     judge_step_start = time.time()
-    if model and (not male_5k_urls or not kipchoge_urls):
-        judge_tasks = []
-        for original_url in browsing_history[:6]:
-            if not male_5k_urls:
-                judge_tasks.append({
-                    'id': f'judge_male_5k|{original_url}',
-                    'func': judge_url_relevance,
-                    'args': (original_url, 'male_5k', model),
-                })
-            if not kipchoge_urls:
-                judge_tasks.append({
-                    'id': f'judge_kipchoge|{original_url}',
-                    'func': judge_url_relevance,
-                    'args': (original_url, 'kipchoge', model),
-                })
+    if model and not klaebo_urls:
+        judge_tasks = [
+            {
+                'id': f'judge_klaebo|{u}',
+                'func': judge_url_relevance,
+                'args': (u, 'klaebo', model),
+            }
+            for u in browsing_history[:6]
+        ]
         if judge_tasks:
             judge_results = parallel_execute(judge_tasks, max_workers=6)
             for original_url in browsing_history[:6]:
-                if not male_5k_urls:
-                    male_judgement = judge_results.get(f'judge_male_5k|{original_url}')
-                    if male_judgement and male_judgement[0]:
-                        male_5k_urls.append(original_url)
-                        male_5k_judge_details = " (LLM-judged)"
-                if not kipchoge_urls:
-                    kip_judgement = judge_results.get(f'judge_kipchoge|{original_url}')
-                    if kip_judgement and kip_judgement[0]:
-                        kipchoge_urls.append(original_url)
-                        kipchoge_judge_details = " (LLM-judged)"
+                judgement = judge_results.get(f'judge_klaebo|{original_url}')
+                if judgement and judgement[0]:
+                    klaebo_urls.append(original_url)
+                    klaebo_judge_details = " (LLM-judged)"
     judge_time = time.time() - judge_step_start
 
-    # Step 1: Male 5K URL visited
-    male_5k_visited = len(male_5k_urls) > 0
+    # Step 1: Klæbo URL visited
+    klaebo_visited = len(klaebo_urls) > 0
     checkpoint.add_step(
-        "Male 5K URL Visited",
-        male_5k_visited,
+        "Klæbo URL Visited",
+        klaebo_visited,
         1,
-        f"Found {len(male_5k_urls)} relevant URL(s){male_5k_judge_details}" if male_5k_visited else "No male 5K running URL found in browsing history (keyword + LLM judge)",
-        execution_time=judge_time / 2
+        f"Found {len(klaebo_urls)} relevant URL(s){klaebo_judge_details}" if klaebo_visited else "No Klæbo URL found in browsing history (keyword + LLM judge)",
+        execution_time=judge_time
     )
 
-    # Step 2: Kipchoge URL visited
-    kipchoge_visited = len(kipchoge_urls) > 0
-    checkpoint.add_step(
-        "Kipchoge URL Visited",
-        kipchoge_visited,
-        2,
-        f"Found {len(kipchoge_urls)} relevant URL(s){kipchoge_judge_details}" if kipchoge_visited else "No Kipchoge marathon URL found in browsing history (keyword + LLM judge)",
-        execution_time=judge_time / 2
-    )
-
-    # Steps 3-4: URL content validation - parallelize all URL pace extractions
+    # Step 2: Klæbo URL content validation
     step_start = time.time()
     tolerance_percent = 0.05  # 5% tolerance
 
-    # Build parallel tasks for all URL pace extractions
     url_tasks = []
-    if sheet_male_5k_pace and male_5k_urls and model:
-        for url in male_5k_urls[:3]:
+    if sheet_klaebo_pace and klaebo_urls and model:
+        for url in klaebo_urls[:3]:
             url_tasks.append({
-                'id': f'male_5k|{url}',
+                'id': f'klaebo|{url}',
                 'func': extract_and_convert_pace_from_url,
-                'args': (url, 'male_5k', model),
-            })
-    if sheet_kipchoge_pace and kipchoge_urls and model:
-        for url in kipchoge_urls[:3]:
-            url_tasks.append({
-                'id': f'kipchoge|{url}',
-                'func': extract_and_convert_pace_from_url,
-                'args': (url, 'kipchoge', model),
+                'args': (url, 'klaebo', model),
             })
 
-    # Execute all URL extractions in parallel
     if url_tasks:
         url_results = parallel_execute(url_tasks, max_workers=6)
     else:
         url_results = {}
     url_time = time.time() - step_start
 
-    # Process results for Male 5K
-    male_5k_content_valid = False
-    male_5k_content_details = "No male 5K URLs to check"
-    male_5k_extraction_failed_for_all = False
+    klaebo_content_valid = False
+    klaebo_content_details = "No Klæbo URLs to check"
+    klaebo_extraction_failed_for_all = False
 
-    if not sheet_male_5k_pace or sheet_male_5k_pace <= 0:
-        male_5k_content_details = "No Male 5K baseline value found in sheet (checkpoint 3 may have failed)"
+    if not sheet_klaebo_pace or sheet_klaebo_pace <= 0:
+        klaebo_content_details = "No Klæbo baseline value found in sheet (checkpoint 3 may have failed)"
     elif not model:
-        male_5k_content_details = "Model not available for content validation"
-    elif male_5k_urls:
-        male_5k_extraction_failed_for_all = True
-        for url in male_5k_urls[:3]:
-            result = url_results.get(f'male_5k|{url}')
+        klaebo_content_details = "Model not available for content validation"
+    elif klaebo_urls:
+        klaebo_extraction_failed_for_all = True
+        for url in klaebo_urls[:3]:
+            result = url_results.get(f'klaebo|{url}')
             if result is not None:
                 pace, details = result
                 if pace is not None:
-                    male_5k_extraction_failed_for_all = False
-                    diff_percent = abs(pace - sheet_male_5k_pace) / sheet_male_5k_pace
+                    klaebo_extraction_failed_for_all = False
+                    diff_percent = abs(pace - sheet_klaebo_pace) / sheet_klaebo_pace
                     if diff_percent <= tolerance_percent:
-                        male_5k_content_valid = True
-                        male_5k_content_details = f"URL pace {pace:.2f} matches sheet value {sheet_male_5k_pace:.2f} min/mile ({diff_percent*100:.1f}% diff)"
+                        klaebo_content_valid = True
+                        klaebo_content_details = f"URL pace {pace:.2f} matches sheet value {sheet_klaebo_pace:.2f} min/mile ({diff_percent*100:.1f}% diff)"
                         break
                     else:
-                        male_5k_content_details = f"URL pace {pace:.2f} differs from sheet value {sheet_male_5k_pace:.2f} by {diff_percent*100:.1f}% (max 5%)"
+                        klaebo_content_details = f"URL pace {pace:.2f} differs from sheet value {sheet_klaebo_pace:.2f} by {diff_percent*100:.1f}% (max 5%)"
                 else:
-                    male_5k_content_details = details
+                    klaebo_content_details = details
 
     # Backup: LLM-as-judge if structured extraction returned None for every URL
-    if (not male_5k_content_valid
-            and male_5k_extraction_failed_for_all
-            and sheet_male_5k_pace and sheet_male_5k_pace > 0
-            and model and male_5k_urls):
-        for url in male_5k_urls[:3]:
-            judged, judge_details = judge_url_pace_match(url, 'male_5k', sheet_male_5k_pace, model)
+    if (not klaebo_content_valid
+            and klaebo_extraction_failed_for_all
+            and sheet_klaebo_pace and sheet_klaebo_pace > 0
+            and model and klaebo_urls):
+        for url in klaebo_urls[:3]:
+            judged, judge_details = judge_url_pace_match(url, 'klaebo', sheet_klaebo_pace, model)
             if judged:
-                male_5k_content_valid = True
-                male_5k_content_details = f"LLM judge backup: {judge_details}"
+                klaebo_content_valid = True
+                klaebo_content_details = f"LLM judge backup: {judge_details}"
                 break
             else:
-                male_5k_content_details = f"LLM judge backup: {judge_details}"
+                klaebo_content_details = f"LLM judge backup: {judge_details}"
 
     checkpoint.add_step(
-        "Male 5K Content Valid",
-        male_5k_content_valid,
-        3,
-        male_5k_content_details,
-        execution_time=url_time / 2 if url_tasks else 0
-    )
-
-    # Process results for Kipchoge
-    kipchoge_content_valid = False
-    kipchoge_content_details = "No Kipchoge URLs to check"
-    kipchoge_extraction_failed_for_all = False
-
-    if not sheet_kipchoge_pace or sheet_kipchoge_pace <= 0:
-        kipchoge_content_details = "No Kipchoge baseline value found in sheet (checkpoint 3 may have failed)"
-    elif not model:
-        kipchoge_content_details = "Model not available for content validation"
-    elif kipchoge_urls:
-        kipchoge_extraction_failed_for_all = True
-        for url in kipchoge_urls[:3]:
-            result = url_results.get(f'kipchoge|{url}')
-            if result is not None:
-                pace, details = result
-                if pace is not None:
-                    kipchoge_extraction_failed_for_all = False
-                    diff_percent = abs(pace - sheet_kipchoge_pace) / sheet_kipchoge_pace
-                    if diff_percent <= tolerance_percent:
-                        kipchoge_content_valid = True
-                        kipchoge_content_details = f"URL pace {pace:.2f} matches sheet value {sheet_kipchoge_pace:.2f} min/mile ({diff_percent*100:.1f}% diff)"
-                        break
-                    else:
-                        kipchoge_content_details = f"URL pace {pace:.2f} differs from sheet value {sheet_kipchoge_pace:.2f} by {diff_percent*100:.1f}% (max 5%)"
-                else:
-                    kipchoge_content_details = details
-
-    # Backup: LLM-as-judge if structured extraction returned None for every URL
-    if (not kipchoge_content_valid
-            and kipchoge_extraction_failed_for_all
-            and sheet_kipchoge_pace and sheet_kipchoge_pace > 0
-            and model and kipchoge_urls):
-        for url in kipchoge_urls[:3]:
-            judged, judge_details = judge_url_pace_match(url, 'kipchoge', sheet_kipchoge_pace, model)
-            if judged:
-                kipchoge_content_valid = True
-                kipchoge_content_details = f"LLM judge backup: {judge_details}"
-                break
-            else:
-                kipchoge_content_details = f"LLM judge backup: {judge_details}"
-
-    checkpoint.add_step(
-        "Kipchoge Content Valid",
-        kipchoge_content_valid,
-        4,
-        kipchoge_content_details,
-        execution_time=url_time / 2 if url_tasks else 0
+        "Klæbo Content Valid",
+        klaebo_content_valid,
+        2,
+        klaebo_content_details,
+        execution_time=url_time
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
