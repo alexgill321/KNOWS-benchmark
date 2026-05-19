@@ -416,8 +416,16 @@ def _extract_links_from_text_element(text_element: Dict[str, Any]) -> List[str]:
 
     # Pattern to match URLs in plain text
     url_pattern = re.compile(
-        r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+        r'(?:'
+        r'https?://[^\s<>"\'\)]+'                                      # scheme-prefixed
+        r'|'
+        r'www\.[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,}(?:/[^\s<>"\'\)]*)?'   # www.example.com
+        r'|'
+        r'\b[a-zA-Z0-9][a-zA-Z0-9-]*\.(?:com|org|net|edu|gov|io|co|me|info|biz|tech|app|dev|ai|tv|store|shop|blog|news|us|uk|de|fr|jp|cn|au|ca|nz|in|br|mx|ru|kr|za|sg|hk|tw|nl|se|no|dk|fi|es|it|pl|tr|ie|pt|be|at|ch|cz|hu|ro|bg|ua)\b(?:/[^\s<>"\'\)]*)?'  # bare domain
+        r')',
+        re.IGNORECASE,
     )
+
 
     for text_run in text_element.get('textElements', []):
         if 'textRun' in text_run:

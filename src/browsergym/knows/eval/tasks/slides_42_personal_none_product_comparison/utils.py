@@ -219,3 +219,14 @@ def download_images_from_url(url, folder):
         # printing every failed URL when partial successes occurred).
         print(f"download_images_from_url: {len(download_errors)} image(s) failed for {url}; first error: {download_errors[0]}")
     return downloaded_files
+
+def ensure_scheme(url: str, default: str = "https") -> str:
+    """Prepend a scheme if missing. Returns unchanged if url is None/empty."""
+    if not url:
+        return url
+    url = url.strip()
+    if url.startswith(("http://", "https://")):
+        return url
+    if url.startswith("//"):
+        return f"{default}:{url}"
+    return f"{default}://{url}"

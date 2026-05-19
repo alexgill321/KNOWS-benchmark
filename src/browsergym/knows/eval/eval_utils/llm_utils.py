@@ -6,7 +6,10 @@ and multi-type evaluation helpers.
 """
 
 import json
+import re
 from typing import Any, Dict, List, Literal, Optional, Union
+
+_TRAILING_COMMA_RE = re.compile(r',(\s*[\]}])')
 
 
 def strip_markdown_code_blocks(text: str) -> str:
@@ -105,6 +108,7 @@ def extract_json_from_llm_response(
             if start_idx != -1 and end_idx != -1:
                 response = response[start_idx:end_idx + 1]
 
+        response = _TRAILING_COMMA_RE.sub(r'\1', response)
         return json.loads(response)
 
     except json.JSONDecodeError as e:

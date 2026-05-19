@@ -50,6 +50,7 @@ from src.browsergym.knows.eval.eval_utils.web_utils import fetch_url_content
 
 from src.browsergym.knows.eval.tasks.slides_42_personal_none_product_comparison.utils import (
     detect_color_name,
+    ensure_scheme,
     extract_device_info_with_llm,
     evaluate_device_info_with_llm,
     validate_rankings,
@@ -64,7 +65,7 @@ DATA_DIR = os.path.join(TASK_DIR, "data")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 GOLD_IMAGES_DIR = os.path.join(DATA_DIR, "gold_images")
 model = None
-model_id = "gemini-2.5-flash-google-ai"
+model_id = "gemini-3-flash-google-ai"
 
 DRIVE_SERVICE, SLIDES_SERVICE = initialize_google_services(service_type="slides")
 
@@ -482,10 +483,10 @@ def grade_checkpoint_3():
 
     category_keyword_list = [
         ["Paper quality", "ink", "gel pen", "bleed", "ghosting"],
-        ["Durability", "lab", "field", "rugged", "hardcover"],
+        ["Durability", "rugged", "hardcover", "resistant", "waterproof"],
         ["Page layout", "dotted", "lined", "blank", "sketches"],
         ["Indexing", "organization", "table of contents", "page numbers"],
-        ["Size", "portability", "carry", "lab", "library", "class"],
+        ["Size", "portability", "carry"],
     ]
     
     if model is None:
@@ -516,33 +517,38 @@ def grade_checkpoint_4():
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=24, result=0, name="Device Slides")
 
-    step_names_per_device = [
+    # Step names are grouped by emission phase. The success path emits these in
+    # phase-major, device-major order (phase 1 for D1/D2/D3, then phase 2 for
+    # D1/D2/D3, then phase 3 for D1/D2/D3), so the early-exit mirrors that
+    # ordering to keep step_id -> step_name mapping consistent across paths.
+    phase_1_steps = [
         "Device Name as Title",
         "Source Link(s) in Slide",
         "Product Images",
-        "Key Features",
-        "Pros",
-        "Cons",
         "Product Images From Sources",
-        "Content From Sources",
     ]
+    phase_2_steps = ["Key Features", "Pros", "Cons"]
+    phase_3_steps = ["Content From Sources"]
+    num_devices = len(gold_devices) if gold_devices else 3
 
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
         step_id = 1
-        for device in gold_devices:
-            for name in step_names_per_device:
-                checkpoint.add_step(f"{device} - {name}", False, step_id, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
-                step_id += 1
+        for phase_steps in (phase_1_steps, phase_2_steps, phase_3_steps):
+            for i in range(num_devices):
+                for name in phase_steps:
+                    checkpoint.add_step(f"Device {i+1} - {name}", False, step_id, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
+                    step_id += 1
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     slides = presentation_data.get('slides', [])
     if len(slides) < 6:
         step_id = 1
-        for device in gold_devices:
-            for name in step_names_per_device:
-                checkpoint.add_step(f"{device} - {name}", False, step_id, "Device slides missing or not in the correct order", execution_time=time.time() - checkpoint_start)
-                step_id += 1
+        for phase_steps in (phase_1_steps, phase_2_steps, phase_3_steps):
+            for i in range(num_devices):
+                for name in phase_steps:
+                    checkpoint.add_step(f"Device {i+1} - {name}", False, step_id, "Device slides missing or not in the correct order", execution_time=time.time() - checkpoint_start)
+                    step_id += 1
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
     
@@ -618,6 +624,7 @@ def grade_checkpoint_4():
         step_start = time.time()
         try:
             slide_links = extract_slide_links(slide)
+            slide_links = [ensure_scheme(link) for link in slide_links]
         except Exception as e:
             print(f"        Error extracting slide links: {e}")
             slide_links = []
@@ -657,8 +664,8 @@ def grade_checkpoint_4():
             valid_image_count = 0
             image_from_different_angle = None
 
-            if len(images) < 2:
-                valid_images_detail = f"Required 2 images, but got {len(images)}"
+            if len(images) == 0:
+                valid_images_detail = f"No images found on the slide"
             else:
                 os.makedirs(temp_dir, exist_ok=True)
                 try:
@@ -679,56 +686,67 @@ def grade_checkpoint_4():
                                 print(f"        Failed to save slide image {idx}: {e}")
 
                     examples_path = os.path.join(GOLD_IMAGES_DIR, ref_image_folder) if ref_image_folder else None
-                    if slide_image_paths and (examples_path is None or os.path.isdir(examples_path)):
-                        binary_judge_tasks = [
-                            {
-                                "id": idx,
-                                "func": binary_judge_image,
-                                "args": (model, img_path, "Is this an image of a notebook of the same or similar model as those in the examples?", examples_path),
-                            }
-                            for idx, img_path in enumerate(slide_image_paths)
-                        ]
-                        try:
-                            binary_judge_results = parallel_execute(binary_judge_tasks)
-                        except Exception as e:
-                            print(f"        binary_judge_image parallel_execute failed: {e}")
-                            binary_judge_results = {}
-                        for j in binary_judge_results:
-                            if valid_image_count == 2:
-                                break
-                            if binary_judge_results[j]:
-                                valid_image_count += 1
-
-                        # Different-angle check (move first slide image aside as the example reference).
-                        temp_example_dir = os.path.join(DATA_DIR, "temp_example")
-                        if os.path.exists(temp_example_dir):
-                            shutil.rmtree(temp_example_dir, ignore_errors=True)
-                        os.makedirs(temp_example_dir, exist_ok=True)
-                        try:
-                            if slide_image_paths:
-                                shutil.copy2(slide_image_paths[0], temp_example_dir)
-                                try:
-                                    os.remove(slide_image_paths[0])
-                                except OSError:
-                                    pass
+                    if slide_image_paths and os.path.isdir(examples_path):
+                        if len(slide_image_paths) == 1:
+                            binary_judge_results = binary_judge_image(
+                                model,
+                                slide_image_paths[0],
+                                "Does this image show exactly two views of the same or similar notebooks as shown in the examples?",
+                                examples_path,
+                            )
+                            if binary_judge_results:
+                                valid_image_count = 2
+                                image_from_different_angle = True
+                        elif len(slide_image_paths) > 1:
+                            binary_judge_tasks = [
+                                {
+                                    "id": idx,
+                                    "func": binary_judge_image,
+                                    "args": (model, img_path, "Is this an image of a notebook of the same or similar model as those in the examples?", examples_path),
+                                }
+                                for idx, img_path in enumerate(slide_image_paths)
+                            ]
                             try:
-                                image_from_different_angle = binary_judge_image(
-                                    model,
-                                    temp_dir,
-                                    "Is this image showing the notebook from a different perspective or angle compared to the example?",
-                                    temp_example_dir,
-                                )
+                                binary_judge_results = parallel_execute(binary_judge_tasks)
                             except Exception as e:
-                                print(f"        Different-angle check failed: {e}")
-                                image_from_different_angle = None
-                            for f in os.listdir(temp_example_dir):
-                                try:
-                                    shutil.move(os.path.join(temp_example_dir, f), temp_dir)
-                                except Exception as e:
-                                    print(f"        Could not restore example image: {e}")
-                        finally:
+                                print(f"        binary_judge_image parallel_execute failed: {e}")
+                                binary_judge_results = {}
+                            for j in binary_judge_results:
+                                if valid_image_count == 2:
+                                    break
+                                if binary_judge_results[j]:
+                                    valid_image_count += 1
+
+                            # Different-angle check (move first slide image aside as the example reference).
+                            temp_example_dir = os.path.join(DATA_DIR, "temp_example")
                             if os.path.exists(temp_example_dir):
                                 shutil.rmtree(temp_example_dir, ignore_errors=True)
+                            os.makedirs(temp_example_dir, exist_ok=True)
+                            try:
+                                if slide_image_paths:
+                                    shutil.copy2(slide_image_paths[0], temp_example_dir)
+                                    try:
+                                        os.remove(slide_image_paths[0])
+                                    except OSError:
+                                        pass
+                                try:
+                                    image_from_different_angle = binary_judge_image(
+                                        model,
+                                        temp_dir,
+                                        "Is this image showing the notebook from a different perspective or angle compared to the example?",
+                                        temp_example_dir,
+                                    )
+                                except Exception as e:
+                                    print(f"        Different-angle check failed: {e}")
+                                    image_from_different_angle = None
+                                for f in os.listdir(temp_example_dir):
+                                    try:
+                                        shutil.move(os.path.join(temp_example_dir, f), temp_dir)
+                                    except Exception as e:
+                                        print(f"        Could not restore example image: {e}")
+                            finally:
+                                if os.path.exists(temp_example_dir):
+                                    shutil.rmtree(temp_example_dir, ignore_errors=True)
                     else:
                         valid_images_detail = "Could not download slide images or example folder is missing"
 
@@ -901,7 +919,8 @@ Slide text:
                 if content:
                     fetched_contents.append("\n".join([part.strip() for part in re.split(split_pattern, content) if part.strip()]))
         fetched_text = "\n".join(fetched_contents)
-        task_text = f"""Evaluate how much the following information is supported by the source.
+        if features and fetched_text:
+            task_text = f"""Evaluate how much the following information is supported by the source.
 
 Respond in a single number between 0 and 100.
 
@@ -911,11 +930,11 @@ Information:
 Content:
 {fetched_text}
 """
-        verifying_task.append({
-            'id': f"slide_{i}",
-            'func': evaluate_device_info_with_llm,
-            'args': (task_text, model, "str"),
-        })
+            verifying_task.append({
+                'id': f"slide_{i}",
+                'func': evaluate_device_info_with_llm,
+                'args': (task_text, model, "str"),
+            })
 
     try:
         verifying_results = parallel_execute(verifying_task, max_workers=3) or {}
@@ -927,26 +946,36 @@ Content:
     # regardless of the LLM completion order.
     for i, slide in enumerate(all_slides):
         step_start = time.time()
-        raw_value = verifying_results.get(f"slide_{i}")
-        match_percentage = _parse_percentage(raw_value)
-        if match_percentage is None:
+        raw_value = verifying_results.get(f"slide_{i}", None)
+        if not raw_value:
+            print(f"        Device {i+1}: No source content found.")
             checkpoint.add_step(
                 f"Device {i+1} - Content From Sources",
                 False,
                 step_id,
-                f"Could not parse LLM percentage response: {raw_value!r}",
+                "No source content found",
                 execution_time=time.time() - step_start,
             )
         else:
-            print(f"        Device {i+1}: {match_percentage:.2f}% of slide text found in sources.")
-            success = match_percentage >= match_threshold
-            checkpoint.add_step(
-                f"Device {i+1} - Content From Sources",
-                success,
-                step_id,
-                f"{match_percentage:.1f}% of listed features found in sources" if success else f"Only {match_percentage:.1f}% of listed features is from sources",
-                execution_time=time.time() - step_start,
-            )
+            match_percentage = _parse_percentage(raw_value)
+            if match_percentage is None:
+                checkpoint.add_step(
+                    f"Device {i+1} - Content From Sources",
+                    False,
+                    step_id,
+                    f"Could not parse LLM percentage response: {raw_value!r}",
+                    execution_time=time.time() - step_start,
+                )
+            else:
+                print(f"        Device {i+1}: {match_percentage:.2f}% of slide text found in sources.")
+                success = match_percentage >= match_threshold
+                checkpoint.add_step(
+                    f"Device {i+1} - Content From Sources",
+                    success,
+                    step_id,
+                    f"{match_percentage:.1f}% of listed features found in sources" if success else f"Only {match_percentage:.1f}% of listed features is from sources",
+                    execution_time=time.time() - step_start,
+                )
         step_id += 1
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -979,19 +1008,24 @@ def grade_checkpoint_5():
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=13, result=0, name="Comparison Slide")
     
+    # Step names ordered to match the success-path emission order: first the two
+    # structural checks, then all five "Found <category> Row" steps, then the
+    # color-scheme check, then all five per-category "Correct Color Coding"
+    # steps. Categories use lowercase to match the canonical `categories` list
+    # used later in the success path for keyword matching.
     comparison_step_names = [
         "Table Has 3 Columns",
         "All Notebooks as Headers",
-        "Green, Yellow, and Red as Color Coding Scheme",
         "Found paper quality Row",
-        "paper quality - Correct Color Coding",
         "Found durability Row",
-        "durability - Correct Color Coding",
         "Found page layout Row",
-        "page layout - Correct Color Coding",
         "Found indexing Row",
-        "indexing - Correct Color Coding",
         "Found size and portability Row",
+        "Green, Yellow, and Red as Color Coding Scheme",
+        "paper quality - Correct Color Coding",
+        "durability - Correct Color Coding",
+        "page layout - Correct Color Coding",
+        "indexing - Correct Color Coding",
         "size and portability - Correct Color Coding",
     ]
 
@@ -1531,12 +1565,8 @@ def grade_checkpoint_7():
 
     if len(slides) < 8:
         checkpoint.add_step("Exactly 8 Slides", False, 1, f"Found only {len(slides)}/8 slides", execution_time=time.time() - step_start)
-        for i, name in enumerate(step_names[1:], 2):
-            checkpoint.add_step(name, False, i, "Some slides are missing from the presentation", execution_time=time.time() - step_start)
-        checkpoint.execution_time = time.time() - checkpoint_start
-        return checkpoint
-
-    checkpoint.add_step("Exactly 8 Slides", True, 1, "Found exactly 8 slides", execution_time=time.time() - step_start)
+    else:
+        checkpoint.add_step("Exactly 8 Slides", True, 1, "Found exactly 8 slides", execution_time=time.time() - step_start)
 
     expected_titles_keywords = [
         ["A Gift for Maya!"],
@@ -1582,7 +1612,7 @@ def grade_checkpoint_7():
             title_text = ""
         if title_text:
             try:
-                device_match = keywords_match_robust(expected_devices, title_text, model=model, substring=True)
+                device_match = keywords_match_robust(expected_devices, title_text, model=model, substring=True, description="The same notebook")
             except Exception as e:
                 print(f"    Device title match failed for slide {i+1}: {e}")
                 device_match = None
@@ -1604,14 +1634,17 @@ def grade_checkpoint_7():
     step_start = time.time()
     deck_text_parts = []
     for s in slides:
+        t = None
         try:
-            t = extract_slide_text(s)
+            title = extract_title_text(s)
+            if title != expected_titles_keywords[0][0]:    
+                t = extract_slide_text(s)
         except Exception as e:
             print(f"    Failed to read slide text: {e}")
             t = ""
         if t:
             deck_text_parts.append(t)
-    deck_text = "\n\n".join(deck_text_parts)
+    deck_text = "\n\n".join(deck_text_parts) if len(deck_text_parts) > 0 else ""
 
     tone_ok = False
     tone_detail = "Could not evaluate tone"
@@ -1633,6 +1666,8 @@ def grade_checkpoint_7():
         except Exception as e:
             print(f"    Tone LLM check failed: {e}")
             tone_detail = f"Tone check failed: {e}"
+    else:
+        tone_detail = "No text found in the deck to evaluate tone"
     checkpoint.add_step("Tone Is Warm and Encouraging", tone_ok, 3, tone_detail, execution_time=time.time() - step_start)
 
     # Step 4: Audience-tailoring (incoming PhD student; academic advisor decision-maker).
@@ -1657,6 +1692,8 @@ def grade_checkpoint_7():
         except Exception as e:
             print(f"    Audience LLM check failed: {e}")
             audience_detail = f"Audience check failed: {e}"
+    else:
+        audience_detail = "No text found in the deck to evaluate audience tailoring"
     checkpoint.add_step("Audience-Tailored Content", audience_ok, 4, audience_detail, execution_time=time.time() - step_start)
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -1714,7 +1751,7 @@ if __name__ == "__main__":
     for checkpoint in detailed_report["checkpoints"]:
         print(f"\n{checkpoint['name']}: {checkpoint['score']}")
         for step in checkpoint["steps"]:
-            status = "" if step["success"] else ""
+            status = "✓" if step["success"] else "X"
             print(f"  {status} {step['name']}: {step['details'] or 'No details'}")
     end_time = time.time()
     print(f"\nTotal time taken: {end_time - step_start:.2f} seconds")

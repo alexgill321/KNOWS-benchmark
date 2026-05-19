@@ -1,11 +1,11 @@
-My teammate, Serena, has just earned her spot on the U.S. National Rowing Team and will be beginning her elite training camp at the Olympic Training Center in Colorado Springs this summer. I want to buy her a pair of rowing gloves as a celebratory gift and need help deciding between three options: Concept2 Rowing Gloves, NRS Cove Paddling Gloves, and Harbinger Pro Wrist Wrap Gloves.
+My teammate, Serena, has just earned her spot on the U.S. National Rowing Team and will be beginning her elite training camp at the Olympic Training Center in Colorado Springs this summer. I want to buy her a pair of rowing gloves as a celebratory gift and need help deciding between three options: The Crew Stop Rowing Gloves, NRS Cove Paddling Gloves, and Harbinger Pro Wrist Wrap Gloves.
 Objective Create a comprehensive, visually appealing slide deck that compares these three rowing gloves specifically for an elite competitive rower's use. The presentation should be energetic and performance-driven rather than dry or overly technical, helping both my teammate and me make an informed decision.
 Target Audience Primary: Elite athlete beginning national-level competitive rowing training Secondary: Teammate making the purchase decision
 Design Requirements Theme: Use the U.S. Olympic & Paralympic Committee's official colors (red, white, and navy blue) throughout the presentation Tone: Energetic, celebratory, and easy to understand Focus: Elite athlete performance needs and high-intensity training lifestyle
 Slide Structure and Content
 Slide 1: Title Slide
 Title (bold): "A Gift for Serena!"
-Subtitle: "A Comparison of Concept2 Rowing Gloves, NRS Cove Paddling Gloves, and Harbinger Pro Wrist Wrap Gloves"
+Subtitle: "A Comparison of The Crew Stop Rowing Gloves, NRS Cove Paddling Gloves, and Harbinger Pro Wrist Wrap Gloves"
 Image: Photo representing the Olympic Training Center in Colorado Springs (facility or rowing scene)
 The title and subtitle are to the left, and the image is to the right of the slide
 Slide 2: The Challenge & The Goal
@@ -20,7 +20,7 @@ Durability under daily elite training conditions
 Fit and dexterity for maintaining proper oar technique
 Other relevant factors
 Slides 4-6: Deep Dive on Each Glove
-One slide per product (Concept2 Rowing Gloves, NRS Cove Paddling Gloves, Harbinger Pro Wrist Wrap Gloves) Content per slide:
+One slide per product (The Crew Stop Rowing Gloves, NRS Cove Paddling Gloves, Harbinger Pro Wrist Wrap Gloves) Content per slide:
 Key features and specifications
 Pros and cons with respect to elite rowing training use
 Two product images showing different angles
