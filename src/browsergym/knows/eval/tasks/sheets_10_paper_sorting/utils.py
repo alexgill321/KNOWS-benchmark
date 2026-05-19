@@ -14,11 +14,62 @@ import sys
 import json
 import tarfile
 import gzip
+import time as _time
 import tempfile
 import unicodedata
 from typing import List, Dict, Optional, Tuple, Any
 from urllib.parse import urlparse, parse_qs
 import requests
+
+# Global rate limiter for raw arxiv HTTP requests (HTML, source downloads).
+# Ensures no two requests to export.arxiv.org are within 1s of each other.
+_last_arxiv_request_time = 0.0
+
+def _arxiv_rate_limit():
+    """Wait if needed to ensure at least 3s between arxiv HTTP requests."""
+    global _last_arxiv_request_time
+    elapsed = _time.time() - _last_arxiv_request_time
+    if elapsed < 3.0:
+        _time.sleep(3.0 - elapsed)
+    _last_arxiv_request_time = _time.time()
+
+def _arxiv_request_with_retry(url: str, max_retries: int = 3, timeout: int = 30,
+                               headers: dict = None, stream: bool = False) -> requests.Response:
+    """Make an HTTP request to arxiv with rate limiting and retry on 429 or connection errors.
+
+    Args:
+        url: URL to request.
+        max_retries: Maximum retry attempts on 429 or connection errors.
+        timeout: Request timeout in seconds.
+        headers: Optional request headers.
+        stream: Whether to stream the response.
+
+    Returns:
+        requests.Response object.
+
+    Raises:
+        requests.RequestException: If request fails after all retries.
+    """
+    last_exception = None
+    for attempt in range(max_retries + 1):
+        try:
+            _arxiv_rate_limit()
+            response = requests.get(url, headers=headers, timeout=timeout, stream=stream)
+            if response.status_code == 429 and attempt < max_retries:
+                wait_time = 10 * (2 ** attempt)  # 10s, 20s, 40s
+                print(f"      arXiv rate limited (429), waiting {wait_time}s (attempt {attempt + 1}/{max_retries})...")
+                _time.sleep(wait_time)
+                continue
+            return response
+        except (requests.RequestException, ConnectionError) as e:
+            last_exception = e
+            if attempt < max_retries:
+                wait_time = 10 * (2 ** attempt)
+                print(f"      Connection error, waiting {wait_time}s (attempt {attempt + 1}/{max_retries}): {e}")
+                _time.sleep(wait_time)
+            else:
+                raise
+    raise last_exception
 
 # Base path setup
 def get_base_path():
@@ -116,7 +167,7 @@ def fetch_arxiv_html(arxiv_id: str) -> Tuple[bool, str, str]:
     html_url = f"https://export.arxiv.org/html/{arxiv_id}"
 
     try:
-        response = requests.get(html_url, headers=ARXIV_HEADERS, timeout=30)
+        response = _arxiv_request_with_retry(html_url, headers=ARXIV_HEADERS, timeout=30)
         if response.status_code == 200:
             return True, response.text, "HTML fetched successfully"
         else:
@@ -467,6 +518,12 @@ Return ONLY the image src value (e.g., "x1.png") for Figure 1, or "NOT_FOUND" if
         return False, None, f"LLM error: {e}"
 
 
+def _get_svg_cache_dir() -> str:
+    """Get the SVG cache directory, creating it if needed."""
+    cache_dir = os.path.join(TASK_DIR, '.svg_cache')
+    os.makedirs(cache_dir, exist_ok=True)
+    return cache_dir
+
 def extract_figure_1_from_html(arxiv_id: str, model=None) -> Tuple[bool, Optional[bytes], str]:
     """Stage 1: Extract Figure 1 from arXiv HTML page.
 
@@ -475,6 +532,7 @@ def extract_figure_1_from_html(arxiv_id: str, model=None) -> Tuple[bool, Optiona
     - 1b: LLM parsing fallback (if model provided)
 
     Handles both regular images (<img> tags) and inline SVG (TikZ figures).
+    Caches SVG content locally so retries don't need to re-fetch from arXiv.
 
     Args:
         arxiv_id: The arXiv paper ID.
@@ -484,6 +542,26 @@ def extract_figure_1_from_html(arxiv_id: str, model=None) -> Tuple[bool, Optiona
         Tuple of (success, image_bytes, message).
         image_bytes is the PNG data if found.
     """
+    # Check SVG cache first — avoids hitting arXiv for previously found SVGs
+    svg_cache_path = os.path.join(_get_svg_cache_dir(), f"{arxiv_id.replace('/', '_')}.svg")
+    if os.path.exists(svg_cache_path):
+        print(f"      Using cached SVG for {arxiv_id}")
+        with open(svg_cache_path, 'r') as f:
+            svg_content = f.read()
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
+            tmp_path = tmp.name
+        png_path = convert_svg_to_png(svg_content, tmp_path)
+        if png_path and os.path.exists(png_path):
+            with open(png_path, 'rb') as f:
+                png_bytes = f.read()
+            os.unlink(png_path)
+            return True, png_bytes, f"Found Figure 1 (SVG, cached)"
+        else:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+            return False, None, f"SVG cached but conversion still failed"
+
     html_url = f"https://export.arxiv.org/html/{arxiv_id}"
 
     # Headers to avoid 403 errors from arXiv
@@ -494,8 +572,8 @@ def extract_figure_1_from_html(arxiv_id: str, model=None) -> Tuple[bool, Optiona
     }
 
     try:
-        # Fetch HTML
-        response = requests.get(html_url, headers=headers, timeout=30)
+        # Fetch HTML (with rate limiting and retry on 429)
+        response = _arxiv_request_with_retry(html_url, headers=headers, timeout=30)
         if response.status_code != 200:
             return False, None, f"HTML not available (status {response.status_code})"
 
@@ -515,6 +593,10 @@ def extract_figure_1_from_html(arxiv_id: str, model=None) -> Tuple[bool, Optiona
         if img_url_or_svg.startswith("SVG:"):
             svg_content = img_url_or_svg[4:]  # Remove "SVG:" prefix
 
+            # Cache SVG content locally for future retries
+            with open(svg_cache_path, 'w') as f:
+                f.write(svg_content)
+
             # Try to convert SVG to PNG
             import tempfile
             with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
@@ -532,8 +614,8 @@ def extract_figure_1_from_html(arxiv_id: str, model=None) -> Tuple[bool, Optiona
                     os.unlink(tmp_path)
                 return False, None, f"{msg} but SVG to PNG conversion failed"
         else:
-            # Regular image URL - download it
-            img_response = requests.get(img_url_or_svg, headers=headers, timeout=30)
+            # Regular image URL - download it (with rate limiting and retry)
+            img_response = _arxiv_request_with_retry(img_url_or_svg, headers=headers, timeout=30)
             if img_response.status_code != 200:
                 return False, None, f"Failed to download image: {img_url_or_svg}"
 
@@ -569,7 +651,7 @@ def download_arxiv_source(arxiv_id: str, output_dir: str, timeout: int = 60) -> 
     }
 
     try:
-        response = requests.get(url, headers=headers, timeout=timeout, stream=True)
+        response = _arxiv_request_with_retry(url, headers=headers, timeout=timeout, stream=True)
         response.raise_for_status()
 
         content_type = response.headers.get('Content-Type', '')
@@ -1486,7 +1568,8 @@ def _get_arxiv_client():
     if _shared_arxiv_client is None:
         import arxiv
         _shared_arxiv_client = arxiv.Client(
-            delay_seconds=5,  # Conservative: 5s between requests
+            page_size=30,      # arXiv API recommends max 30 per page
+            delay_seconds=5,   # Conservative: 5s between requests
             num_retries=5,
         )
     return _shared_arxiv_client
@@ -1617,14 +1700,20 @@ def search_arxiv_by_title(title: str, max_results: int = 5) -> Optional[Dict]:
         return None
 
 
-def search_arxiv_by_author(author_name: str, max_results: int = 50) -> List[Dict]:
+def search_arxiv_by_author(author_name: str, max_results: int = 50, first_author_only: bool = False) -> List[Dict]:
     """Search arXiv for all papers by an author name.
 
     Uses the arXiv API with `au:"Author Name"` query syntax.
 
+    When first_author_only is True, fetches up to 500 results from arXiv
+    (to get a comprehensive list) and then filters to papers where the
+    searched author is first author. The final list is capped at max_results.
+
     Args:
         author_name: The author's name to search for.
-        max_results: Maximum number of results to return.
+        max_results: Maximum number of results to return after filtering.
+        first_author_only: If True, only return papers where this author is
+            listed first. Useful for prolific authors to reduce noise.
 
     Returns:
         List of dicts with paper info (arxiv_id, title, authors, abstract).
@@ -1639,7 +1728,15 @@ def search_arxiv_by_author(author_name: str, max_results: int = 50) -> List[Dict
         )
 
         results = _arxiv_query_with_retry(search)
-        return [_parse_arxiv_result(r) for r in results]
+        papers = [_parse_arxiv_result(r) for r in results]
+
+        if first_author_only:
+            author_norm = normalize_author_name(author_name)
+            filtered = [p for p in papers if normalize_author_name(p.get('authors', [''])[0]) == author_norm]
+            print(f"      Filtered to {len(filtered)}/{len(papers)} first-author papers")
+            return filtered[:max_results]
+
+        return papers
 
     except ImportError:
         print("Warning: arxiv package not installed")

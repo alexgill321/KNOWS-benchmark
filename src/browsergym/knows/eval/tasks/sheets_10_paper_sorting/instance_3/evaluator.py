@@ -35,6 +35,7 @@ from src.browsergym.knows.eval.eval_utils.google_sheets_utils import (
     extract_tables_from_sheet,
     extract_sheet_data,
     get_sheet_content,
+    parse_sheet_to_dataframe,
 )
 from src.browsergym.knows.eval.eval_utils.text_utils import (
     text_fuzzy_match_contained_long,
@@ -122,6 +123,17 @@ sheet_raw = None
 df = None
 matched_columns = {}
 
+# Required columns for header detection
+REQUIRED_COLUMNS = [
+    ("Title", ["title", "paper", "name"]),
+    ("Authors", ["author", "authors", "by"]),
+    ("Abstract", ["abstract", "summary"]),
+    ("arXiv Link", ["arxiv", "link", "url"]),
+    ("Drive Link", ["drive", "pdf", "file", "google"]),
+    ("Figure 1", ["figure", "fig", "image", "screenshot"]),
+    ("New Papers", ["new", "checkbox", "added", "new paper"]),
+]
+
 # Gold data (loaded from JSON)
 GOLD_PAPERS = None
 GOLD_NEW_PAPERS = None
@@ -169,10 +181,15 @@ def load_gold_data():
 
 def download_image_from_url(url: str) -> Optional[str]:
     """Download an image from URL and return the temp file path."""
+    from src.browsergym.knows.eval.tasks.sheets_10_paper_sorting.utils import _arxiv_request_with_retry
+
     try:
         if 'arxiv.org' in url and 'export.arxiv.org' not in url:
             url = url.replace('://arxiv.org/', '://export.arxiv.org/')
-        response = requests.get(url, headers=ARXIV_HEADERS, timeout=30)
+        if 'arxiv.org' in url:
+            response = _arxiv_request_with_retry(url, headers=ARXIV_HEADERS, timeout=30)
+        else:
+            response = requests.get(url, headers=ARXIV_HEADERS, timeout=30)
         response.raise_for_status()
         temp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
         temp_file.write(response.content)
@@ -192,22 +209,25 @@ def parallel_validate_figures(figure_tasks, vlm_model):
     temp_files = []
 
     try:
-        print(f"  Downloading {len(figure_tasks)} figure images in parallel...")
-        download_tasks = []
+        # Download user images sequentially with early abort on 429
+        print(f"  Downloading {len(figure_tasks)} figure images...")
+        downloaded = {}
+        rate_limited = False
         for task in figure_tasks:
+            if rate_limited:
+                break
             user_url = task.get('user_url', '')
             if user_url and user_url.startswith('http'):
                 image_url = extract_image_url_from_cell(user_url)
                 if image_url:
-                    download_tasks.append({
-                        'id': task['id'],
-                        'func': download_image_from_url,
-                        'args': (image_url,)
-                    })
-
-        downloaded = {}
-        if download_tasks:
-            downloaded = parallel_download(download_tasks, max_workers=5, use_rate_limit=False)
+                    path = download_image_from_url(image_url)
+                    if path:
+                        downloaded[task['id']] = path
+                    elif 'arxiv.org' in image_url:
+                        rate_limited = True
+                        print(f"  Skipping remaining figure downloads (rate limited)")
+        if rate_limited:
+            print(f"  Downloaded {len(downloaded)}/{len(figure_tasks)} figures before rate limit")
 
         for path in downloaded.values():
             if path:
@@ -271,13 +291,42 @@ def setup(workspace_doc_id: str):
 
     load_gold_data()
 
-    table_data = extract_tables_from_sheet(sheet_id, SHEETS_SERVICE)
-    sheet_raw = get_sheet_content(sheet_id, SHEETS_SERVICE)
+    try:
+        sheet_raw = get_sheet_content(sheet_id, SHEETS_SERVICE)
+    except Exception as e:
+        print(f"WARNING: get_sheet_content failed: {e}")
+
+    try:
+        table_data = extract_tables_from_sheet(sheet_id, SHEETS_SERVICE)
+    except Exception as e:
+        print(f"WARNING: extract_tables_from_sheet failed: {e}")
 
     if table_data:
-        first_table = table_data[0]
-        df = first_table.df if hasattr(first_table, 'df') else first_table
-        print(f"Extracted table with {len(df)} rows and {len(df.columns)} columns")
+        try:
+            first_table = table_data[0]
+            df = first_table.df if hasattr(first_table, 'df') else first_table
+            print(f"Extracted table with {len(df)} rows and {len(df.columns)} columns (using table API)")
+        except Exception as e:
+            print(f"WARNING: failed to use extracted table: {e}")
+            df = None
+
+    # Fallback to manual extraction if no table object found
+    if df is None and sheet_raw is not None:
+        try:
+            from src.browsergym.knows.eval.eval_utils.google_sheets_utils import detect_header_row
+            rows = sheet_raw.get('sheets', [{}])[0].get('data', [{}])[0].get('rowData', [])
+            detected_header_row = detect_header_row(rows, required_columns=REQUIRED_COLUMNS)
+            df = parse_sheet_to_dataframe(sheet_raw, header_row=detected_header_row)
+        except Exception as e:
+            print(f"WARNING: parse_sheet_to_dataframe failed: {e}")
+            df = None
+        if df is not None:
+            print(f"Extracted table with {len(df)} rows and {len(df.columns)} columns (using raw parsing)")
+
+    if df is None:
+        print("WARNING: Could not extract table data from spreadsheet")
+    else:
+        print(f"Columns: {list(df.columns)}")
 
 
 def grade_checkpoint_1():
@@ -287,7 +336,7 @@ def grade_checkpoint_1():
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=7, result=0, name="Spreadsheet Structure")
 
-    if not table_data or df is None or df.empty:
+    if df is None or df.empty:
         checkpoint.add_step("Table Data Extraction", False, 1,
                           "No table data found in spreadsheet",
                           execution_time=time.time() - checkpoint_start)
@@ -333,7 +382,7 @@ def grade_checkpoint_2():
     checkpoint_start = time.time()
 
     N = GOLD_PAPERS.get('count', 0)
-    checkpoint = Checkpoint(total=8*N, result=0, name="Original Papers Validation")
+    checkpoint = Checkpoint(total=7*N + 10, result=0, name="Original Papers Validation")
 
     if N == 0:
         checkpoint.add_step("Gold Data", False, 1, "No gold papers data available",
@@ -406,6 +455,8 @@ def grade_checkpoint_2():
             'title': gold_title,
             'arxiv_id': gold_arxiv_id,
             'has_keyword': gold.get(KEYWORD_FIELD, False),
+            'keyword_evaluated': gold.get('keyword_evaluated', True),
+            'has_figure': bool(gold.get('figure_1_path')),
             'is_new_paper': False
         })
 
@@ -456,8 +507,7 @@ def grade_checkpoint_2():
                 })
             else:
                 print(f"    No figure URL found for paper: {gold_title[:40]}...")
-        elif not gold_figure_path:
-            figure_matches += 1
+        # Papers without gold figure are simply not counted (not evaluated)
 
         if checkbox_col:
             checkbox_val = str(matched_row.get(checkbox_col, '')).upper()
@@ -496,16 +546,17 @@ def grade_checkpoint_2():
     checkpoint.add_step("Drive Links Valid", drive_valid == N, 5,
                       f"{drive_valid}/{N} Drive links valid", execution_time=0)
 
-    if figures_with_gold and figure_col:
-        if vlm_model:
-            checkpoint.result += figure_matches
-            checkpoint.add_step("Figure 1 Images", figure_matches == len(figures_with_gold), 6,
-                              f"{figure_matches}/{len(figures_with_gold)} figures contain correct Figure 1", execution_time=0)
-        else:
-            checkpoint.add_step("Figure 1 Images", False, 6, "VLM model not available", execution_time=0)
-    elif not figures_with_gold:
-        checkpoint.result += N
-        checkpoint.add_step("Figure 1 Images", True, 6, "No gold figure data to compare (skipped)", execution_time=0)
+    # Figure 1 step — proportional out of 10, only scored against evaluable papers
+    evaluable_figures = len(figures_with_gold)
+    if evaluable_figures > 0 and figure_col and vlm_model:
+        figure_score = int(figure_matches / evaluable_figures * 10)
+        checkpoint.result += figure_score
+        checkpoint.add_step("Figure 1 Images", figure_matches == evaluable_figures, 6,
+                          f"{figure_matches}/{evaluable_figures} figures correct ({figure_score}/10)", execution_time=0)
+    elif evaluable_figures == 0:
+        checkpoint.add_step("Figure 1 Images", False, 6, "No gold figure data to evaluate", execution_time=0)
+    elif not vlm_model:
+        checkpoint.add_step("Figure 1 Images", False, 6, "VLM model not available", execution_time=0)
     else:
         checkpoint.add_step("Figure 1 Images", False, 6, "Figure 1 column not found", execution_time=0)
 
@@ -563,6 +614,7 @@ def grade_checkpoint_3():
             original_titles_normalized.add(orig_title.lower().strip())
 
     papers_with_enough_new = 0
+    missing_authors = []
 
     for paper_entry in original_papers_lookup:
         original_title = paper_entry.get('original_paper_title', '')
@@ -594,12 +646,19 @@ def grade_checkpoint_3():
 
         if matching_new_papers >= expected_new:
             papers_with_enough_new += 1
+        else:
+            missing_authors.append(f"{original_title[:30]}...: {matching_new_papers}/{expected_new}")
 
     checkpoint.result = papers_with_enough_new
-    checkpoint.add_step("Paper Coverage",
-                      papers_with_enough_new == N, 1,
-                      f"{papers_with_enough_new}/{N} original papers have enough new papers",
-                      execution_time=time.time() - checkpoint_start)
+    if papers_with_enough_new == N:
+        checkpoint.add_step("Paper Coverage", True, 1,
+                          f"All {N} original papers have enough new papers",
+                          execution_time=time.time() - checkpoint_start)
+    else:
+        checkpoint.add_step("Paper Coverage", False, 1,
+                          f"{papers_with_enough_new}/{N} original papers have enough new papers. "
+                          f"Missing: {'; '.join(missing_authors)}",
+                          execution_time=time.time() - checkpoint_start)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -626,7 +685,7 @@ def grade_checkpoint_4():
         MAX_NEW_PAPERS = len(original_papers_lookup) * 3
 
     if not AUTHOR_LOOKUP or not AUTHOR_LOOKUP.get('original_papers') or df is None or df.empty:
-        checkpoint = Checkpoint(total=8*MAX_NEW_PAPERS, result=0, name="New Papers Validation")
+        checkpoint = Checkpoint(total=6*MAX_NEW_PAPERS + 20, result=0, name="New Papers Validation")
         checkpoint.add_step("New Papers", False, 1, "Cannot validate - no data",
                           execution_time=time.time() - checkpoint_start)
         checkpoint.execution_time = time.time() - checkpoint_start
@@ -664,7 +723,7 @@ def grade_checkpoint_4():
     M = len(user_new_papers_rows)
     print(f"Found {M} new papers in user's spreadsheet to validate (max {MAX_NEW_PAPERS})")
 
-    checkpoint = Checkpoint(total=8*MAX_NEW_PAPERS, result=0, name="New Papers Validation")
+    checkpoint = Checkpoint(total=6*MAX_NEW_PAPERS + 20, result=0, name="New Papers Validation")
 
     if M == 0:
         for i, name in enumerate(["Titles Match", "Authors Match", "Abstracts Match",
@@ -721,6 +780,12 @@ def grade_checkpoint_4():
                     gold = gold_paper
                     break
 
+        # Checkbox validation for ALL non-original rows (regardless of gold match)
+        if checkbox_col:
+            checkbox_val = str(row.get(checkbox_col, '')).upper()
+            if checkbox_val in ['TRUE', 'YES', 'CHECKED', 'Y', '1']:
+                checkbox_checked += 1
+
         if gold is None:
             unmatched_to_gold.append(user_title[:40])
             continue
@@ -729,6 +794,8 @@ def grade_checkpoint_4():
             'title': gold.get('title', ''),
             'arxiv_id': gold.get('arxiv_id', ''),
             'has_keyword': gold.get(KEYWORD_FIELD, False),
+            'keyword_evaluated': gold.get('keyword_evaluated', True),
+            'has_figure': bool(gold.get('figure_1_path')),
             'is_new_paper': True
         })
 
@@ -777,11 +844,6 @@ def grade_checkpoint_4():
         elif not gold_figure_path:
             figure_matches += 1
 
-        if checkbox_col:
-            checkbox_val = str(row.get(checkbox_col, '')).upper()
-            if checkbox_val in ['TRUE', 'YES', 'CHECKED', 'Y', '1']:
-                checkbox_checked += 1
-
         if BROWSING_HISTORY:
             gold_arxiv_url = gold.get('arxiv_url', '')
             for url in BROWSING_HISTORY:
@@ -814,20 +876,29 @@ def grade_checkpoint_4():
     checkpoint.add_step("Drive Links Valid", drive_valid == MAX_NEW_PAPERS, 5,
                       f"{drive_valid}/{MAX_NEW_PAPERS} new papers have valid Drive links", execution_time=0)
 
-    if figure_col:
-        if vlm_model or not figures_with_gold:
-            checkpoint.result += figure_matches
-            checkpoint.add_step("Figure 1 Images", figure_matches == MAX_NEW_PAPERS, 6,
-                              f"{figure_matches}/{MAX_NEW_PAPERS} figures validated", execution_time=0)
-        else:
-            checkpoint.add_step("Figure 1 Images", False, 6, "VLM model not available", execution_time=0)
+    # Figure 1 step — proportional out of 10, only scored against evaluable papers
+    evaluable_new_figures = len(figures_with_gold)
+    if evaluable_new_figures > 0 and figure_col and vlm_model:
+        figure_score = int(figure_matches / evaluable_new_figures * 10)
+        checkpoint.result += figure_score
+        checkpoint.add_step("Figure 1 Images", figure_matches == evaluable_new_figures, 6,
+                          f"{figure_matches}/{evaluable_new_figures} figures correct ({figure_score}/10)", execution_time=0)
+    elif evaluable_new_figures == 0:
+        checkpoint.add_step("Figure 1 Images", False, 6, "No gold figure data to evaluate", execution_time=0)
+    elif not vlm_model:
+        checkpoint.add_step("Figure 1 Images", False, 6, "VLM model not available", execution_time=0)
     else:
         checkpoint.add_step("Figure 1 Images", False, 6, "Figure 1 column not found", execution_time=0)
 
-    if checkbox_col:
-        checkpoint.result += checkbox_checked
-        checkpoint.add_step("Checkbox Checked", checkbox_checked == MAX_NEW_PAPERS, 7,
-                          f"{checkbox_checked}/{MAX_NEW_PAPERS} new papers have checked checkbox", execution_time=0)
+    # Checkbox step — checked against all non-original rows, proportional out of 10
+    total_new_rows = len(user_new_papers_rows)
+    if checkbox_col and total_new_rows > 0:
+        checkbox_score = int(checkbox_checked / total_new_rows * 10)
+        checkpoint.result += checkbox_score
+        checkpoint.add_step("Checkbox Checked", checkbox_checked == total_new_rows, 7,
+                          f"{checkbox_checked}/{total_new_rows} new papers have checked checkbox ({checkbox_score}/10)", execution_time=0)
+    elif checkbox_col:
+        checkpoint.add_step("Checkbox Checked", True, 7, "No new papers to check", execution_time=0)
     else:
         checkpoint.add_step("Checkbox Checked", False, 7, "Checkbox column not found", execution_time=0)
 
@@ -849,7 +920,7 @@ def grade_checkpoint_5():
     """Checkpoint 5: Formatting & Organization (3 binary steps)."""
     print("----------------- CHECKPOINT 5 ----------------")
     checkpoint_start = time.time()
-    checkpoint = Checkpoint(total=3, result=0, name="Formatting & Organization")
+    checkpoint = Checkpoint(total=12, result=0, name="Formatting & Organization")
 
     if not sheet_raw:
         for i in range(1, 4):
@@ -885,24 +956,28 @@ def grade_checkpoint_5():
         if color_class == 'yellow':
             yellow_rows.append(row_idx)
 
-    # Step 1: Yellow highlighting for keyword papers
+    # Step 1: Yellow highlighting — only for papers where keyword was evaluated
     step_start = time.time()
-    matched_keyword_papers = [p for p in MATCHED_PAPERS_KEYWORD_STATUS if p.get('has_keyword', False)]
-    expected_yellow = len(matched_keyword_papers)
+    evaluated_papers = [p for p in MATCHED_PAPERS_KEYWORD_STATUS if p.get('keyword_evaluated', True)]
+    keyword_positive = [p for p in evaluated_papers if p.get('has_keyword', False)]
+    expected_yellow = len(keyword_positive)
+    yellow_count = len(yellow_rows)
 
-    if expected_yellow > 0:
-        yellow_count = len(yellow_rows)
-        if yellow_count >= expected_yellow:
-            checkpoint.add_step("Yellow Highlighting", True, 1,
-                              f"{yellow_count} yellow rows found (expected {expected_yellow} '{HIGHLIGHT_KEYWORD}' papers)",
-                              execution_time=time.time() - step_start)
-        else:
-            checkpoint.add_step("Yellow Highlighting", False, 1,
-                              f"Only {yellow_count} yellow rows (expected {expected_yellow} '{HIGHLIGHT_KEYWORD}' papers)",
-                              execution_time=time.time() - step_start)
-    else:
+    if len(evaluated_papers) > 0 and expected_yellow > 0:
+        yellow_correct = min(yellow_count, expected_yellow)
+        highlight_score = int(yellow_correct / expected_yellow * 10)
+        checkpoint.result += highlight_score
+        checkpoint.add_step("Yellow Highlighting", yellow_count >= expected_yellow, 1,
+                          f"{yellow_count} yellow rows (expected {expected_yellow} from {len(evaluated_papers)} evaluated papers, {highlight_score}/10)",
+                          execution_time=time.time() - step_start)
+    elif len(evaluated_papers) > 0 and expected_yellow == 0:
+        checkpoint.result += 1
         checkpoint.add_step("Yellow Highlighting", True, 1,
-                          f"No '{HIGHLIGHT_KEYWORD}' papers found among matched papers, yellow check skipped",
+                          f"No '{HIGHLIGHT_KEYWORD}' papers among {len(evaluated_papers)} evaluated papers",
+                          execution_time=time.time() - step_start)
+    else:
+        checkpoint.add_step("Yellow Highlighting", False, 1,
+                          f"0 papers evaluated for keyword detection",
                           execution_time=time.time() - step_start)
 
     # Step 2: Row grouping

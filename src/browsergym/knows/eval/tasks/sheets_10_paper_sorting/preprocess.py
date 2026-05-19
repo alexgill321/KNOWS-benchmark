@@ -287,7 +287,7 @@ def scrape_google_scholar(gscholar_url: str, top_n: int = 0) -> List[Dict]:
         return []
 
 
-def discover_new_papers_for_entry(entry: Dict, skip_scholar: bool = False, model=None, top_cited: int = 0) -> List[Dict]:
+def discover_new_papers_for_entry(entry: Dict, skip_scholar: bool = False, model=None, top_cited: int = 0, first_author_only: bool = False) -> List[Dict]:
     """Discover new papers for a single Gold Labels entry.
 
     Args:
@@ -325,7 +325,7 @@ def discover_new_papers_for_entry(entry: Dict, skip_scholar: bool = False, model
         arxiv_ids_seen = set()
         for author_name in entry['first_authors']:
             print(f"      Searching arXiv for author: {author_name}...")
-            arxiv_papers = search_arxiv_by_author(author_name, max_results=50)
+            arxiv_papers = search_arxiv_by_author(author_name, max_results=500, first_author_only=first_author_only)
             for p in arxiv_papers:
                 if p['arxiv_id'] not in arxiv_ids_seen:
                     arxiv_ids_seen.add(p['arxiv_id'])
@@ -462,17 +462,20 @@ def discover_new_papers_for_entry(entry: Dict, skip_scholar: bool = False, model
     return new_papers
 
 
-def discover_all_new_papers(entries: List[Dict], skip_scholar: bool = False, top_cited: int = 0) -> List[Dict]:
+def discover_all_new_papers(entries: List[Dict], skip_scholar: bool = False, top_cited: int = 0, first_author_only: bool = False) -> List[Dict]:
     """Discover new papers for all Gold Labels entries.
 
     Args:
         entries: List of entries from Gold Labels sheet.
         skip_scholar: If True, skip Google Scholar scraping.
         top_cited: If > 0, only consider the top N most-cited papers from gscholar.
+        first_author_only: If True, only match papers where the author is first author.
     """
     print("\n=== Discovering New Papers ===")
     if top_cited > 0:
         print(f"Filtering to top {top_cited} most-cited papers per author")
+    if first_author_only:
+        print("Filtering to first-author papers only")
 
     all_new_papers = []
 
@@ -486,7 +489,7 @@ def discover_all_new_papers(entries: List[Dict], skip_scholar: bool = False, top
         print("Will use automatic parsing only")
 
     for entry in entries:
-        new_papers = discover_new_papers_for_entry(entry, skip_scholar, model=model, top_cited=top_cited)
+        new_papers = discover_new_papers_for_entry(entry, skip_scholar, model=model, top_cited=top_cited, first_author_only=first_author_only)
         all_new_papers.extend(new_papers)
         print(f"    Found {len(new_papers)} new papers for {entry['original_paper_title'][:40]}...")
 
@@ -540,6 +543,131 @@ def build_author_lookup(entries: List[Dict], original_papers: List[Dict], new_pa
     return {'original_papers': original_papers_lookup}
 
 
+def rematch_missing_papers(entries: List[Dict], instance: int, top_cited: int = 0, first_author_only: bool = False) -> List[Dict]:
+    """Re-attempt matching for GScholar papers not already in gold_new_papers.json.
+
+    Loads existing gold data, re-scrapes GScholar and arXiv, filters out
+    already-matched papers, and runs all matching strategies (including LLM)
+    on the remaining unmatched papers.
+
+    Args:
+        entries: List of entries from Gold Labels sheet.
+        instance: Instance number for loading existing data.
+        top_cited: If > 0, only consider top N most-cited papers from gscholar.
+
+    Returns:
+        List of newly matched paper dicts to merge with existing gold data.
+    """
+    print("\n=== Rematch Mode: Finding Missing Papers ===")
+
+    existing_data = load_json("gold_new_papers.json", instance)
+    if not existing_data or 'papers' not in existing_data:
+        print("ERROR: No existing gold_new_papers.json found. Run full preprocessing first.")
+        return []
+
+    existing_arxiv_ids = {p['arxiv_id'] for p in existing_data['papers'] if 'arxiv_id' in p}
+    print(f"Loaded {len(existing_arxiv_ids)} existing papers from gold_new_papers.json")
+
+    model = None
+    try:
+        from src.browsergym.knows.eval.eval_utils.models import load_model
+        model = load_model("gemini-2.5-flash-google-ai")
+        print("LLM model loaded for semantic matching")
+    except Exception as e:
+        print(f"WARNING: Could not load LLM model: {e}")
+
+    newly_matched = []
+
+    for entry in entries:
+        original_title = entry['original_paper_title']
+        if not entry['gscholar_urls']:
+            continue
+
+        print(f"\n  Processing: {original_title[:50]}...")
+
+        # Re-scrape GScholar
+        all_scholar_papers = []
+        for gscholar_url in entry['gscholar_urls']:
+            print(f"    Scraping GScholar: {gscholar_url[:60]}...")
+            papers = scrape_google_scholar(gscholar_url, top_n=top_cited)
+            all_scholar_papers.extend(papers)
+            time.sleep(1)
+
+        all_scholar_papers = [
+            p for p in all_scholar_papers
+            if p.get('title', '').lower().strip() != original_title.lower().strip()
+        ]
+        print(f"    Found {len(all_scholar_papers)} GScholar papers (excluding original)")
+
+        if not all_scholar_papers:
+            continue
+
+        # Re-search arXiv by author
+        all_arxiv_papers = []
+        arxiv_ids_seen = set()
+        for author_name in entry['first_authors']:
+            print(f"    Searching arXiv for author: {author_name}...")
+            arxiv_papers = search_arxiv_by_author(author_name, max_results=500, first_author_only=first_author_only)
+            for p in arxiv_papers:
+                if p['arxiv_id'] not in arxiv_ids_seen:
+                    arxiv_ids_seen.add(p['arxiv_id'])
+                    all_arxiv_papers.append(p)
+            time.sleep(0.5)
+
+        print(f"    Found {len(all_arxiv_papers)} arXiv papers for author(s)")
+
+        if not all_arxiv_papers:
+            continue
+
+        # Filter out arXiv papers already in gold
+        remaining_arxiv = [p for p in all_arxiv_papers if p['arxiv_id'] not in existing_arxiv_ids]
+        print(f"    {len(remaining_arxiv)} arXiv papers not yet in gold (skipping {len(all_arxiv_papers) - len(remaining_arxiv)} already matched)")
+
+        if not remaining_arxiv:
+            continue
+
+        # Run full matching on remaining papers
+        matched = match_gscholar_to_arxiv_papers(
+            all_scholar_papers,
+            remaining_arxiv,
+            model=model
+        )
+
+        for m in matched:
+            arxiv_id = m['arxiv_id']
+            if arxiv_id in existing_arxiv_ids:
+                continue
+
+            # Fetch full metadata if not already present
+            if 'abstract' not in m or not m.get('abstract'):
+                metadata = fetch_arxiv_metadata(arxiv_id)
+                if metadata:
+                    m.update(metadata)
+
+            paper = {
+                'arxiv_id': m['arxiv_id'],
+                'title': m.get('title', ''),
+                'authors': m.get('authors', []),
+                'first_author': m.get('authors', [''])[0] if m.get('authors') else '',
+                'first_author_normalized': normalize_author_name(m.get('authors', [''])[0]) if m.get('authors') else '',
+                'abstract': m.get('abstract', ''),
+                'arxiv_url': f"https://arxiv.org/abs/{m['arxiv_id']}",
+                'pdf_url': m.get('pdf_url', ''),
+                'source': 'rematch',
+                'gscholar_title': m.get('gscholar_title', ''),
+                'match_method': m.get('match_method', ''),
+                'associated_original_paper': original_title,
+                'associated_first_authors': entry['first_authors'],
+                'figure_1_path': None,
+            }
+            newly_matched.append(paper)
+            existing_arxiv_ids.add(arxiv_id)
+            print(f"    NEW MATCH: {arxiv_id} - {m.get('title', '')[:60]}... ({m.get('match_method', '')})")
+
+    print(f"\n=== Rematch Complete: {len(newly_matched)} new papers found ===")
+    return newly_matched
+
+
 def main():
     parser = argparse.ArgumentParser(description="Preprocess gold data for sheets_10 evaluator")
     parser.add_argument('--instance', type=int, default=1,
@@ -559,6 +687,13 @@ def main():
                              "Existing data for skipped authors is preserved from previous runs.")
     parser.add_argument('--skip-originals', action='store_true',
                         help="Skip fetching original papers metadata (use existing gold_papers.json)")
+    parser.add_argument('--rematch-only', action='store_true',
+                        help="Only re-attempt matching for GScholar papers not already in gold_new_papers.json. "
+                             "Loads existing gold data, re-scrapes GScholar/arXiv, and uses LLM matching "
+                             "for papers that weren't matched in previous runs.")
+    parser.add_argument('--first-author-only', action='store_true',
+                        help="Only include arXiv papers where the searched author is first author. "
+                             "Useful for prolific authors with many co-authored papers.")
     args = parser.parse_args()
 
     instance = args.instance
@@ -594,6 +729,41 @@ def main():
 
     if not entries:
         print("ERROR: No entries extracted from Gold Labels sheet")
+        return
+
+    # Handle --rematch-only: re-attempt matching for unmatched papers and exit
+    if args.rematch_only:
+        newly_matched = rematch_missing_papers(entries, instance, top_cited=args.top_cited, first_author_only=args.first_author_only)
+
+        existing_data = load_json("gold_new_papers.json", instance)
+        existing_papers = existing_data.get('papers', []) if existing_data else []
+
+        if newly_matched:
+            merged_papers = existing_papers + newly_matched
+            save_json({
+                "papers": merged_papers,
+                "count": len(merged_papers),
+                "dest_folder_id": dest_folder_id,
+                "generated_at": datetime.now().isoformat()
+            }, "gold_new_papers.json", instance)
+            print(f"\nMerged {len(newly_matched)} new papers into gold_new_papers.json (total: {len(merged_papers)})")
+        else:
+            merged_papers = existing_papers
+            print("\nNo new papers found.")
+
+        # Always rebuild author lookup to reflect current gold data
+        existing_orig_data = load_json("gold_papers.json", instance)
+        original_papers = existing_orig_data.get('papers', []) if existing_orig_data else []
+        author_lookup = build_author_lookup(entries, original_papers, merged_papers)
+
+        save_json({
+            "original_papers": author_lookup.get('original_papers', []),
+            "count": len(author_lookup.get('original_papers', [])),
+            "generated_at": datetime.now().isoformat()
+        }, "author_papers_lookup.json", instance)
+        print(f"Updated author_papers_lookup.json")
+
+        print(f"Finished at: {datetime.now().isoformat()}")
         return
 
     # Handle --skip-authors
@@ -643,7 +813,7 @@ def main():
             existing_new_papers = existing_new_data['papers']
             print(f"Loaded {len(existing_new_papers)} existing new papers from previous run")
 
-    new_papers = discover_all_new_papers(entries_to_process, skip_scholar=args.skip_scholar, top_cited=args.top_cited)
+    new_papers = discover_all_new_papers(entries_to_process, skip_scholar=args.skip_scholar, top_cited=args.top_cited, first_author_only=args.first_author_only)
 
     # Merge: keep existing new papers for skipped authors, add freshly discovered ones
     if existing_new_papers:

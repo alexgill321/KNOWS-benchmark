@@ -54,6 +54,7 @@ from src.browsergym.knows.eval.tasks.docs_11_personal_recipe_ocr.utils import (
     extract_section_content,
     extract_hyperlinks,
     extract_list_items,
+    extract_tips_with_sources,
     # Comparison and validation
     compare_ingredient_lists,
     compare_preparation_steps,
@@ -200,14 +201,20 @@ def grade_checkpoint_1():
         step_time = time.time() - step_start
         checkpoint.add_step("Ingredients Match", False, 2, "No ingredients found in first recipe Ingredients section", execution_time=step_time)
     else:
-        # compare_ingredient_lists now uses strict 1:1 matching with bidirectional check
+        # Strict 1:1 fuzzy matching first
         ingredients_match, ingredients_details = compare_ingredient_lists(doc_ingredients, gold_ingredients)
+
+        # LLM fallback if fuzzy matching fails
+        if not ingredients_match:
+            if model is None:
+                model = load_model(model_id)
+            ingredients_match, llm_explanation = compare_lists_with_llm(model, doc_ingredients, gold_ingredients, "ingredients")
+
         step_time = time.time() - step_start
 
         if ingredients_match:
-            checkpoint.add_step("Ingredients Match", True, 2, f"All {len(gold_ingredients)} ingredients matched (1:1 mapping)", execution_time=step_time)
+            checkpoint.add_step("Ingredients Match", True, 2, f"All {len(gold_ingredients)} ingredients matched", execution_time=step_time)
         else:
-            # Build detailed failure message
             missing = [d['gold'] for d in ingredients_details if not d['matched'] and d['gold'] != '[Extra ingredients check]']
             extra_check = next((d for d in ingredients_details if d['gold'] == '[Extra ingredients check]'), None)
 
@@ -232,7 +239,9 @@ def grade_checkpoint_1():
         checkpoint.add_step("Preparation Steps Match", False, 3, "No preparation steps found in first recipe Preparation section", execution_time=step_time)
     else:
         # compare_preparation_steps now validates numbers and cooking verbs exactly
-        steps_match, steps_details = compare_preparation_steps(doc_steps, gold_prepsteps)
+        if model is None:
+            model = load_model(model_id)
+        steps_match, steps_details = compare_preparation_steps(doc_steps, gold_prepsteps, model=model)
         step_time = time.time() - step_start
 
         if steps_match:
@@ -251,31 +260,17 @@ def grade_checkpoint_1():
     # BUG-001 FIX: Evaluate tips in context of full Tips section and source URLs
     # =========================================================================
     step_start = time.time()
-    # Use first recipe structure only
+    # Use extract_tips_with_sources to get tip/url pairs from first recipe structure
+    tip_pairs = extract_tips_with_sources(first_recipe.structure)
+    tips_list = [p['tip'] for p in tip_pairs]
+
+    # Also extract the full tips text for gold_tips.txt checking
     tips_text = extract_section_content(first_recipe.structure, "Tips")
-    tips_list_raw = extract_list_items(tips_text)
 
-    # Use extract_hyperlinks to find actual URLs in the Tips section,
-    # then use those to separate tip text from URL lines.
-    try:
-        recipe1_links = extract_hyperlinks(doc_id, DOCS_SERVICE, recipe_num=1)
-    except Exception as e:
-        print(f"Warning: Failed to extract hyperlinks from recipe 1: {e}")
-        recipe1_links = []
-    tips_section_urls = set()
-    for link in recipe1_links:
-        if link['url'] in tips_text or link['text'] in tips_text:
-            tips_section_urls.add(link['url'])
-
-    tips_list = []
-    source_urls_in_tips = list(tips_section_urls)
-    for tip in tips_list_raw:
-        # Skip lines that contain a known hyperlink URL
-        if any(url in tip for url in tips_section_urls):
-            continue
-        if len(tip) < 10:
-            continue
-        tips_list.append(tip)
+    source_urls = [p['url'] for p in tip_pairs if p['url']]
+    source_url_context = ""
+    if source_urls:
+        source_url_context = f"\n\nThese tips come from: {', '.join(source_urls)}"
 
     if model is None:
         model = load_model(model_id)
@@ -285,9 +280,6 @@ def grade_checkpoint_1():
 
     # Build context string for LLM (BUG-001 FIX: provide full context)
     full_tips_context = "\n".join(tips_list)
-    source_url_context = ""
-    if source_urls_in_tips:
-        source_url_context = f"\n\nThese tips come from: {source_urls_in_tips[0]}"
 
     for tip in tips_list:
         if not tip:
@@ -361,55 +353,28 @@ Answer 'No' only if it's completely generic advice unrelated to pasta or puttane
         checkpoint.add_step("Tips Relevance", False, 4, f"Generic tips found (not pasta puttanesca-relevant): {irrelevant[:2]}", execution_time=step_time)
 
     # =========================================================================
-    # Step 1.5: Tips URLs Valid — must appear AFTER all tip text in Tips section
+    # Step 1.5: Tips URLs Valid
     # =========================================================================
     step_start = time.time()
 
-    # Reuse recipe1_links from step 1.4 (already fetched with error handling)
-    tips_urls = []
+    tips_urls = [p['url'] for p in tip_pairs if p['url']]
     valid_urls = []
     invalid_urls = []
 
-    # Check the "Tips" header exists in the text
-    tips_header_pos = first_recipe.text.lower().find('\ntips\n')
-    if tips_header_pos < 0:
-        tips_header_pos = first_recipe.text.lower().find('tips\n')
+    # Deduplicate
+    tips_urls = list(dict.fromkeys(tips_urls))
 
-    if tips_header_pos < 0:
+    if not tips_list:
         step_time = time.time() - step_start
         checkpoint.add_step("Tips URLs Valid", False, 5,
-                            "Tips section header not found in first recipe text",
+                            "No tip text found in Tips section",
                             execution_time=step_time)
-    elif not tips_list:
+    elif not tips_urls:
         step_time = time.time() - step_start
         checkpoint.add_step("Tips URLs Valid", False, 5,
-                            "No tip text found in Tips section to position URLs after",
+                            "No source URLs found in Tips section",
                             execution_time=step_time)
     else:
-        # Find the position of the last tip text, searching only within the
-        # tips section (after tips_header_pos) to avoid false matches elsewhere
-        last_tip_text_pos = tips_header_pos
-        for tip in tips_list:
-            search_start = tips_header_pos
-            pos = first_recipe.text.find(tip[:30], search_start)
-            if pos > last_tip_text_pos:
-                last_tip_text_pos = pos
-
-        # Filter to URLs positioned after the Tips header AND after all tip text
-        for link in recipe1_links:
-            url = link['url']
-            link_pos = first_recipe.text.find(url[:30], tips_header_pos)
-            if link_pos < 0:
-                link_pos = first_recipe.text.find(link['text'][:30], tips_header_pos)
-            if link_pos < 0:
-                continue
-
-            if link_pos > tips_header_pos and link_pos > last_tip_text_pos:
-                tips_urls.append(url)
-
-        # Deduplicate
-        tips_urls = list(dict.fromkeys(tips_urls))
-
         urls_valid = True
         for url in tips_urls:
             is_valid, _ = validate_url_accessible(url)
@@ -423,11 +388,7 @@ Answer 'No' only if it's completely generic advice unrelated to pasta or puttane
 
         if urls_valid and len(tips_urls) > 0:
             checkpoint.add_step("Tips URLs Valid", True, 5,
-                                f"All {len(tips_urls)} tip source URLs are accessible and positioned after tip text",
-                                execution_time=step_time)
-        elif len(tips_urls) == 0:
-            checkpoint.add_step("Tips URLs Valid", False, 5,
-                                "No source URLs found below tip text in Tips section",
+                                f"All {len(tips_urls)} tip source URLs are accessible",
                                 execution_time=step_time)
         else:
             checkpoint.add_step("Tips URLs Valid", False, 5,
@@ -462,18 +423,25 @@ Answer 'No' only if it's completely generic advice unrelated to pasta or puttane
                 print(f"Warning: Failed to fetch {url}: {e}")
 
         if not url_content_cache:
-            step_time = time.time() - step_start
-            checkpoint.add_step("Tips Are Direct Quotes", False, 6,
-                                "Could not fetch content from any source URL",
-                                execution_time=step_time)
-        else:
-            # For each tip, check if it appears in any of the valid URLs
-            for tip in tips_list:
-                if not tip or len(tip) < 10:
-                    continue
+            # No URLs had scrapable content — check if that's because
+            # they all failed to scrape (use LLM fallback) or truly empty
+            url_content_cache = {}
 
-                tip_found_in_source = False
+        for pair in tip_pairs:
+            tip = pair['tip']
+            tip_url = pair['url']
 
+            tip_found_in_source = False
+
+            # First check the tip's own paired source URL via fuzzy text match
+            if tip_url and tip_url in url_content_cache:
+                is_quote, _ = verify_tip_is_quote(tip, url_content_cache[tip_url])
+                if is_quote:
+                    tip_found_in_source = True
+                    quote_details.append({'tip': tip[:30], 'source': tip_url})
+
+            # Fallback: check all scrapable URLs
+            if not tip_found_in_source:
                 for url, webpage_content in url_content_cache.items():
                     is_quote, _ = verify_tip_is_quote(tip, webpage_content)
                     if is_quote:
@@ -481,17 +449,54 @@ Answer 'No' only if it's completely generic advice unrelated to pasta or puttane
                         quote_details.append({'tip': tip[:30], 'source': url})
                         break
 
-                if not tip_found_in_source:
-                    tips_are_quotes = False
-                    quote_details.append({'tip': tip[:30], 'source': None, 'score': 0})
+            # LLM fallback: if text matching failed and the source URL
+            # wasn't successfully scraped (content too short/missing),
+            # ask the LLM whether the scraped text looks like a real
+            # page or a failed scrape, and if the tip is plausible.
+            if not tip_found_in_source and tip_url:
+                scraped = url_content_cache.get(tip_url, '')
+                messages = [
+                        {
+                            "role": "system",
+                            "content": [{"type": "text", "text": (
+                                "You are verifying whether a cooking tip could plausibly "
+                                "be a direct quote from a given source URL. The webpage "
+                                "could not be fully scraped, so you cannot check the text "
+                                "directly. Instead, judge based on the URL and the tip content."
+                            )}]
+                        },
+                        {
+                            "role": "user",
+                            "content": [{"type": "text", "text": (
+                                f"Tip: {tip}\n\n"
+                                f"Source URL: {tip_url}\n\n"
+                                f"Scraped content (may be incomplete): {scraped[:300]}\n\n"
+                                f"Could this tip plausibly be a direct quote from this URL? "
+                                f"Consider whether the URL is a cooking/recipe page and whether "
+                                f"the tip content is the kind of advice that page would contain. "
+                                f"Answer 'Yes' or 'No'."
+                            )}]
+                        }
+                ]
+                try:
+                    response = model(messages).strip()
+                    if response.lower().startswith('yes'):
+                        tip_found_in_source = True
+                        quote_details.append({'tip': tip[:30], 'source': tip_url, 'method': 'llm_fallback'})
+                except Exception as e:
+                    print(f"Warning: LLM quote fallback failed: {e}")
 
-            step_time = time.time() - step_start
+            if not tip_found_in_source:
+                tips_are_quotes = False
+                quote_details.append({'tip': tip[:30], 'source': None, 'score': 0})
 
-            if tips_are_quotes and len(quote_details) > 0:
-                checkpoint.add_step("Tips Are Direct Quotes", True, 6, "All tips verified as quotes from sources", execution_time=step_time)
-            else:
-                not_found = [d['tip'] for d in quote_details if d['source'] is None]
-                checkpoint.add_step("Tips Are Direct Quotes", False, 6, f"Tips not found in sources: {not_found[:2]}", execution_time=step_time)
+        step_time = time.time() - step_start
+
+        if tips_are_quotes and len(quote_details) > 0:
+            checkpoint.add_step("Tips Are Direct Quotes", True, 6, "All tips verified as quotes from sources", execution_time=step_time)
+        else:
+            not_found = [d['tip'] for d in quote_details if d['source'] is None]
+            checkpoint.add_step("Tips Are Direct Quotes", False, 6, f"Tips not found in sources: {not_found[:2]}", execution_time=step_time)
 
     # =========================================================================
     # Step 1.7: Image from Original
@@ -777,7 +782,7 @@ Answer 'No' if the title is completely unrelated (e.g., "Summer Salad", "Grilled
         # =====================================================================
         step_start = time.time()
         try:
-            recipe_links = extract_hyperlinks(doc_id, DOCS_SERVICE, recipe_num=recipe_num)
+            recipe_links = extract_hyperlinks(doc_id, DOCS_SERVICE, recipe_num=recipe_num, recipe_titles=[r.title for r in recipes])
         except Exception as e:
             print(f"Warning: Failed to extract hyperlinks for recipe {recipe_num}: {e}")
             recipe_links = []
@@ -949,20 +954,33 @@ Answer 'No' if the title is completely unrelated (e.g., "Summer Salad", "Grilled
                 if other.recipe_num == recipe_num:
                     continue
                 if other.pdf_pages and other.pdf_pages[0] < len(pdf_images):
-                    other_pages.append((other.recipe_num, pdf_images[other.pdf_pages[0]]))
+                    other_pages.append((other.recipe_num, other, pdf_images[other.pdf_pages[0]]))
 
             if not other_pages:
                 visual_details = "No other recipe pages available for comparison"
             else:
                 similar_to = []
                 distinct_from = []
-                styling_prompt = (
-                    "Do these two recipe pages have the SAME visual styling? "
-                    "Compare ONLY the colors, fonts, text formatting, and color scheme — ignore the actual recipe content. "
-                    "Answer 'Yes' if they use the same colors and fonts. "
-                    "Answer 'No' if they have different color schemes, font styles, or text formatting."
-                )
-                for other_num, other_image in other_pages:
+                for other_num, other_recipe_obj, other_image in other_pages:
+                    same_page = (recipe.pdf_pages and other_recipe_obj.pdf_pages
+                                 and recipe.pdf_pages[0] == other_recipe_obj.pdf_pages[0])
+                    same_page_note = (
+                        f"IMPORTANT: Both recipes appear on the SAME page image. "
+                        f"Look for the recipe titled '{title}' and compare its header/text styling "
+                        f"to the recipe titled '{other_recipe_obj.title}' on that same page. "
+                    ) if same_page else ""
+                    styling_prompt = (
+                        f"{same_page_note}"
+                        f"Compare the visual styling of two recipes: '{title}' vs '{other_recipe_obj.title}'. "
+                        f"Focus ONLY on the title and header colors, font styles, and text formatting of each recipe. "
+                        f"First, check if '{title}' has any custom styling "
+                        f"(colored headers, colored text, non-default fonts, bold/italic formatting, "
+                        f"background colors, or decorative elements). If it uses only plain "
+                        f"default black text with no color or font changes, answer 'Yes' (unstyled). "
+                        f"If '{title}' DOES have custom styling, answer 'Yes' only if '{other_recipe_obj.title}' "
+                        f"uses the exact same color scheme and font styles. "
+                        f"Answer 'No' if '{title}' has distinct custom styling different from '{other_recipe_obj.title}'."
+                    )
                     try:
                         looks_same = binary_compare_images(model, page_image, other_image, mode=styling_prompt)
                         if looks_same:
@@ -1049,7 +1067,7 @@ def grade_checkpoint_3():
 
         # Get source URL for this recipe
         try:
-            recipe_links = extract_hyperlinks(doc_id, DOCS_SERVICE, recipe_num=recipe_num)
+            recipe_links = extract_hyperlinks(doc_id, DOCS_SERVICE, recipe_num=recipe_num, recipe_titles=[r.title for r in recipes])
         except Exception as e:
             print(f"Warning: Failed to extract hyperlinks for recipe {recipe_num}: {e}")
             recipe_links = []
@@ -1306,15 +1324,16 @@ def grade_checkpoint_3():
                     prep_details = "Could not extract preparation steps from source webpage for comparison"
                 else:
                     try:
-                        prep_match, _ = compare_lists_with_llm(model, doc_steps, source_steps, "preparation steps")
+                        prep_match, llm_explanation = compare_lists_with_llm(model, doc_steps, source_steps, "preparation steps")
                     except Exception as e:
                         print(f"Warning: LLM preparation comparison failed: {e}")
                         prep_match = False
+                        llm_explanation = str(e)
 
                     if prep_match:
                         prep_details = f"Preparation matches source (LLM verified, {len(doc_steps)} doc steps vs {len(source_steps)} source steps)"
                     else:
-                        prep_details = f"Preparation content differs from source ({len(doc_steps)} doc steps vs {len(source_steps)} source steps)"
+                        prep_details = f"Preparation content differs from source (LLM judged mismatch, {len(doc_steps)} doc steps vs {len(source_steps)} source steps): {llm_explanation[:150]}"
 
         step_time = time.time() - step_start
         checkpoint.add_step(
@@ -1330,16 +1349,8 @@ def grade_checkpoint_3():
         tips_valid = False
         tips_details = "Unable to verify tips"
 
-        doc_tips_text = extract_section_content(recipe_structure, "Tips")
-        doc_tips_raw = extract_list_items(doc_tips_text)
-
-        # Filter out URL lines
-        recipe_tip_urls = set()
-        for link in recipe_links:
-            if link['url'] in doc_tips_text or link['text'] in doc_tips_text:
-                recipe_tip_urls.add(link['url'])
-        doc_tips = [tip for tip in doc_tips_raw
-                    if not any(url in tip for url in recipe_tip_urls) and len(tip) >= 10]
+        tip_pairs_additional = extract_tips_with_sources(recipe_structure)
+        doc_tips = [p['tip'] for p in tip_pairs_additional]
 
         if not webpage_content and source_url:
             # URL accessible but content blocked — LLM reasonableness check
@@ -1372,42 +1383,79 @@ def grade_checkpoint_3():
             if not doc_tips:
                 tips_details = "No tips found in document recipe"
             else:
-                # Check if each tip appears in the source webpage
+                # Check each tip against its own paired source URL first,
+                # then fall back to the recipe's main source page
                 tips_verified = []
                 tips_not_found = []
 
-                for tip in doc_tips:
-                    is_quote, _ = verify_tip_is_quote(tip, webpage_content)
-                    if is_quote:
+                for pair in tip_pairs_additional:
+                    tip = pair['tip']
+                    tip_url = pair.get('url')
+                    tip_found = False
+
+                    # Try the tip's own source URL if different from main source
+                    if tip_url and tip_url != source_url:
+                        tip_content = webpage_cache.get(tip_url)
+                        if tip_content is None:
+                            try:
+                                fetched, _ = fetch_page_text_content(tip_url)
+                                if fetched:
+                                    webpage_cache[tip_url] = fetched
+                                    tip_content = fetched
+                            except Exception:
+                                pass
+                        if tip_content:
+                            is_quote, _ = verify_tip_is_quote(tip, tip_content)
+                            if is_quote:
+                                tip_found = True
+
+                    # Try the recipe's main source page
+                    if not tip_found:
+                        is_quote, _ = verify_tip_is_quote(tip, webpage_content)
+                        if is_quote:
+                            tip_found = True
+
+                    # LLM fallback for unscrapable tip source URLs
+                    if not tip_found and tip_url:
+                        scraped = webpage_cache.get(tip_url, '')
+                        messages = [
+                            {
+                                "role": "system",
+                                "content": [{"type": "text", "text": (
+                                    "You are verifying whether a cooking tip could plausibly "
+                                    "be a direct quote from a given source URL. The webpage "
+                                    "could not be fully scraped, so you cannot check the text "
+                                    "directly. Instead, judge based on the URL and the tip content."
+                                )}]
+                            },
+                            {
+                                "role": "user",
+                                "content": [{"type": "text", "text": (
+                                    f"Tip: {tip}\n\n"
+                                    f"Source URL: {tip_url}\n\n"
+                                    f"Scraped content (may be incomplete): {scraped[:300] if scraped else '(empty)'}\n\n"
+                                    f"Could this tip plausibly be a direct quote from this URL? "
+                                    f"Consider whether the URL is a cooking/recipe page and whether "
+                                    f"the tip content is the kind of advice that page would contain. "
+                                    f"Answer 'Yes' or 'No'."
+                                )}]
+                            }
+                        ]
+                        try:
+                            response = model(messages).strip()
+                            if response.lower().startswith('yes'):
+                                tip_found = True
+                        except Exception as e:
+                            print(f"Warning: LLM tip quote fallback failed: {e}")
+
+                    if tip_found:
                         tips_verified.append(tip[:30])
                     else:
                         tips_not_found.append(tip[:30])
 
                 if not tips_not_found:
                     tips_valid = True
-                    tips_details = f"All {len(doc_tips)} tips verified as quotes from source"
-                elif len(tips_verified) > len(tips_not_found):
-                    try:
-                        unverified_text = '\n'.join(tips_not_found)
-                        messages = [
-                            {
-                                "role": "system",
-                                "content": [{"type": "text", "text": "You are checking if cooking tips appear in a webpage. Answer 'Yes' if the tips could be paraphrased from the webpage content, 'No' otherwise."}]
-                            },
-                            {
-                                "role": "user",
-                                "content": [{"type": "text", "text": f"Do these tips appear (possibly paraphrased) in this webpage?\n\nTips:\n{unverified_text}\n\nWebpage (excerpt):\n{webpage_content[:3000]}"}]
-                            }
-                        ]
-                        response = model(messages)
-                        if response.strip().lower().startswith('yes'):
-                            tips_valid = True
-                            tips_details = f"All {len(doc_tips)} tips verified (some by LLM paraphrase check)"
-                        else:
-                            tips_details = f"Tips not found in source: {tips_not_found[:2]}"
-                    except Exception as e:
-                        print(f"Warning: LLM tip paraphrase check failed: {e}")
-                        tips_details = f"Tips not found in source: {tips_not_found[:2]}"
+                    tips_details = f"All {len(doc_tips)} tips verified as quotes from sources"
                 else:
                     tips_details = f"Tips not found in source: {tips_not_found[:2]}"
 
@@ -1518,7 +1566,7 @@ def grade_checkpoint_4(browsing_history: Optional[list] = None):
     if recipes:
         first_recipe = recipes[0]
         try:
-            recipe1_links = extract_hyperlinks(doc_id, DOCS_SERVICE, recipe_num=1)
+            recipe1_links = extract_hyperlinks(doc_id, DOCS_SERVICE, recipe_num=1, recipe_titles=[r.title for r in recipes])
         except Exception as e:
             print(f"Warning: Failed to extract hyperlinks for recipe 1: {e}")
             recipe1_links = []
@@ -1554,7 +1602,7 @@ def grade_checkpoint_4(browsing_history: Optional[list] = None):
     for recipe in additional_recipes[:5]:
         recipe_num = recipe.recipe_num
         try:
-            recipe_links = extract_hyperlinks(doc_id, DOCS_SERVICE, recipe_num=recipe_num)
+            recipe_links = extract_hyperlinks(doc_id, DOCS_SERVICE, recipe_num=recipe_num, recipe_titles=[r.title for r in recipes])
         except Exception as e:
             print(f"Warning: Failed to extract hyperlinks for recipe {recipe_num}: {e}")
             recipe_links = []

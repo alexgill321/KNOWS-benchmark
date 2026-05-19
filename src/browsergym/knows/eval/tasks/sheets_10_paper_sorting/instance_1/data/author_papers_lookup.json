@@ -38,7 +38,7 @@
         "https://scholar.google.com/citations?user=EIy0uooAAAAJ&hl=en&oi=sra",
         "https://scholar.google.com/citations?user=_8s9f44AAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 9,
+      "new_papers_count": 11,
       "new_paper_arxiv_ids": [
         "2406.11944",
         "2007.02414",
@@ -48,7 +48,9 @@
         "2406.05227",
         "2406.03242",
         "2503.09576",
-        "2506.04360"
+        "2506.04360",
+        "2410.13879",
+        "2312.16291"
       ],
       "new_paper_titles": [
         "Transcoders Find Interpretable LLM Feature Circuits",
@@ -59,7 +61,9 @@
         "Mixed-Curvature Decision Trees and Random Forests",
         "Variational Pseudo Marginal Methods for Jet Reconstruction in Particle Physics",
         "Manify: A Python Library for Learning Non-Euclidean Representations",
-        "Even Faster Hyperbolic Random Forests: A Beltrami-Klein Wrapper Approach"
+        "Even Faster Hyperbolic Random Forests: A Beltrami-Klein Wrapper Approach",
+        "Mixed-curvature decision trees and random forests",
+        "Observable Propagation: Uncovering Feature Vectors in Transformers"
       ],
       "expected_new_papers": 3
     },
@@ -75,7 +79,7 @@
       "gscholar_urls": [
         "https://scholar.google.com/citations?user=ccxOv_QAAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 35,
+      "new_papers_count": 36,
       "new_paper_arxiv_ids": [
         "2501.09405",
         "2501.06482",
@@ -111,7 +115,8 @@
         "2603.04442",
         "2602.00931",
         "2510.00678",
-        "2506.15753"
+        "2506.15753",
+        "2511.20836"
       ],
       "new_paper_titles": [
         "Artificial Intelligence, Ambient Backscatter Communication and Non-Terrestrial Networks: A 6G Commixture",
@@ -148,7 +153,8 @@
         "Towards Green Connectivity: An AI-Driven Mesh Architecture for Sustainable and Scalable Wireless Networks",
         "Continuous-Utility Direct Preference Optimization",
         "Net-Zero 6G from Earth to Orbit: Sustainable Design of Integrated Terrestrial and Non-Terrestrial Networks",
-        "QPPG: Quantum-Preconditioned Policy Gradient for Link Adaptation in Rayleigh Fading Channels"
+        "QPPG: Quantum-Preconditioned Policy Gradient for Link Adaptation in Rayleigh Fading Channels",
+        "Structured Prompts Improve Evaluation of Language Models"
       ],
       "expected_new_papers": 3
     },
@@ -261,7 +267,7 @@
         "https://scholar.google.com/citations?user=7w0xLF4AAAAJ&hl=en&oi=sra",
         "https://scholar.google.com/citations?user=msRx3NwAAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 19,
+      "new_papers_count": 20,
       "new_paper_arxiv_ids": [
         "2209.15162",
         "2310.08744",
@@ -281,7 +287,8 @@
         "2506.06609",
         "2602.10067",
         "2602.02315",
-        "2508.02527"
+        "2508.02527",
+        "2604.28119"
       ],
       "new_paper_titles": [
         "Linearly Mapping from Image to Text Space",
@@ -302,7 +309,8 @@
         "Transferring Linear Features Across Language Models With Model Stitching",
         "Features as Rewards: Scalable Supervision for Open-Ended Tasks via Interpretability",
         "The Shape of Beliefs: Geometry, Dynamics, and Interventions along Representation Manifolds of Language Models' Posteriors",
-        "I Have No Mouth, and I Must Rhyme: Uncovering Internal Phonetic Representations in LLaMA 3.2"
+        "I Have No Mouth, and I Must Rhyme: Uncovering Internal Phonetic Representations in LLaMA 3.2",
+        "Do Sparse Autoencoders Capture Concept Manifolds?"
       ],
       "expected_new_papers": 3
     },
@@ -321,7 +329,7 @@
         "https://scholar.google.com/citations?user=Iu6nUEkAAAAJ&hl=en&oi=sra",
         "https://scholar.google.com/citations?user=CRfOlOEAAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 19,
+      "new_papers_count": 22,
       "new_paper_arxiv_ids": [
         "2505.15117",
         "2406.11709",
@@ -341,7 +349,10 @@
         "2407.02472",
         "2510.00177",
         "2507.13541",
-        "2602.15012"
+        "2602.15012",
+        "2601.02702",
+        "2603.05909",
+        "2601.09667"
       ],
       "new_paper_titles": [
         "An Empirical Study on Reinforcement Learning for Reasoning-Search Interleaved LLM Agents",
@@ -362,11 +373,14 @@
         "ValueScope: Unveiling Implicit Norms and Values via Return Potential Model of Social Interactions",
         "PrefDisco: Benchmarking Proactive Personalized Reasoning",
         "PrefPalette: Personalized Preference Modeling with Latent Attributes",
-        "Cold-Start Personalization via Training-Free Priors from Structured World Models"
+        "Cold-Start Personalization via Training-Free Priors from Structured World Models",
+        "MultiSessionCollab: Learning User Preferences with Memory to Improve Long-Term Collaboration",
+        "InfoGatherer: Principled Information Seeking via Evidence Retrieval and Strategic Questioning",
+        "Collaborative Multi-Agent Test-Time Reinforcement Learning for Reasoning"
       ],
       "expected_new_papers": 3
     }
   ],
   "count": 7,
-  "generated_at": "2026-05-03T14:07:48.346578"
+  "generated_at": "2026-05-05T19:50:18.752824"
 }

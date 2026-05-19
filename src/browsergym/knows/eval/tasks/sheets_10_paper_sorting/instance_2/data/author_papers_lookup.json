@@ -12,7 +12,7 @@
       "gscholar_urls": [
         "https://scholar.google.com/citations?user=SsSpUs0AAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 44,
+      "new_papers_count": 48,
       "new_paper_arxiv_ids": [
         "2406.07605",
         "2403.07109",
@@ -57,7 +57,11 @@
         "2509.04224",
         "2507.09175",
         "2412.10030",
-        "2412.09134"
+        "2412.09134",
+        "2310.06028",
+        "2009.07023",
+        "2103.05279",
+        "2502.12764"
       ],
       "new_paper_titles": [
         "Unveiling the (in)consistencies among the galaxy stellar mass function, star formation histories, satellite abundances and intracluster light from a semi-empirical perspective",
@@ -103,7 +107,11 @@
         "Cosmography via stellar archaeology of low-redshift early-type galaxies from SDSS",
         "Combining (post-)Newtonian ideas with quasi-equilibrium (QE) sequence analysis for black hole-neutron star (BHNS) gravitational wave events",
         "A Relativistic Tensorial Model for Fractional Interaction between Dark Matter and Gravity",
-        "Modified gravity in galaxy clusters: Joint analysis of Hydrostatics and Caustics"
+        "Modified gravity in galaxy clusters: Joint analysis of Hydrostatics and Caustics",
+        "Little Ado about Everything: $η$CDM, a Cosmological Model with Fluctuation-driven Acceleration at Late Times",
+        "A Stochastic Theory of the Hierarchical Clustering I. Halo Mass Function",
+        "A Stochastic Theory of the Hierarchical Clustering II. Halo progenitor mass function and large-scale bias",
+        "Semi-empirical Models of Galaxy Formation and Evolution"
       ],
       "expected_new_papers": 3
     },
@@ -297,5 +305,5 @@
     }
   ],
   "count": 4,
-  "generated_at": "2026-05-03T14:14:38.585737"
+  "generated_at": "2026-05-11T19:26:30.366534"
 }

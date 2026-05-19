@@ -215,7 +215,9 @@
       "gold_labels_first_authors_normalized": [
         "kimi team"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_1_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "title": "Transcoders Find Interpretable LLM Feature Circuits",
@@ -237,7 +239,9 @@
         "jacob dunefsky",
         "philippe chlenski"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_2_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text discusses \"Circuit analysis\" and \"Sparse autoencoders (SAEs)\" and related interpretability techniques. It does not contain any mention, meaningful or otherwise, of \"chain-of-thought\" as a concept or technique."
     },
     {
       "title": "On the Fundamental Limits of LLMs at Scale",
@@ -270,7 +274,9 @@
       "gold_labels_first_authors_normalized": [
         "muhammad ahmed mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_3_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "title": "Weight-sparse transformers have interpretable circuits",
@@ -293,7 +299,9 @@
       "gold_labels_first_authors_normalized": [
         "leo gao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_4_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** I have carefully scanned the entire \"Related Work\" section and found no mention of the term \"chain-of-thought\" or any discussion related to the concept or technique of chain-of-thought reasoning in language models. The text primarily focuses on sparse autoencoders (SAEs), interpretability circuits, sparse training, and pruning methods."
     },
     {
       "title": "Verifying Chain-of-Thought Reasoning via Its Computational Graph",
@@ -315,7 +323,9 @@
       "gold_labels_first_authors_normalized": [
         "zheng zhao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_5_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\n**Reasoning:**\nThe \"Related Work\" section contains extensive and meaningful discussions of \"chain-of-thought\" (CoT). It begins by defining CoT prompting, discusses its evolution (e.g., zero-shot CoT, synthetic exemplar generation), and details various research avenues stemming from CoT, such as interpretability, reliability, verification, and improvement of \"reasoning traces\" or \"reasoning chains\" (which are synonymous with CoT outputs). The authors explicitly position their own work in relation to \"CoT traces\" and \"CoT reasoning\" by stating what their work builds upon or goes beyond. This demonstrates a deep engagement with CoT as a core concept and technique in the field."
     },
     {
       "title": "From Memorization to Reasoning in the Spectrum of Loss Curvature",
@@ -338,7 +348,9 @@
         "jack merullo",
         "srihita vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_6_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nI have carefully read through the provided \"Related Work\" section. The text focuses exclusively on the topics of memorization, overfitting, model capacity, localization of memories in model weights, factual recall, and the connection between memorization and loss curvature. There is no mention, discussion, or even an incidental reference to \"chain-of-thought\" as a concept or technique anywhere in the provided text."
     },
     {
       "title": "Cognitive Foundations for Reasoning and Their Manifestation in LLMs",
@@ -369,10 +381,15 @@
         "priyanka kargupta",
         "shuyue stella li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_7_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     }
   ],
   "count": 7,
   "source_folder_id": "1dfRMRjBHH4F1S9WMD6p6VqpYQZ-pbKWB",
-  "generated_at": "2026-05-03T14:07:48.338898"
+  "generated_at": "2026-05-03T14:07:48.338898",
+  "figure_extraction_date": "2026-05-05T20:55:07.113564",
+  "keyword_detection_date": "2026-05-05T21:19:40.735992",
+  "keyword": "chain-of-thought"
 }

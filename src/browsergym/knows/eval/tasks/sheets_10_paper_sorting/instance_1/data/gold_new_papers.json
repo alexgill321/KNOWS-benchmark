@@ -76,7 +76,9 @@
       "associated_first_authors": [
         "Kimi Team"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] NO\n\n**Reasoning:**\n\nThe provided \"Related Work\" section is entirely focused on various efficient attention mechanisms (linear attention, sparse attention, hybrid models) designed to handle long contexts in large language models. It discusses their computational complexity, memory efficiency, expressive power, and architectural details.\n\nThe term \"chain-of-thought\" (or any related concept of step-by-step reasoning or prompting) is not mentioned anywhere in the text. The discussion revolves around the *architecture* for processing information, not the *reasoning strategies* or *prompting techniques* applied to those architectures."
     },
     {
       "arxiv_id": "2504.07491",
@@ -189,7 +191,9 @@
       "associated_first_authors": [
         "Kimi Team"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_2_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2501.12599",
@@ -303,7 +307,9 @@
       "associated_first_authors": [
         "Kimi Team"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_3_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2406.11944",
@@ -326,7 +332,9 @@
         "Jacob Dunefsky",
         "Philippe Chlenski"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_4_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided Related Work section discusses \"Circuit analysis\" and \"Sparse autoencoders (SAEs)\" within the domain of mechanistic interpretability. It does not contain any mention, discussion, or reference to \"chain-of-thought\" as a concept or technique."
     },
     {
       "arxiv_id": "2007.02414",
@@ -350,7 +358,9 @@
         "Jacob Dunefsky",
         "Philippe Chlenski"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] Could not download source: Failed to download: ('Connection broken: IncompleteRead(1048576 bytes read, 7167229 more expected)', IncompleteRead(1048576 bytes read, 7167229 more expected))"
     },
     {
       "arxiv_id": "2502.18862",
@@ -372,7 +382,9 @@
         "Jacob Dunefsky",
         "Philippe Chlenski"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_6_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\nThe provided text does not contain any mentions of \"chain-of-thought\", neither explicit nor implicit discussions of it as a concept or technique. The text focuses entirely on \"Steering Vectors\" (SVs), their optimization, and their application to control various LLM behaviors."
     },
     {
       "arxiv_id": "2507.21648",
@@ -395,7 +407,9 @@
         "Jacob Dunefsky",
         "Philippe Chlenski"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_7_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses hyperbolic deep learning methods, their applications in various domains (vision, natural language, computational biology), and specifically their use in genomics for modeling phylogenies. There is no mention of \"chain-of-thought\" as a concept or technique anywhere in the text."
     },
     {
       "arxiv_id": "2310.13841",
@@ -419,7 +433,9 @@
         "Jacob Dunefsky",
         "Philippe Chlenski"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_8_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses hyperbolic geometry, graph embeddings, hyperbolic classifiers, and related computational challenges. It does not contain any mention, meaningful or otherwise, of \"chain-of-thought\" as a concept or technique."
     },
     {
       "arxiv_id": "2406.05227",
@@ -442,7 +458,9 @@
         "Jacob Dunefsky",
         "Philippe Chlenski"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] Could not download source: Failed to download: 404 Client Error: Not Found for url: https://export.arxiv.org/e-print/2406.05227"
     },
     {
       "arxiv_id": "2406.03242",
@@ -468,7 +486,9 @@
         "Jacob Dunefsky",
         "Philippe Chlenski"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_10_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\n\nThe provided text discusses various algorithms and techniques related to clustering, hierarchical inference, sequential search, Monte Carlo methods, and variational inference. While these methods often involve a sequence of steps or operations (\"sequential search,\" \"hidden Markov models\"), the term \"chain-of-thought\" is not mentioned anywhere in the text. Furthermore, the conceptual discussion does not align with the typical understanding of \"chain-of-thought\" as a technique for explicit, step-by-step reasoning, often associated with large language models. The sequential aspects described are algorithmic progressions, not the generated reasoning steps implied by \"chain-of-thought.\""
     },
     {
       "arxiv_id": "2503.09576",
@@ -493,7 +513,9 @@
         "Jacob Dunefsky",
         "Philippe Chlenski"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_11_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text discusses Python packages for non-Euclidean machine learning, Riemannian optimization, hyperbolic space, and various classification methods. It does not contain any mention, meaningful or otherwise, of \"chain-of-thought\" as a concept or technique."
     },
     {
       "arxiv_id": "2506.04360",
@@ -515,7 +537,9 @@
         "Jacob Dunefsky",
         "Philippe Chlenski"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_12_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided \"Related Work\" section focuses entirely on non-Euclidean decision trees, hyperbolic classifiers, and machine learning in the Beltrami-Klein model. It discusses concepts like tree-based models, hyperbolic geometry, neural networks, SVMs, and specific applications within these domains. There is no mention, discussion, or even an incidental reference to \"chain-of-thought\" as a concept or technique."
     },
     {
       "arxiv_id": "2501.09405",
@@ -539,7 +563,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_13_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2501.06482",
@@ -566,7 +592,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_14_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2504.14520",
@@ -590,7 +618,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_15_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe text discusses various concepts related to higher-order thinking in LLMs, such as meta-thinking, meta-cognition, meta-learning, self-reflection, and explaining reasoning. While \"chain-of-thought\" is a well-known technique used to achieve some of these capabilities (like making LLMs explain their reasoning or engage in internal reasoning), the term \"chain-of-thought\" itself is never explicitly mentioned or discussed anywhere in the provided text. The discussion revolves around the *outcomes* and *goals* of advanced reasoning and self-correction, not the specific \"chain-of-thought\" technique."
     },
     {
       "arxiv_id": "2412.18957",
@@ -615,7 +645,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] Could not download source: Failed to download: ('Connection broken: IncompleteRead(3145728 bytes read, 8628052 more expected)', IncompleteRead(3145728 bytes read, 8628052 more expected))"
     },
     {
       "arxiv_id": "2503.06720",
@@ -639,7 +671,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_17_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided \"Related Work\" section discusses various techniques and advances in spectrum sharing, dynamic spectrum access, cognitive radio, and related networking concepts. It covers topics like static and dynamic spectrum sharing, opportunistic spectrum access, spectrum sensing, interference management, and database-driven approaches. There is no mention, direct or indirect, of the concept or technique known as \"chain-of-thought,\" which is typically associated with AI and large language models for problem-solving."
     },
     {
       "arxiv_id": "2501.09212",
@@ -664,7 +698,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_18_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses interference management, spectrum sharing, and Deep Reinforcement Learning (DRL) approaches in satellite-terrestrial networks. It mentions concepts like \"hierarchical decision-making\" and various DRL algorithms (e.g., DQN, multi-agent RL). However, it does not contain any direct mentions of the phrase \"chain-of-thought,\" nor does it discuss the concept or technique of \"chain-of-thought\" (which typically refers to a method used in large language models to prompt them to articulate intermediate reasoning steps). The \"hierarchical decision-making\" refers to network layers, not an AI reasoning process."
     },
     {
       "arxiv_id": "2503.07670",
@@ -687,7 +723,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_19_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2503.17275",
@@ -712,7 +750,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_20_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2501.11230",
@@ -735,7 +775,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_21_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2502.15903",
@@ -759,7 +801,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_22_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided \"Related Work\" section focuses entirely on mobile edge computing (MEC), integrated terrestrial-non-terrestrial networks (IT-NTNs), and computation offloading strategies. It discusses network architecture, latency reduction, energy efficiency, and resource management within these domains. There is no mention, discussion, or even an incidental reference to \"chain-of-thought\" as a concept or technique, nor any related terms like reasoning steps, sequential thinking in AI, or cognitive processes."
     },
     {
       "arxiv_id": "2411.01338",
@@ -785,7 +829,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_23_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2506.22471",
@@ -809,7 +855,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_24_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2501.11229",
@@ -832,7 +880,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_25_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2501.11266",
@@ -856,7 +906,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_26_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2410.21782",
@@ -880,7 +932,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_27_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\nThe provided text discusses technical aspects of uplink multiple access channels, signal processing, successive interference cancellation (SIC), and decoding orders in telecommunications. It does not contain any mention, discussion, or conceptual reference to \"chain-of-thought\" as an AI or cognitive technique."
     },
     {
       "arxiv_id": "2504.00975",
@@ -903,7 +957,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\n**Reasoning:**\nThe provided \"Related Work\" section focuses exclusively on wireless communication technologies such as Non-Orthogonal Multiple Access (NOMA), Coordinated Multi-Point (CoMP), and Reconfigurable Intelligent Surfaces (RIS), including STAR-RIS. It discusses challenges, operating principles, benefits, and research in these areas. The term \"chain-of-thought\" does not appear anywhere in the text, nor is there any discussion or concept that could be interpreted as a meaningful mention of \"chain-of-thought\" as a cognitive or AI technique."
     },
     {
       "arxiv_id": "2508.11668",
@@ -926,7 +982,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_29_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text discusses various approaches to CSI (Channel State Information) estimation, including data-driven models, implicit neural fields (NeRF-style), and 3D Gaussian Splatting (3DGS)-based methods. The discussion focuses on technical details such as DNN/CNN/LSTM blocks, VAE/GAN/diffusion, volumetric rendering, ray-marching, and alpha-compositing.\n\nThe term \"chain-of-thought\" is not mentioned anywhere in the text, nor are any related concepts or techniques typically associated with it (e.g., step-by-step reasoning in large language models). The content is entirely focused on signal processing and neural rendering techniques for RF propagation."
     },
     {
       "arxiv_id": "2507.10619",
@@ -950,7 +1008,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_30_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2508.19495",
@@ -973,7 +1033,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_31_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text does not contain any meaningful mentions of \"chain-of-thought.\" It discusses various aspects of AI, Generative AI, and their application in Ambient Intelligence and 6G networks, but it does not delve into specific reasoning techniques like chain-of-thought prompting for generative models. The phrase \"chain-of-thought\" does not appear, nor is the concept described in a way that would indicate its discussion as a technique."
     },
     {
       "arxiv_id": "2507.19124",
@@ -997,7 +1059,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_32_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2501.17879",
@@ -1020,7 +1084,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_33_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"chain-of-thought\" does not appear anywhere in the provided \"Related Work\" section. The text discusses topics related to wireless communication, source coding, rate adaptation, neural joint source-channel coding, reinforcement learning, and distributed source coding, but makes no mention of \"chain-of-thought\" as a concept or technique."
     },
     {
       "arxiv_id": "2509.15192",
@@ -1046,7 +1112,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_34_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2509.15182",
@@ -1072,7 +1140,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_35_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2508.01911",
@@ -1096,7 +1166,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_36_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2509.08770",
@@ -1122,7 +1194,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_37_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\nThe provided text discusses various wireless communication technologies (Reconfigurable Holographic Surfaces, Near Field Communication, Non-Terrestrial Networks) in the context of 6G networks. It focuses on their technical descriptions, operational differences, and potential for integration. There is no mention, incidental or meaningful, of \"chain-of-thought\" as a concept or technique within this text."
     },
     {
       "arxiv_id": "2508.05130",
@@ -1148,7 +1222,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_38_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2511.01333",
@@ -1174,7 +1250,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_39_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2509.18735",
@@ -1199,7 +1277,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_40_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe term \"chain-of-thought\" (or any variation like \"CoT\") is not present in the provided text. While \"large language models\" are mentioned in the \"Channel Prediction\" section, the discussion focuses on their general application and limitations in channel prediction (e.g., \"language-to-CSI gap\") rather than delving into specific techniques like \"chain-of-thought\" prompting or reasoning that are often associated with them. There is no actual discussion of \"chain-of-thought\" as a concept or technique."
     },
     {
       "arxiv_id": "2506.17189",
@@ -1225,7 +1305,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_41_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2604.06260",
@@ -1253,7 +1335,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"chain-of-thought\" (CoT) is not present anywhere in the provided \"Related Work\" section. While the text discusses various inference strategies, search methods (like BFS/DFS), and self-verification techniques for diffusion models, it does not explicitly mention or discuss \"chain-of-thought\" as a concept or technique."
     },
     {
       "arxiv_id": "2604.05279",
@@ -1276,7 +1360,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_43_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe term \"chain-of-thought\" is not explicitly mentioned anywhere in the provided text. While the text discusses \"reasoning models\" and \"evidence-grounded reasoning,\" these are broader concepts related to reasoning abilities, not specific discussions or mentions of the \"chain-of-thought\" technique or concept itself. The question asks for actual discussions of \"chain-of-thought\" as a concept or technique, which is absent here."
     },
     {
       "arxiv_id": "2603.04442",
@@ -1299,7 +1385,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2602.00931",
@@ -1327,7 +1415,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_45_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] NO\n\nThe text discusses various techniques and challenges related to *mathematical reasoning with LLMs*, such as instruction tuning, tool-augmented reasoning, DPO for reasoning, and reasoning trajectory diversity. While \"chain-of-thought\" is a prominent technique in this domain, it is **not explicitly mentioned or discussed** anywhere in the provided text, even implicitly as a concept being compared or analyzed. The focus is on other methods and problems."
     },
     {
       "arxiv_id": "2510.00678",
@@ -1353,7 +1443,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] Could not download source: Failed to download: ('Connection broken: IncompleteRead(5242880 bytes read, 1226508 more expected)', IncompleteRead(5242880 bytes read, 1226508 more expected))"
     },
     {
       "arxiv_id": "2506.15753",
@@ -1376,7 +1468,9 @@
       "associated_first_authors": [
         "Muhammad Ahmed Mohsin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_47_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2303.08774",
@@ -1676,7 +1770,9 @@
       "associated_first_authors": [
         "Leo Gao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_48_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2101.00027",
@@ -1707,7 +1803,9 @@
       "associated_first_authors": [
         "Leo Gao"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] NO\n\n**Reasoning:**\nThe provided text discusses various aspects of self-supervised training, language models, and the datasets used for them (e.g., Common Crawl, Wikipedia, BookCorpus, The Pile). It focuses on data sources, data quality, and the trends in combining different types of datasets for training large-scale models. The phrase \"chain-of-thought\" does not appear anywhere in the text, nor are there any discussions of techniques or concepts related to eliciting step-by-step reasoning or intermediate thought processes from models, which is what \"chain-of-thought\" refers to."
     },
     {
       "arxiv_id": "2110.08207",
@@ -1767,7 +1865,9 @@
       "associated_first_authors": [
         "Leo Gao"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] Could not download source: Failed to download: ('Connection broken: IncompleteRead(5242880 bytes read, 2336354 more expected)', IncompleteRead(5242880 bytes read, 2336354 more expected))"
     },
     {
       "arxiv_id": "2206.04615",
@@ -2237,7 +2337,9 @@
       "associated_first_authors": [
         "Leo Gao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_51_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided Related Work section discusses various benchmarks (BIG-bench, Masakhane, EleutherAI Harness, GEM, NL-Augmenter, Natural Instructions, DynaBench, SyntaxGym, MMLU) focusing on their construction, collaborative nature, and the types of tasks they address. There is no mention of \"chain-of-thought\" as a concept or technique, nor any discussion related to models' ability to generate intermediate reasoning steps or the evaluation of such capabilities."
     },
     {
       "arxiv_id": "2211.05100",
@@ -2650,7 +2752,9 @@
       "associated_first_authors": [
         "Leo Gao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_52_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided \"Related Work\" section discusses the history and development of large language models, including concepts like autoregressive modeling, Transformer architecture, transfer learning, and prompting (few-shot learning). However, it does not contain any mention, discussion, or even incidental reference to the specific technique or concept of \"chain-of-thought\" (CoT) prompting. The closest it gets is discussing \"prompts\" and \"few demonstrations of input-output behavior\" (Brown et al., 2020), which is a foundational concept for in-context learning, but it does not delve into more advanced prompting strategies like CoT."
     },
     {
       "arxiv_id": "2204.06745",
@@ -2686,7 +2790,9 @@
       "associated_first_authors": [
         "Leo Gao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_53_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2210.10760",
@@ -2708,7 +2814,9 @@
       "associated_first_authors": [
         "Leo Gao"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] Could not download source: Failed to download: ('Connection broken: IncompleteRead(1048576 bytes read, 3462633 more expected)', IncompleteRead(1048576 bytes read, 3462633 more expected))"
     },
     {
       "arxiv_id": "2406.04093",
@@ -2736,7 +2844,9 @@
       "associated_first_authors": [
         "Leo Gao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_55_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\nThe provided \"Related Work\" section discusses sparse coding, autoencoders, their application to language models, and scaling laws. It does not contain any mention, discussion, or conceptual reference to \"chain-of-thought\" or related step-by-step reasoning techniques."
     },
     {
       "arxiv_id": "2312.09390",
@@ -2767,7 +2877,9 @@
       "associated_first_authors": [
         "Leo Gao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_56_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe text does not contain any direct or meaningful mentions of \"chain-of-thought\" as a concept or technique. It covers various related work areas like weakly-supervised learning, student-teacher training, debiasing, and scalable oversight, but \"chain-of-thought\" is not discussed in any section. While \"Scalable oversight\" mentions \"decompose a problem into simpler sub-problems,\" this is a general idea of problem decomposition and not a discussion of the specific \"chain-of-thought\" prompting technique for large language models."
     },
     {
       "arxiv_id": "2503.11926",
@@ -2795,7 +2907,9 @@
       "associated_first_authors": [
         "Leo Gao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_57_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\n**Reasoning:**\nThe text contains numerous meaningful mentions of \"chain-of-thought\" (CoT) as a concept and technique.\n\n1.  **Definition and Purpose:** The first paragraph explicitly defines \"Chain-of-thought\" as a method for LLMs to output a reasoning trace before a final answer, allowing variable test-time compute.\n2.  **Monitorability and Interpretability:** A significant portion of the text (especially the third and fourth paragraphs) discusses \"chain-of-thought monitorability,\" incorporating \"CoT monitors\" into RL rewards, and how CoTs relate to interpretability, transparency, and accountability. It also contrasts monitoring activations versus CoTs.\n3.  **Supervision and Optimization:** The paper discusses how CoTs are integrated with \"process-based supervision\" and \"outcome-based supervision,\" and how supervision signals like SFT are used to optimize CoTs.\n4.  **AI Alignment and Safety:** It highlights the advocacy for monitoring CoTs as a key component of AI alignment and safe deployment, noting it's standard practice for AI labs to monitor CoTs for deceptive reasoning, manipulation, and harmful intent.\n5.  **New Phenomena (Obfuscation):** The final paragraph introduces \"obfuscation\" as a phenomenon where models conceal their intent to reward hack *within their chains-of-thought*, explicitly linking CoT to novel forms of problematic model behavior.\n\nThese mentions go far beyond incidental references, delving into the technical aspects, practical applications, challenges, and future research directions related to chain-of-thought."
     },
     {
       "arxiv_id": "2405.14782",
@@ -2844,7 +2958,9 @@
       "associated_first_authors": [
         "Leo Gao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_58_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided \"Related Work\" section focuses entirely on the practical challenges of comparing and reproducing research involving large language models due to issues like closed-source models, API deprecation, and proprietary product features. It does not mention \"chain-of-thought\" or discuss any specific reasoning techniques or concepts related to it."
     },
     {
       "arxiv_id": "2201.07311",
@@ -2866,7 +2982,9 @@
       "associated_first_authors": [
         "Leo Gao"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] NO\n\nThe provided text is a description of \"The Pile\" dataset, detailing its sources, composition, and characteristics. It lists various datasets included in The Pile but does not discuss any specific NLP techniques, reasoning strategies, or cognitive processes like \"chain-of-thought.\" The phrase \"chain-of-thought\" does not appear anywhere in the text."
     },
     {
       "arxiv_id": "2011.10208",
@@ -2888,7 +3006,9 @@
       "associated_first_authors": [
         "Leo Gao"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2210.06413",
@@ -2912,7 +3032,9 @@
       "associated_first_authors": [
         "Leo Gao"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] NO\n\n**Reasoning:**\nI have thoroughly reviewed the provided \"Related Work\" section. The text focuses on the history, organization, and research activities of EleutherAI, detailing the models they've released, resources they've created, and their collaborative structure. There is no mention of \"chain-of-thought\" as a concept, technique, or research area, nor is there any discussion that alludes to the principles or applications of \"chain-of-thought\" reasoning in language models."
     },
     {
       "arxiv_id": "2110.03111",
@@ -2938,7 +3060,9 @@
       "associated_first_authors": [
         "Leo Gao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_62_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file"
     },
     {
       "arxiv_id": "2109.00698",
@@ -2958,7 +3082,9 @@
       "associated_first_authors": [
         "Leo Gao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_63_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] NO\n\nThe provided text discusses data quality, filtering techniques for training language models (using classifiers, heuristics, or perplexity scores), and the impact of filtering on model performance. It does not mention \"chain-of-thought\" as a concept or technique at all."
     },
     {
       "arxiv_id": "2405.09719",
@@ -2983,7 +3109,9 @@
       "associated_first_authors": [
         "Zheng Zhao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_64_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text discusses \"activation editing methods\" for controlling LLM generation, improving truthfulness, and reducing bias. It does not contain any mention or discussion of \"chain-of-thought\" as a concept or technique. The focus is entirely on manipulating internal model activations."
     },
     {
       "arxiv_id": "2405.02750",
@@ -3006,7 +3134,9 @@
       "associated_first_authors": [
         "Zheng Zhao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_65_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text extensively discusses LLM limitations, retrieval augmentation, and various contrastive decoding methods. It mentions different techniques to enhance LLMs' performance, handle conflicting knowledge, and improve context fidelity. However, the term \"chain-of-thought\" (or \"CoT\") is not present anywhere in the text, nor are there any descriptions or discussions of the \"chain-of-thought\" technique or concept. The \"prompting-based method\" mentioned in the second paragraph is too generic to be considered a specific discussion of \"chain-of-thought.\""
     },
     {
       "arxiv_id": "2311.08398",
@@ -3031,7 +3161,9 @@
       "associated_first_authors": [
         "Zheng Zhao"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] Could not download source: Failed to download: ('Connection broken: IncompleteRead(3145728 bytes read, 4936192 more expected)', IncompleteRead(3145728 bytes read, 4936192 more expected))"
     },
     {
       "arxiv_id": "2410.20008",
@@ -3053,7 +3185,9 @@
       "associated_first_authors": [
         "Zheng Zhao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_67_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2506.09902",
@@ -3078,7 +3212,9 @@
       "associated_first_authors": [
         "Zheng Zhao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_68_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided \"Related Work\" section discusses various aspects of personalization in dialogue systems, including early approaches, LLM-based strategies (like prompt engineering, RAG, fine-tuning, RL), prior benchmarks, and evaluation methods (user studies, automatic metrics, LLM-as-a-Judge). It does not contain any mention of \"chain-of-thought\" as a concept or technique, nor does it discuss any related reasoning processes in a way that would imply its use or analysis. The text focuses on different techniques and evaluation paradigms, none of which explicitly involve or reference \"chain-of-thought\"."
     },
     {
       "arxiv_id": "2305.08828",
@@ -3103,7 +3239,9 @@
       "associated_first_authors": [
         "Zheng Zhao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_69_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided \"Related Work\" section discusses various summarization datasets, their characteristics (monolingual, multilingual, cross-lingual), methods of construction, and their limitations, particularly regarding Indian languages. The term \"chain-of-thought\" and related concepts are not mentioned or discussed anywhere in the text."
     },
     {
       "arxiv_id": "2502.08279",
@@ -3131,7 +3269,9 @@
       "associated_first_authors": [
         "Zheng Zhao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_70_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided Related Work section does not contain any meaningful or even incidental mentions of \"chain-of-thought\". While it discusses related concepts like \"structured representations\" and \"text-based planning\" (which might involve intermediate steps), it does not use the specific term \"chain-of-thought\" or discuss it as a concept or technique."
     },
     {
       "arxiv_id": "2508.21787",
@@ -3160,7 +3300,9 @@
       "associated_first_authors": [
         "Zheng Zhao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_71_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\n**Reasoning:** The text explicitly mentions \"CoT reasoning\" and discusses its impact (\"improves performance\"). It then immediately contrasts \"CoT reasoning\" with \"subsequent work\" that introduced other hierarchical reasoning phases, indicating that CoT is a distinct, foundational technique in this context. This is an actual discussion of \"chain-of-thought\" (CoT) as a technique and its relationship to other reasoning methods, not just a passing reference."
     },
     {
       "arxiv_id": "2310.15513",
@@ -3183,7 +3325,9 @@
       "associated_first_authors": [
         "Zheng Zhao"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] Could not download source: Failed to download: ('Connection broken: IncompleteRead(2097152 bytes read, 5414876 more expected)', IncompleteRead(2097152 bytes read, 5414876 more expected))"
     },
     {
       "arxiv_id": "2602.06130",
@@ -3209,7 +3353,9 @@
       "associated_first_authors": [
         "Zheng Zhao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_73_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses various concepts such as internalised world models, explicit world modelling, self-improving learning (including self-reflection and error analysis), and understanding/generation in VLMs. While some of these concepts relate to improving reasoning or breaking down problems (e.g., \"self-reflection and reinforcement learning loop where models analyse mistakes and retry\"), the term \"chain-of-thought\" is not mentioned or discussed as a specific technique or concept anywhere in the text. The discussion focuses on other methods of improving model performance and reasoning."
     },
     {
       "arxiv_id": "2602.07080",
@@ -3234,7 +3380,9 @@
       "associated_first_authors": [
         "Zheng Zhao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_74_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe text does not contain any direct or meaningful mentions of \"chain-of-thought.\" While it discusses related concepts like \"LLM-based explanations,\" \"self-debugging mechanisms,\" and \"agentic frameworks\" (which might internally employ chain-of-thought), it never explicitly names, defines, discusses, or analyzes \"chain-of-thought\" as a technique or concept itself. The descriptions focus on the outcomes and mechanisms of these other techniques rather than the specific reasoning process of chain-of-thought."
     },
     {
       "arxiv_id": "2506.11244",
@@ -3259,7 +3407,9 @@
       "associated_first_authors": [
         "Zheng Zhao"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_75_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text discusses debiasing in multilingual representations, various techniques for cross-lingual debiasing, and recent activation editing methods. It does not mention \"chain-of-thought\" or any related concepts, such as step-by-step reasoning or intermediate thought processes in language models, which are central to the \"chain-of-thought\" technique."
     },
     {
       "arxiv_id": "2209.15162",
@@ -3283,7 +3433,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] Could not download source: Failed to download: ('Connection broken: IncompleteRead(11534336 bytes read, 14303775 more expected)', IncompleteRead(11534336 bytes read, 14303775 more expected))"
     },
     {
       "arxiv_id": "2310.08744",
@@ -3306,7 +3458,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses transformer model components (like induction heads), their reuse, specialized functions, and various circuit analysis and interpretability techniques (causal interventions, path patching). It does not contain any mention or discussion of \"chain-of-thought\" as a concept or technique."
     },
     {
       "arxiv_id": "2212.10537",
@@ -3333,7 +3487,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_78_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"chain-of-thought\" (or any close variation) does not appear anywhere in the provided \"Related Work\" section. The text discusses compositionality, different models of composition (type-logical, role-filler), vision and language models (VLMs), and specific datasets, but not \"chain-of-thought\" as a concept or technique."
     },
     {
       "arxiv_id": "2305.16130",
@@ -3356,7 +3512,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_79_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\nThe provided \"Related Work\" section does not contain any mention of \"chain-of-thought,\" either directly or by clearly referring to the concept or technique. The text focuses on mechanistic interpretability, the roles of different LM components (attention, FFN), knowledge storage, and information flow within language models."
     },
     {
       "arxiv_id": "2310.15910",
@@ -3379,7 +3537,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] Could not download source: Failed to download: ('Connection broken: IncompleteRead(1048576 bytes read, 9353015 more expected)', IncompleteRead(1048576 bytes read, 9353015 more expected))"
     },
     {
       "arxiv_id": "2406.09519",
@@ -3402,7 +3562,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_81_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses various aspects of transformer models, including attention mechanisms, inter-layer communication, circuit analysis, and specific attention head interactions (like the Indirect Object Identification circuit). It mentions concepts such as QK and OV matrices, mover heads, and inhibition heads. However, the term \"chain-of-thought\" or any related discussion of this concept (e.g., a model's step-by-step reasoning process, prompting techniques for eliciting intermediate steps) is not present in the text. The focus is entirely on the mechanistic interpretability of model components."
     },
     {
       "arxiv_id": "1909.03343",
@@ -3428,7 +3590,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_82_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] NO\n\nThe provided text discusses bias detection in sports commentary, contrasting manual coding with computational approaches, and surveys related work on bias in NLP. It does not contain the phrase \"chain-of-thought\" or any discussion of AI reasoning techniques or prompting strategies that would relate to the \"chain-of-thought\" concept."
     },
     {
       "arxiv_id": "2405.02503",
@@ -3451,7 +3615,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_83_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe text discusses various interpretability methods, including retrieval axioms, probing, and mechanistic interpretability, focusing on localizing model behavior and understanding causal mechanisms within neural models. It mentions techniques like activation patching, causal mediation analysis, and causal tracing. While these concepts relate to understanding how models process information and make decisions, the specific term \"chain-of-thought\" (a popular prompting technique for large language models to elicit step-by-step reasoning) is not present in the provided text, nor are any discussions that specifically describe this technique or concept. The discussions are about model interpretability and causality, not the \"chain-of-thought\" reasoning paradigm."
     },
     {
       "arxiv_id": "2504.12459",
@@ -3475,7 +3641,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_84_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses vector space models, linear structures in language model embeddings, and specifically Linear Relational Embeddings (LREs) to approximate model computations for factual relations. It also touches upon understanding pretraining data. The term \"chain-of-thought\" and related concepts are not mentioned or discussed anywhere in the text."
     },
     {
       "arxiv_id": "2406.00053",
@@ -3499,7 +3667,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_85_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses \"in-context learning\" as a broad concept, and chain-of-thought is a specific technique within in-context learning. However, the text does not specifically mention \"chain-of-thought,\" \"CoT,\" or any related concepts like step-by-step reasoning, intermediate thoughts, or explicit reasoning steps. It focuses on the trade-offs between in-context and in-weights learning, and later on the concept of forgetting in neural networks. There are no actual discussions of \"chain-of-thought\" as a concept or technique."
     },
     {
       "arxiv_id": "2402.08211",
@@ -3523,7 +3693,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_86_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text does not contain any meaningful mentions of \"chain-of-thought.\" The paper discusses human working memory and gating mechanisms, Transformers and attention, and analysis tools like path-patching. While it touches upon sequence processing and how Transformers integrate information, it does not discuss techniques for eliciting multi-step reasoning or intermediate steps from models, which is what \"chain-of-thought\" refers to in the context of large language models. The term itself is absent, and no equivalent concept is described or analyzed."
     },
     {
       "arxiv_id": "2410.23261",
@@ -3550,7 +3722,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_87_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text discusses compute resources, training speed optimization, simulation for training time estimation, and model pre-training recipes. It does not contain any mention, meaningful or otherwise, of \"chain-of-thought\" as a concept or technique."
     },
     {
       "arxiv_id": "2603.05488",
@@ -3578,7 +3752,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_88_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\n**Reasoning:**\nThe text contains numerous and extensive discussions of \"chain-of-thought\" (CoT) as a central concept and technique. It is explicitly mentioned in section titles (\"Faithfulness in language model chain-of-thought explanations\") and forms the core subject of multiple paragraphs.\n\nThe text discusses:\n*   The \"faithfulness of chain-of-thought\" and models omitting true causes of decisions.\n*   \"Monitoring CoT\" for safety proposals and detecting misalignment.\n*   \"Stress-testing CoT monitoring\" and its limitations.\n*   \"Brittle correlation between CoT length and problem difficulty.\"\n*   \"Internal mechanisms underlying chain-of-thought computation.\"\n*   Comparing \"CoT Monitoring\" with other methods (probing, forced answering) and analyzing its accuracy and implications.\n\nThese are not incidental or passing mentions; they are in-depth analyses of various aspects and challenges related to \"chain-of-thought\" as a methodology in language models."
     },
     {
       "arxiv_id": "2210.07188",
@@ -3606,7 +3782,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] Could not download source: Failed to download: ('Connection broken: IncompleteRead(2097152 bytes read, 5492170 more expected)', IncompleteRead(2097152 bytes read, 5492170 more expected))"
     },
     {
       "arxiv_id": "2207.02272",
@@ -3630,7 +3808,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] Could not download source: Failed to download: ('Connection broken: IncompleteRead(4194304 bytes read, 14945506 more expected)', IncompleteRead(4194304 bytes read, 14945506 more expected))"
     },
     {
       "arxiv_id": "2506.06609",
@@ -3654,7 +3834,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_91_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided Related Work section does not contain any mentions, meaningful or otherwise, of \"chain-of-thought.\" The text focuses on topics such as language model representations, sparse autoencoders (SAEs), model steering, and representation similarity, without discussing reasoning techniques like chain-of-thought."
     },
     {
       "arxiv_id": "2602.10067",
@@ -3681,7 +3863,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_92_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] NO\n\n**Reasoning:**\nThe provided text discusses interpretability, features, control, and learning open-ended behaviors using reward models and probes. While it delves into how models process information, how internal representations relate to concepts, and methods for steering model behavior (e.g., reducing hallucinations), it does not contain any mention or discussion of \"chain-of-thought\" as a concept, technique, or reasoning strategy. The focus is on internal features, probing, and reward-based learning, not on the explicit step-by-step reasoning process known as \"chain-of-thought\"."
     },
     {
       "arxiv_id": "2602.02315",
@@ -3709,7 +3893,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2508.02527",
@@ -3732,7 +3918,9 @@
         "Jack Merullo",
         "Srihita Vatsavaya"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_94_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2505.15117",
@@ -3757,7 +3945,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_95_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] NO\n\n**Reasoning:**\nThe term \"chain-of-thought\" itself is not explicitly mentioned or discussed in the provided text. While methods that might implicitly utilize or are related to chain-of-thought (like ReAct, or the mention of \"IRCoT\" which stands for \"Iterative Reasoning with Chain-of-Thought\") are cited, the text does not offer any explanation, analysis, or discussion of \"chain-of-thought\" as a concept or technique. It only lists \"IRCoT\" as an example of a \"prompt-based method\" for interleaved reasoning and retrieval, without elaborating on the \"chain-of-thought\" aspect."
     },
     {
       "arxiv_id": "2406.11709",
@@ -3781,7 +3971,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_96_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\nThe text explicitly discusses \"Chain-of-Thought (CoT)\" in the context of prompting-based methods for Socratic Reasoning in education. It states that *even with* CoT, these methods perform poorly, providing reasons for this failure (giving away answers, unrelated questions). This is a meaningful mention because it critically evaluates CoT's effectiveness and limitations within the domain of the paper, rather than just referencing it in passing."
     },
     {
       "arxiv_id": "2304.01969",
@@ -3806,7 +3998,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_97_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] NO\n\nThe text does not contain any mentions of \"chain-of-thought,\" either meaningful or incidental. The discussion revolves around weakly supervised text classification, leveraging PLMs, and multi-text granularities, but the specific concept of \"chain-of-thought\" is not addressed."
     },
     {
       "arxiv_id": "2506.10737",
@@ -3832,7 +4026,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_98_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text does not contain any direct mentions of \"chain-of-thought\" as a concept or technique. While it discusses LLM-based methods, prompting, and \"iterative prompting approaches,\" these are broad categories. \"Chain-of-thought\" is a specific type of prompting or reasoning strategy that is not explicitly discussed or analyzed here. The text focuses on the types of methods for taxonomy construction and the general capabilities and limitations of LLMs for this task."
     },
     {
       "arxiv_id": "2502.14767",
@@ -3856,7 +4052,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_99_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe text does not contain any explicit or meaningful mentions of \"chain-of-thought\" as a concept or technique. While it discusses related ideas such as \"diverse reasoning steps,\" \"self-reflection methods,\" \"self-deliberation,\" and \"reasoning capabilities of language models,\" these are general terms and do not refer to the specific \"chain-of-thought\" prompting technique. The exact phrase \"chain-of-thought\" is not present, nor is there a clear conceptual discussion of it."
     },
     {
       "arxiv_id": "2505.22327",
@@ -3909,7 +4107,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_100_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found"
     },
     {
       "arxiv_id": "2506.10728",
@@ -3932,7 +4132,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_101_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided Related Work section does not contain any meaningful mentions of \"chain-of-thought.\" The phrase \"chain-of-thought\" does not appear in the text, nor is there any discussion of the concept or technique it represents, such as explicit step-by-step reasoning or intermediate thoughts from an LLM. The text focuses on fact-checking, LLM-based taxonomy generation, and stance detection methods."
     },
     {
       "arxiv_id": "2408.04873",
@@ -3957,7 +4159,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_102_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] NO\n\n**Reasoning:** The provided text does not contain the phrase \"chain-of-thought\" or any specific discussion of the \"chain-of-thought\" prompting technique. While it mentions \"large language models have demonstrated powerful general and event extraction-specific reasoning abilities,\" this is a general statement about LLM capabilities and not a specific mention or discussion of \"chain-of-thought\" as a concept or technique."
     },
     {
       "arxiv_id": "2603.12226",
@@ -3981,7 +4185,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_103_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text does not contain the phrase \"chain-of-thought\" nor does it discuss the concept or technique of \"chain-of-thought\" in any meaningful way. While it mentions LLMs and processes like \"decomposes target-domain problems\" or \"strategically guides cross-domain exploration,\" these are not explicitly linked to or presented as discussions of the \"chain-of-thought\" technique for LLMs."
     },
     {
       "arxiv_id": "2602.17111",
@@ -4005,7 +4211,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_104_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[LaTeX] YES\n\nThe text contains a meaningful mention of a technique very similar to \"chain-of-thought\" with the phrase \"rationale-enhanced generation\" in the context of CodeKGC. While not using the exact term, \"rationale-enhanced generation\" strongly implies the explicit output of reasoning steps or justifications by the LLM, which is the core mechanism of chain-of-thought prompting. This is an actual discussion of a technique, not an incidental mention."
     },
     {
       "arxiv_id": "2601.10702",
@@ -4031,7 +4239,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_105_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text does not contain any mentions of \"chain-of-thought,\" either meaningful or incidental. The discussion focuses on memory architectures, retrieval mechanisms, and benchmarks for long-context LLMs, without touching upon specific reasoning techniques like chain-of-thought."
     },
     {
       "arxiv_id": "2406.00922",
@@ -4058,7 +4268,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_106_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\nThe text contains a meaningful mention of \"chain-of-thought\". It explicitly states: \"Wu et al. (2023b) attempts to evaluate general-purpose LLMs and chain-of-thought reasoning on DDXPlus(Fansi Tchango et al.,2022), a rule-based synethtic patient dataset.\" This is not an incidental mention but refers to a specific study that evaluates \"chain-of-thought reasoning\" as a technique within the context of LLMs and medical datasets, indicating its relevance to the surveyed literature."
     },
     {
       "arxiv_id": "2506.10947",
@@ -4092,7 +4304,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_107_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] NO\n\nThe text discusses various unsupervised reinforcement learning techniques and how they derive rewards (e.g., self-consistency, majority voting, entropy minimization) for tasks like mathematical reasoning. While it mentions \"internal model consistency\" and tasks where \"chain-of-thought\" might be implicitly useful (like mathematical reasoning), it does not actually discuss \"chain-of-thought\" as a concept, a reasoning technique, or a prompting strategy for language models. The focus is on the *reinforcement learning methodologies* themselves, not on how models generate their intermediate reasoning steps."
     },
     {
       "arxiv_id": "2502.14860",
@@ -4122,7 +4336,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_108_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nI have carefully read through the entire \"Related Work\" section. The phrase \"chain-of-thought\" does not appear anywhere in the text. While concepts like \"multi-hop reasoning\" and \"clinical reasoning\" are mentioned, they are not discussed in the context of the \"chain-of-thought\" technique itself. The text focuses on LLM weaknesses in medical applications, proactive information-seeking, and data-centric alignment techniques, but not on chain-of-thought specifically."
     },
     {
       "arxiv_id": "2512.13961",
@@ -4211,7 +4427,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] Could not download source: Failed to download: ('Connection broken: IncompleteRead(3145728 bytes read, 1418642 more expected)', IncompleteRead(3145728 bytes read, 1418642 more expected))"
     },
     {
       "arxiv_id": "2407.02472",
@@ -4238,7 +4456,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_110_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses social norms and values in communities, both in traditional social science literature and in computational studies of online communities. It focuses on concepts like shared interests, linguistic practices, identities, the Return Potential Model (RPM), implicit vs. explicit norms, and theories of human values. The phrase \"chain-of-thought\" does not appear anywhere in the text, nor are there any discussions or mentions of AI reasoning techniques or cognitive processes that could be interpreted as a meaningful discussion of \"chain-of-thought\"."
     },
     {
       "arxiv_id": "2510.00177",
@@ -4265,7 +4485,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_111_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses various topics like static personalization benchmarks, user preference modeling, and interactive preference elicitation. It mentions \"reasoning tasks\" and models needing to \"modify their cognitive approaches,\" but it never explicitly mentions or discusses \"chain-of-thought\" as a concept or technique for improving model reasoning, nor does it allude to its mechanics (e.g., generating intermediate steps)."
     },
     {
       "arxiv_id": "2507.13541",
@@ -4295,7 +4517,9 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_112_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided \"Related Work\" section does not contain any meaningful mentions of \"chain-of-thought\". The text focuses on personalized preference modeling, reinforcement learning from human feedback (RLHF), and learning from community norms, discussing concepts like factoring preferences into dimensions and latent value attribute decomposition, but \"chain-of-thought\" is not mentioned or discussed as a concept or technique."
     },
     {
       "arxiv_id": "2602.15012",
@@ -4324,10 +4548,228 @@
         "Priyanka Kargupta",
         "Shuyue Stella Li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_113_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text does not contain the phrase \"chain-of-thought\" nor does it discuss any related concepts or techniques that could be interpreted as meaningful mentions of \"chain-of-thought\" reasoning for LLMs. The text focuses on recommender systems, preference elicitation, LLM applications in recommendations, and alignment techniques like RLHF/DPO."
+    },
+    {
+      "arxiv_id": "2410.13879",
+      "title": "Mixed-curvature decision trees and random forests",
+      "authors": [
+        "Philippe Chlenski",
+        "Quentin Chu",
+        "Raiyan R. Khan",
+        "Kaizhu Du",
+        "Antonio Khalil Moretti",
+        "Itsik Pe'er"
+      ],
+      "first_author": "Philippe Chlenski",
+      "first_author_normalized": "philippe chlenski",
+      "abstract": "Decision trees (DTs) and their random forest (RF) extensions are workhorses of classification and regression in Euclidean spaces. However, algorithms for learning in non-Euclidean spaces are still limited. We extend DT and RF algorithms to product manifolds: Cartesian products of several hyperbolic, hyperspherical, or Euclidean components. Such manifolds handle heterogeneous curvature while still factorizing neatly into simpler components, making them compelling embedding spaces for complex datasets. Our novel angular reformulation respects manifold geometry while preserving the algorithmic properties that make decision trees effective. In the special cases of single-component manifolds, our method simplifies to its Euclidean or hyperbolic counterparts, or introduces hyperspherical DT algorithms, depending on the curvature. In benchmarks on a diverse suite of 57 classification, regression, and link prediction tasks, our product RFs ranked first on 29 tasks and came in the top 2 for 41. This highlights the value of product RFs as straightforward yet powerful new tools for data analysis in product manifolds. Code for our method is available at https://github.com/pchlenski/manify.",
+      "arxiv_url": "https://arxiv.org/abs/2410.13879",
+      "pdf_url": "https://arxiv.org/pdf/2410.13879v3",
+      "source": "rematch",
+      "gscholar_title": "Mixed-curvature decision trees and random forests",
+      "match_method": "exact_title",
+      "associated_original_paper": "Transcoders Find Interpretable LLM Feature Circuits",
+      "associated_first_authors": [
+        "Jacob Dunefsky",
+        "Philippe Chlenski"
+      ],
+      "figure_1_path": "data/gold_figures/new_114_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file"
+    },
+    {
+      "arxiv_id": "2312.16291",
+      "title": "Observable Propagation: Uncovering Feature Vectors in Transformers",
+      "authors": [
+        "Jacob Dunefsky",
+        "Arman Cohan"
+      ],
+      "first_author": "Jacob Dunefsky",
+      "first_author_normalized": "jacob dunefsky",
+      "abstract": "A key goal of current mechanistic interpretability research in NLP is to find linear features (also called \"feature vectors\") for transformers: directions in activation space corresponding to concepts that are used by a given model in its computation. Present state-of-the-art methods for finding linear features require large amounts of labelled data -- both laborious to acquire and computationally expensive to utilize. In this work, we introduce a novel method, called \"observable propagation\" (in short: ObProp), for finding linear features used by transformer language models in computing a given task -- using almost no data. Our paradigm centers on the concept of \"observables\", linear functionals corresponding to given tasks. We then introduce a mathematical theory for the analysis of feature vectors, including a similarity metric between feature vectors called the coupling coefficient which estimates the degree to which one feature's output correlates with another's. We use ObProp to perform extensive qualitative investigations into several tasks, including gendered occupational bias, political party prediction, and programming language detection. Our results suggest that ObProp surpasses traditional approaches for finding feature vectors in the low-data regime, and that ObProp can be used to better understand the mechanisms responsible for bias in large language models.",
+      "arxiv_url": "https://arxiv.org/abs/2312.16291",
+      "pdf_url": "https://arxiv.org/pdf/2312.16291v2",
+      "source": "rematch",
+      "gscholar_title": "Observable Propagation: A Data-Efficient Approach to Uncover Feature Vectors in Transformers.",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Transcoders Find Interpretable LLM Feature Circuits",
+      "associated_first_authors": [
+        "Jacob Dunefsky",
+        "Philippe Chlenski"
+      ],
+      "figure_1_path": "data/gold_figures/new_115_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses various interpretability methods, including saliency-based methods, circuit-based mechanistic interpretability, finding relevant feature vectors, supervised probing, unsupervised autoencoders, decomposing weight matrices, causal interventions, and linear approximations. It focuses on *how to interpret* model behavior and internal representations. The term \"chain-of-thought\" is not mentioned anywhere in the text, nor is there any discussion or conceptualization of \"chain-of-thought\" as a technique for multi-step reasoning or as a subject of interpretability in the context of generating intermediate thoughts."
+    },
+    {
+      "arxiv_id": "2511.20836",
+      "title": "Structured Prompts Improve Evaluation of Language Models",
+      "authors": [
+        "Asad Aali",
+        "Muhammad Ahmed Mohsin",
+        "Vasiliki Bikia",
+        "Arnav Singhvi",
+        "Richard Gaus",
+        "Suhana Bedi",
+        "Hejie Cui",
+        "Miguel Fuentes",
+        "Alyssa Unell",
+        "Yifan Mai",
+        "Jordan Cahoon",
+        "Michael Pfeffer",
+        "Roxana Daneshjou",
+        "Sanmi Koyejo",
+        "Emily Alsentzer",
+        "Christopher Potts",
+        "Nigam H. Shah",
+        "Akshay S. Chaudhari"
+      ],
+      "first_author": "Asad Aali",
+      "first_author_normalized": "asad aali",
+      "abstract": "As language models (LMs) are increasingly adopted across domains, high-quality benchmarking frameworks are essential for guiding deployment decisions. In practice, however, frameworks such as Holistic Evaluation of Language Models (HELM) typically evaluate models under a single static prompt configuration, even though model behavior depends strongly on prompt choice. As a result, reported scores can reflect prompt choice as much as model capability. Declarative prompting frameworks such as DSPy offer a scalable way to evaluate models under a set of structured prompting strategies rather than a static prompt configuration. We present a reproducible DSPy+HELM framework for studying how prompt choice impacts reported benchmark outcomes. Using five prompting methods, we evaluate four frontier and two open-source LMs across seven benchmarks against existing HELM baseline scores. By evaluating LMs across a family of prompt configurations, we find that prompt choice can materially impact leaderboard outcomes. In particular, structured prompting improves performance (by 6% on average), alters comparisons (leaderboard rankings shift on 5/7 benchmarks), with most gains coming from introducing chain-of-thought, and little additional benefit from more advanced optimizers. To our knowledge, this is the first study to systematically integrate structured prompting into an established evaluation framework and quantify how prompt choice alone can impact benchmark conclusions. We open-source (i) DSPy+HELM Evaluation (https://github.com/stanford-crfm/helm/pull/3893) and (ii) Prompt Optimization Pipeline (https://github.com/StanfordMIMI/dspy-helm).",
+      "arxiv_url": "https://arxiv.org/abs/2511.20836",
+      "pdf_url": "https://arxiv.org/pdf/2511.20836v3",
+      "source": "rematch",
+      "gscholar_title": "Structured Prompting Enables More Robust Evaluation of Language Models",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "On the Fundamental Limits of LLMs at Scale",
+      "associated_first_authors": [
+        "Muhammad Ahmed Mohsin"
+      ],
+      "figure_1_path": "data/gold_figures/new_116_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\n**Reasoning:** The text explicitly introduces \"chain-of-thought (CoT) prompting\" as a \"breakthrough\" that \"established the important role of prompt design in model performance.\" It further mentions CoT as a component in \"complex, manually-composed strategies like Medprompt,\" highlighting its role in achieving substantially higher LM performance. These are not incidental mentions but rather discussions of CoT as a significant technique in prompt engineering."
+    },
+    {
+      "arxiv_id": "2604.28119",
+      "title": "Do Sparse Autoencoders Capture Concept Manifolds?",
+      "authors": [
+        "Usha Bhalla",
+        "Thomas Fel",
+        "Can Rager",
+        "Sheridan Feucht",
+        "Tal Haklay",
+        "Daniel Wurgaft",
+        "Siddharth Boppana",
+        "Matthew Kowal",
+        "Vasudev Shyam",
+        "Jack Merullo",
+        "Atticus Geiger",
+        "Ekdeep Singh Lubana"
+      ],
+      "first_author": "Usha Bhalla",
+      "first_author_normalized": "usha bhalla",
+      "abstract": "Sparse autoencoders (SAEs) are widely used to extract interpretable features from neural network representations, often under the implicit assumption that concepts correspond to independent linear directions. However, a growing body of evidence suggests that many concepts are instead organized along low-dimensional manifolds encoding continuous geometric relationships. This raises three basic questions: what does it mean for an SAE to capture a manifold, when do existing SAE architectures do so, and how? We develop a theoretical framework that answers these questions and show that SAEs can capture manifolds in two fundamentally different ways: globally, by allocating a compact group of atoms whose linear span contains the entire manifold, or locally, by distributing it across features that each selectively tile a restricted region of the underlying geometry. Empirically, we find that SAEs suboptimally recover continuous structures, mixing the global subspace and local tiling solutions in a fragmented regime we call dilution. This explains why manifold structure is rarely visible at the level of individual concepts and motivates post-hoc unsupervised discovery methods that search for coherent groups of atoms rather than isolated directions. More broadly, our results suggest that future representation learning methods should treat geometric objects, not just individual directions, as the basic units of interpretability.",
+      "arxiv_url": "https://arxiv.org/abs/2604.28119",
+      "pdf_url": "https://arxiv.org/pdf/2604.28119v1",
+      "source": "rematch",
+      "gscholar_title": "Do Sparse Autoencoders Capture Concept Manifolds?",
+      "match_method": "exact_title",
+      "associated_original_paper": "From Memorization to Reasoning in the Spectrum of Loss Curvature",
+      "associated_first_authors": [
+        "Jack Merullo",
+        "Srihita Vatsavaya"
+      ],
+      "figure_1_path": "data/gold_figures/new_117_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text discusses concepts related to neural network representations, manifold learning, sparse autoencoders (SAEs), and various geometric and statistical methods for analyzing these. It does not contain any mention, meaningful or otherwise, of \"chain-of-thought\" or related reasoning techniques."
+    },
+    {
+      "arxiv_id": "2601.02702",
+      "title": "MultiSessionCollab: Learning User Preferences with Memory to Improve Long-Term Collaboration",
+      "authors": [
+        "Shuhaib Mehri",
+        "Priyanka Kargupta",
+        "Tal August",
+        "Dilek Hakkani-Tür"
+      ],
+      "first_author": "Shuhaib Mehri",
+      "first_author_normalized": "shuhaib mehri",
+      "abstract": "As conversational agents accumulate experience collaborating with users, adapting to user preferences is essential for fostering long-term relationships and improving collaboration quality over time. We introduce MultiSessionCollab, a benchmark that evaluates how well agents can learn user preferences and leverage them to improve collaboration quality throughout multiple sessions. To develop agents that succeed in this setting, we present long-term collaborative agents equipped with a memory that is specifically designed to learn user preferences across sessions and improve interactions. Moreover, we demonstrate that learning signals can be derived from user simulator behavior in MultiSessionCollab to train agents to generate more comprehensive reflections and update their memory more effectively. Extensive experiments show that equipping agents with our memory improves collaboration over time, yielding higher task success rates, more efficient interactions, and reduced user effort. Finally, we conduct a human user study that demonstrates that memory helps improve user experience in real-world settings.",
+      "arxiv_url": "https://arxiv.org/abs/2601.02702",
+      "pdf_url": "https://arxiv.org/pdf/2601.02702v3",
+      "source": "rematch",
+      "gscholar_title": "Learning User Preferences Through Interaction for Long-Term Collaboration",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Cognitive Foundations for Reasoning and Their Manifestation in LLMs",
+      "associated_first_authors": [
+        "Priyanka Kargupta",
+        "Shuyue Stella Li"
+      ],
+      "figure_1_path": "data/gold_figures/new_118_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nI have carefully read through the provided Related Work section. The text discusses concepts such as multi-session interactions, memory mechanisms for LLMs, handling large contexts, using reinforcement learning for memory management, and clarifying questions in multi-turn interactions. However, the term \"chain-of-thought\" (or any clear synonym or description of the technique) is not mentioned anywhere in the text, nor is there any discussion related to the concept of step-by-step reasoning or intermediate reasoning steps generated by LLMs, which is what \"chain-of-thought\" refers to."
+    },
+    {
+      "arxiv_id": "2603.05909",
+      "title": "InfoGatherer: Principled Information Seeking via Evidence Retrieval and Strategic Questioning",
+      "authors": [
+        "Maksym Taranukhin",
+        "Shuyue Stella Li",
+        "Evangelos Milios",
+        "Geoff Pleiss",
+        "Yulia Tsvetkov",
+        "Vered Shwartz"
+      ],
+      "first_author": "Maksym Taranukhin",
+      "first_author_normalized": "maksym taranukhin",
+      "abstract": "LLMs are increasingly deployed in high-stakes domains such as medical triage and legal assistance, often as document-grounded QA systems in which a user provides a description, relevant sources are retrieved, and an LLM generates a prediction. In practice, initial user queries are often underspecified, and a single retrieval pass is insufficient for reliable decision-making, leading to incorrect and overly confident answers. While follow-up questioning can elicit missing information, existing methods typically depend on implicit, unstructured confidence signals from the LLM, making it difficult to determine what remains unknown, what information matters most, and when to stop asking questions. We propose InfoGatherer, a framework that gathers missing information from two complementary sources: retrieved domain documents and targeted follow-up questions to the user. InfoGatherer models uncertainty using Dempster-Shafer belief assignments over a structured evidential network, enabling principled fusion of incomplete and potentially contradictory evidence from both sources without prematurely collapsing to a definitive answer. Across legal and medical tasks, InfoGatherer outperforms strong baselines while requiring fewer turns. By grounding uncertainty in formal evidential theory rather than heuristic LLM signals, InfoGatherer moves towards trustworthy, interpretable decision support in domains where reliability is critical.",
+      "arxiv_url": "https://arxiv.org/abs/2603.05909",
+      "pdf_url": "https://arxiv.org/pdf/2603.05909v1",
+      "source": "rematch",
+      "gscholar_title": "ALFA: Aligning LLMs to Ask Good Questions A Case Study in Clinical Reasoning",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Cognitive Foundations for Reasoning and Their Manifestation in LLMs",
+      "associated_first_authors": [
+        "Priyanka Kargupta",
+        "Shuyue Stella Li"
+      ],
+      "figure_1_path": "data/gold_figures/new_119_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses various topics such as question generation, information-seeking dialogues with LLMs, multi-agent frameworks, and the application of Dempster-Shafer Theory in NLP. However, it does not contain any mention of \"chain-of-thought\" as a concept, technique, or even in passing. The discussion revolves around different methodologies and applications, none of which explicitly refer to or explain \"chain-of-thought\" reasoning."
+    },
+    {
+      "arxiv_id": "2601.09667",
+      "title": "Collaborative Multi-Agent Test-Time Reinforcement Learning for Reasoning",
+      "authors": [
+        "Zhiyuan Hu",
+        "Yunhai Hu",
+        "Juncheng Liu",
+        "Shuyue Stella Li",
+        "Yucheng Wang",
+        "Zhen Xu",
+        "See-Kiong Ng",
+        "Anh Tuan Luu",
+        "Xinxing Xu",
+        "Bryan Hooi",
+        "Cynthia Breazeal",
+        "Hae Won Park"
+      ],
+      "first_author": "Zhiyuan Hu",
+      "first_author_normalized": "zhiyuan hu",
+      "abstract": "Multi-agent systems have evolved into practical LLM-driven collaborators for many applications, gaining robustness from diversity and cross-checking. However, multi-agent RL (MARL) training is resource-intensive and unstable: co-adapting teammates induce non-stationarity, and rewards are often sparse and high-variance. Therefore, we introduce \\textbf{Multi-Agent Test-Time Reinforcement Learning (MATTRL)}, a framework that injects structured textual experience into multi-agent deliberation at inference time. MATTRL forms a multi-expert team of specialists for multi-turn discussions, retrieves and integrates test-time experiences, and reaches consensus for final decision-making. We also study credit assignment for constructing a turn-level experience pool, then reinjecting it into the dialogue. Across challenging benchmarks in medicine, math, and education, MATTRL improves accuracy by an average of 3.67\\% over a multi-agent baseline, and by 8.67\\% over comparable single-agent baselines. Ablation studies examine different credit-assignment schemes and provide a detailed comparison of how they affect training outcomes. MATTRL offers a stable, effective and efficient path to distribution-shift-robust multi-agent reasoning without tuning.",
+      "arxiv_url": "https://arxiv.org/abs/2601.09667",
+      "pdf_url": "https://arxiv.org/pdf/2601.09667v2",
+      "source": "rematch",
+      "gscholar_title": "An empirical study on reinforcement learning for reasoning-search interleaved llm agents",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Cognitive Foundations for Reasoning and Their Manifestation in LLMs",
+      "associated_first_authors": [
+        "Priyanka Kargupta",
+        "Shuyue Stella Li"
+      ],
+      "figure_1_path": "data/gold_figures/new_120_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] NO\n\n**Reasoning:**\nThe provided \"Related Work\" section discusses several topics related to LLMs, including multi-agent collaboration, reinforcement learning for LLM reasoning, test-time adaptation, and credit assignment. However, it does not contain any direct mentions of \"chain-of-thought\" as a concept or technique, nor does it describe methods that are clear synonyms or direct discussions of it. While \"reasoning\" is mentioned, the specific \"chain-of-thought\" technique for guiding LLM reasoning is not discussed."
     }
   ],
-  "count": 113,
+  "count": 120,
   "dest_folder_id": "1vk3FB8IumyHMBuBjI8fsUSdSyOVlFZPf",
-  "generated_at": "2026-05-03T14:07:48.342408"
+  "generated_at": "2026-05-05T19:50:18.709714",
+  "figure_extraction_date": "2026-05-05T21:11:42.398135",
+  "keyword_detection_date": "2026-05-05T21:43:55.870948",
+  "keyword": "chain-of-thought"
 }

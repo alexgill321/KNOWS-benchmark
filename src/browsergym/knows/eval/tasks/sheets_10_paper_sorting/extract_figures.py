@@ -84,11 +84,12 @@ def extract_figure_1(arxiv_id: str, model=None) -> Tuple[bool, Optional[bytes], 
     return False, None, "All extraction stages failed"
 
 
-def process_papers(papers: List[Dict], prefix: str, instance: int, model=None) -> Tuple[List[Dict], int, int]:
+def process_papers(papers: List[Dict], prefix: str, instance: int, model=None, skip_existing: bool = False) -> Tuple[List[Dict], int, int]:
     """Process a list of papers and extract Figure 1 for each."""
     figures_dir = get_figures_dir(instance)
     found_count = 0
     not_found_count = 0
+    skipped_count = 0
 
     for i, paper in enumerate(papers):
         arxiv_id = paper.get('arxiv_id')
@@ -98,6 +99,11 @@ def process_papers(papers: List[Dict], prefix: str, instance: int, model=None) -
             print(f"  [{i+1}/{len(papers)}] {title}... - No arXiv ID")
             paper['figure_1_path'] = None
             not_found_count += 1
+            continue
+
+        if skip_existing and paper.get('figure_1_path'):
+            skipped_count += 1
+            found_count += 1
             continue
 
         print(f"  [{i+1}/{len(papers)}] {title}...")
@@ -121,8 +127,11 @@ def process_papers(papers: List[Dict], prefix: str, instance: int, model=None) -
             paper['figure_1_path'] = None
             not_found_count += 1
 
-        # Rate limiting between papers (3 seconds for export.arxiv.org)
-        time.sleep(3)
+        # Additional cooldown between papers (on top of per-request rate limiting in utils.py)
+        time.sleep(1)
+
+    if skipped_count:
+        print(f"  Skipped {skipped_count} papers with existing figures")
 
     return papers, found_count, not_found_count
 
@@ -139,6 +148,8 @@ def main():
                         help="Only process original papers (gold_papers.json)")
     parser.add_argument('--new-papers-only', action='store_true',
                         help="Only process new papers (gold_new_papers.json)")
+    parser.add_argument('--skip-existing', action='store_true',
+                        help="Skip papers that already have figure_1_path set")
     args = parser.parse_args()
 
     instance = args.instance
@@ -173,7 +184,8 @@ def main():
         if gold_papers and 'papers' in gold_papers:
             print(f"\n=== Processing {len(gold_papers['papers'])} Original Papers ===")
             papers, found, not_found = process_papers(
-                gold_papers['papers'], 'original', instance, model=model
+                gold_papers['papers'], 'original', instance, model=model,
+                skip_existing=args.skip_existing
             )
             gold_papers['papers'] = papers
             gold_papers['figure_extraction_date'] = datetime.now().isoformat()
@@ -191,7 +203,8 @@ def main():
         if gold_new_papers and 'papers' in gold_new_papers:
             print(f"\n=== Processing {len(gold_new_papers['papers'])} New Papers ===")
             papers, found, not_found = process_papers(
-                gold_new_papers['papers'], 'new', instance, model=model
+                gold_new_papers['papers'], 'new', instance, model=model,
+                skip_existing=args.skip_existing
             )
             gold_new_papers['papers'] = papers
             gold_new_papers['figure_extraction_date'] = datetime.now().isoformat()

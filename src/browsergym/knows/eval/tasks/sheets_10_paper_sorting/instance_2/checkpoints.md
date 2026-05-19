@@ -27,17 +27,17 @@ The spreadsheet contains correct information for all original papers from the so
 3. **Abstracts (Column C):** X/N papers have correct abstracts (fuzzy match).
 4. **arXiv Links (Column D):** X/N papers have valid arXiv URLs pointing to correct papers.
 5. **Drive Links (Column E):** X/N papers have valid Drive URLs pointing to correct PDFs.
-6. **Figure 1 Images (Column F):** X/N papers have images that match Figure 1 from the paper.
+6. **Figure 1 Images (Column F):** Proportional (0-10 pts) — scored as floor(correct/evaluated × 10) where evaluated = papers with extractable gold figures.
 7. **New Papers Checkbox (Column G):** X/N papers have unchecked checkboxes (not new papers).
 8. **arXiv URLs Visited:** X/N original paper arXiv URLs appear in the agent browsing history.
 
 ---
 
 ## Checkpoint 3 (N pts): New Papers Discovery
-For each first author of the original papers, at least 3 additional papers by that author have been added to the spreadsheet (or fewer if the author has fewer than 3 other papers on arXiv).
+For each first author of the original papers, at least 3 additional papers where that author is also first author have been added to the spreadsheet (or fewer if the author has fewer than 3 first-authorships on arXiv).
 
 ### Eval Steps:
-1. **Author Coverage:** X/N original first authors have 3+ new papers added.
+1. **Author Coverage:** X/N original first authors have 3+ new first-author papers added.
 
 ---
 
@@ -50,8 +50,8 @@ The spreadsheet contains correct information for all new papers added by the age
 3. **Abstracts (Column C):** X/M new papers have correct abstracts (fuzzy match).
 4. **arXiv Links (Column D):** X/M new papers have valid arXiv URLs pointing to correct papers.
 5. **Drive Links (Column E):** X/M new papers have valid Drive URLs in the correct folder.
-6. **Figure 1 Images (Column F):** X/M new papers have images that match Figure 1 from the paper.
-7. **New Papers Checkbox (Column G):** X/M new papers have checked checkboxes.
+6. **Figure 1 Images (Column F):** Proportional (0-10 pts) — scored as floor(correct/evaluated × 10) where evaluated = papers with extractable gold figures.
+7. **New Papers Checkbox (Column G):** Proportional (0-10 pts) — scored as floor(checked/total_new_rows × 10) across all non-original rows.
 8. **arXiv URLs Visited:** X/M new paper arXiv URLs appear in the agent browsing history.
 
 ---
@@ -60,6 +60,6 @@ The spreadsheet contains correct information for all new papers added by the age
 Rows are correctly highlighted and organized by color grouping.
 
 ### Eval Steps:
-1. **Yellow Highlighting:** Binary (pass/fail) - all papers that mention "dark energy" in related works or similar section are highlighted.
+1. **Yellow Highlighting:** Proportional (0-10 pts) — scored as floor(correct/evaluated × 10) where evaluated = papers whose keyword status was successfully determined.
 2. **Row Grouping:** Binary (pass/fail) - rows must be grouped by highlight color (not interleaved).
 3. **Text Overflow:** No text in any cell is hidden due to cell overflow issues.

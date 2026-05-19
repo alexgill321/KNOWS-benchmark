@@ -125,23 +125,22 @@ def detect_keyword_in_paper(arxiv_id: str, keyword: str, model) -> Tuple[bool, s
     """
     # Stage 1: Try HTML
     has_keyword, msg = detect_keyword_html(arxiv_id, keyword, model)
-    if not msg.startswith("[HTML] Could not") and not msg.startswith("[HTML] No"):
+    if not msg.startswith("[HTML] Could not fetch"):
+        # HTML was fetched — use whatever result we got (even if no Related Work section)
         return has_keyword, msg
 
     print(f"      HTML stage: {msg}")
 
-    # Rate limit between stages
-    time.sleep(2)
-
-    # Stage 2: Try LaTeX
+    # Stage 2: Only try LaTeX if HTML couldn't be fetched (429, no HTML version, etc.)
     has_keyword, msg = detect_keyword_latex(arxiv_id, keyword, model)
     return has_keyword, msg
 
 
-def process_papers(papers: List[Dict], keyword: str, model, instance: int) -> Tuple[List[Dict], int, int]:
+def process_papers(papers: List[Dict], keyword: str, model, instance: int, skip_existing: bool = False) -> Tuple[List[Dict], int, int]:
     """Process a list of papers and detect keyword mentions."""
     has_keyword_count = 0
     no_keyword_count = 0
+    skipped_count = 0
 
     for i, paper in enumerate(papers):
         arxiv_id = paper.get('arxiv_id')
@@ -151,7 +150,16 @@ def process_papers(papers: List[Dict], keyword: str, model, instance: int) -> Tu
             print(f"  [{i+1}/{len(papers)}] {title}... - No arXiv ID")
             paper['has_keyword'] = False
             paper['keyword_note'] = "No arXiv ID"
+            paper['keyword_evaluated'] = False
             no_keyword_count += 1
+            continue
+
+        if skip_existing and 'has_keyword' in paper:
+            skipped_count += 1
+            if paper.get('has_keyword'):
+                has_keyword_count += 1
+            else:
+                no_keyword_count += 1
             continue
 
         print(f"  [{i+1}/{len(papers)}] {title}...")
@@ -160,6 +168,11 @@ def process_papers(papers: List[Dict], keyword: str, model, instance: int) -> Tu
 
         paper['has_keyword'] = has_keyword
         paper['keyword_note'] = msg
+        # Evaluated = content was retrieved (even if no Related Work section).
+        # Not evaluated = couldn't fetch HTML or download LaTeX source at all.
+        paper['keyword_evaluated'] = not any(
+            p in msg for p in ["Could not fetch", "Could not download"]
+        )
 
         if has_keyword:
             print(f"    FOUND \"{keyword}\": {msg[:80]}...")
@@ -170,6 +183,9 @@ def process_papers(papers: List[Dict], keyword: str, model, instance: int) -> Tu
 
         # Rate limiting between papers (3 seconds for export.arxiv.org)
         time.sleep(3)
+
+    if skipped_count:
+        print(f"  Skipped {skipped_count} papers with existing keyword data")
 
     return papers, has_keyword_count, no_keyword_count
 
@@ -186,6 +202,8 @@ def main():
                         help="Only process original papers (gold_papers.json)")
     parser.add_argument('--new-papers-only', action='store_true',
                         help="Only process new papers (gold_new_papers.json)")
+    parser.add_argument('--skip-existing', action='store_true',
+                        help="Skip papers that already have has_keyword set")
     args = parser.parse_args()
 
     instance = args.instance
@@ -221,7 +239,8 @@ def main():
         gold_papers = load_json("gold_papers.json", instance)
         if gold_papers and 'papers' in gold_papers:
             print(f"\n=== Processing {len(gold_papers['papers'])} Original Papers ===")
-            papers, has_kw, no_kw = process_papers(gold_papers['papers'], keyword, model, instance)
+            papers, has_kw, no_kw = process_papers(gold_papers['papers'], keyword, model, instance,
+                                                       skip_existing=args.skip_existing)
             gold_papers['papers'] = papers
             gold_papers['keyword_detection_date'] = datetime.now().isoformat()
             gold_papers['keyword'] = keyword
@@ -238,7 +257,8 @@ def main():
         gold_new_papers = load_json("gold_new_papers.json", instance)
         if gold_new_papers and 'papers' in gold_new_papers:
             print(f"\n=== Processing {len(gold_new_papers['papers'])} New Papers ===")
-            papers, has_kw, no_kw = process_papers(gold_new_papers['papers'], keyword, model, instance)
+            papers, has_kw, no_kw = process_papers(gold_new_papers['papers'], keyword, model, instance,
+                                                       skip_existing=args.skip_existing)
             gold_new_papers['papers'] = papers
             gold_new_papers['keyword_detection_date'] = datetime.now().isoformat()
             gold_new_papers['keyword'] = keyword

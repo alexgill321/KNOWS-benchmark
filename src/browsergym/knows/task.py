@@ -1152,14 +1152,26 @@ class SheetsPaperSortingTask(KnowsWorkspaceTask):
     AVAILABLE_INSTANCES: Tuple[int, ...] = (1, 2, 3, 4, 5)
 
     def setup(self, page: playwright.sync_api.Page) -> Tuple[str, dict]:
-        self._run_required_preprocess()
+        self._run_setup_pipeline()
         return super().setup(page)
 
-    def _run_required_preprocess(self) -> None:
-        """Run sheets_10 preprocessing before the browser task is exposed."""
-        script_path = EVAL_TASKS_DIR / self.TASK_FAMILY_FOLDER / "preprocess.py"
+    def _run_setup_pipeline(self) -> None:
+        """Run full pre-benchmark pipeline for sheets_10."""
+        self._run_task_script("setup_run.py")
+        self._run_task_script("preprocess.py", ["--rematch-only"])
+        self._run_task_script("extract_figures.py", ["--skip-existing"])
+        self._run_task_script("detect_keyword.py", ["--skip-existing"])
+
+    def _run_task_script(self, script_name: str, extra_args: list = None) -> None:
+        """Run a task-level script as a subprocess.
+
+        Args:
+            script_name: Name of the script in the task family folder.
+            extra_args: Additional CLI arguments to pass after --instance.
+        """
+        script_path = EVAL_TASKS_DIR / self.TASK_FAMILY_FOLDER / script_name
         if not script_path.exists():
-            raise FileNotFoundError(f"Required preprocess script not found: {script_path}")
+            raise FileNotFoundError(f"Required script not found: {script_path}")
 
         package_root = _PACKAGE_DIR.parents[2]  # browsergym/knows/
         env = os.environ.copy()
@@ -1171,10 +1183,10 @@ class SheetsPaperSortingTask(KnowsWorkspaceTask):
             "--instance",
             str(self._instance_id),
         ]
-        print(
-            "Running required sheets_10 preprocessing before task setup: "
-            + " ".join(command)
-        )
+        if extra_args:
+            command.extend(extra_args)
+
+        print(f"Running sheets_10 {script_name}: " + " ".join(command))
         try:
             subprocess.run(
                 command,
@@ -1184,7 +1196,7 @@ class SheetsPaperSortingTask(KnowsWorkspaceTask):
             )
         except subprocess.CalledProcessError as exc:
             raise RuntimeError(
-                "Required sheets_10 preprocessing failed; refusing to start "
+                f"sheets_10 {script_name} failed for "
                 f"{self.TASK_FAMILY_FOLDER} instance {self._instance_id}."
             ) from exc
 
