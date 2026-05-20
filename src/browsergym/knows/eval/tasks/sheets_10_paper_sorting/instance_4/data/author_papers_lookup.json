@@ -15,7 +15,7 @@
         "https://scholar.google.com/citations?user=SKTQTXwAAAAJ&hl=en&oi=sra",
         "https://scholar.google.com/citations?user=CEJ4pugAAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 25,
+      "new_papers_count": 67,
       "new_paper_arxiv_ids": [
         "2211.03295",
         "2306.11249",
@@ -41,7 +41,49 @@
         "2111.15454",
         "2503.01136",
         "2507.21049",
-        "2603.08589"
+        "2603.08589",
+        "2206.12126",
+        "2211.12509",
+        "2103.13027",
+        "2303.05725",
+        "2211.06612",
+        "2205.13943",
+        "2402.14391",
+        "2306.13769",
+        "2204.12440",
+        "2301.10774",
+        "2203.10761",
+        "2406.05688",
+        "2207.03160",
+        "2301.02780",
+        "2208.05514",
+        "2311.14109",
+        "2406.10840",
+        "2206.00845",
+        "2009.09590",
+        "2403.01901",
+        "2402.11459",
+        "2411.11916",
+        "2106.15788",
+        "2205.07266",
+        "2412.18827",
+        "2104.13048",
+        "2310.11466",
+        "2110.14553",
+        "2010.04012",
+        "2502.07299",
+        "2411.01856",
+        "2410.12866",
+        "2506.08365",
+        "2605.10341",
+        "2506.21107",
+        "2602.15882",
+        "2510.22115",
+        "2508.04128",
+        "2405.10348",
+        "2310.05829",
+        "2304.03906",
+        "1903.08558"
       ],
       "new_paper_titles": [
         "MogaNet: Multi-order Gated Aggregation Network",
@@ -68,7 +110,49 @@
         "Boosting Discriminative Visual Representation Learning with Scenario-Agnostic Mixup",
         "Prior-guided Hierarchical Harmonization Network for Efficient Image Dehazing",
         "Rep-MTL: Unleashing the Power of Representation-level Task Saliency for Multi-Task Learning",
-        "CARE-Edit: Condition-Aware Routing of Experts for Contextual Image Editing"
+        "CARE-Edit: Condition-Aware Routing of Experts for Contextual Image Editing",
+        "Temporal Attention Unit: Towards Efficient Spatiotemporal Predictive Learning",
+        "SimVPv2: Towards Simple yet Powerful Spatiotemporal Predictive Learning",
+        "AutoMix: Unveiling the Power of Mixup for Stronger Classifiers",
+        "CVT-SLR: Contrastive Visual-Textual Transformation for Sign Language Recognition with Variational Alignment",
+        "Divide and Contrast: Source-free Domain Adaptation via Adaptive Contrastive Learning",
+        "Architecture-Agnostic Masked Image Modeling -- From ViT back to CNN",
+        "MAPE-PPI: Towards Effective and Efficient Protein-Protein Interaction Prediction via Microenvironment-Aware Protein Embedding",
+        "Functional-Group-Based Diffusion for Pocket-Specific Molecule Generation and Elaboration",
+        "Neuro-BERT: Rethinking Masked Autoencoding for Self-supervised Neurological Pretraining",
+        "RDesign: Hierarchical Data-efficient Representation Learning for Tertiary Structure-based RNA Design",
+        "Harnessing Hard Mixed Samples with Decoupled Regularizer",
+        "Peer Review as A Multi-Turn and Long-Context Dialogue with Role-Based Interactions",
+        "DLME: Deep Local-flatness Manifold Embedding",
+        "Rethinking Explaining Graph Neural Networks via Non-parametric Subgraph Matching",
+        "Are Gradients on Graph Structure Reliable in Gray-box Attacks?",
+        "Boosting the Power of Small Multimodal Reasoning Models to Match Larger Models with Self-Consistency Training",
+        "CBGBench: Fill in the Blank of Protein-Molecule Complex Binding Graph",
+        "Hyperspherical Consistency Regularization",
+        "Generalized Clustering and Multi-Manifold Learning with Geometric Structure Preservation",
+        "FaceChain-ImagineID: Freely Crafting High-Fidelity Diverse Talking Faces from Disentangled Audio",
+        "Re-Dock: Towards Flexible and Realistic Molecular Docking with Diffusion Bridge",
+        "From Words to Structured Visuals: A Benchmark and Framework for Text-to-Diagram Generation and Editing",
+        "Exploring Localization for Self-supervised Fine-grained Contrastive Learning",
+        "Discovering the Representation Bottleneck of Graph Neural Networks",
+        "PhyloGen: Language Model-Enhanced Phylogenetic Inference via Graph Structure Generation",
+        "Unsupervised Deep Manifold Attributed Graph Embedding",
+        "Protein 3D Graph Structure Learning for Robust Structure-based Protein Property Prediction",
+        "GenURL: A General Framework for Unsupervised Representation Learning",
+        "Invertible Manifold Learning for Dimension Reduction",
+        "Life-Code: Central Dogma Modeling with Multi-Omics Sequence Unification",
+        "MeToken: Uniform Micro-environment Token Boosts Post-Translational Modification Prediction",
+        "Towards Homogeneous Lexical Tone Decoding from Heterogeneous Intracranial Recordings",
+        "AlphaFold Database Debiasing for Robust Inverse Folding",
+        "PaperFit: Vision-in-the-Loop Typesetting Optimization for Scientific Documents",
+        "Doloris: Dual Conditional Diffusion Implicit Bridges with Sparsity Masking Strategy for Unpaired Single-Cell Perturbation Estimation",
+        "FUTURE-VLA: Forecasting Unified Trajectories Under Real-time Execution",
+        "Every Activation Boosted: Scaling General Reasoner to 1 Trillion Open Language Foundation",
+        "Neuro-MoBRE: Exploring Multi-subject Multi-task Intracranial Decoding via Explicit Heterogeneity Resolving",
+        "Learning to Predict Mutation Effects of Protein-Protein Interactions by Microenvironment-aware Hierarchical Prompt Learning",
+        "USTEP: Spatio-Temporal Predictive Learning under A Unified View",
+        "Instructor-inspired Machine Learning for Robust Molecular Property Prediction",
+        "Single Image Deraining: A Comprehensive Benchmark Analysis"
       ],
       "expected_new_papers": 3
     },
@@ -84,10 +168,14 @@
       "gscholar_urls": [
         "https://scholar.google.com/citations?user=kD5srh0AAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 0,
-      "new_paper_arxiv_ids": [],
-      "new_paper_titles": [],
-      "expected_new_papers": 0
+      "new_papers_count": 1,
+      "new_paper_arxiv_ids": [
+        "2403.10863"
+      ],
+      "new_paper_titles": [
+        "stMCDI: Masked Conditional Diffusion Model with Graph Neural Network for Spatial Transcriptomics Data Imputation"
+      ],
+      "expected_new_papers": 1
     },
     {
       "original_paper_title": "A Review of Graph Neural Networks in Epidemic Modeling",
@@ -104,7 +192,7 @@
         "https://scholar.google.com/citations?user=5e3SuMUAAAAJ&hl=en&oi=sra",
         "https://scholar.google.com/citations?user=-dsexzkAAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 45,
+      "new_papers_count": 47,
       "new_paper_arxiv_ids": [
         "2503.23167",
         "2502.15016",
@@ -150,7 +238,9 @@
         "2511.10945",
         "2508.13518",
         "2602.03153",
-        "2602.07023"
+        "2602.07023",
+        "2605.14137",
+        "2510.08646"
       ],
       "new_paper_titles": [
         "Graph ODEs and Beyond: A Comprehensive Survey on Integrating Differential Equations with Graph Neural Networks",
@@ -197,7 +287,9 @@
         "Divide, Conquer and Unite: Hierarchical Style-Recalibrated Prototype Alignment for Federated Medical Segmentation",
         "Calibrating Biased Distribution in VFM-derived Latent Space via Cross-Domain Geometric Consistency",
         "When Attention Betrays: Erasing Backdoor Attacks in Robotic Policies by Reconstructing Visual Tokens",
-        "Behavioral Consistency Validation for LLM Agents: An Analysis of Trading-Style Switching through Stock-Market Simulation"
+        "Behavioral Consistency Validation for LLM Agents: An Analysis of Trading-Style Switching through Stock-Market Simulation",
+        "Flow Field Reconstruction with Sensor Placement Policy Learning",
+        "Mitigating Over-Refusal in Aligned Large Language Models via Inference-Time Activation Energy"
       ],
       "expected_new_papers": 3
     },
@@ -213,16 +305,18 @@
       "gscholar_urls": [
         "https://scholar.google.com/citations?user=ICKzyIwAAAAJ"
       ],
-      "new_papers_count": 2,
+      "new_papers_count": 3,
       "new_paper_arxiv_ids": [
         "2408.10609",
-        "2604.13986"
+        "2604.13986",
+        "1705.00104"
       ],
       "new_paper_titles": [
         "PerturBench: Benchmarking Machine Learning Models for Cellular Perturbation Analysis",
-        "PRiMeFlow: Capturing Complex Expression Heterogeneity in Perturbation Response Modelling"
+        "PRiMeFlow: Capturing Complex Expression Heterogeneity in Perturbation Response Modelling",
+        "Coarse-Grained Descriptions of Dynamics for Networks with both Intrinsic and Structural Heterogeneities"
       ],
-      "expected_new_papers": 2
+      "expected_new_papers": 3
     },
     {
       "original_paper_title": "SGNet: Folding Symmetrical Protein Complex with Deep Learning",
@@ -265,5 +359,5 @@
     }
   ],
   "count": 5,
-  "generated_at": "2026-05-03T14:17:17.009194"
+  "generated_at": "2026-05-19T00:19:52.646562"
 }

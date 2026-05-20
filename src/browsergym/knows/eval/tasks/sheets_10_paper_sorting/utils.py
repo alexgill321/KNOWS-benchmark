@@ -26,11 +26,11 @@ import requests
 _last_arxiv_request_time = 0.0
 
 def _arxiv_rate_limit():
-    """Wait if needed to ensure at least 3s between arxiv HTTP requests."""
+    """Wait if needed to ensure at least 5s between arxiv HTTP requests."""
     global _last_arxiv_request_time
     elapsed = _time.time() - _last_arxiv_request_time
-    if elapsed < 3.0:
-        _time.sleep(3.0 - elapsed)
+    if elapsed < 5.0:
+        _time.sleep(5.0 - elapsed)
     _last_arxiv_request_time = _time.time()
 
 def _arxiv_request_with_retry(url: str, max_retries: int = 3, timeout: int = 30,
@@ -164,7 +164,7 @@ def fetch_arxiv_html(arxiv_id: str) -> Tuple[bool, str, str]:
     Returns:
         Tuple of (success, html_content, message).
     """
-    html_url = f"https://export.arxiv.org/html/{arxiv_id}"
+    html_url = f"https://ar5iv.labs.arxiv.org/html/{arxiv_id}"
 
     try:
         response = _arxiv_request_with_retry(html_url, headers=ARXIV_HEADERS, timeout=30)
@@ -445,7 +445,12 @@ def parse_html_for_figure_1(html_content: str, arxiv_id: str) -> Tuple[bool, Opt
             img = figure.find('img')
             if img and img.get('src'):
                 img_src = img['src']
-                img_url = f"https://export.arxiv.org/html/{arxiv_id}/{img_src}"
+                if img_src.startswith('http'):
+                    img_url = img_src
+                elif img_src.startswith('/'):
+                    img_url = f"https://ar5iv.labs.arxiv.org{img_src}"
+                else:
+                    img_url = f"https://ar5iv.labs.arxiv.org/html/{arxiv_id}/{img_src}"
                 return True, img_url, f"Found Figure 1 by ID: {fig_id}"
 
             # Check for inline SVG (common for TikZ figures)
@@ -509,7 +514,12 @@ Return ONLY the image src value (e.g., "x1.png") for Figure 1, or "NOT_FOUND" if
         if response_clean and response_clean.upper() != "NOT_FOUND":
             # Ensure it looks like a valid image filename
             if re.search(r'\.(png|jpg|jpeg|svg)$', response_clean, re.IGNORECASE):
-                img_url = f"https://export.arxiv.org/html/{arxiv_id}/{response_clean}"
+                if response_clean.startswith('http'):
+                    img_url = response_clean
+                elif response_clean.startswith('/'):
+                    img_url = f"https://ar5iv.labs.arxiv.org{response_clean}"
+                else:
+                    img_url = f"https://ar5iv.labs.arxiv.org/html/{arxiv_id}/{response_clean}"
                 return True, img_url, f"LLM identified Figure 1: {response_clean}"
 
         return False, None, "LLM could not identify Figure 1"
@@ -562,7 +572,7 @@ def extract_figure_1_from_html(arxiv_id: str, model=None) -> Tuple[bool, Optiona
                 os.unlink(tmp_path)
             return False, None, f"SVG cached but conversion still failed"
 
-    html_url = f"https://export.arxiv.org/html/{arxiv_id}"
+    html_url = f"https://ar5iv.labs.arxiv.org/html/{arxiv_id}"
 
     # Headers to avoid 403 errors from arXiv
     headers = {
@@ -651,7 +661,7 @@ def download_arxiv_source(arxiv_id: str, output_dir: str, timeout: int = 60) -> 
     }
 
     try:
-        response = _arxiv_request_with_retry(url, headers=headers, timeout=timeout, stream=True)
+        response = _arxiv_request_with_retry(url, headers=headers, timeout=timeout, stream=False)
         response.raise_for_status()
 
         content_type = response.headers.get('Content-Type', '')
@@ -666,8 +676,7 @@ def download_arxiv_source(arxiv_id: str, output_dir: str, timeout: int = 60) -> 
             # It's a gzipped tar file
             tar_path = os.path.join(paper_dir, 'source.tar.gz')
             with open(tar_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
+                f.write(response.content)
 
             # Extract tar.gz
             try:
@@ -694,15 +703,13 @@ def download_arxiv_source(arxiv_id: str, output_dir: str, timeout: int = 60) -> 
             # Single TeX file
             tex_path = os.path.join(paper_dir, 'main.tex')
             with open(tex_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
+                f.write(response.content)
             extracted_files = [tex_path]
         else:
             # Unknown format, save as-is
             raw_path = os.path.join(paper_dir, 'source_raw')
             with open(raw_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
+                f.write(response.content)
             extracted_files = [raw_path]
 
         return True, f"Downloaded and extracted {len(extracted_files)} files", extracted_files

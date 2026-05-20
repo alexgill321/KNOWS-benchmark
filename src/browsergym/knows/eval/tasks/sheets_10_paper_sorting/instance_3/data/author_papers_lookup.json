@@ -12,7 +12,7 @@
       "gscholar_urls": [
         "https://scholar.google.com/citations?user=T7aADi0AAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 46,
+      "new_papers_count": 69,
       "new_paper_arxiv_ids": [
         "1701.04260",
         "1802.01641",
@@ -59,7 +59,30 @@
         "2512.11462",
         "2512.03243",
         "2505.08623",
-        "1708.05352"
+        "1708.05352",
+        "1204.0646",
+        "1002.3633",
+        "1411.7653",
+        "1405.3561",
+        "1410.7206",
+        "0911.2992",
+        "1210.7111",
+        "1108.3998",
+        "1212.0779",
+        "1004.0125",
+        "1502.03254",
+        "1303.4268",
+        "1207.0233",
+        "1207.1630",
+        "1310.1020",
+        "1203.5020",
+        "1508.04351",
+        "1503.08082",
+        "1107.4881",
+        "1302.6491",
+        "1411.7256",
+        "2309.11183",
+        "1608.07158"
       ],
       "new_paper_titles": [
         "On VIX Futures in the rough Bergomi model",
@@ -107,7 +130,30 @@
         "Stochastic limits of Quantum repeated measurements",
         "Novelty detection on path space",
         "Rough Bergomi turns grey",
-        "How many paths to simulate correlated Brownian motions?"
+        "How many paths to simulate correlated Brownian motions?",
+        "Arbitrage-free SVI volatility surfaces",
+        "Convergence of Heston to SVI",
+        "Asymptotic behaviour of the fractional Heston model",
+        "An explicit Euler scheme with strong rate of convergence for financial SDEs with non-Lipschitz coefficients",
+        "Large-Maturity Regimes of the Heston Forward Smile",
+        "Asymptotic formulae for implied volatility in the Heston model",
+        "Generalised arbitrage-free SVI volatility surfaces",
+        "Large deviations and stochastic volatility with jumps: asymptotic implied volatility for affine models",
+        "Asymptotics of forward implied volatility",
+        "Variance dispersion and correlation swaps",
+        "Mass at zero in the uncorrelated SABR model and implied volatility asymptotics",
+        "The Small-Maturity Heston Forward Smile",
+        "From characteristic functions to implied volatility expansions",
+        "The Smile of certain Lévy-type Models",
+        "Shapes of implied volatility with positive mass at zero",
+        "Large deviations for the extended Heston model: the large-time case",
+        "Implied volatility in strict local martingale models",
+        "Black-Scholes in a CEV random environment",
+        "A note on essential smoothness in the Heston model",
+        "Asymptotic arbitrage in the Heston model",
+        "Two examples of non strictly convex large deviations",
+        "$\\mathfrak{X}$PDE for $\\mathfrak{X} \\in \\{\\mathrm{BS},\\mathrm{FBS}, \\mathrm{P}\\}$: a rough volatility context",
+        "The randomised Heston model"
       ],
       "expected_new_papers": 3
     },
@@ -360,5 +406,5 @@
     }
   ],
   "count": 4,
-  "generated_at": "2026-05-03T14:15:52.278576"
+  "generated_at": "2026-05-18T11:00:15.797995"
 }

@@ -130,7 +130,7 @@ REQUIRED_COLUMNS = [
     ("Abstract", ["abstract", "summary"]),
     ("arXiv Link", ["arxiv", "link", "url"]),
     ("Drive Link", ["drive", "pdf", "file", "google"]),
-    ("Figure 1", ["figure", "fig", "image", "screenshot"]),
+    ("Figure 1", ["figure 1", "figure", "fig", "image", "screenshot"]),
     ("New Papers", ["new", "checkbox", "added", "new paper"]),
 ]
 
@@ -349,7 +349,7 @@ def grade_checkpoint_1():
         ("Abstract", ["abstract", "summary"]),
         ("arXiv Link", ["arxiv", "link", "url"]),
         ("Drive Link", ["drive", "pdf", "file", "google"]),
-        ("Figure 1", ["figure", "fig", "image", "screenshot"]),
+        ("Figure 1", ["figure 1", "figure", "fig", "image", "screenshot"]),
         ("New Papers", ["new", "checkbox", "added", "new paper"])
     ]
 
@@ -876,14 +876,13 @@ def grade_checkpoint_4():
     checkpoint.add_step("Drive Links Valid", drive_valid == MAX_NEW_PAPERS, 5,
                       f"{drive_valid}/{MAX_NEW_PAPERS} new papers have valid Drive links", execution_time=0)
 
-    # Figure 1 step — proportional out of 10, only scored against evaluable papers
-    evaluable_new_figures = len(figures_with_gold)
-    if evaluable_new_figures > 0 and figure_col and vlm_model:
-        figure_score = int(figure_matches / evaluable_new_figures * 10)
+    # Figure 1 step — proportional out of 10, only scored against matched papers with gold figures
+    if papers_with_gold_figures > 0 and figure_col and vlm_model:
+        figure_score = int(figure_matches / papers_with_gold_figures * 10)
         checkpoint.result += figure_score
-        checkpoint.add_step("Figure 1 Images", figure_matches == evaluable_new_figures, 6,
-                          f"{figure_matches}/{evaluable_new_figures} figures correct ({figure_score}/10)", execution_time=0)
-    elif evaluable_new_figures == 0:
+        checkpoint.add_step("Figure 1 Images", figure_matches == papers_with_gold_figures, 6,
+                          f"{figure_matches}/{papers_with_gold_figures} figures correct ({figure_score}/10)", execution_time=0)
+    elif papers_with_gold_figures == 0:
         checkpoint.add_step("Figure 1 Images", False, 6, "No gold figure data to evaluate", execution_time=0)
     elif not vlm_model:
         checkpoint.add_step("Figure 1 Images", False, 6, "VLM model not available", execution_time=0)
@@ -953,7 +952,7 @@ def grade_checkpoint_5():
         color = get_row_background_color(sheet_raw, row_idx)
         color_class = classify_row_color(color)
         row_colors.append(color_class)
-        if color_class == 'yellow':
+        if color_class in ('yellow', 'orange'):
             yellow_rows.append(row_idx)
 
     # Step 1: Yellow highlighting — only for papers where keyword was evaluated
@@ -965,16 +964,26 @@ def grade_checkpoint_5():
 
     if len(evaluated_papers) > 0 and expected_yellow > 0:
         yellow_correct = min(yellow_count, expected_yellow)
+        has_extras = yellow_count > expected_yellow
         highlight_score = int(yellow_correct / expected_yellow * 10)
+        if has_extras:
+            highlight_score = max(0, highlight_score - (yellow_count - expected_yellow))
         checkpoint.result += highlight_score
-        checkpoint.add_step("Yellow Highlighting", yellow_count >= expected_yellow, 1,
-                          f"{yellow_count} yellow rows (expected {expected_yellow} from {len(evaluated_papers)} evaluated papers, {highlight_score}/10)",
-                          execution_time=time.time() - step_start)
+        msg = f"{yellow_count} yellow rows (expected {expected_yellow}, {highlight_score}/10)"
+        if has_extras:
+            msg += f" — {yellow_count - expected_yellow} extra yellow rows"
+        checkpoint.add_step("Yellow Highlighting", yellow_count == expected_yellow, 1,
+                          msg, execution_time=time.time() - step_start)
     elif len(evaluated_papers) > 0 and expected_yellow == 0:
-        checkpoint.result += 1
-        checkpoint.add_step("Yellow Highlighting", True, 1,
-                          f"No '{HIGHLIGHT_KEYWORD}' papers among {len(evaluated_papers)} evaluated papers",
-                          execution_time=time.time() - step_start)
+        if yellow_count == 0:
+            checkpoint.result += 1
+            checkpoint.add_step("Yellow Highlighting", True, 1,
+                              f"No '{HIGHLIGHT_KEYWORD}' papers among {len(evaluated_papers)} evaluated papers, correctly no yellow rows",
+                              execution_time=time.time() - step_start)
+        else:
+            checkpoint.add_step("Yellow Highlighting", False, 1,
+                              f"No '{HIGHLIGHT_KEYWORD}' papers expected but found {yellow_count} yellow rows",
+                              execution_time=time.time() - step_start)
     else:
         checkpoint.add_step("Yellow Highlighting", False, 1,
                           f"0 papers evaluated for keyword detection",

@@ -18,7 +18,10 @@
       "gold_labels_first_authors_normalized": [
         "andrea lapi"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_1_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
     },
     {
       "title": "Rapid detection of gravitational waves from binary black hole mergers using sparse dictionary learning",
@@ -44,7 +47,10 @@
         "charles badger",
         "rahul srinivasan"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_2_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "title": "Real-time gravitational-wave inference for binary neutron stars using machine learning",
@@ -71,7 +77,10 @@
       "gold_labels_first_authors_normalized": [
         "maximilian dax"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_3_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses machine learning applications in gravitational-wave astronomy, focusing on black hole mergers, binary neutron star (BNS) inference, and equation-of-state inference. There is no mention of \"dark energy\" anywhere in the passage.",
+      "keyword_evaluated": true
     },
     {
       "title": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
@@ -81,18 +90,24 @@
       "first_author": "Mohammad Malekjani",
       "first_author_normalized": "mohammad malekjani",
       "abstract": "",
-      "arxiv_id": null,
-      "arxiv_url": null,
+      "arxiv_id": "2407.09767",
+      "arxiv_url": "https://arxiv.org/abs/2407.09767",
       "gold_labels_first_authors": [
         "Mohammad Malekjani"
       ],
       "gold_labels_first_authors_normalized": [
         "mohammad malekjani"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_4_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\n**Reasoning:** The provided text discusses the Cosmic Microwave Background (CMB) radiation, Planck measurements, and various likelihood calculations related to temperature, polarization, and lensing potential spectra. It details the observational data and methods used to examine cosmological models. However, the term \"dark energy\" is not present anywhere in the text, either as a concept being discussed or even as an incidental mention.",
+      "keyword_evaluated": true
     }
   ],
   "count": 4,
   "source_folder_id": "1Qm2gLrC3PhRqhlAI_WXBjYKqECdPOwBE",
-  "generated_at": "2026-05-03T14:14:38.579965"
+  "generated_at": "2026-05-03T14:14:38.579965",
+  "figure_extraction_date": "2026-05-17T20:44:01.124592",
+  "keyword_detection_date": "2026-05-18T09:42:19.398994",
+  "keyword": "dark energy"
 }

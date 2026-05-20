@@ -24,7 +24,10 @@
         "zheyu oliver wang",
         "qianyu julie zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_1_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"Bayesian\" does not appear anywhere in the provided \"Related Work\" text.",
+      "keyword_evaluated": true
     },
     {
       "title": "Achievable distributional robustness when the robust risk is only partially identified",
@@ -44,7 +47,10 @@
       "gold_labels_first_authors_normalized": [
         "julia kostin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_2_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\n**Reasoning:** The term \"Bayesian\" is not present anywhere in the provided Related Work section. The text focuses on distributional robustness, causal models, and partial identifiability, without any mention or discussion of Bayesian concepts or techniques.",
+      "keyword_evaluated": true
     },
     {
       "title": "Triple/Debiased Lasso for Statistical Inference of Conditional Average Treatment Effects",
@@ -62,7 +68,10 @@
       "gold_labels_first_authors_normalized": [
         "masahiro kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_3_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided \"Related Work\" section does not contain any mention of the term \"Bayesian\" or any related concepts (e.g., priors, posteriors, MCMC, Bayes factors) that would indicate a discussion of Bayesian methods or techniques. The methodologies mentioned focus on traditional regression, kernel methods, random forests, neural networks, various high-dimensional linear regression techniques (Lasso, Ridge, Elastic Net), and Double Machine Learning (DML).",
+      "keyword_evaluated": true
     },
     {
       "title": "Bayesian High-dimensional Linear Regression with Sparse Projection-posterior",
@@ -81,7 +90,10 @@
       "gold_labels_first_authors_normalized": [
         "samhita pal"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_4_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "title": "Doubly Robust Inference in Causal Latent Factor Models",
@@ -102,10 +114,16 @@
       "gold_labels_first_authors_normalized": [
         "alberto abadie"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_5_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     }
   ],
   "count": 5,
   "source_folder_id": "1xDDOPz_AH55ONpjQRgC__IWjgWtbw08O",
-  "generated_at": "2026-05-03T14:18:45.073957"
+  "generated_at": "2026-05-03T14:18:45.073957",
+  "figure_extraction_date": "2026-05-19T18:11:40.829931",
+  "keyword_detection_date": "2026-05-19T18:19:49.467007",
+  "keyword": "Bayesian"
 }

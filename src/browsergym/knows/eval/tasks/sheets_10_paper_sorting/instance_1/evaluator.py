@@ -126,7 +126,7 @@ REQUIRED_COLUMNS = [
     ("Abstract", ["abstract", "summary"]),
     ("arXiv Link", ["arxiv", "link", "url"]),
     ("Drive Link", ["drive", "pdf", "file", "google"]),
-    ("Figure 1", ["figure", "fig", "image", "screenshot"]),
+    ("Figure 1", ["figure 1", "figure", "fig", "image", "screenshot"]),
     ("New Papers", ["new", "checkbox", "added", "new paper"]),
 ]
 
@@ -498,7 +498,7 @@ def grade_checkpoint_1():
         ("Abstract", ["abstract", "summary"]),
         ("arXiv Link", ["arxiv", "link", "url"]),
         ("Drive Link", ["drive", "pdf", "file", "google"]),
-        ("Figure 1", ["figure", "fig", "image", "screenshot"]),
+        ("Figure 1", ["figure 1", "figure", "fig", "image", "screenshot"]),
         ("New Papers", ["new", "checkbox", "added", "new paper"])
     ]
 
@@ -1327,7 +1327,7 @@ def grade_checkpoint_5():
         color_class = classify_row_color(color)
         row_colors.append(color_class)
 
-        if color_class == 'yellow':
+        if color_class in ('yellow', 'orange'):
             yellow_rows.append(row_idx)
 
     # Step 1: Check yellow highlighting — only for papers where keyword was evaluated
@@ -1338,19 +1338,29 @@ def grade_checkpoint_5():
     yellow_count = len(yellow_rows)
 
     if len(evaluated_papers) > 0 and expected_yellow > 0:
-        # Count how many expected yellow papers are actually yellow
+        # Check both: enough yellow rows AND no extra yellow rows
         yellow_correct = min(yellow_count, expected_yellow)
+        has_extras = yellow_count > expected_yellow
         highlight_score = int(yellow_correct / expected_yellow * 10)
+        if has_extras:
+            highlight_score = max(0, highlight_score - (yellow_count - expected_yellow))
         checkpoint.result += highlight_score
-        checkpoint.add_step("Yellow Highlighting", yellow_count >= expected_yellow, 1,
-                          f"{yellow_count} yellow rows (expected {expected_yellow} from {len(evaluated_papers)} evaluated papers, {highlight_score}/10)",
-                          execution_time=time.time() - step_start)
+        msg = f"{yellow_count} yellow rows (expected {expected_yellow}, {highlight_score}/10)"
+        if has_extras:
+            msg += f" — {yellow_count - expected_yellow} extra yellow rows"
+        checkpoint.add_step("Yellow Highlighting", yellow_count == expected_yellow, 1,
+                          msg, execution_time=time.time() - step_start)
     elif len(evaluated_papers) > 0 and expected_yellow == 0:
-        # Papers were evaluated but none have the keyword — no yellow expected
-        checkpoint.result += 1
-        checkpoint.add_step("Yellow Highlighting", True, 1,
-                          f"No keyword papers among {len(evaluated_papers)} evaluated papers, no yellow expected",
-                          execution_time=time.time() - step_start)
+        # No yellow expected — penalize if there are any yellow rows
+        if yellow_count == 0:
+            checkpoint.result += 1
+            checkpoint.add_step("Yellow Highlighting", True, 1,
+                              f"No keyword papers among {len(evaluated_papers)} evaluated papers, correctly no yellow rows",
+                              execution_time=time.time() - step_start)
+        else:
+            checkpoint.add_step("Yellow Highlighting", False, 1,
+                              f"No keyword papers expected but found {yellow_count} yellow rows",
+                              execution_time=time.time() - step_start)
     else:
         checkpoint.add_step("Yellow Highlighting", False, 1,
                           f"0 papers evaluated for keyword detection",

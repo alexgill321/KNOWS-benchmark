@@ -26,8 +26,8 @@ The spreadsheet contains correct information for all original papers from the so
 2. **Authors (Column B):** X/N papers have correct author lists (exact match).
 3. **Abstracts (Column C):** X/N papers have correct abstracts (fuzzy match).
 4. **arXiv Links (Column D):** X/N papers have valid arXiv URLs pointing to correct papers.
-5. **Drive Links (Column E):** X/N papers have valid Drive URLs pointing to correct PDFs.
-6. **Figure 1 Images (Column F):** Proportional (0-10 pts) — scored as floor(correct/evaluated × 10) where evaluated = papers with extractable gold figures.
+5. **Drive Links (Column E):** X/N papers have valid Drive URLs pointing to correct PDFs (new papers in pdfs/ subfolder).
+6. **Figure 1 Images (Column F):** Proportional (0-10 pts) — scored as floor(correct/evaluated × 10). Figures uploaded to figures/ subfolder and displayed via =IMAGE().
 7. **New Papers Checkbox (Column G):** X/N papers have unchecked checkboxes (not new papers).
 8. **arXiv URLs Visited:** X/N original paper arXiv URLs appear in the agent browsing history.
 

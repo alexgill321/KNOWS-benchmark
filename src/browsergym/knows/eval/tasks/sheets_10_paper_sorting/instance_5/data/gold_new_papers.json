@@ -23,7 +23,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_1_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided \"Related Work\" section is a technical derivation focused on linear algebra, norms, dual norms, Lagrange duality, and Sion's minimax theorem. It does not contain any mention of \"Bayesian\" concepts, techniques, or related terms.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2205.00343",
@@ -48,7 +51,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_2_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1710.10544",
@@ -72,7 +78,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_3_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2303.03900",
@@ -97,7 +106,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_4_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text is a mathematical proof demonstrating the convergence of an envelope function. It uses concepts from real analysis such as upper semi-continuity, growth conditions, supremum, and inequalities (Jensen's, triangle inequality). There is no mention of \"Bayesian\" or any related statistical or probabilistic concepts throughout the entire passage.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2503.19068",
@@ -122,7 +134,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_5_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe term \"Bayesian\" does not appear anywhere in the provided \"Related Work\" section. Therefore, there are no meaningful mentions (or any mentions at all) of \"Bayesian\" as a concept or technique.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1803.00817",
@@ -147,7 +162,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_6_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2206.13269",
@@ -171,7 +189,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_7_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1612.00207",
@@ -195,7 +216,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_8_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2304.02235",
@@ -219,7 +243,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_9_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1803.02896",
@@ -244,7 +271,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_10_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2504.03560",
@@ -269,7 +299,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No section headers found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2506.20173",
@@ -294,7 +327,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_12_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2510.14328",
@@ -320,7 +356,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_13_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2512.13123",
@@ -343,7 +382,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text does not contain any mentions of \"Bayesian\" as a concept, technique, or even as a passing reference. The discussion focuses on stochastic approximation, time-uniform inference, confidence sequences, and various aspects of non-asymptotic and fixed-horizon guarantees for SGD, none of which are framed in a Bayesian context.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2503.16107",
@@ -368,7 +410,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_15_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2506.10354",
@@ -393,7 +438,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No section headers found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2310.16975",
@@ -419,7 +467,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_17_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\n**Reasoning:** The text explicitly mentions \"Bayesian inference\" and then elaborates on how samples are obtained in this context by discussing \"prior distribution\" and \"likelihood model.\" It also refers to the \"posterior distribution,\" which is a core concept in Bayesian statistics. This is a meaningful discussion of how \"Bayesian\" concepts relate to the data generation process being considered.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2502.14105",
@@ -445,7 +496,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_18_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text does not contain any mentions of \"Bayesian\" as a concept or technique, nor does it refer to \"Bayes\" in a statistical context.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2604.01170",
@@ -475,7 +529,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_19_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"Bayesian\" (or any variations like \"Bayes,\" \"Bayesian inference,\" etc.) is not present anywhere in the provided Related Work section. Therefore, there are no meaningful mentions of the concept.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2601.22298",
@@ -502,7 +559,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_20_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"Bayesian\" does not appear anywhere in the provided text. The discussion focuses on Conformal Prediction with different types of models (deterministic, conditional distribution, generative), and techniques like transport maps, VAEs, normalizing flows, and diffusion models, but there is no mention or discussion of Bayesian concepts, methods, or models.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2408.13231",
@@ -526,7 +586,10 @@
         "Zheyu Oliver Wang",
         "Qianyu Julie Zhu"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_21_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"Bayesian\" does not appear anywhere in the provided text. The section discusses various methods for approximation, Monte Carlo, quasi-Monte Carlo, and stochastic spherical rules, but none of these discussions involve Bayesian concepts or techniques.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2303.10030",
@@ -548,7 +611,10 @@
       "associated_first_authors": [
         "Julia Kostin"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\nThe provided text does not contain any mentions of \"Bayesian\" or related terms. The discussion focuses on low-rank matrix recovery, nuclear norm minimization, and convex optimization techniques for blind deconvolution, without any reference to Bayesian methods or concepts.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2503.14459",
@@ -572,7 +638,10 @@
       "associated_first_authors": [
         "Julia Kostin"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_23_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"Bayesian\" does not appear anywhere in the provided text. Therefore, there are no meaningful mentions of the concept.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2111.09885",
@@ -595,7 +664,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\nThe text contains multiple meaningful mentions of \"Bayesian.\" It discusses:\n*   **Bayesian objective** and its contrast with the frequentist case.\n*   **Bayesian version of PCS** (Probability of Correct Selection).\n*   Dedicated sections titled \"**Bayesian algorithms** for regret minimization\" and \"**Bayesian algorithms** for simple regret minimization.\"\n*   **Bayesian regret** and its minimization.\n*   **Bayesian simple regret** and **Bayesian simple regret bounds** as performance metrics and objectives for algorithms.\n*   **Bayesian optimization** as an alternative name for Gaussian process bandits.\n\nThese mentions go beyond incidental references, deeply engaging with \"Bayesian\" as a framework, objective, or type of algorithm within the context of bandit problems.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2106.14077",
@@ -616,7 +688,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_25_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe term \"Bayesian\" does not appear anywhere in the provided \"Related Work\" section. Therefore, there are no meaningful mentions (or any mentions at all) of \"Bayesian\" as a concept or technique.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2403.03589",
@@ -639,7 +714,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_26_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe term \"Bayesian\" is not mentioned anywhere in the provided Related Work section.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2108.01312",
@@ -663,7 +741,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_27_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2312.12741",
@@ -683,7 +764,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text does not contain any mention of \"Bayesian\" or related concepts (such as \"prior,\" \"posterior,\" \"Bayes' theorem,\" \"Bayes factor,\" etc.). The discussion focuses on probability of misidentification, lower/upper bounds, change-of-measure arguments, and strategies in a frequentist statistical context.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2509.22122",
@@ -703,7 +787,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"Bayesian\" does not appear anywhere in the provided \"Related Work\" section, neither as a concept, technique, nor an incidental mention. The text focuses on causal inference methods like TMLE, DML, propensity score estimation, covariate balancing, and DRE.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2201.13127",
@@ -725,7 +812,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_30_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text does not contain any mentions of \"Bayesian\" or related concepts. The discussion focuses on DRE methods, KLIEP, density matching, roughness problems, and GANs, without any reference to Bayesian approaches.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2510.24433",
@@ -745,7 +835,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text does not contain any mention of \"Bayesian\" or related terms such as \"prior,\" \"posterior,\" \"Bayes factor,\" or \"Markov Chain Monte Carlo (MCMC).\" The discussion focuses on frequentist statistical methods like density ratio estimation, nearest-neighbor matching, and average treatment effect estimation.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2203.05197",
@@ -769,7 +862,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_32_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2601.07752",
@@ -789,7 +885,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_33_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"Bayesian\" is not present anywhere in the provided \"Related Work\" text. The discussion focuses on asymptotically efficient estimators, semiparametric models, causal inference, debiased machine learning, Riesz representers, propensity scores, covariate balancing, and density ratio estimation, none of which are explicitly linked to Bayesian methods in this text.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2401.17780",
@@ -817,7 +916,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No section headers found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2401.03756",
@@ -840,7 +942,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\n**Reasoning:**\nThe text contains multiple meaningful mentions of \"Bayesian.\" It discusses:\n*   \"simple Bayesian regret\" (Komiyama et al., 2023)\n*   \"Bayes optimal strategy\" (Atsidakou et al., 2023)\n*   \"Bayesian BAI strategies\" that are \"optimal in terms of posterior convergence rate\" (Russo, 2016; Qin et al., 2017; Shang et al., 2020)\n\nThese are not incidental mentions but refer to specific concepts, evaluation metrics, and types of strategies that are inherently Bayesian in their formulation or analysis, indicating a substantive discussion of Bayesian approaches in the field.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2310.16819",
@@ -861,7 +966,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\nThe text contains a meaningful mention of \"Bayesian\" in the phrase \"Bayesian additive regression trees\". This refers to a specific, well-known statistical modeling technique (BART) that is inherently Bayesian. While it doesn't delve into the theory of Bayesian inference, it explicitly names and cites a method that utilizes Bayesian principles, making it more than an incidental mention.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2310.16638",
@@ -883,7 +991,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text does not contain the word \"Bayesian\" or any related terms (e.g., \"Bayes\", \"Bayesian inference\") at all. Therefore, there are no meaningful (or incidental) mentions of the concept.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2310.19788",
@@ -903,7 +1014,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_38_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\nThe text contains meaningful mentions of \"Bayesian.\" It discusses \"Bayes optimal strategy\" in two instances, indicating a specific type of strategy derived from Bayesian principles. More significantly, it mentions \"Bayesian analysis\" and \"Bayesian strategies\" in the context of Russo (2020)'s work on \"posterior convergence optimality,\" which clearly refers to the application of Bayesian methodology.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2512.20523",
@@ -923,7 +1037,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2511.04568",
@@ -943,7 +1060,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2410.16333",
@@ -963,7 +1083,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2406.09254",
@@ -983,7 +1106,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_42_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The word \"Bayesian\" does not appear anywhere in the provided text. While the acronyms \"GBPS\" and \"BPS\" *could* potentially stand for methods involving Bayesian techniques, the text does not define these acronyms or discuss the Bayesian concept, methodology, or its application. It only refers to them as names of methods or portfolios. Therefore, there are no meaningful mentions of \"Bayesian\" as a concept or technique.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2501.19345",
@@ -1005,7 +1131,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_43_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe term \"Bayesian\" does not appear anywhere in the provided \"Related Work\" text, nor are any related concepts or techniques discussed. The text focuses on ATE estimation, missing data, and PU learning.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2411.07978",
@@ -1025,7 +1154,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text discusses various regression methods like kernel, local linear, and sieve regression, focusing on their application in RD settings and their advantages regarding bias reduction and estimation at boundary points. It does not mention \"Bayesian\" concepts, methods, or approaches at all.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2312.16489",
@@ -1046,7 +1178,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe term \"Bayesian\" is not mentioned anywhere in the provided Related Work section, neither as a concept, technique, nor in passing.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2302.02988",
@@ -1069,7 +1204,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2209.07330",
@@ -1092,7 +1230,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_47_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\n**Reasoning:**\nThe text contains multiple meaningful mentions of \"Bayesian.\" Specifically:\n1.  It discusses \"Bayesian BAI strategies\" proposed by several authors and their optimality regarding posterior convergence rates.\n2.  It mentions \"Bayes evaluations of BAI\" as a distinct type of evaluation.\n3.  It explicitly discusses \"the optimality of Bayesian simple regret minimization\" within a \"Bayesian setting,\" highlighting its relevance to BAI.\n\nThese mentions go beyond incidental use and refer to \"Bayesian\" as a specific approach, strategy, or framework within the context of the related work.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2602.17543",
@@ -1112,7 +1253,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_48_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text does not contain any mentions of \"Bayesian\" or related concepts (e.g., Bayes' theorem, Bayesian inference, Bayesian networks). The discussion focuses on DML libraries, causal inference toolkits, Riesz representers, balancing weights, and density ratio estimation, none of which are presented in a Bayesian context.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2506.24007",
@@ -1132,7 +1276,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\nThe text contains a meaningful mention of \"Bayesian\".\n\n**Reasoning:**\nThe sentence \"As we will explain, in fixed-budget BAI, these two quantities become asymptotically equivalent under distribution-dependent evaluation (i.e., with fixed $\\mu$), though they diverge in minimax and **Bayesian analyses**\" explicitly names \"Bayesian analyses\" as a distinct analytical framework where certain properties diverge. This contrasts it with other evaluation methods (distribution-dependent and minimax), indicating that \"Bayesian\" refers to a specific, recognized approach or perspective within the context of analyzing Best Arm Identification problems.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2510.07180",
@@ -1155,7 +1302,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_50_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2403.03219",
@@ -1176,7 +1326,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided \"Related Work\" section does not contain any mentions of the term \"Bayesian,\" either incidental or as a discussion of a concept or technique.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2202.05245",
@@ -1197,7 +1350,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_52_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2511.08303",
@@ -1217,7 +1373,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_53_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2510.26723",
@@ -1237,7 +1396,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses various estimation techniques such as IPW, AIPW, regression, and concepts like bias reduction, sample splitting, and convergence rates. It focuses on frequentist statistical methods. The word \"Bayesian\" (or any related terms like \"prior,\" \"posterior,\" \"MCMC,\" etc.) does not appear anywhere in the text, meaning there are no mentions, meaningful or otherwise.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2412.17753",
@@ -1257,7 +1419,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text does not contain any mentions of \"Bayesian\" or related concepts (like Bayes, prior, posterior, etc.), either meaningful or incidental. The discussion focuses on frequentist concepts such as minimax optimality, Neyman allocation, and the probability of misidentification under various distribution assumptions.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2303.04797",
@@ -1280,7 +1445,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_56_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe term \"Bayesian\" (or \"Bayes\") does not appear anywhere in the provided text. Therefore, there are no meaningful or incidental mentions of it.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2603.25509",
@@ -1300,7 +1468,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_57_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text does not contain any mentions of \"Bayesian\" or related concepts. The discussion focuses on NPIV estimation, conformal prediction, causal inference, and various machine learning techniques, but does not touch upon Bayesian methodologies.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2512.22846",
@@ -1320,7 +1491,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe term \"Bayesian\" does not appear anywhere in the provided text, nor are there any discussions that allude to Bayesian concepts or techniques.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2512.08513",
@@ -1340,7 +1514,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\n**Reasoning:**\nThe text contains several meaningful mentions of \"Bayesian\". It defines \"Bayesian analysis\" as one of the three main evaluation frameworks, explicitly states that \"This study focuses on minimax and Bayesian frameworks,\" and discusses how \"In Bayesian analyses, this worst case dominates the regret bound.\" Furthermore, the paper claims to derive \"tight minimax and Bayes lower bounds,\" indicating that Bayesian methodology is central to its contribution and analysis. These are not incidental mentions but discussions of \"Bayesian\" as a core concept and analytical approach relevant to the paper's focus.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2510.23534",
@@ -1360,7 +1537,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe word \"Bayesian\" does not appear anywhere in the provided \"Related Work\" section. The text focuses on semiparametric models, debiased machine learning, covariate balancing, TMLE, and direct density-ratio estimation, none of which are discussed from a Bayesian perspective or mention Bayesian methods.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2506.00436",
@@ -1384,7 +1564,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_61_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text does not contain any mentions of the term \"Bayesian\" nor does it discuss Bayesian concepts, methods, or techniques. While \"class priors\" are mentioned, this refers to the proportion of classes in the data, not a Bayesian prior distribution.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2412.20173",
@@ -1404,7 +1587,10 @@
       "associated_first_authors": [
         "Masahiro Kato"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe term \"Bayesian\" does not appear anywhere in the provided \"Related Work\" text. Therefore, there are no meaningful discussions, or even incidental mentions, of the concept.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2503.16645",
@@ -1427,7 +1613,10 @@
       "associated_first_authors": [
         "Samhita Pal"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_63_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2507.00173",
@@ -1449,7 +1638,10 @@
       "associated_first_authors": [
         "Samhita Pal"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_64_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2306.17478",
@@ -1474,7 +1666,10 @@
       "associated_first_authors": [
         "Samhita Pal"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_65_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\nThe provided \"Related Work\" section does not contain any mentions of the term \"Bayesian\" as a concept, technique, or otherwise. The text focuses on topics such as Average Treatment Effect (ATE), Heterogeneous Treatment Effect (HTE), data integration challenges, different types of assumptions (CATE invariance, Mean exchangeability, Trial participation ignorability), and factors affecting outcome model transportability.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2510.02117",
@@ -1499,7 +1694,10 @@
       "associated_first_authors": [
         "Samhita Pal"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_66_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"Bayesian\" does not appear anywhere in the provided text. While concepts like \"likelihoods\" are mentioned, they are within the context of optimization-based methods (e.g., GOLEM) and do not signify a Bayesian approach or discussion. The text focuses on classical constraint-based, score-based, and continuous optimization methods for causal discovery, as well as deconfounding strategies, without incorporating Bayesian methodologies.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2112.14385",
@@ -1521,7 +1719,10 @@
       "associated_first_authors": [
         "Samhita Pal"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_67_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2511.04903",
@@ -1542,7 +1743,10 @@
       "associated_first_authors": [
         "Samhita Pal"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_68_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2603.27788",
@@ -1564,7 +1768,10 @@
       "associated_first_authors": [
         "Samhita Pal"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_69_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text mentions \"BART\" (Bayesian Additive Regression Trees) once as an example of a method compared in a study (\"Kernet al.(2016)systematically compared methods including BART and weighting.\"). While BART is indeed a Bayesian method, the text merely lists it without any discussion of \"Bayesian\" as a concept, technique, its principles, advantages, disadvantages, or how it relates to the broader Bayesian statistical framework. This is an incidental mention of a method that happens to be Bayesian, not a meaningful discussion of \"Bayesian\" itself.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2603.17066",
@@ -1586,7 +1793,10 @@
       "associated_first_authors": [
         "Samhita Pal"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_70_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses methods for estimating Conditional Average Treatment Effects (CATE) using randomized controlled trials and observational studies, focusing on techniques like pseudo-outcome regression, augmented inverse probability weighting (AIPW), and empirical risk minimization. It describes statistical concepts such as potential outcomes, mean outcomes, and propensity scores. There is no mention of \"Bayesian\" or related terms like \"Bayes,\" \"prior,\" \"posterior,\" or \"MCMC\" anywhere in the text. The methodological approach described appears to be entirely within a frequentist framework.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2411.15713",
@@ -1607,7 +1817,10 @@
       "associated_first_authors": [
         "Samhita Pal"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_71_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2604.24969",
@@ -1628,7 +1841,10 @@
       "associated_first_authors": [
         "Samhita Pal"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_72_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2603.19186",
@@ -1649,7 +1865,10 @@
       "associated_first_authors": [
         "Samhita Pal"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_73_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\nThe text contains meaningful mentions of \"Bayesian.\" It lists \"Bayesian methods\" as a category of techniques used for CATE estimation, referencing a specific paper (`hahn2020bayesian`). More significantly, it discusses \"Bayesian borrowing\" and specific Bayesian concepts like \"power priors\" and \"commensurate priors,\" explicitly contrasting these Bayesian approaches with the paper's own frequentist framework. These are not incidental mentions but refer to distinct statistical methodologies.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2603.02010",
@@ -1670,7 +1889,10 @@
       "associated_first_authors": [
         "Samhita Pal"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_74_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\n**Reasoning:**\n\nThe text contains meaningful mentions of \"Bayesian\" in two key places:\n\n1.  It explicitly discusses \"Noise-aware **Bayesian** inference for exponential families that accounts for DP noise in sufficient statistics was developed bybernstein2018dpbayes, who showed how to incorporate the known noise distribution into a conjugate posterior update.\" This describes a specific Bayesian methodology and its technical details.\n2.  It contrasts the current paper's approach with prior work: \"...we provide a complete frequentist asymptotic theory...that complements their **Bayesian** treatment.\" Here, \"Bayesian treatment\" refers to the specific methodological approach of the `bernstein2018dpbayes` paper, directly comparing frequentist vs. Bayesian paradigms.\n\nThese are not passing mentions but refer to \"Bayesian\" as a specific statistical inference framework and technique relevant to the field being discussed.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2409.02116",
@@ -1691,7 +1913,10 @@
       "associated_first_authors": [
         "Samhita Pal"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_75_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2602.09595",
@@ -1714,7 +1939,10 @@
       "associated_first_authors": [
         "Samhita Pal"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"Bayesian\" (or any related terms like \"Bayes,\" \"Bayesian inference,\" etc.) does not appear anywhere in the provided \"Related Work\" section. Therefore, there are no meaningful or incidental mentions of the concept.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2512.24696",
@@ -1737,7 +1965,10 @@
       "associated_first_authors": [
         "Samhita Pal"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_77_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe term \"Bayesian\" does not appear anywhere in the provided \"Related Work\" section. The text discusses various approaches to causal discovery, including constraint-based methods, score-based methods (like GES which uses BIC), continuous optimization methods, and matrix decompositions, but none of these discussions or methods are framed within a Bayesian context.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1710.02926",
@@ -1760,7 +1991,10 @@
       "associated_first_authors": [
         "Alberto Abadie"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1706.01778",
@@ -1783,7 +2017,10 @@
       "associated_first_authors": [
         "Alberto Abadie"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2203.06279",
@@ -1804,7 +2041,10 @@
       "associated_first_authors": [
         "Alberto Abadie"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_80_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1703.10935",
@@ -1825,7 +2065,10 @@
       "associated_first_authors": [
         "Alberto Abadie"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_81_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\nThe text contains meaningful mentions of \"empirical Bayes framework\" as a specific technique. It discusses its proposal, its key insights in constructing regularized estimators, its development, and its application in hypothesis testing from an \"empirical Bayes perspective.\" This is more than an incidental mention; it's a discussion of a relevant statistical methodology directly related to the paper's subject.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2108.02196",
@@ -1846,7 +2089,10 @@
       "associated_first_authors": [
         "Alberto Abadie"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No section headers found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2306.13681",
@@ -1872,7 +2118,10 @@
       "associated_first_authors": [
         "Alberto Abadie"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_83_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2504.01702",
@@ -1894,7 +2143,10 @@
       "associated_first_authors": [
         "Alberto Abadie"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_84_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nI have carefully read through the entire provided text, including both the \"Contributions\" and \"Related work\" sections. The term \"Bayesian\" or any related concepts (e.g., \"prior,\" \"posterior,\" \"Markov Chain Monte Carlo,\" \"Bayes factor\") are not mentioned anywhere in the text. The paper discusses structural causal models, latent factor models, principal component regression, and various causal estimands and estimation techniques, but none of these discussions involve Bayesian methods.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2510.22828",
@@ -1916,7 +2168,10 @@
       "associated_first_authors": [
         "Alberto Abadie"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_85_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe text does not contain any mentions of \"Bayesian\" or related concepts like \"prior distribution,\" \"posterior,\" or \"Bayes' theorem\" in a meaningful or even incidental way. The methods discussed (Synthetic Control, Lasso, penalized log-likelihood, MRCE) are presented from a frequentist perspective.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2601.03099",
@@ -1941,7 +2196,10 @@
       "associated_first_authors": [
         "Alberto Abadie"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_86_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\nThe provided \"Related Work\" section does not contain any mentions of \"Bayesian\" as a concept or technique. It discusses various aspects of Synthetic Control methods, including data structure, different regularization techniques (Lasso, Ridge), low-rank approximations, and state-space models for temporal trends, but \"Bayesian\" approaches are not mentioned at all.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2511.03236",
@@ -1964,10 +2222,677 @@
       "associated_first_authors": [
         "Alberto Abadie"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses various frequentist statistical methods for regression adjustment and experimental design, such as ANCOVA, Ordinary Least Squares (OLS), ridge regression (as a regularization technique), Horvitz-Thompson estimators, and different bias correction and variance estimation procedures. It does not mention \"Bayesian\" as a concept, method, or framework, nor does it refer to any Bayesian approaches or interpretations of the techniques discussed.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2006.06979",
+      "title": "Non-Negative Bregman Divergence Minimization for Deep Direct Density Ratio Estimation",
+      "authors": [
+        "Masahiro Kato",
+        "Takeshi Teshima"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "Density ratio estimation (DRE) is at the core of various machine learning tasks such as anomaly detection and domain adaptation. In existing studies on DRE, methods based on Bregman divergence (BD) minimization have been extensively studied. However, BD minimization when applied with highly flexible models, such as deep neural networks, tends to suffer from what we call train-loss hacking, which is a source of overfitting caused by a typical characteristic of empirical BD estimators. In this paper, to mitigate train-loss hacking, we propose a non-negative correction for empirical BD estimators. Theoretically, we confirm the soundness of the proposed method through a generalization error bound. Through our experiments, the proposed methods show a favorable performance in inlier-based outlier detection.",
+      "arxiv_url": "https://arxiv.org/abs/2006.06979",
+      "pdf_url": "https://arxiv.org/pdf/2006.06979v3",
+      "source": "rematch",
+      "gscholar_title": "Non-negative bregman divergence minimization for deep direct density ratio estimation",
+      "match_method": "exact_title",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": "data/gold_figures/new_88_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses various density ratio estimation (DRE) methods, including LSIF, KLIEP, and methods related to PU learning. It frequently uses the abbreviation \"BD,\" which is clarified as \"density ratio matching under BD\" in the introduction and later as \"binary Kullback–Leibler (BKL) divergence.\" There is no mention of \"Bayesian,\" \"Bayes,\" or any related concepts such as priors, posteriors, or Bayesian inference throughout the entire section. The focus is on divergence measures and empirical risk minimization, not Bayesian approaches.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2002.11642",
+      "title": "Off-Policy Evaluation and Learning for External Validity under a Covariate Shift",
+      "authors": [
+        "Masahiro Kato",
+        "Masatoshi Uehara",
+        "Shota Yasui"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "We consider evaluating and training a new policy for the evaluation data by using the historical data obtained from a different policy. The goal of off-policy evaluation (OPE) is to estimate the expected reward of a new policy over the evaluation data, and that of off-policy learning (OPL) is to find a new policy that maximizes the expected reward over the evaluation data. Although the standard OPE and OPL assume the same distribution of covariate between the historical and evaluation data, a covariate shift often exists, i.e., the distribution of the covariate of the historical data is different from that of the evaluation data. In this paper, we derive the efficiency bound of OPE under a covariate shift. Then, we propose doubly robust and efficient estimators for OPE and OPL under a covariate shift by using a nonparametric estimator of the density ratio between the historical and evaluation data distributions. We also discuss other possible estimators and compare their theoretical properties. Finally, we confirm the effectiveness of the proposed estimators through experiments.",
+      "arxiv_url": "https://arxiv.org/abs/2002.11642",
+      "pdf_url": "https://arxiv.org/pdf/2002.11642v3",
+      "source": "rematch",
+      "gscholar_title": "Off-policy evaluation and learning for external validity under a covariate shift",
+      "match_method": "exact_title",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": "data/gold_figures/new_89_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe term \"Bayesian\" is not mentioned anywhere in the provided text.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2002.05308",
+      "title": "Efficient Adaptive Experimental Design for Average Treatment Effect Estimation",
+      "authors": [
+        "Masahiro Kato",
+        "Takuya Ishihara",
+        "Junya Honda",
+        "Yusuke Narita"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "We study how to efficiently estimate average treatment effects (ATEs) using adaptive experiments. In adaptive experiments, experimenters sequentially assign treatments to experimental units while updating treatment assignment probabilities based on past data. We start by defining the efficient treatment-assignment probability, which minimizes the semiparametric efficiency bound for ATE estimation. Our proposed experimental design estimates and uses the efficient treatment-assignment probability to assign treatments. At the end of the proposed design, the experimenter estimates the ATE using a newly proposed Adaptive Augmented Inverse Probability Weighting (A2IPW) estimator. We show that the asymptotic variance of the A2IPW estimator using data from the proposed design achieves the minimized semiparametric efficiency bound. We also analyze the estimator's finite-sample properties and develop nonparametric and nonasymptotic confidence intervals that are valid at any round of the proposed design. These anytime valid confidence intervals allow us to conduct rate-optimal sequential hypothesis testing, allowing for early stopping and reducing necessary sample size.",
+      "arxiv_url": "https://arxiv.org/abs/2002.05308",
+      "pdf_url": "https://arxiv.org/pdf/2002.05308v7",
+      "source": "rematch",
+      "gscholar_title": "Efficient Adaptive Experimental Design for Average Treatment Effect Estimation",
+      "match_method": "exact_title",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": "data/gold_figures/new_90_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided \"Related Work\" section does not contain any mentions of the term \"Bayesian\" as a concept or technique. It focuses on adaptive experimental design, sequential policy updating, best arm identification, and statistical inference methods, without discussing Bayesian approaches.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1809.05710",
+      "title": "Alternate Estimation of a Classifier and the Class-Prior from Positive and Unlabeled Data",
+      "authors": [
+        "Masahiro Kato",
+        "Liyuan Xu",
+        "Gang Niu",
+        "Masashi Sugiyama"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "We consider a problem of learning a binary classifier only from positive data and unlabeled data (PU learning) and estimating the class-prior in unlabeled data under the case-control scenario. Most of the recent methods of PU learning require an estimate of the class-prior probability in unlabeled data, and it is estimated in advance with another method. However, such a two-step approach which first estimates the class prior and then trains a classifier may not be the optimal approach since the estimation error of the class-prior is not taken into account when a classifier is trained. In this paper, we propose a novel unified approach to estimating the class-prior and training a classifier alternately. Our proposed method is simple to implement and computationally efficient. Through experiments, we demonstrate the practical usefulness of the proposed method.",
+      "arxiv_url": "https://arxiv.org/abs/1809.05710",
+      "pdf_url": "https://arxiv.org/pdf/1809.05710v1",
+      "source": "rematch",
+      "gscholar_title": "Alternate estimation of a classifier and the class-prior from positive and unlabeled data",
+      "match_method": "exact_title",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2010.12905",
+      "title": "ATRO: Adversarial Training with a Rejection Option",
+      "authors": [
+        "Masahiro Kato",
+        "Zhenghang Cui",
+        "Yoshihiro Fukuhara"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "This paper proposes a classification framework with a rejection option to mitigate the performance deterioration caused by adversarial examples. While recent machine learning algorithms achieve high prediction performance, they are empirically vulnerable to adversarial examples, which are slightly perturbed data samples that are wrongly classified. In real-world applications, adversarial attacks using such adversarial examples could cause serious problems. To this end, various methods are proposed to obtain a classifier that is robust against adversarial examples. Adversarial training is one of them, which trains a classifier to minimize the worst-case loss under adversarial attacks. In this paper, in order to acquire a more reliable classifier against adversarial attacks, we propose the method of Adversarial Training with a Rejection Option (ATRO). Applying the adversarial training objective to both a classifier and a rejection function simultaneously, classifiers trained by ATRO can choose to abstain from classification when it has insufficient confidence to classify a test data point. We examine the feasibility of the framework using the surrogate maximum hinge loss and establish a generalization bound for linear models. Furthermore, we empirically confirmed the effectiveness of ATRO using various models and real-world datasets.",
+      "arxiv_url": "https://arxiv.org/abs/2010.12905",
+      "pdf_url": "https://arxiv.org/pdf/2010.12905v1",
+      "source": "rematch",
+      "gscholar_title": "Atro: Adversarial training with a rejection option",
+      "match_method": "exact_title",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2101.07481",
+      "title": "Density-Ratio Based Personalised Ranking from Implicit Feedback",
+      "authors": [
+        "Riku Togashi",
+        "Masahiro Kato",
+        "Mayu Otani",
+        "Shin'ichi Satoh"
+      ],
+      "first_author": "Riku Togashi",
+      "first_author_normalized": "riku togashi",
+      "abstract": "Learning from implicit user feedback is challenging as we can only observe positive samples but never access negative ones. Most conventional methods cope with this issue by adopting a pairwise ranking approach with negative sampling. However, the pairwise ranking approach has a severe disadvantage in the convergence time owing to the quadratically increasing computational cost with respect to the sample size; it is problematic, particularly for large-scale datasets and complex models such as neural networks. By contrast, a pointwise approach does not directly solve a ranking problem, and is therefore inferior to a pairwise counterpart in top-K ranking tasks; however, it is generally advantageous in regards to the convergence time. This study aims to establish an approach to learn personalised ranking from implicit feedback, which reconciles the training efficiency of the pointwise approach and ranking effectiveness of the pairwise counterpart. The key idea is to estimate the ranking of items in a pointwise manner; we first reformulate the conventional pointwise approach based on density ratio estimation and then incorporate the essence of ranking-oriented approaches (e.g. the pairwise approach) into our formulation. Through experiments on three real-world datasets, we demonstrate that our approach not only dramatically reduces the convergence time (one to two orders of magnitude faster) but also significantly improving the ranking performance.",
+      "arxiv_url": "https://arxiv.org/abs/2101.07481",
+      "pdf_url": "https://arxiv.org/pdf/2101.07481v1",
+      "source": "rematch",
+      "gscholar_title": "Density-Ratio Based Personalised Ranking from Implicit Feedback",
+      "match_method": "exact_title",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": "data/gold_figures/new_93_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\nThe provided \"Related Work\" section does not contain any mentions of \"Bayesian\" as a concept, technique, or even as an incidental term. The text discusses various recommendation system approaches (pointwise, pairwise, listwise), negative sampling strategies, matrix factorization, variational autoencoders (VAEs), and density ratio estimation (DRE) for learning-to-rank, but \"Bayesian\" methods are not mentioned.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2009.13092",
+      "title": "Learning Classifiers under Delayed Feedback with a Time Window Assumption",
+      "authors": [
+        "Masahiro Kato",
+        "Shota Yasui"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "We consider training a binary classifier under delayed feedback (\\emph{DF learning}). For example, in the conversion prediction in online ads, we initially receive negative samples that clicked the ads but did not buy an item; subsequently, some samples among them buy an item then change to positive. In the setting of DF learning, we observe samples over time, then learn a classifier at some point. We initially receive negative samples; subsequently, some samples among them change to positive. This problem is conceivable in various real-world applications such as online advertisements, where the user action takes place long after the first click. Owing to the delayed feedback, naive classification of the positive and negative samples returns a biased classifier. One solution is to use samples that have been observed for more than a certain time window assuming these samples are correctly labeled. However, existing studies reported that simply using a subset of all samples based on the time window assumption does not perform well, and that using all samples along with the time window assumption improves empirical performance. We extend these existing studies and propose a method with the unbiased and convex empirical risk that is constructed from all samples under the time window assumption. To demonstrate the soundness of the proposed method, we provide experimental results on a synthetic and open dataset that is the real traffic log datasets in online advertising.",
+      "arxiv_url": "https://arxiv.org/abs/2009.13092",
+      "pdf_url": "https://arxiv.org/pdf/2009.13092v2",
+      "source": "rematch",
+      "gscholar_title": "Learning Classifiers under Delayed Feedback with a Time Window Assumption",
+      "match_method": "exact_title",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": "data/gold_figures/new_94_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\n**Reasoning:** The provided \"Related Work\" section extensively discusses various methods for Delayed Feedback (DF) learning, including biased logistic regression, time window approaches, PU learning, importance weighting, and delayed feedback models. It details their formulations, assumptions, and comparisons. However, the term \"Bayesian\" (or any related concepts like \"prior,\" \"posterior,\" \"Bayesian inference,\" etc.) is not mentioned anywhere in the text. The methods described are frequentist or optimization-based, without any indication of a Bayesian perspective or technique being applied or discussed.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2010.13554",
+      "title": "Off-Policy Evaluation of Bandit Algorithm from Dependent Samples under Batch Update Policy",
+      "authors": [
+        "Masahiro Kato",
+        "Yusuke Kaneko"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "The goal of off-policy evaluation (OPE) is to evaluate a new policy using historical data obtained via a behavior policy. However, because the contextual bandit algorithm updates the policy based on past observations, the samples are not independent and identically distributed (i.i.d.). This paper tackles this problem by constructing an estimator from a martingale difference sequence (MDS) for the dependent samples. In the data-generating process, we do not assume the convergence of the policy, but the policy uses the same conditional probability of choosing an action during a certain period. Then, we derive an asymptotically normal estimator of the value of an evaluation policy. As another advantage of our method, the batch-based approach simultaneously solves the deficient support problem. Using benchmark and real-world datasets, we experimentally confirm the effectiveness of the proposed method.",
+      "arxiv_url": "https://arxiv.org/abs/2010.13554",
+      "pdf_url": "https://arxiv.org/pdf/2010.13554v1",
+      "source": "rematch",
+      "gscholar_title": "Off-policy evaluation of bandit algorithm from dependent samples under batch update policy",
+      "match_method": "exact_title",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided \"Related Work\" section only lists academic search engines (NASA ADS, Google Scholar, Semantic Scholar). It does not contain any textual discussion or analysis of other works, and therefore no mentions, meaningful or otherwise, of \"Bayesian\".",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2010.12470",
+      "title": "A Practical Guide of Off-Policy Evaluation for Bandit Problems",
+      "authors": [
+        "Masahiro Kato",
+        "Kenshi Abe",
+        "Kaito Ariu",
+        "Shota Yasui"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "Off-policy evaluation (OPE) is the problem of estimating the value of a target policy from samples obtained via different policies. Recently, applying OPE methods for bandit problems has garnered attention. For the theoretical guarantees of an estimator of the policy value, the OPE methods require various conditions on the target policy and policy used for generating the samples. However, existing studies did not carefully discuss the practical situation where such conditions hold, and the gap between them remains. This paper aims to show new results for bridging the gap. Based on the properties of the evaluation policy, we categorize OPE situations. Then, among practical applications, we mainly discuss the best policy selection. For the situation, we propose a meta-algorithm based on existing OPE estimators. We investigate the proposed concepts using synthetic and open real-world datasets in experiments.",
+      "arxiv_url": "https://arxiv.org/abs/2010.12470",
+      "pdf_url": "https://arxiv.org/pdf/2010.12470v1",
+      "source": "rematch",
+      "gscholar_title": "A practical guide of off-policy evaluation for bandit problems",
+      "match_method": "exact_title",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text is a list of academic search engines and does not contain the word \"Bayesian\" or any discussion related to the concept or technique.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2006.06982",
+      "title": "Confidence Interval for Off-Policy Evaluation from Dependent Samples via Bandit Algorithm: Approach from Standardized Martingales",
+      "authors": [
+        "Masahiro Kato"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "This study addresses the problem of off-policy evaluation (OPE) from dependent samples obtained via the bandit algorithm. The goal of OPE is to evaluate a new policy using historical data obtained from behavior policies generated by the bandit algorithm. Because the bandit algorithm updates the policy based on past observations, the samples are not independent and identically distributed (i.i.d.). However, several existing methods for OPE do not take this issue into account and are based on the assumption that samples are i.i.d. In this study, we address this problem by constructing an estimator from a standardized martingale difference sequence. To standardize the sequence, we consider using evaluation data or sample splitting with a two-step estimation. This technique produces an estimator with asymptotic normality without restricting a class of behavior policies. In an experiment, the proposed estimator performs better than existing methods, which assume that the behavior policy converges to a time-invariant policy.",
+      "arxiv_url": "https://arxiv.org/abs/2006.06982",
+      "pdf_url": "https://arxiv.org/pdf/2006.06982v1",
+      "source": "rematch",
+      "gscholar_title": "Confidence interval for off-policy evaluation from dependent samples via bandit algorithm: Approach from standardized martingales",
+      "match_method": "exact_title",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2105.04769",
+      "title": "Scalable Personalised Item Ranking through Parametric Density Estimation",
+      "authors": [
+        "Riku Togashi",
+        "Masahiro Kato",
+        "Mayu Otani",
+        "Tetsuya Sakai",
+        "Shin'ichi Satoh"
+      ],
+      "first_author": "Riku Togashi",
+      "first_author_normalized": "riku togashi",
+      "abstract": "Learning from implicit feedback is challenging because of the difficult nature of the one-class problem: we can observe only positive examples. Most conventional methods use a pairwise ranking approach and negative samplers to cope with the one-class problem. However, such methods have two main drawbacks particularly in large-scale applications; (1) the pairwise approach is severely inefficient due to the quadratic computational cost; and (2) even recent model-based samplers (e.g. IRGAN) cannot achieve practical efficiency due to the training of an extra model.\n  In this paper, we propose a learning-to-rank approach, which achieves convergence speed comparable to the pointwise counterpart while performing similarly to the pairwise counterpart in terms of ranking effectiveness. Our approach estimates the probability densities of positive items for each user within a rich class of distributions, viz. \\emph{exponential family}. In our formulation, we derive a loss function and the appropriate negative sampling distribution based on maximum likelihood estimation. We also develop a practical technique for risk approximation and a regularisation scheme. We then discuss that our single-model approach is equivalent to an IRGAN variant under a certain condition. Through experiments on real-world datasets, our approach outperforms the pointwise and pairwise counterparts in terms of effectiveness and efficiency.",
+      "arxiv_url": "https://arxiv.org/abs/2105.04769",
+      "pdf_url": "https://arxiv.org/pdf/2105.04769v1",
+      "source": "rematch",
+      "gscholar_title": "Scalable Personalised Item Ranking through Parametric Density Estimation",
+      "match_method": "exact_title",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": "data/gold_figures/new_98_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\nThe provided text does not contain any meaningful mentions of \"Bayesian\" as a concept or technique. It discusses various approaches to personalized ranking, including class-posterior probability estimation (CPE), density ratio estimation (DRE), density estimation (DE), and pairwise approaches, along with different loss functions, weighting strategies, and model architectures, but none of these discussions involve Bayesian methods.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2604.06116",
+      "title": "Sequential Audit Sampling with Statistical Guarantees",
+      "authors": [
+        "Masahiro Kato",
+        "Kei Nakagawa"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "Financial statement auditing is conducted under a risk-based evidence approach to obtain reasonable assurance. In practice, auditors often perform additional sampling or related procedures when an initial sample does not provide a sufficient basis for a conclusion. Across jurisdictions, current standards and practice manuals acknowledge such extensions, while the statistical design of sequential audit procedures has not been fully explored. This study formulates audit sampling with additional, sequentially collected items as a sequential testing problem for a finite population under sampling without replacement. We define null and alternative hypotheses in terms of a tolerable deviation rate, specify stopping and decision rules, and formulate exact sequential boundary conditions in terms of finite-population error probabilities. For practical implementation, we calibrate those boundaries by Monte Carlo simulation at least-favorable deviation rates. The exact design yields ex ante control of decision error probabilities, and the simulation-based implementation approximates that design while allowing the computation of expected stopping times. The framework is most naturally suited to attribute auditing and deviation-rate auditing, especially tests of controls, and it can be extended to one-sided, two-stage, and truncated designs.",
+      "arxiv_url": "https://arxiv.org/abs/2604.06116",
+      "pdf_url": "https://arxiv.org/pdf/2604.06116v1",
+      "source": "rematch",
+      "gscholar_title": "Sequential Audit Sampling with Statistical Guarantees",
+      "match_method": "exact_title",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": "data/gold_figures/new_99_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided \"Related Work\" section does not contain any mention of the term \"Bayesian,\" either as a concept, technique, or in reference to any related methods.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2603.04276",
+      "title": "Causality Elicitation from Large Language Models",
+      "authors": [
+        "Takashi Kameyama",
+        "Masahiro Kato",
+        "Yasuko Hio",
+        "Yasushi Takano",
+        "Naoto Minakawa"
+      ],
+      "first_author": "Takashi Kameyama",
+      "first_author_normalized": "takashi kameyama",
+      "abstract": "Large language models (LLMs) are trained on enormous amounts of data and encode knowledge in their parameters. We propose a pipeline to elicit causal relationships from LLMs. Specifically, (i) we sample many documents from LLMs on a given topic, (ii) we extract an event list from from each document, (iii) we group events that appear across documents into canonical events, (iv) we construct a binary indicator vector for each document over canonical events, and (v) we estimate candidate causal graphs using causal discovery methods. Our approach does not guarantee real-world causality. Rather, it provides a framework for presenting the set of causal hypotheses that LLMs can plausibly assume, as an inspectable set of variables and candidate graphs.",
+      "arxiv_url": "https://arxiv.org/abs/2603.04276",
+      "pdf_url": "https://arxiv.org/pdf/2603.04276v1",
+      "source": "rematch",
+      "gscholar_title": "Causality Elicitation from Large Language Models",
+      "match_method": "exact_title",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": "data/gold_figures/new_100_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"Bayesian\" does not appear anywhere in the provided \"Related Work\" section. The text discusses various concepts like event extraction, canonicalization, semantic similarity, clustering, causal relation extraction, and causal inference, but none of these discussions involve Bayesian methods or principles.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2602.23672",
+      "title": "General Bayesian Policy Learning",
+      "authors": [
+        "Masahiro Kato"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "This study proposes the General Bayes framework for policy learning. We consider decision problems in which a decision-maker chooses an action from an action set to maximize its expected welfare. Typical examples include treatment choice and portfolio selection. In such problems, the statistical target is a decision rule, and the prediction of each outcome $Y(a)$ is not necessarily of primary interest. We formulate this policy learning problem by loss-based Bayesian updating. Our main technical device is a squared-loss surrogate for welfare maximization. We show that maximizing empirical welfare over a policy class is equivalent to minimizing a scaled squared error in the outcome difference, up to a quadratic regularization controlled by a tuning parameter $ζ>0$. This rewriting yields a General Bayes posterior over decision rules that admits a Gaussian pseudo-likelihood interpretation. We clarify two Bayesian interpretations of the resulting generalized posterior, a working Gaussian view and a decision-theoretic loss-based view. As one implementation example, we introduce neural networks with tanh-squashed outputs. Finally, we provide theoretical guarantees in a PAC-Bayes style.",
+      "arxiv_url": "https://arxiv.org/abs/2602.23672",
+      "pdf_url": "https://arxiv.org/pdf/2602.23672v1",
+      "source": "rematch",
+      "gscholar_title": "General Bayesian Policy Learning",
+      "match_method": "exact_title",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": "data/gold_figures/new_101_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\n**Reasoning:**\nThe text contains several meaningful mentions of \"Bayesian\" concepts and techniques. It explicitly states \"generalized Bayesian updating defines a generalized posterior,\" and later clarifies that under specific conditions (negative log-likelihood loss and $\\eta=1$), the generalized rule \"reduces to ordinary Bayes’ rule.\" This directly discusses the relationship between a generalized framework and traditional Bayesian inference, making these clear and conceptual mentions, not merely incidental ones. The use of \"prior distribution\" and \"posterior\" further reinforces the direct engagement with Bayesian methodology.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2102.08975",
+      "title": "Adaptive Doubly Robust Estimator from Non-stationary Logging Policy under a Convergence of Average Probability",
+      "authors": [
+        "Masahiro Kato"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "Adaptive experiments, including efficient average treatment effect estimation and multi-armed bandit algorithms, have garnered attention in various applications, such as social experiments, clinical trials, and online advertisement optimization. This paper considers estimating the mean outcome of an action from samples obtained in adaptive experiments. In causal inference, the mean outcome of an action has a crucial role, and the estimation is an essential task, where the average treatment effect estimation and off-policy value estimation are its variants. In adaptive experiments, the probability of choosing an action (logging policy) is allowed to be sequentially updated based on past observations. Due to this logging policy depending on the past observations, the samples are often not independent and identically distributed (i.i.d.), making developing an asymptotically normal estimator difficult. A typical approach for this problem is to assume that the logging policy converges in a time-invariant function. However, this assumption is restrictive in various applications, such as when the logging policy fluctuates or becomes zero at some periods. To mitigate this limitation, we propose another assumption that the average logging policy converges to a time-invariant function and show the doubly robust (DR) estimator's asymptotic normality. Under the assumption, the logging policy itself can fluctuate or be zero for some actions. We also show the empirical properties by simulations.",
+      "arxiv_url": "https://arxiv.org/abs/2102.08975",
+      "pdf_url": "https://arxiv.org/pdf/2102.08975v2",
+      "source": "rematch",
+      "gscholar_title": "Adaptive Doubly Robust Estimator from Non-stationary Logging Policy under a Convergence of Average Probability",
+      "match_method": "exact_title",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided \"Related Work\" section only lists three academic search engines/databases (NASA ADS, Google Scholar, Semantic Scholar) and does not contain the word \"Bayesian\" or any discussion of Bayesian concepts or techniques.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2010.01404",
+      "title": "Mean-Variance Efficient Reinforcement Learning with Applications to Dynamic Financial Investment",
+      "authors": [
+        "Masahiro Kato",
+        "Kei Nakagawa",
+        "Kenshi Abe",
+        "Tetsuro Morimura",
+        "Kentaro Baba"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "This study investigates the mean-variance (MV) trade-off in reinforcement learning (RL), an instance of the sequential decision-making under uncertainty. Our objective is to obtain MV-efficient policies whose means and variances are located on the Pareto efficient frontier with respect to the MV trade-off; under the condition, any increase in the expected reward would necessitate a corresponding increase in variance, and vice versa. To this end, we propose a method that trains our policy to maximize the expected quadratic utility, defined as a weighted sum of the first and second moments of the rewards obtained through our policy. We subsequently demonstrate that the maximizer indeed qualifies as an MV-efficient policy. Previous studies that employed constrained optimization to address the MV trade-off have encountered computational challenges. However, our approach is more computationally efficient as it eliminates the need for gradient estimation of variance, a contributing factor to the double sampling issue observed in existing methodologies. Through experimentation, we validate the efficacy of our approach.",
+      "arxiv_url": "https://arxiv.org/abs/2010.01404",
+      "pdf_url": "https://arxiv.org/pdf/2010.01404v4",
+      "source": "rematch",
+      "gscholar_title": "Mean-Variance Efficient Reinforcement Learning with Applications to Dynamic Financial Investment",
+      "match_method": "exact_title",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": "data/gold_figures/new_103_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text does not contain any mentions of \"Bayesian\" or related terms. It focuses on optimization problems, Lagrangian relaxation, and specific algorithms without referencing Bayesian concepts or techniques.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2605.06386",
+      "title": "Covariate Balancing and Riesz Regression Should Be Guided by the Neyman Orthogonal Score in Debiased Machine Learning",
+      "authors": [
+        "Masahiro Kato"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "This position paper argues that, in debiased machine learning, balancing functions should be derived from the Neyman orthogonal score, not chosen only as functions of covariates. Covariate balancing is effective when the regression error entering the score can be represented by functions of covariates alone, and it is the natural finite-dimensional approximation for targets such as ATT counterfactual means. For ATE estimation under treatment effect heterogeneity, however, the score error generally contains treatment-specific components because the outcome regression is a function of the full regressor $X=(D,Z)$. In that case, balancing common functions of $Z$ can leave the treatment-specific component unbalanced. We therefore advocate regressor balancing, implemented by Riesz regression with basis functions of $X$, as the general balancing principle for DML. The position is not that covariate balancing is invalid, but that covariate balancing should be understood as the special case that is appropriate when the score-relevant regression error is a function of covariates alone.",
+      "arxiv_url": "https://arxiv.org/abs/2605.06386",
+      "pdf_url": "https://arxiv.org/pdf/2605.06386v1",
+      "source": "rematch",
+      "gscholar_title": "ScoreMatchingRiesz for Automatic Debiased Machine Learning and Policy Path Estimation with an Application to Japanese Monetary Policy Evaluation",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text only lists academic search engines/databases (NASA ADS, Google Scholar, Semantic Scholar) and does not contain the word \"Bayesian\" or any discussion related to Bayesian concepts or techniques.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2510.26783",
+      "title": "A Unified Theory for Causal Inference: Direct Debiased Machine Learning via Bregman-Riesz Regression",
+      "authors": [
+        "Masahiro Kato"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "This note introduces a unified theory for causal inference that integrates Riesz regression, covariate balancing, density-ratio estimation (DRE), targeted maximum likelihood estimation (TMLE), and the matching estimator in average treatment effect (ATE) estimation. In ATE estimation, the balancing weights and the regression functions of the outcome play important roles, where the balancing weights are referred to as the Riesz representer, bias-correction term, and clever covariates, depending on the context. Riesz regression, covariate balancing, DRE, and the matching estimator are methods for estimating the balancing weights, where Riesz regression is essentially equivalent to DRE in the ATE context, the matching estimator is a special case of DRE, and DRE is in a dual relationship with covariate balancing. TMLE is a method for constructing regression function estimators such that the leading bias term becomes zero. Nearest Neighbor Matching is equivalent to Least Squares Density Ratio Estimation and Riesz Regression.",
+      "arxiv_url": "https://arxiv.org/abs/2510.26783",
+      "pdf_url": "https://arxiv.org/pdf/2510.26783v1",
+      "source": "rematch",
+      "gscholar_title": "A unified framework for debiased machine learning: Riesz representer fitting under bregman divergence",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2411.11748",
+      "title": "Debiased Regression for Root-N-Consistent Conditional Mean Estimation",
+      "authors": [
+        "Masahiro Kato"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "This study introduces a debiasing method for regression estimators, including high-dimensional and nonparametric regression estimators. For example, nonparametric regression methods allow for the estimation of regression functions in a data-driven manner with minimal assumptions; however, these methods typically fail to achieve $\\sqrt{n}$-consistency in their convergence rates, and many, including those in machine learning, lack guarantees that their estimators asymptotically follow a normal distribution. To address these challenges, we propose a debiasing technique for nonparametric estimators by adding a bias-correction term to the original estimators, extending the conventional one-step estimator used in semiparametric analysis. Specifically, for each data point, we estimate the conditional expected residual of the original nonparametric estimator, which can, for instance, be computed using kernel (Nadaraya-Watson) regression, and incorporate it as a bias-reduction term. Our theoretical analysis demonstrates that the proposed estimator achieves $\\sqrt{n}$-consistency and asymptotic normality under a mild convergence rate condition for both the original nonparametric estimator and the conditional expected residual estimator. Notably, this approach remains model-free as long as the original estimator and the conditional expected residual estimator satisfy the convergence rate condition. The proposed method offers several advantages, including improved estimation accuracy and simplified construction of confidence intervals.",
+      "arxiv_url": "https://arxiv.org/abs/2411.11748",
+      "pdf_url": "https://arxiv.org/pdf/2411.11748v3",
+      "source": "rematch",
+      "gscholar_title": "Debiased Nonparametric Regression for Statistical Inference and Distributionally Robustness",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No section headers found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2405.19317",
+      "title": "Generalized Neyman Allocation for Locally Minimax Optimal Best-Arm Identification",
+      "authors": [
+        "Masahiro Kato"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "This study investigates an asymptotically locally minimax optimal algorithm for fixed-budget best-arm identification (BAI). We propose the Generalized Neyman Allocation (GNA) algorithm and demonstrate that its worst-case upper bound on the probability of misidentifying the best arm aligns with the worst-case lower bound under the small-gap regime, where the gap between the expected outcomes of the best and suboptimal arms is small. Our lower and upper bounds are tight, matching exactly including constant terms within the small-gap regime. The GNA algorithm generalizes the Neyman allocation for two-armed bandits (Neyman, 1934; Kaufmann et al., 2016) and refines existing BAI algorithms, such as those proposed by Glynn & Juneja (2004). By proposing an asymptotically minimax optimal algorithm, we address the longstanding open issue in BAI (Kaufmann, 2020) and treatment choice (Kasy & Sautmann, 202) by restricting a class of distributions to the small-gap regimes.",
+      "arxiv_url": "https://arxiv.org/abs/2405.19317",
+      "pdf_url": "https://arxiv.org/pdf/2405.19317v4",
+      "source": "rematch",
+      "gscholar_title": "Minimax and Bayes Optimal Best-Arm Identification",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": "data/gold_figures/new_107_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2403.03240",
+      "title": "Triple/Debiased Lasso for Statistical Inference of Conditional Average Treatment Effects",
+      "authors": [
+        "Masahiro Kato"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "This study investigates the estimation and the statistical inference about Conditional Average Treatment Effects (CATEs), which have garnered attention as a metric representing individualized causal effects. In our data-generating process, we assume linear models for the outcomes associated with binary treatments and define the CATE as a difference between the expected outcomes of these linear models. This study allows the linear models to be high-dimensional, and our interest lies in consistent estimation and statistical inference for the CATE. In high-dimensional linear regression, one typical approach is to assume sparsity. However, in our study, we do not assume sparsity directly. Instead, we consider sparsity only in the difference of the linear models. We first use a doubly robust estimator to approximate this difference and then regress the difference on covariates with Lasso regularization. Although this regression estimator is consistent for the CATE, we further reduce the bias using the techniques in double/debiased machine learning (DML) and debiased Lasso, leading to $\\sqrt{n}$-consistency and confidence intervals. We refer to the debiased estimator as the triple/debiased Lasso (TDL), applying both DML and debiased Lasso techniques. We confirm the soundness of our proposed method through simulation studies.",
+      "arxiv_url": "https://arxiv.org/abs/2403.03240",
+      "pdf_url": "https://arxiv.org/pdf/2403.03240v1",
+      "source": "rematch",
+      "gscholar_title": "CATE Lasso: conditional average treatment effect estimation with high-dimensional linear regression",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": "data/gold_figures/new_108_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"Bayesian\" does not appear anywhere in the provided \"Related Work\" section. Therefore, there are no meaningful (or even incidental) mentions of the concept or technique.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2201.04469",
+      "title": "Optimal Best Arm Identification in Two-Armed Bandits with a Fixed Budget under a Small Gap",
+      "authors": [
+        "Masahiro Kato",
+        "Kaito Ariu",
+        "Masaaki Imaizumi",
+        "Masahiro Nomura",
+        "Chao Qin"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "We consider fixed-budget best-arm identification in two-armed Gaussian bandit problems. One of the longstanding open questions is the existence of an optimal strategy under which the probability of misidentification matches a lower bound. We show that a strategy following the Neyman allocation rule (Neyman, 1934) is asymptotically optimal when the gap between the expected rewards is small. First, we review a lower bound derived by Kaufmann et al. (2016). Then, we propose the \"Neyman Allocation (NA)-Augmented Inverse Probability weighting (AIPW)\" strategy, which consists of the sampling rule using the Neyman allocation with an estimated standard deviation and the recommendation rule using an AIPW estimator. Our proposed strategy is optimal because the upper bound matches the lower bound when the budget goes to infinity and the gap goes to zero.",
+      "arxiv_url": "https://arxiv.org/abs/2201.04469",
+      "pdf_url": "https://arxiv.org/pdf/2201.04469v8",
+      "source": "rematch",
+      "gscholar_title": "Locally Optimal Fixed-Budget Best Arm Identification in Two-Armed Gaussian Bandits with Unknown Variances",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": "data/gold_figures/new_109_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\n**Reasoning:** The text explicitly discusses \"Bayesian BAI methods\" and elaborates on their characteristics, specifically mentioning their optimality in terms of \"the convergence rate of the posterior.\" This is a clear and meaningful discussion of Bayesian approaches as a distinct category of methods within the related work, rather than a mere passing mention.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2010.03792",
+      "title": "The Adaptive Doubly Robust Estimator for Policy Evaluation in Adaptive Experiments and a Paradox Concerning Logging Policy",
+      "authors": [
+        "Masahiro Kato",
+        "Shota Yasui",
+        "Kenichiro McAlinn"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "The doubly robust (DR) estimator, which consists of two nuisance parameters, the conditional mean outcome and the logging policy (the probability of choosing an action), is crucial in causal inference. This paper proposes a DR estimator for dependent samples obtained from adaptive experiments. To obtain an asymptotically normal semiparametric estimator from dependent samples with non-Donsker nuisance estimators, we propose adaptive-fitting as a variant of sample-splitting. We also report an empirical paradox that our proposed DR estimator tends to show better performances compared to other estimators utilizing the true logging policy. While a similar phenomenon is known for estimators with i.i.d. samples, traditional explanations based on asymptotic efficiency cannot elucidate our case with dependent samples. We confirm this hypothesis through simulation studies.",
+      "arxiv_url": "https://arxiv.org/abs/2010.03792",
+      "pdf_url": "https://arxiv.org/pdf/2010.03792v5",
+      "source": "rematch",
+      "gscholar_title": "The Adaptive Doubly Robust Estimator and a Paradox Concerning Logging Policy",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided \"Related Work\" section lists only literature databases (NASA ADS, Google Scholar, Semantic Scholar). It does not contain any discussion of academic concepts, techniques, or related research, and therefore does not mention \"Bayesian\" in any context.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1909.03348",
+      "title": "Identifying Different Definitions of Future in the Assessment of Future Economic Conditions: Application of PU Learning and Text Mining",
+      "authors": [
+        "Masahiro Kato"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "The Economy Watcher Survey, which is a market survey published by the Japanese government, contains \\emph{assessments of current and future economic conditions} by people from various fields. Although this survey provides insights regarding economic policy for policymakers, a clear definition of the word \"future\" in future economic conditions is not provided. Hence, the assessments respondents provide in the survey are simply based on their interpretations of the meaning of \"future.\" This motivated us to reveal the different interpretations of the future in their judgments of future economic conditions by applying weakly supervised learning and text mining. In our research, we separate the assessments of future economic conditions into economic conditions of the near and distant future using learning from positive and unlabeled data (PU learning). Because the dataset includes data from several periods, we devised new architecture to enable neural networks to conduct PU learning based on the idea of multi-task learning to efficiently learn a classifier. Our empirical analysis confirmed that the proposed method could separate the future economic conditions, and we interpreted the classification results to obtain intuitions for policymaking.",
+      "arxiv_url": "https://arxiv.org/abs/1909.03348",
+      "pdf_url": "https://arxiv.org/pdf/1909.03348v3",
+      "source": "rematch",
+      "gscholar_title": "景気の先行き判断の 「先行き」 の解釈における差異の識別: PU 学習とテキストマイニングの応用",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Triple/debiased lasso for statistical inference of conditional average treatment effects",
+      "associated_first_authors": [
+        "Masahiro Kato"
+      ],
+      "figure_1_path": "data/gold_figures/new_111_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2410.16577",
+      "title": "Bayesian High-dimensional Linear Regression with Sparse Projection-posterior",
+      "authors": [
+        "Samhita Pal",
+        "Subhashis Ghoshal"
+      ],
+      "first_author": "Samhita Pal",
+      "first_author_normalized": "samhita pal",
+      "abstract": "We consider a novel Bayesian approach to estimation, uncertainty quantification, and variable selection for a high-dimensional linear regression model under sparsity. The number of predictors can be nearly exponentially large relative to the sample size. We put a conjugate normal prior initially disregarding sparsity, but for making an inference, instead of the original multivariate normal posterior, we use the posterior distribution induced by a map transforming the vector of regression coefficients to a sparse vector obtained by minimizing the sum of squares of deviations plus a suitably scaled $\\ell_1$-penalty on the vector. We show that the resulting sparse projection-posterior distribution contracts around the true value of the parameter at the optimal rate adapted to the sparsity of the vector. We show that the true sparsity structure gets a large sparse projection-posterior probability. We further show that an appropriately recentred credible ball has the correct asymptotic frequentist coverage. Finally, we describe how the computational burden can be distributed to many machines, each dealing with only a small fraction of the whole dataset. We conduct a comprehensive simulation study under a variety of settings and found that the proposed method performs well for finite sample sizes. We also apply the method to several real datasets, including the ADNI data, and compare its performance with the state-of-the-art methods. We implemented the method in the \\texttt{R} package called \\texttt{sparseProj}, and all computations have been carried out using this package.",
+      "arxiv_url": "https://arxiv.org/abs/2410.16577",
+      "pdf_url": "https://arxiv.org/pdf/2410.16577v3",
+      "source": "rematch",
+      "gscholar_title": "Bayesian Inference in High-dimensional Regression Models using Sparse Projection Posterior",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Bayesian High-dimensional Linear Regression with Sparse Projection-posterior",
+      "associated_first_authors": [
+        "Samhita Pal"
+      ],
+      "figure_1_path": "data/gold_figures/new_112_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2406.13938",
+      "title": "Coverage of Credible Sets for Regression under Variable Selection",
+      "authors": [
+        "Samhita Pal",
+        "Subhashis Ghosal"
+      ],
+      "first_author": "Samhita Pal",
+      "first_author_normalized": "samhita pal",
+      "abstract": "We study the asymptotic frequentist coverage of credible sets based on a novel Bayesian approach for a multiple linear regression model under variable selection. We initially ignore the issue of variable selection, which allows us to put a conjugate normal prior on the coefficient vector. The variable selection step is incorporated directly in the posterior through a sparsity-inducing map and uses the induced prior for making an inference instead of the natural conjugate posterior. The sparsity-inducing map minimizes the sum of the squared l2-distance weighted by the data matrix and a suitably scaled l1-penalty term. We obtain the limiting coverage of various credible regions and demonstrate that a modified credible interval for a component has the exact asymptotic frequentist coverage if the corresponding predictor is asymptotically uncorrelated with other predictors. Through extensive simulation, we provide a guideline for choosing the penalty parameter as a function of the credibility level appropriate for the corresponding coverage. We also show finite-sample numerical results that support the conclusions from the asymptotic theory. We also provide the credInt package that implements the method in R to obtain the credible intervals along with the posterior samples.",
+      "arxiv_url": "https://arxiv.org/abs/2406.13938",
+      "pdf_url": "https://arxiv.org/pdf/2406.13938v1",
+      "source": "rematch",
+      "gscholar_title": "Projection-posterior for variable selection: Weak limit and coverage",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Bayesian High-dimensional Linear Regression with Sparse Projection-posterior",
+      "associated_first_authors": [
+        "Samhita Pal"
+      ],
+      "figure_1_path": "data/gold_figures/new_113_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1803.00609",
+      "title": "On Statistical Non-Significance",
+      "authors": [
+        "Alberto Abadie"
+      ],
+      "first_author": "Alberto Abadie",
+      "first_author_normalized": "alberto abadie",
+      "abstract": "Significance tests are probably the most extended form of inference in empirical research, and significance is often interpreted as providing greater informational content than non-significance. In this article we show, however, that rejection of a point null often carries very little information, while failure to reject may be highly informative. This is particularly true in empirical contexts where data sets are large and where there are rarely reasons to put substantial prior probability on a point null. Our results challenge the usual practice of conferring point null rejections a higher level of scientific significance than non-rejections. In consequence, we advocate a visible reporting and discussion of non-significant results in empirical practice.",
+      "arxiv_url": "https://arxiv.org/abs/1803.00609",
+      "pdf_url": "https://arxiv.org/pdf/1803.00609v1",
+      "source": "rematch",
+      "gscholar_title": "Statistical nonsignificance in empirical economics",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Doubly robust inference in causal latent factor models",
+      "associated_first_authors": [
+        "Alberto Abadie"
+      ],
+      "figure_1_path": "data/gold_figures/new_114_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     }
   ],
-  "count": 87,
+  "count": 114,
   "dest_folder_id": null,
-  "generated_at": "2026-05-03T14:18:45.075149"
+  "generated_at": "2026-05-19T16:54:39.339728",
+  "figure_extraction_date": "2026-05-19T18:18:47.009182",
+  "keyword_detection_date": "2026-05-19T18:33:30.111153",
+  "keyword": "Bayesian"
 }

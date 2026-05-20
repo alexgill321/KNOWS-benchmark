@@ -1151,16 +1151,25 @@ class SheetsPaperSortingTask(KnowsWorkspaceTask):
     WORKSPACE_KIND = WORKSPACE_KIND_SHEETS
     AVAILABLE_INSTANCES: Tuple[int, ...] = (1, 2, 3, 4, 5)
 
+    # Set to True to run full gold data pipeline (preprocess, figures, keywords)
+    # during setup. Default False — only creates fresh Drive folders.
+    RUN_GOLD_PIPELINE = False
+
     def setup(self, page: playwright.sync_api.Page) -> Tuple[str, dict]:
         self._run_setup_pipeline()
         return super().setup(page)
 
     def _run_setup_pipeline(self) -> None:
-        """Run full pre-benchmark pipeline for sheets_10."""
+        """Run pre-benchmark pipeline for sheets_10.
+
+        Always creates fresh Drive folders. Optionally runs gold data
+        collection if RUN_GOLD_PIPELINE is True.
+        """
         self._run_task_script("setup_run.py")
-        self._run_task_script("preprocess.py", ["--rematch-only"])
-        self._run_task_script("extract_figures.py", ["--skip-existing"])
-        self._run_task_script("detect_keyword.py", ["--skip-existing"])
+        if self.RUN_GOLD_PIPELINE:
+            self._run_task_script("preprocess.py", ["--rematch-only"])
+            self._run_task_script("extract_figures.py", ["--skip-existing"])
+            self._run_task_script("detect_keyword.py", ["--skip-existing"])
 
     def _run_task_script(self, script_name: str, extra_args: list = None) -> None:
         """Run a task-level script as a subprocess.

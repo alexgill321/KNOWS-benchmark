@@ -13,7 +13,7 @@
       ],
       "first_author": "Andrea Lapi",
       "first_author_normalized": "andrea lapi",
-      "abstract": "[abridged] The $\u03b7$CDM framework is a new cosmological model aimed to cure some drawbacks of the standard $\u039b$CDM scenario, such as the origin of the accelerated expansion at late times, the cosmic tensions, and the violation of the cosmological principle due to the progressive development of inhomogeneous/anisotropic conditions in the Universe during structure formation. To this purpose, the model adopts a statistical perspective envisaging a stochastic evolution of large-scale patches in the Universe with typical sizes $10-50\\, h^{-1}$ Mpc, which is meant to describe the complex gravitational processes leading to the formation of the cosmic web. The stochasticity among different patches is technically rendered via the diverse realizations of a multiplicative noise term (`a little ado') in the cosmological equations, and the overall background evolution of the Universe is then operationally defined as an average over the patch ensemble. In this paper we show that such an ensemble-averaged evolution in $\u03b7$CDM can be described in terms of a spatially flat cosmology and of an `emergent' dark energy with a time-dependent equation of state, able to originate the cosmic acceleration with the right timing and to solve the coincidence problem. Then we test the $\u03b7$CDM model against the most recent supernova type-I$a$, baryon acoustic oscillations and structure growth rate datasets, finding an excellent agreement. Remarkably, we demonstrate that $\u03b7$CDM is able to alleviate simultaneously both the $H_0$ and the $f\u03c3_8$ tensions. Finally, we discuss that the Linders' diagnostic test could be helpful to better distinguish $\u03b7$CDM from the standard scenario in the near future via upcoming galaxy redshift surveys at intermediate redshifts such as those being conducted by the Euclid mission.",
+      "abstract": "[abridged] The $η$CDM framework is a new cosmological model aimed to cure some drawbacks of the standard $Λ$CDM scenario, such as the origin of the accelerated expansion at late times, the cosmic tensions, and the violation of the cosmological principle due to the progressive development of inhomogeneous/anisotropic conditions in the Universe during structure formation. To this purpose, the model adopts a statistical perspective envisaging a stochastic evolution of large-scale patches in the Universe with typical sizes $10-50\\, h^{-1}$ Mpc, which is meant to describe the complex gravitational processes leading to the formation of the cosmic web. The stochasticity among different patches is technically rendered via the diverse realizations of a multiplicative noise term (`a little ado') in the cosmological equations, and the overall background evolution of the Universe is then operationally defined as an average over the patch ensemble. In this paper we show that such an ensemble-averaged evolution in $η$CDM can be described in terms of a spatially flat cosmology and of an `emergent' dark energy with a time-dependent equation of state, able to originate the cosmic acceleration with the right timing and to solve the coincidence problem. Then we test the $η$CDM model against the most recent supernova type-I$a$, baryon acoustic oscillations and structure growth rate datasets, finding an excellent agreement. Remarkably, we demonstrate that $η$CDM is able to alleviate simultaneously both the $H_0$ and the $fσ_8$ tensions. Finally, we discuss that the Linders' diagnostic test could be helpful to better distinguish $η$CDM from the standard scenario in the near future via upcoming galaxy redshift surveys at intermediate redshifts such as those being conducted by the Euclid mission.",
       "arxiv_url": "https://arxiv.org/abs/2502.05823",
       "pdf_url": "https://arxiv.org/pdf/2502.05823v2",
       "source": "gscholar_crossref",
@@ -23,7 +23,10 @@
       "associated_first_authors": [
         "Andrea Lapi"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_1_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2408.08611",
@@ -46,7 +49,10 @@
       "associated_first_authors": [
         "Andrea Lapi"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_2_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2507.15436",
@@ -62,7 +68,7 @@
       ],
       "first_author": "Andrea Lapi",
       "first_author_normalized": "andrea lapi",
-      "abstract": "The evolution of the supermassive Black Hole (BH) population across cosmic times remains a central unresolved issue in modern astrophysics, due to the many noticeable uncertainties in the involved physical processes that span a huge range of spatial, temporal and energy scales. Here we tackle the problem via a semi-empirical approach with minimal assumptions and data-driven inputs. This is based on a continuity plus Smoluchowski equation framework that allows to unitarily describe the two primary modes of BH growth: gas accretion and binary mergers. Key quantities related to the latter processes are incorporated through educated parameterizations, and then constrained in a Bayesian setup from joint observational estimates of the local BH mass function, of the large-scale BH clustering, and of the nano-Hz stochastic gravitational wave (GW) background measured from Pulsar Timimg Array (PTA) experiments. We find that the BH accretion-related parameters are strongly dependent on the local BH mass function determination: higher normalizations and flatter high-mass slopes in the latter imply lower radiative efficiencies and mean Eddington ratios with a stronger redshift evolution. Additionally, the binary BH merger rate is estimated to be a fraction $\\lesssim 10^{-1}$ of the galaxy merger rate derived from galaxy pairs counts by \\texttt{JWST}, and constrained not to exceed the latter at $\\gtrsim 2\u03c3$. Relatedly, we highlight hints of a possible tension between current constraints on BH demographics and the interpretation of the nano-Hz GW background as predominantly caused by binary BH mergers. Specifically, we bound the latter's contribution to $\\lesssim 30-50\\%$ at $\\sim 3\u03c3$, suggesting that additional astrophysical/cosmological sources are needed to explain the residual part of the signal measured by PTA experiments.",
+      "abstract": "The evolution of the supermassive Black Hole (BH) population across cosmic times remains a central unresolved issue in modern astrophysics, due to the many noticeable uncertainties in the involved physical processes that span a huge range of spatial, temporal and energy scales. Here we tackle the problem via a semi-empirical approach with minimal assumptions and data-driven inputs. This is based on a continuity plus Smoluchowski equation framework that allows to unitarily describe the two primary modes of BH growth: gas accretion and binary mergers. Key quantities related to the latter processes are incorporated through educated parameterizations, and then constrained in a Bayesian setup from joint observational estimates of the local BH mass function, of the large-scale BH clustering, and of the nano-Hz stochastic gravitational wave (GW) background measured from Pulsar Timimg Array (PTA) experiments. We find that the BH accretion-related parameters are strongly dependent on the local BH mass function determination: higher normalizations and flatter high-mass slopes in the latter imply lower radiative efficiencies and mean Eddington ratios with a stronger redshift evolution. Additionally, the binary BH merger rate is estimated to be a fraction $\\lesssim 10^{-1}$ of the galaxy merger rate derived from galaxy pairs counts by \\texttt{JWST}, and constrained not to exceed the latter at $\\gtrsim 2σ$. Relatedly, we highlight hints of a possible tension between current constraints on BH demographics and the interpretation of the nano-Hz GW background as predominantly caused by binary BH mergers. Specifically, we bound the latter's contribution to $\\lesssim 30-50\\%$ at $\\sim 3σ$, suggesting that additional astrophysical/cosmological sources are needed to explain the residual part of the signal measured by PTA experiments.",
       "arxiv_url": "https://arxiv.org/abs/2507.15436",
       "pdf_url": "https://arxiv.org/pdf/2507.15436v2",
       "source": "gscholar_crossref",
@@ -72,7 +78,10 @@
       "associated_first_authors": [
         "Andrea Lapi"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_3_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses gravitational waves from binary black hole mergers, the BH mass function, and the characteristic strain. It does not mention \"dark energy\" at any point, nor does it discuss any related cosmological concepts.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2209.14707",
@@ -103,7 +112,10 @@
         "Charles Badger",
         "Rahul Srinivasan"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_4_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] NO.\n\nThe text provided does not contain any mention of \"dark energy,\" either meaningful or incidental. The discussion focuses entirely on the detectability of gravitational wave backgrounds, first-order phase transitions (FOPTs), and the comparison of different detection methodologies (PI curves, SNR, Bayesian analysis) using LVK detectors.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2406.11742",
@@ -113,7 +125,7 @@
         "Hannah Duval",
         "Tomohiro Fujita",
         "Sachiko Kuroyanagi",
-        "Alba Romero-Rodr\u00edguez",
+        "Alba Romero-Rodríguez",
         "Mairi Sakellariadou"
       ],
       "first_author": "Charles Badger",
@@ -129,7 +141,10 @@
         "Charles Badger",
         "Rahul Srinivasan"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_5_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses the energy scale of inflation, the tensor-to-scalar ratio, the Hubble expansion rate during inflation, and CMB polarization experiments. These are concepts related to the early universe and primordial gravitational waves. The term \"dark energy\" is not present anywhere in the text, nor are any related concepts or discussions pertaining to the late-time accelerated expansion of the universe.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2210.06194",
@@ -137,9 +152,9 @@
       "authors": [
         "Charles Badger",
         "Katarina Martinovic",
-        "Alejandro Torres-Forn\u00e9",
+        "Alejandro Torres-Forné",
         "Mairi Sakellariadou",
-        "Jos\u00e9 A. Font"
+        "José A. Font"
       ],
       "first_author": "Charles Badger",
       "first_author_normalized": "charles badger",
@@ -154,16 +169,19 @@
         "Charles Badger",
         "Rahul Srinivasan"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_6_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2407.02908",
       "title": "High-speed reconstruction of long-duration gravitational waves from extreme mass ratio inspirals using sparse dictionary learning",
       "authors": [
         "Charles Badger",
-        "Jos\u00e9 A. Font",
+        "José A. Font",
         "Mairi Sakellariadou",
-        "Alejandro Torres-Forn\u00e9"
+        "Alejandro Torres-Forné"
       ],
       "first_author": "Charles Badger",
       "first_author_normalized": "charles badger",
@@ -178,7 +196,10 @@
         "Charles Badger",
         "Rahul Srinivasan"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_7_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2405.17721",
@@ -186,9 +207,9 @@
       "authors": [
         "Charles Badger",
         "Rahul Srinivasan",
-        "Alejandro Torres-Forn\u00e9",
+        "Alejandro Torres-Forné",
         "Marie Anne Bizouard",
-        "Jos\u00e9 A. Font",
+        "José A. Font",
         "Mairi Sakellariadou",
         "Astrid Lamberts"
       ],
@@ -205,7 +226,10 @@
         "Charles Badger",
         "Rahul Srinivasan"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_8_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2112.04650",
@@ -227,7 +251,10 @@
         "Charles Badger",
         "Rahul Srinivasan"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_9_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2404.12294",
@@ -252,7 +279,10 @@
         "Charles Badger",
         "Rahul Srinivasan"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_10_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2303.04017",
@@ -277,7 +307,10 @@
         "Charles Badger",
         "Rahul Srinivasan"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_11_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2506.22543",
@@ -294,14 +327,17 @@
       "arxiv_url": "https://arxiv.org/abs/2506.22543",
       "pdf_url": "https://arxiv.org/pdf/2506.22543v2",
       "source": "gscholar_crossref",
-      "gscholar_title": "Simulation-based population inference of LISA\u2019s Galactic binaries: Bypassing the global fit",
+      "gscholar_title": "Simulation-based population inference of LISA’s Galactic binaries: Bypassing the global fit",
       "match_method": "exact_title",
       "associated_original_paper": "Rapid detection of gravitational waves from binary black hole mergers using sparse\ndictionary learning",
       "associated_first_authors": [
         "Charles Badger",
         "Rahul Srinivasan"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_12_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2106.12594",
@@ -312,7 +348,7 @@
         "Jonathan Gair",
         "Jakob H. Macke",
         "Alessandra Buonanno",
-        "Bernhard Sch\u00f6lkopf"
+        "Bernhard Schölkopf"
       ],
       "first_author": "Maximilian Dax",
       "first_author_normalized": "maximilian dax",
@@ -326,7 +362,10 @@
       "associated_first_authors": [
         "Maximilian Dax"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_13_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2210.05686",
@@ -335,11 +374,11 @@
         "Maximilian Dax",
         "Stephen R. Green",
         "Jonathan Gair",
-        "Michael P\u00fcrrer",
+        "Michael Pürrer",
         "Jonas Wildberger",
         "Jakob H. Macke",
         "Alessandra Buonanno",
-        "Bernhard Sch\u00f6lkopf"
+        "Bernhard Schölkopf"
       ],
       "first_author": "Maximilian Dax",
       "first_author_normalized": "maximilian dax",
@@ -353,7 +392,10 @@
       "associated_first_authors": [
         "Maximilian Dax"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_14_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2305.17161",
@@ -364,7 +406,7 @@
         "Simon Buchholz",
         "Stephen R. Green",
         "Jakob H. Macke",
-        "Bernhard Sch\u00f6lkopf"
+        "Bernhard Schölkopf"
       ],
       "first_author": "Maximilian Dax",
       "first_author_normalized": "maximilian dax",
@@ -378,7 +420,10 @@
       "associated_first_authors": [
         "Maximilian Dax"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_15_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2407.09602",
@@ -388,12 +433,12 @@
         "Stephen R. Green",
         "Jonathan Gair",
         "Nihar Gupte",
-        "Michael P\u00fcrrer",
+        "Michael Pürrer",
         "Vivien Raymond",
         "Jonas Wildberger",
         "Jakob H. Macke",
         "Alessandra Buonanno",
-        "Bernhard Sch\u00f6lkopf"
+        "Bernhard Schölkopf"
       ],
       "first_author": "Maximilian Dax",
       "first_author_normalized": "maximilian dax",
@@ -407,11 +452,14 @@
       "associated_first_authors": [
         "Maximilian Dax"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_16_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe term \"dark energy\" does not appear anywhere in the provided text, nor are there any discussions or concepts related to it. The text focuses entirely on gravitational wave astronomy, machine learning applications to black hole and neutron star mergers, and related inference techniques.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1808.08957",
-      "title": "Quark-mass dependence in $\u03c9\\to3\u03c0$ decays",
+      "title": "Quark-mass dependence in $ω\\to3π$ decays",
       "authors": [
         "Maximilian Dax",
         "Tobias Isken",
@@ -419,7 +467,7 @@
       ],
       "first_author": "Maximilian Dax",
       "first_author_normalized": "maximilian dax",
-      "abstract": "We study the quark-mass dependence of $\u03c9\\to3\u03c0$ decays, based on a dispersion-theoretical framework. We rely on the quark-mass-dependent scattering phase shift for the pion-pion $P$-wave extracted from unitarized chiral perturbation theory. The dispersive representation then takes into account the final-state rescattering among all three pions. The described formalism may be used as an extrapolation tool for lattice QCD calculations of three-pion decays, for which $\u03c9\\to3\u03c0$ can serve as a paradigm case.",
+      "abstract": "We study the quark-mass dependence of $ω\\to3π$ decays, based on a dispersion-theoretical framework. We rely on the quark-mass-dependent scattering phase shift for the pion-pion $P$-wave extracted from unitarized chiral perturbation theory. The dispersive representation then takes into account the final-state rescattering among all three pions. The described formalism may be used as an extrapolation tool for lattice QCD calculations of three-pion decays, for which $ω\\to3π$ can serve as a paradigm case.",
       "arxiv_url": "https://arxiv.org/abs/1808.08957",
       "pdf_url": "https://arxiv.org/pdf/1808.08957v2",
       "source": "gscholar_crossref",
@@ -429,7 +477,10 @@
       "associated_first_authors": [
         "Maximilian Dax"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2111.13139",
@@ -439,7 +490,7 @@
         "Stephen R. Green",
         "Jonathan Gair",
         "Michael Deistler",
-        "Bernhard Sch\u00f6lkopf",
+        "Bernhard Schölkopf",
         "Jakob H. Macke"
       ],
       "first_author": "Maximilian Dax",
@@ -454,11 +505,14 @@
       "associated_first_authors": [
         "Maximilian Dax"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_18_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] NO\n\nThe text does not contain any mentions of \"dark energy,\" meaningful or otherwise. It focuses on concepts like equivariance, normalizing flows, and machine learning techniques for parameter inference, particularly in a \"gray-box\" or \"black-box\" setting.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2012.04655",
-      "title": "Dispersive analysis of the Primakoff reaction $\u03b3K \\to K \u03c0$",
+      "title": "Dispersive analysis of the Primakoff reaction $γK \\to K π$",
       "authors": [
         "Maximilian Dax",
         "Dominik Stamen",
@@ -466,7 +520,7 @@
       ],
       "first_author": "Maximilian Dax",
       "first_author_normalized": "maximilian dax",
-      "abstract": "We provide a dispersion-theoretical representation of the reaction amplitudes $\u03b3K\\to K \u03c0$ in all charge channels, based on modern pion-kaon $P$-wave phase shift input. Crossed-channel singularities are fixed from phenomenology as far as possible. We demonstrate how the subtraction constants can be matched to a low-energy theorem and radiative couplings of the $K^*(892)$ resonances, thereby providing a model-independent framework for future analyses of high-precision kaon Primakoff data.",
+      "abstract": "We provide a dispersion-theoretical representation of the reaction amplitudes $γK\\to K π$ in all charge channels, based on modern pion-kaon $P$-wave phase shift input. Crossed-channel singularities are fixed from phenomenology as far as possible. We demonstrate how the subtraction constants can be matched to a low-energy theorem and radiative couplings of the $K^*(892)$ resonances, thereby providing a model-independent framework for future analyses of high-precision kaon Primakoff data.",
       "arxiv_url": "https://arxiv.org/abs/2012.04655",
       "pdf_url": "https://arxiv.org/pdf/2012.04655v2",
       "source": "gscholar_crossref",
@@ -476,7 +530,10 @@
       "associated_first_authors": [
         "Maximilian Dax"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2501.17044",
@@ -500,31 +557,37 @@
       "associated_first_authors": [
         "Maximilian Dax"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_20_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses \"simulation-based inference,\" \"neural posterior estimation,\" and \"procedural inversion\" in the context of inferring building abstractions. It does not contain any mention, meaningful or incidental, of \"dark energy.\"",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2301.12725",
       "title": "On Redshift Evolution & Negative Dark Energy Density in Pantheon+ Supernovae",
       "authors": [
         "Mohammad Malekjani",
-        "Ruair\u00ed Mc Conville",
-        "Eoin \u00d3 Colg\u00e1in",
+        "Ruairí Mc Conville",
+        "Eoin Ó Colgáin",
         "Saeed Pourojaghi",
         "M. M. Sheikh-Jabbari"
       ],
       "first_author": "Mohammad Malekjani",
       "first_author_normalized": "mohammad malekjani",
-      "abstract": "Within the Friedmann-Lema\u00eetre-Robertson-Walker (FLRW) framework, the Hubble constant $H_0$ is an integration constant. Thus, consistency of the model demands observational constancy of $H_0$. We demonstrate redshift evolution of best fit $\u039b$CDM parameters $(H_0, \u03a9_{m})$ in Pantheon+ supernove (SNe). Redshift evolution of best fit cosmological parameters is a prerequisite to finding a statistically significant evolution as well as identifying alternative models that are competitive with $\u039b$CDM in a Bayesian model comparison. To assess statistical significance, we employ three different methods: i) Bayesian model comparison, ii) mock simulations and iii) profile distributions. The first shows a marginal preference for the vanilla $\u039b$CDM model over an ad hoc model with 3 additional parameters and an unphysical jump in cosmological parameters at $z=1$. From mock simulations, we estimate the statistical significance of redshift evolution of best fit parameters and negative dark energy density ($\u03a9_m > 1$) to be in the $1-2 \u03c3$ range, depending on the criteria employed. Importantly, in direct comparison to the same analysis with the earlier Pantheon sample we find that statistical significance of redshift evolution of best fit parameters has increased, as expected for a physical effect. Our profile distribution analysis demonstrates a shift in $(H_0, \u03a9_m)$ in excess of $95\\%$ confidence level for SNe with redshifts $z > 1$ and also shows that a degeneracy in MCMC posteriors is not equivalent to a curve of constant $\u03c7^2$. Our findings can be interpreted as a statistical fluctuation or unexplored systematics in Pantheon+ or $\u039b$CDM model breakdown. The first two possibilities are disfavoured by similar trends in independent probes.",
+      "abstract": "Within the Friedmann-Lemaître-Robertson-Walker (FLRW) framework, the Hubble constant $H_0$ is an integration constant. Thus, consistency of the model demands observational constancy of $H_0$. We demonstrate redshift evolution of best fit $Λ$CDM parameters $(H_0, Ω_{m})$ in Pantheon+ supernove (SNe). Redshift evolution of best fit cosmological parameters is a prerequisite to finding a statistically significant evolution as well as identifying alternative models that are competitive with $Λ$CDM in a Bayesian model comparison. To assess statistical significance, we employ three different methods: i) Bayesian model comparison, ii) mock simulations and iii) profile distributions. The first shows a marginal preference for the vanilla $Λ$CDM model over an ad hoc model with 3 additional parameters and an unphysical jump in cosmological parameters at $z=1$. From mock simulations, we estimate the statistical significance of redshift evolution of best fit parameters and negative dark energy density ($Ω_m > 1$) to be in the $1-2 σ$ range, depending on the criteria employed. Importantly, in direct comparison to the same analysis with the earlier Pantheon sample we find that statistical significance of redshift evolution of best fit parameters has increased, as expected for a physical effect. Our profile distribution analysis demonstrates a shift in $(H_0, Ω_m)$ in excess of $95\\%$ confidence level for SNe with redshifts $z > 1$ and also shows that a degeneracy in MCMC posteriors is not equivalent to a curve of constant $χ^2$. Our findings can be interpreted as a statistical fluctuation or unexplored systematics in Pantheon+ or $Λ$CDM model breakdown. The first two possibilities are disfavoured by similar trends in independent probes.",
       "arxiv_url": "https://arxiv.org/abs/2301.12725",
       "pdf_url": "https://arxiv.org/pdf/2301.12725v3",
       "source": "gscholar_crossref",
       "gscholar_title": "On redshift evolution and negative dark energy density in Pantheon+ Supernovae",
       "match_method": "fuzzy_title (score=97.40259740259741)",
-      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard \u039bCDM cosmology",
+      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
       "associated_first_authors": [
         "Mohammad Malekjani"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_21_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1809.08792",
@@ -536,17 +599,20 @@
       ],
       "first_author": "Mohammad Malekjani",
       "first_author_normalized": "mohammad malekjani",
-      "abstract": "In this work we investigate the holographic dark energy models with slowly time-varying model parameter defined based on the current Hubble horizon length scale. While the previous studies on the three popular holographic dark energy models defined based on the future event horizon, Ricci scale and Granda-Oliveros IR cutoffs showed that these models cannot fit the observational data [1], in this work we show that the holographic dark energy models with time-varying model parameter defined on the current Hubble radius are well favored by observations. Using the standard $\u03c7^2$ minimization in the context of Markov Chain Monte Carlo method, we compare the ability of holographic dark energy models with time-varying $c^2$ parameter constructed on the current Hubble length scale against different sets of observational data namely expansion data, growth rate data and expansion+growth rate data respectively. Based on the values of Akaike and Bayesian information criteria, we find that these types of holographic dark energy models are well fitted to both expansion and growth rate observations as equal to $\u039b$CDM cosmology. We also put constraints on the cosmological parameters and show that the transition epoch form early decelerated to current accelerated expansion calculated in holographic dark energy models with time-varying model parameter defined on the Hubble length is consistent with observations.",
+      "abstract": "In this work we investigate the holographic dark energy models with slowly time-varying model parameter defined based on the current Hubble horizon length scale. While the previous studies on the three popular holographic dark energy models defined based on the future event horizon, Ricci scale and Granda-Oliveros IR cutoffs showed that these models cannot fit the observational data [1], in this work we show that the holographic dark energy models with time-varying model parameter defined on the current Hubble radius are well favored by observations. Using the standard $χ^2$ minimization in the context of Markov Chain Monte Carlo method, we compare the ability of holographic dark energy models with time-varying $c^2$ parameter constructed on the current Hubble length scale against different sets of observational data namely expansion data, growth rate data and expansion+growth rate data respectively. Based on the values of Akaike and Bayesian information criteria, we find that these types of holographic dark energy models are well fitted to both expansion and growth rate observations as equal to $Λ$CDM cosmology. We also put constraints on the cosmological parameters and show that the transition epoch form early decelerated to current accelerated expansion calculated in holographic dark energy models with time-varying model parameter defined on the Hubble length is consistent with observations.",
       "arxiv_url": "https://arxiv.org/abs/1809.08792",
       "pdf_url": "https://arxiv.org/pdf/1809.08792v2",
       "source": "gscholar_crossref",
       "gscholar_title": "Can holographic dark energy models fit the observational data?",
       "match_method": "exact_title",
-      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard \u039bCDM cosmology",
+      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
       "associated_first_authors": [
         "Mohammad Malekjani"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1508.04697",
@@ -558,17 +624,20 @@
       ],
       "first_author": "Mohammad Malekjani",
       "first_author_normalized": "mohammad malekjani",
-      "abstract": "While in the standard cosmological model the accelerated expansion of the Universe is explained by invoking the presence of the cosmological constant term, it is still unclear the true origin of this stunning observational fact. It is therefore interesting to explore alternatives to the simplest scenario, in particular by assuming a more general framework where the fluid responsible of the accelerated expansion is characterised by a time-dependant equation of state. Usually these models, dubbed dark energy models, are purely phenomenological, but in this work we concentrate on a theoretically justified model, the ghost dark energy model. Within the framework of the spherical collapse model, we evaluate effects of dark energy perturbations both at the linear and non-linear level and transfer these results into an observable quantity, the mass function, by speculatively taking into account contributions of dark energy to the mass of the halos. We showed that the growth rate is higher in ghost models and that perturbations enhance the number of structures with respect to the $\u039b$CDM model, with stronger effects when the total mass takes into account dark energy clumps.",
+      "abstract": "While in the standard cosmological model the accelerated expansion of the Universe is explained by invoking the presence of the cosmological constant term, it is still unclear the true origin of this stunning observational fact. It is therefore interesting to explore alternatives to the simplest scenario, in particular by assuming a more general framework where the fluid responsible of the accelerated expansion is characterised by a time-dependant equation of state. Usually these models, dubbed dark energy models, are purely phenomenological, but in this work we concentrate on a theoretically justified model, the ghost dark energy model. Within the framework of the spherical collapse model, we evaluate effects of dark energy perturbations both at the linear and non-linear level and transfer these results into an observable quantity, the mass function, by speculatively taking into account contributions of dark energy to the mass of the halos. We showed that the growth rate is higher in ghost models and that perturbations enhance the number of structures with respect to the $Λ$CDM model, with stronger effects when the total mass takes into account dark energy clumps.",
       "arxiv_url": "https://arxiv.org/abs/1508.04697",
       "pdf_url": "https://arxiv.org/pdf/1508.04697v1",
       "source": "gscholar_crossref",
       "gscholar_title": "Effects of ghost dark energy perturbations on the evolution of spherical overdensities",
       "match_method": "exact_title",
-      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard \u039bCDM cosmology",
+      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
       "associated_first_authors": [
         "Mohammad Malekjani"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": true,
+      "keyword_note": "[LaTeX] YES\n\n**Reasoning:**\nThe text contains numerous and extensive discussions of \"dark energy\" (often abbreviated as \"DE\"). It specifically focuses on \"ghost dark energy\" and \"generalised ghost dark energy\" models, describing their theoretical origin, their energy density equations, their equation of state parameters, their role in the Friedmann equations, their fit to cosmological data, and comparisons with other dark energy models like HDE, ADE, and $\\Lambda$CDM. The entire section is dedicated to analyzing and presenting these particular dark energy models and their cosmological implications.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1212.4673",
@@ -584,11 +653,14 @@
       "source": "gscholar_crossref",
       "gscholar_title": "Cosmography of interacting generalized QCD ghost dark energy",
       "match_method": "exact_title",
-      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard \u039bCDM cosmology",
+      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
       "associated_first_authors": [
         "Mohammad Malekjani"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1609.01964",
@@ -600,17 +672,20 @@
       ],
       "first_author": "Mohammad Malekjani",
       "first_author_normalized": "mohammad malekjani",
-      "abstract": "We study the spherical collapse model (SCM) in the framework of spatially flat power law $f(T) \\propto (-T)^{b}$ gravity model. We find that the linear and non-linear growth of spherical overdensities of this particular $f(T)$ model are affected by the power-law parameter $b$. Finally, we compute the predicted number counts of virialized haloes in order to distinguish the current $f(T)$ model from the expectations of the concordance $\u039b$ cosmology. Specifically, the present analysis suggests that the $f(T)$ gravity model with positive (negative) $b$ predicts more (less) virialized objects with respect to those of $\u039b$CDM.",
+      "abstract": "We study the spherical collapse model (SCM) in the framework of spatially flat power law $f(T) \\propto (-T)^{b}$ gravity model. We find that the linear and non-linear growth of spherical overdensities of this particular $f(T)$ model are affected by the power-law parameter $b$. Finally, we compute the predicted number counts of virialized haloes in order to distinguish the current $f(T)$ model from the expectations of the concordance $Λ$ cosmology. Specifically, the present analysis suggests that the $f(T)$ gravity model with positive (negative) $b$ predicts more (less) virialized objects with respect to those of $Λ$CDM.",
       "arxiv_url": "https://arxiv.org/abs/1609.01964",
       "pdf_url": "https://arxiv.org/pdf/1609.01964v2",
       "source": "gscholar_crossref",
       "gscholar_title": "Spherical collapse model and cluster number counts in power-law f(T) gravity",
       "match_method": "exact_title",
-      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard \u039bCDM cosmology",
+      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
       "associated_first_authors": [
         "Mohammad Malekjani"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_25_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[LaTeX] YES\n\nThe text contains meaningful mentions of \"dark energy\". It explicitly defines and calculates the \"energy density and the pressure of the effective DE component\" (using the abbreviation \"_de\"), and derives its corresponding effective equation of state (EoS) parameter, $w_{de}$. The discussion then analyzes the behavior of $w_{de}$ (e.g., quintessence vs. phantom regimes) and compares the \"dark energy density\" ($\\Omega_d$) of the $f(T)$ model with the $\\Lambda$CDM model, which are central aspects of dark energy research.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1206.0647",
@@ -626,11 +701,14 @@
       "source": "gscholar_crossref",
       "gscholar_title": "Polytropic gas scalar field models of dark energy",
       "match_method": "exact_title",
-      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard \u039bCDM cosmology",
+      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
       "associated_first_authors": [
         "Mohammad Malekjani"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2511.18657",
@@ -642,21 +720,24 @@
       ],
       "first_author": "Mohammad Malekjani",
       "first_author_normalized": "mohammad malekjani",
-      "abstract": "The nature of dark energy is one of the big puzzling issues in cosmology. While $\u039b$CDM provides a good fit to the observational data, evolving dark energy scenarios, such as the CPL parametrization, offer a compelling alternative. In this paper, we present a Bayesian model comparison of various dark energy parametrizations using a joint analysis of Cosmic Microwave Background data, DESI Baryon Acoustic Oscillation measurements, and the PantheonPlus (or Union3) Supernovae type Ia sample. We find that while the $\u039b$CDM model is initially favored over a constant $w$CDM model, the CPL parametrization is significantly preferred over $w$CDM, reinforcing recent evidence for an evolving dark energy component, consistent with DESI collaboration findings. Crucially, when testing higher-order CPL extensions, the so-called CPL$^+$ and CPL$^{++}$, our Bayesian analysis shows that the observational data do not favor these more complex scenarios compared to the standard CPL. This result indicates that adding excessive complexity to the CPL form is unwarranted by current observations. Interestingly, similar to the CPL parametrization, alternative two-parameter forms, specifically $w_{de}(a) = w_0 + w_b(1-a)^2$ and $w_{de}(a) = w_0 + w_c(1-a)^3$, yield a better fit to observational data than the standard $\u039b$CDM cosmology. Our results challenge the necessity for overly complex CPL extensions and confirm that well-chosen two-parameter $w_0w_a$ parametrizations effectively capture DE evolution with current cosmological data, supporting the recent signals for dynamical dark energy by DESI collaboration.",
+      "abstract": "The nature of dark energy is one of the big puzzling issues in cosmology. While $Λ$CDM provides a good fit to the observational data, evolving dark energy scenarios, such as the CPL parametrization, offer a compelling alternative. In this paper, we present a Bayesian model comparison of various dark energy parametrizations using a joint analysis of Cosmic Microwave Background data, DESI Baryon Acoustic Oscillation measurements, and the PantheonPlus (or Union3) Supernovae type Ia sample. We find that while the $Λ$CDM model is initially favored over a constant $w$CDM model, the CPL parametrization is significantly preferred over $w$CDM, reinforcing recent evidence for an evolving dark energy component, consistent with DESI collaboration findings. Crucially, when testing higher-order CPL extensions, the so-called CPL$^+$ and CPL$^{++}$, our Bayesian analysis shows that the observational data do not favor these more complex scenarios compared to the standard CPL. This result indicates that adding excessive complexity to the CPL form is unwarranted by current observations. Interestingly, similar to the CPL parametrization, alternative two-parameter forms, specifically $w_{de}(a) = w_0 + w_b(1-a)^2$ and $w_{de}(a) = w_0 + w_c(1-a)^3$, yield a better fit to observational data than the standard $Λ$CDM cosmology. Our results challenge the necessity for overly complex CPL extensions and confirm that well-chosen two-parameter $w_0w_a$ parametrizations effectively capture DE evolution with current cosmological data, supporting the recent signals for dynamical dark energy by DESI collaboration.",
       "arxiv_url": "https://arxiv.org/abs/2511.18657",
       "pdf_url": "https://arxiv.org/pdf/2511.18657v1",
       "source": "gscholar_crossref",
       "gscholar_title": "How complex is dark energy? A Bayesian analysis of CPL extensions with recent DESI BAO measurements",
       "match_method": "exact_title",
-      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard \u039bCDM cosmology",
+      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
       "associated_first_authors": [
         "Mohammad Malekjani"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_27_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses cosmological parameters derived from CMB data, such as the acoustic scale ($l_a$), shift parameter ($R$), and physical baryon density ($\\omega_b$), along with $\\Omega_m$ (matter density) and $H_0$ (Hubble constant). While these parameters are components of cosmological models that often include dark energy, the term \"dark energy\" itself is not mentioned or discussed anywhere in the text. The focus is purely on the CMB distance priors and their characterization.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2310.06028",
-      "title": "Little Ado about Everything: $\u03b7$CDM, a Cosmological Model with Fluctuation-driven Acceleration at Late Times",
+      "title": "Little Ado about Everything: $η$CDM, a Cosmological Model with Fluctuation-driven Acceleration at Late Times",
       "authors": [
         "Andrea Lapi",
         "Lumen Boco",
@@ -668,17 +749,20 @@
       ],
       "first_author": "Andrea Lapi",
       "first_author_normalized": "andrea lapi",
-      "abstract": "[abridged] We propose a model of the Universe (dubbed $\u03b7$CDM) featuring a stochastic evolution of the cosmological quantities, that is meant to render small deviations from homogeneity/isotropy on scales of $30-50\\, h^{-1}$ Mpc at late cosmic times, associated to the emergence of the cosmic web. Specifically, we prescribe that the behavior of the matter/radiation energy densities in different patches of the Universe with such a size can be effectively described by a stochastic version of the mass-energy evolution equation. The latter includes an appropriate noise term that statistically accounts for local fluctuations due to inhomogeneities, anisotropic stresses and matter flows. The evolution of the different patches as a function of cosmic time is rendered via the diverse realizations of the noise term; meanwhile, at any given cosmic time, sampling the ensemble of patches will originate a nontrivial spatial distribution of the cosmological quantities. The overall behavior of the Universe will be obtained by averaging over the patch ensemble. We assume a physically reasonable parameterization of the noise term, gauging it against a wealth of cosmological datasets. We find that, with respect to standard $\u039b$CDM, the ensemble-averaged cosmic dynamics in the $\u03b7$CDM model is substantially altered in three main respects: (i) an accelerated expansion is enforced at late cosmic times without the need for any additional exotic component (e.g., dark energy); (ii) the spatial curvature can stay small even in a low-density Universe; (iii) matter can acquire an effective negative pressure at late times. We provide predictions for the variance of the cosmological quantities among different patches of the Universe at late cosmic times. Finally, we show that in $\u03b7$CDM the Hubble-tension is solved, and the cosmic coincidence problem is relieved without invoking the anthropic principle.",
+      "abstract": "[abridged] We propose a model of the Universe (dubbed $η$CDM) featuring a stochastic evolution of the cosmological quantities, that is meant to render small deviations from homogeneity/isotropy on scales of $30-50\\, h^{-1}$ Mpc at late cosmic times, associated to the emergence of the cosmic web. Specifically, we prescribe that the behavior of the matter/radiation energy densities in different patches of the Universe with such a size can be effectively described by a stochastic version of the mass-energy evolution equation. The latter includes an appropriate noise term that statistically accounts for local fluctuations due to inhomogeneities, anisotropic stresses and matter flows. The evolution of the different patches as a function of cosmic time is rendered via the diverse realizations of the noise term; meanwhile, at any given cosmic time, sampling the ensemble of patches will originate a nontrivial spatial distribution of the cosmological quantities. The overall behavior of the Universe will be obtained by averaging over the patch ensemble. We assume a physically reasonable parameterization of the noise term, gauging it against a wealth of cosmological datasets. We find that, with respect to standard $Λ$CDM, the ensemble-averaged cosmic dynamics in the $η$CDM model is substantially altered in three main respects: (i) an accelerated expansion is enforced at late cosmic times without the need for any additional exotic component (e.g., dark energy); (ii) the spatial curvature can stay small even in a low-density Universe; (iii) matter can acquire an effective negative pressure at late times. We provide predictions for the variance of the cosmological quantities among different patches of the Universe at late cosmic times. Finally, we show that in $η$CDM the Hubble-tension is solved, and the cosmic coincidence problem is relieved without invoking the anthropic principle.",
       "arxiv_url": "https://arxiv.org/abs/2310.06028",
       "pdf_url": "https://arxiv.org/pdf/2310.06028v2",
       "source": "rematch",
-      "gscholar_title": "Little Ado about Everything: \u03b7CDM, a Cosmological Model with Fluctuation-driven Acceleration at Late Times",
+      "gscholar_title": "Little Ado about Everything: ηCDM, a Cosmological Model with Fluctuation-driven Acceleration at Late Times",
       "match_method": "fuzzy_title (score=93.45794392523365)",
       "associated_original_paper": "Semi-empirical Models of Galaxy Formation and Evolution",
       "associated_first_authors": [
         "Andrea Lapi"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_28_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2009.07023",
@@ -699,7 +783,10 @@
       "associated_first_authors": [
         "Andrea Lapi"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_29_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2103.05279",
@@ -720,7 +807,10 @@
       "associated_first_authors": [
         "Andrea Lapi"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_30_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2502.12764",
@@ -742,10 +832,16 @@
       "associated_first_authors": [
         "Andrea Lapi"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_31_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
     }
   ],
   "count": 31,
   "dest_folder_id": null,
-  "generated_at": "2026-05-11T20:33:40.612855"
+  "generated_at": "2026-05-11T20:33:40.612855",
+  "figure_extraction_date": "2026-05-17T20:49:43.085150",
+  "keyword_detection_date": "2026-05-18T09:51:11.395385",
+  "keyword": "dark energy"
 }

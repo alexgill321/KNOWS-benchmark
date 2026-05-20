@@ -39,12 +39,11 @@ from utils import (
 sys.path.append(BASE_PATH)
 
 
-def extract_figure_1(arxiv_id: str, model=None) -> Tuple[bool, Optional[bytes], str]:
-    """Extract Figure 1 using 3-stage approach.
+def extract_figure_1(arxiv_id: str, model=None, use_latex: bool = True) -> Tuple[bool, Optional[bytes], str]:
+    """Extract Figure 1 from an arXiv paper.
 
     Stage 1: arXiv HTML (with LLM fallback)
-    Stage 2: LaTeX parsing (with LLM fallback)
-    Stage 3: VLM on images (if model provided)
+    Stage 2: LaTeX parsing (enabled by default, disable with use_latex=False)
     """
     # Stage 1: Try arXiv HTML
     print(f"    Stage 1: Trying arXiv HTML...")
@@ -54,37 +53,38 @@ def extract_figure_1(arxiv_id: str, model=None) -> Tuple[bool, Optional[bytes], 
 
     print(f"    Stage 1 failed: {msg}")
 
-    # Stage 2: Try LaTeX parsing
-    print(f"    Stage 2: Trying LaTeX source...")
-    with tempfile.TemporaryDirectory() as temp_dir:
-        dl_success, dl_msg, files = download_arxiv_source(arxiv_id, temp_dir)
+    # Stage 2: Try LaTeX parsing (disabled by default to avoid API pressure)
+    if use_latex:
+        print(f"    Stage 2: Trying LaTeX source...")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            dl_success, dl_msg, files = download_arxiv_source(arxiv_id, temp_dir)
 
-        if dl_success:
-            source_dir = os.path.join(temp_dir, arxiv_id.replace('/', '_'))
+            if dl_success:
+                source_dir = os.path.join(temp_dir, arxiv_id.replace('/', '_'))
 
-            # Stage 2a: Automatic LaTeX parsing
-            success, fig_path, msg = extract_figure_1_with_latex_parsing(source_dir)
-            if success and fig_path:
-                with open(fig_path, 'rb') as f:
-                    return True, f.read(), f"[LaTeX] {msg}"
-
-            print(f"    Stage 2a failed: {msg}")
-
-            # Stage 2b: LLM LaTeX parsing
-            if model:
-                success, fig_path, msg = extract_figure_1_with_llm(source_dir, model)
+                # Stage 2a: Automatic LaTeX parsing
+                success, fig_path, msg = extract_figure_1_with_latex_parsing(source_dir)
                 if success and fig_path:
                     with open(fig_path, 'rb') as f:
-                        return True, f.read(), f"[LaTeX+LLM] {msg}"
-                print(f"    Stage 2b failed: {msg}")
-        else:
-            print(f"    Could not download source: {dl_msg}")
+                        return True, f.read(), f"[LaTeX] {msg}"
+
+                print(f"    Stage 2a failed: {msg}")
+
+                # Stage 2b: LLM LaTeX parsing
+                if model:
+                    success, fig_path, msg = extract_figure_1_with_llm(source_dir, model)
+                    if success and fig_path:
+                        with open(fig_path, 'rb') as f:
+                            return True, f.read(), f"[LaTeX+LLM] {msg}"
+                    print(f"    Stage 2b failed: {msg}")
+            else:
+                print(f"    Could not download source: {dl_msg}")
 
     # All stages failed
     return False, None, "All extraction stages failed"
 
 
-def process_papers(papers: List[Dict], prefix: str, instance: int, model=None, skip_existing: bool = False) -> Tuple[List[Dict], int, int]:
+def process_papers(papers: List[Dict], prefix: str, instance: int, model=None, skip_existing: bool = False, use_latex: bool = False) -> Tuple[List[Dict], int, int]:
     """Process a list of papers and extract Figure 1 for each."""
     figures_dir = get_figures_dir(instance)
     found_count = 0
@@ -101,14 +101,24 @@ def process_papers(papers: List[Dict], prefix: str, instance: int, model=None, s
             not_found_count += 1
             continue
 
-        if skip_existing and paper.get('figure_1_path'):
-            skipped_count += 1
-            found_count += 1
-            continue
+        if skip_existing:
+            # Check if figure already exists on disk (by JSON path or expected filename)
+            expected_filename = f"{prefix}_{i+1}_fig1.png"
+            fig_path = None
+            if paper.get('figure_1_path'):
+                fig_path = os.path.join(figures_dir, os.path.basename(paper['figure_1_path']))
+            if not fig_path or not os.path.exists(fig_path):
+                fig_path = os.path.join(figures_dir, expected_filename)
+            if os.path.exists(fig_path):
+                # Restore the path in the JSON if it was cleared
+                paper['figure_1_path'] = f"data/gold_figures/{os.path.basename(fig_path)}"
+                skipped_count += 1
+                found_count += 1
+                continue
 
         print(f"  [{i+1}/{len(papers)}] {title}...")
 
-        success, img_bytes, msg = extract_figure_1(arxiv_id, model=model)
+        success, img_bytes, msg = extract_figure_1(arxiv_id, model=model, use_latex=use_latex)
 
         if success and img_bytes:
             ext = '.png'
@@ -128,7 +138,7 @@ def process_papers(papers: List[Dict], prefix: str, instance: int, model=None, s
             not_found_count += 1
 
         # Additional cooldown between papers (on top of per-request rate limiting in utils.py)
-        time.sleep(1)
+        time.sleep(5)
 
     if skipped_count:
         print(f"  Skipped {skipped_count} papers with existing figures")
@@ -150,6 +160,8 @@ def main():
                         help="Only process new papers (gold_new_papers.json)")
     parser.add_argument('--skip-existing', action='store_true',
                         help="Skip papers that already have figure_1_path set")
+    parser.add_argument('--skip-latex', action='store_true',
+                        help="Disable LaTeX source fallback (enabled by default)")
     args = parser.parse_args()
 
     instance = args.instance
@@ -185,7 +197,7 @@ def main():
             print(f"\n=== Processing {len(gold_papers['papers'])} Original Papers ===")
             papers, found, not_found = process_papers(
                 gold_papers['papers'], 'original', instance, model=model,
-                skip_existing=args.skip_existing
+                skip_existing=args.skip_existing, use_latex=not args.skip_latex
             )
             gold_papers['papers'] = papers
             gold_papers['figure_extraction_date'] = datetime.now().isoformat()
@@ -204,7 +216,7 @@ def main():
             print(f"\n=== Processing {len(gold_new_papers['papers'])} New Papers ===")
             papers, found, not_found = process_papers(
                 gold_new_papers['papers'], 'new', instance, model=model,
-                skip_existing=args.skip_existing
+                skip_existing=args.skip_existing, use_latex=not args.skip_latex
             )
             gold_new_papers['papers'] = papers
             gold_new_papers['figure_extraction_date'] = datetime.now().isoformat()

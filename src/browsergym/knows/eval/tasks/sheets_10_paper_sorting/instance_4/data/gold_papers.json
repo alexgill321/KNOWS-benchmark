@@ -25,7 +25,10 @@
         "siyuan li",
         "zedong wang"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_1_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\n**Reasoning:**\nWhile the exact phrase \"deep learning\" is not explicitly present in the text, the entire section discusses advanced models and techniques that are central to and define the field of deep learning. Specifically:\n\n1.  **Language Models:** The discussion revolves heavily around \"pre-trained language models,\" \"BERT architecture,\" and \"Transformer-based genome language models\" (e.g., DNABERT, Nucleotide Transformer, DNABERT-2). BERT and Transformer models are foundational architectures in deep learning, particularly for natural language processing and, in this case, genomics.\n2.  **Vector Quantization (VQ) and Variants:** The text extensively describes VQ-VAE, VQGAN, and other related models (MaskGIT, MAGE, LQAE). VQ-VAE and VQGAN are well-known deep learning frameworks used for generative modeling and representation learning, often involving neural networks. GPT-2, mentioned as a generator within VQGAN, is also a prominent deep learning model.\n3.  **Core Concepts:** Terms like \"latent space,\" \"attention maps,\" \"fine-tuning,\" \"pre-training,\" and \"tokenization\" are discussed in the context of these models, all of which are common and integral concepts within deep learning methodologies.\n\nTherefore, the paper provides actual and extensive discussions of techniques and models that *are* deep learning, making it a meaningful mention of the concept, even if the explicit phrase is omitted.",
+      "keyword_evaluated": true
     },
     {
       "title": "SpaDiT: Diffusion Transformer for Spatial Gene Expression Prediction using scRNA-seq",
@@ -45,7 +48,10 @@
       "gold_labels_first_authors_normalized": [
         "xiaoyu li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_2_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "title": "A Review of Graph Neural Networks in Epidemic Modeling",
@@ -69,7 +75,10 @@
         "zewen liu",
         "guancheng wan"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_3_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "title": "PerturBench - Benchmarking ML for Cellular Perturbation",
@@ -79,15 +88,18 @@
       "first_author": "Yan Wu",
       "first_author_normalized": "yan wu",
       "abstract": "",
-      "arxiv_id": null,
-      "arxiv_url": null,
+      "arxiv_id": "2408.10609",
+      "arxiv_url": "https://arxiv.org/abs/2408.10609",
       "gold_labels_first_authors": [
         "Yan Wu"
       ],
       "gold_labels_first_authors_normalized": [
         "yan wu"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "No arXiv ID",
+      "keyword_evaluated": false
     },
     {
       "title": "SGNet: Folding Symmetrical Protein Complex with Deep Learning",
@@ -107,10 +119,16 @@
       "gold_labels_first_authors_normalized": [
         "zhaoqun li"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/original_5_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\nThe text contains a meaningful mention of \"deep learning.\" It explicitly states that \"RFdiffusion[27] introduces a deep-learning framework for designing proteins,\" and then elaborates on its capabilities and limitations within that context. This is a direct discussion of deep learning as a technique used in protein design.",
+      "keyword_evaluated": true
     }
   ],
   "count": 5,
   "source_folder_id": "1NIx27u2aOywiZRzBNaeucR4x7yWNf8YB",
-  "generated_at": "2026-05-03T14:17:17.000253"
+  "generated_at": "2026-05-03T14:17:17.000253",
+  "figure_extraction_date": "2026-05-19T14:27:35.782781",
+  "keyword_detection_date": "2026-05-19T15:57:57.677126",
+  "keyword": "deep learning"
 }

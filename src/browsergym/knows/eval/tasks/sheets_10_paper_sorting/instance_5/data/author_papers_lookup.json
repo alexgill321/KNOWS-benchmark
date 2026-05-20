@@ -102,7 +102,7 @@
       "gscholar_urls": [
         "https://scholar.google.com/citations?user=SAsgCP0AAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 39,
+      "new_papers_count": 63,
       "new_paper_arxiv_ids": [
         "2111.09885",
         "2106.14077",
@@ -142,7 +142,31 @@
         "2512.08513",
         "2510.23534",
         "2506.00436",
-        "2412.20173"
+        "2412.20173",
+        "2006.06979",
+        "2002.11642",
+        "2002.05308",
+        "1809.05710",
+        "2010.12905",
+        "2101.07481",
+        "2009.13092",
+        "2010.13554",
+        "2010.12470",
+        "2006.06982",
+        "2105.04769",
+        "2604.06116",
+        "2603.04276",
+        "2602.23672",
+        "2102.08975",
+        "2010.01404",
+        "2605.06386",
+        "2510.26783",
+        "2411.11748",
+        "2405.19317",
+        "2403.03240",
+        "2201.04469",
+        "2010.03792",
+        "1909.03348"
       ],
       "new_paper_titles": [
         "Rate-optimal Bayesian Simple Regret in Best Arm Identification",
@@ -183,7 +207,31 @@
         "Minimax and Bayes Optimal Adaptive Experimental Design for Treatment Choice",
         "Direct Debiased Machine Learning via Bregman Divergence Minimization",
         "Learning from Double Positive and Unlabeled Data for Potential-Customer Identification",
-        "Debiased Nonparametric Regression for Statistical Inference and Distributionally Robustness"
+        "Debiased Nonparametric Regression for Statistical Inference and Distributionally Robustness",
+        "Non-Negative Bregman Divergence Minimization for Deep Direct Density Ratio Estimation",
+        "Off-Policy Evaluation and Learning for External Validity under a Covariate Shift",
+        "Efficient Adaptive Experimental Design for Average Treatment Effect Estimation",
+        "Alternate Estimation of a Classifier and the Class-Prior from Positive and Unlabeled Data",
+        "ATRO: Adversarial Training with a Rejection Option",
+        "Density-Ratio Based Personalised Ranking from Implicit Feedback",
+        "Learning Classifiers under Delayed Feedback with a Time Window Assumption",
+        "Off-Policy Evaluation of Bandit Algorithm from Dependent Samples under Batch Update Policy",
+        "A Practical Guide of Off-Policy Evaluation for Bandit Problems",
+        "Confidence Interval for Off-Policy Evaluation from Dependent Samples via Bandit Algorithm: Approach from Standardized Martingales",
+        "Scalable Personalised Item Ranking through Parametric Density Estimation",
+        "Sequential Audit Sampling with Statistical Guarantees",
+        "Causality Elicitation from Large Language Models",
+        "General Bayesian Policy Learning",
+        "Adaptive Doubly Robust Estimator from Non-stationary Logging Policy under a Convergence of Average Probability",
+        "Mean-Variance Efficient Reinforcement Learning with Applications to Dynamic Financial Investment",
+        "Covariate Balancing and Riesz Regression Should Be Guided by the Neyman Orthogonal Score in Debiased Machine Learning",
+        "A Unified Theory for Causal Inference: Direct Debiased Machine Learning via Bregman-Riesz Regression",
+        "Debiased Regression for Root-N-Consistent Conditional Mean Estimation",
+        "Generalized Neyman Allocation for Locally Minimax Optimal Best-Arm Identification",
+        "Triple/Debiased Lasso for Statistical Inference of Conditional Average Treatment Effects",
+        "Optimal Best Arm Identification in Two-Armed Bandits with a Fixed Budget under a Small Gap",
+        "The Adaptive Doubly Robust Estimator for Policy Evaluation in Adaptive Experiments and a Paradox Concerning Logging Policy",
+        "Identifying Different Definitions of Future in the Assessment of Future Economic Conditions: Application of PU Learning and Text Mining"
       ],
       "expected_new_papers": 3
     },
@@ -199,7 +247,7 @@
       "gscholar_urls": [
         "https://scholar.google.com/citations?user=FRRxYk8AAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 15,
+      "new_papers_count": 17,
       "new_paper_arxiv_ids": [
         "2503.16645",
         "2507.00173",
@@ -215,7 +263,9 @@
         "2603.02010",
         "2409.02116",
         "2602.09595",
-        "2512.24696"
+        "2512.24696",
+        "2410.16577",
+        "2406.13938"
       ],
       "new_paper_titles": [
         "Ensemble Survival Analysis for Preclinical Cognitive Decline Prediction in Alzheimer's Disease Using Longitudinal Biomarkers",
@@ -232,7 +282,9 @@
         "Noise-Calibrated Inference from Differentially Private Sufficient Statistics in Exponential Families",
         "Discovering Candidate Genes Regulated by GWAS Signals in Cis and Trans",
         "Sharp Bounds for Treatment Effect Generalization under Outcome Distribution Shift",
-        "Causal Discovery with Mixed Latent Confounding via Precision Decomposition"
+        "Causal Discovery with Mixed Latent Confounding via Precision Decomposition",
+        "Bayesian High-dimensional Linear Regression with Sparse Projection-posterior",
+        "Coverage of Credible Sets for Regression under Variable Selection"
       ],
       "expected_new_papers": 3
     },
@@ -248,7 +300,7 @@
       "gscholar_urls": [
         "https://scholar.google.com/citations?user=9rOAlq4AAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 10,
+      "new_papers_count": 11,
       "new_paper_arxiv_ids": [
         "1710.02926",
         "1706.01778",
@@ -259,7 +311,8 @@
         "2504.01702",
         "2510.22828",
         "2601.03099",
-        "2511.03236"
+        "2511.03236",
+        "1803.00609"
       ],
       "new_paper_titles": [
         "When Should You Adjust Standard Errors for Clustering?",
@@ -271,11 +324,12 @@
         "A Causal Inference Framework for Data Rich Environments",
         "Efficiently Learning Synthetic Control Models for High-dimensional Disaggregated Data",
         "Time-Aware Synthetic Control",
-        "Unbiased Regression-Adjusted Estimation of Average Treatment Effects in Randomized Controlled Trials"
+        "Unbiased Regression-Adjusted Estimation of Average Treatment Effects in Randomized Controlled Trials",
+        "On Statistical Non-Significance"
       ],
       "expected_new_papers": 3
     }
   ],
   "count": 5,
-  "generated_at": "2026-05-03T14:18:45.078236"
+  "generated_at": "2026-05-19T16:54:39.354064"
 }

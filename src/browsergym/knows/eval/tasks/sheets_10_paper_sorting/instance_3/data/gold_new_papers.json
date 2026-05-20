@@ -20,7 +20,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_1_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1802.01641",
@@ -42,7 +45,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_2_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1711.03078",
@@ -65,7 +71,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_3_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1912.02753",
@@ -87,7 +96,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_4_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1706.05291",
@@ -109,7 +121,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_5_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2004.10571",
@@ -130,7 +145,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2307.12904",
@@ -151,7 +169,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_7_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2110.02742",
@@ -173,7 +194,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text does not contain any mentions of \"Monte Carlo\". It focuses on the mathematical setup for European option pricing, the Black-Scholes model, implied volatility, and the SVI parameterization, without discussing any numerical methods like Monte Carlo simulation.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1708.01121",
@@ -195,7 +219,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2304.03042",
@@ -217,7 +244,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1908.03007",
@@ -238,7 +268,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_11_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1808.03548",
@@ -259,7 +292,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_12_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2112.14310",
@@ -281,7 +317,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2305.01035",
@@ -302,7 +341,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_14_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1803.04483",
@@ -323,7 +365,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_15_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1701.01327",
@@ -344,7 +389,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_16_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1906.02551",
@@ -365,7 +413,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_17_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1610.05636",
@@ -387,7 +438,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2406.11520",
@@ -409,7 +463,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_19_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\nThe provided text does not contain any mentions of \"Monte Carlo\" as a concept or technique. It focuses on European options, the Black-Scholes model, implied volatility, and arbitrage conditions.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2311.08533",
@@ -431,7 +488,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_20_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1603.06389",
@@ -454,7 +514,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_21_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2104.04233",
@@ -476,7 +539,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_22_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2307.12695",
@@ -500,7 +566,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_23_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2107.00066",
@@ -522,7 +591,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_24_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1710.11232",
@@ -544,7 +616,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_25_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2204.05270",
@@ -566,7 +641,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2412.21192",
@@ -589,7 +667,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_27_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2312.14975",
@@ -611,7 +692,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_28_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2310.05750",
@@ -632,7 +716,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_29_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2101.08145",
@@ -653,7 +740,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\nThe provided text does not contain any mentions of \"Monte Carlo\" as a concept or technique. The text focuses on the mathematical framework for option pricing, implied volatility, and specific theorems like Lee's Moment Formula.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1909.10272",
@@ -675,7 +765,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2001.05248",
@@ -697,7 +790,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_32_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2501.03938",
@@ -719,7 +815,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_33_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No section headers found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2411.19317",
@@ -742,7 +841,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text only lists names of academic search engines (NASA ADS, Google Scholar, Semantic Scholar). It does not contain any discussion, mention, or even incidental reference to \"Monte Carlo\" as a concept or technique.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2508.05103",
@@ -766,7 +868,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_35_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No section headers found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2307.14218",
@@ -787,7 +892,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_36_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2403.11897",
@@ -809,7 +917,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_37_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2111.12658",
@@ -832,7 +943,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_38_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2111.00348",
@@ -854,7 +968,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_39_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2311.06621",
@@ -877,7 +994,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1806.03543",
@@ -899,7 +1019,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1912.05917",
@@ -920,7 +1043,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No section headers found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2604.02064",
@@ -942,7 +1068,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_43_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text does not contain any mentions of \"Monte Carlo,\" meaningful or otherwise.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2512.11462",
@@ -964,7 +1093,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses stochastic models, discrete quantum trajectories, probabilities, random variables, and Markov chains, which all involve inherent randomness. However, it approaches these concepts from a theoretical and formal probabilistic framework. There is no mention of \"Monte Carlo\" as a simulation technique, a numerical method, or any related computational approach for estimating quantities or sampling from distributions. The discussion is entirely focused on the mathematical and physical description of quantum systems and their evolution under measurement.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2512.03243",
@@ -988,7 +1120,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_45_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text does not contain any meaningful mentions of \"Monte Carlo.\" The phrase \"Monte Carlo\" does not appear anywhere in the Related Work section.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2505.08623",
@@ -1010,7 +1145,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_46_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1708.05352",
@@ -1031,7 +1169,10 @@
       "associated_first_authors": [
         "Antoine Jacquier"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_47_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "0507536",
@@ -1052,7 +1193,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] Could not download source: Failed to download: 404 Client Error: Not Found for url: https://export.arxiv.org/e-print/0507536",
+      "keyword_evaluated": false
     },
     {
       "arxiv_id": "2011.10300",
@@ -1074,7 +1218,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_49_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided \"Related Work\" section does not contain any mention of \"Monte Carlo\" as a concept, technique, or otherwise. The text focuses on policy gradient methods, LQR problems, noisy dynamics, optimal liquidation, and reinforcement learning, but \"Monte Carlo\" is not discussed or referenced.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "0810.2467",
@@ -1095,7 +1242,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1801.07703",
@@ -1117,7 +1267,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_51_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1801.10088",
@@ -1138,7 +1291,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_52_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The text does not contain any mention of \"Monte Carlo\" as a concept, technique, or even in passing.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1211.0707",
@@ -1160,7 +1316,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_53_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1310.4054",
@@ -1182,7 +1341,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_54_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No section headers found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2107.13090",
@@ -1204,7 +1366,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_55_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"Monte Carlo\" does not appear anywhere in the provided \"Related Work\" section. The text discusses policy gradient methods, Nash equilibria, stochastic dynamics, system noise, and exploration, but makes no mention of Monte Carlo methods or simulations.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "0604189",
@@ -1225,7 +1390,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] Could not download source: Failed to download: 429 Client Error: Too Many Requests for url: https://export.arxiv.org/e-print/0604189",
+      "keyword_evaluated": false
     },
     {
       "arxiv_id": "1605.00669",
@@ -1246,7 +1414,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_57_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1111.0108",
@@ -1268,7 +1439,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1411.3618",
@@ -1290,7 +1464,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_59_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1808.07107",
@@ -1312,7 +1489,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_60_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1701.05640",
@@ -1333,7 +1513,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1112.4351",
@@ -1355,7 +1538,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_62_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1006.1570",
@@ -1376,7 +1562,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1805.10166",
@@ -1397,7 +1586,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_64_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\n**Reasoning:** The provided \"Related Work\" section discusses various types of SPDEs, boundary conditions, existence and uniqueness proofs, penalization methods, and moving boundary problems. However, it does not contain any mention of \"Monte Carlo\" as a concept, technique, or even in passing.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1806.04739",
@@ -1418,7 +1610,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_65_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1811.08808",
@@ -1439,7 +1634,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1810.04380",
@@ -1460,7 +1658,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_67_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1609.08960",
@@ -1481,7 +1682,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "0809.1365",
@@ -1502,7 +1706,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe text discusses \"random walks\" as a way to describe and characterize tree structures, and mentions \"Brownian snake\" in the context of continuous trees. While random walks and stochastic processes are often simulated using Monte Carlo methods, the text itself does not mention or discuss \"Monte Carlo\" as a concept, technique, or method. The mention of \"random walk\" is descriptive of the tree's structure and enumeration, not an application of Monte Carlo simulation.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2310.15854",
@@ -1523,7 +1730,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_70_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\nThe provided \"Related Work\" section does not contain any mentions of \"Monte Carlo\" as a concept or technique.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1711.09506",
@@ -1545,7 +1755,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1709.00916",
@@ -1566,7 +1779,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2203.10787",
@@ -1587,7 +1803,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "0607345",
@@ -1608,7 +1827,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] Could not download source: Failed to download: 404 Client Error: Not Found for url: https://export.arxiv.org/e-print/0607345",
+      "keyword_evaluated": false
     },
     {
       "arxiv_id": "2406.16512",
@@ -1629,7 +1851,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_75_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided Related Work section does not contain any mentions of \"Monte Carlo\" as a concept or technique. The text discusses Fokker–Planck equations, SDEs, BSPDEs, MFGs, MFC, and various control problems, but \"Monte Carlo\" methods are not referenced.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2002.03697",
@@ -1650,7 +1875,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_76_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1905.04397",
@@ -1671,7 +1899,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1503.06028",
@@ -1693,7 +1924,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_78_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2503.08837",
@@ -1715,7 +1949,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_79_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\nThe provided text does not contain any mentions of \"Monte Carlo\", neither incidental nor meaningful. The analysis focuses on McKean–Vlasov SDEs, supercooled Stefan problems, and Semimartingale reflected Brownian motion.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2307.10800",
@@ -1739,7 +1976,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_80_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2307.15842",
@@ -1761,7 +2001,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_81_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1612.02342",
@@ -1782,7 +2025,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_82_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2106.11165",
@@ -1804,7 +2050,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1611.04874",
@@ -1825,7 +2074,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1103.4947",
@@ -1849,7 +2101,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_85_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2312.13468",
@@ -1870,7 +2125,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nI have carefully scanned the provided \"Related Work\" section for any mention of \"Monte Carlo\". The term \"Monte Carlo\" does not appear anywhere in the text. Therefore, there are no meaningful mentions (or any mentions at all) of the concept or technique.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1906.05898",
@@ -1891,7 +2149,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2210.09740",
@@ -1913,7 +2174,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_88_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided text does not contain any mentions of \"Monte Carlo,\" either meaningful or incidental. The discussion focuses on SPDEs, noise terms, boundary conditions, and techniques like Malliavin calculus and semigroup approaches, but \"Monte Carlo\" is not present.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2509.20657",
@@ -1935,7 +2199,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_89_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2507.16703",
@@ -1957,7 +2224,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_90_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text was thoroughly scanned for the term \"Monte Carlo\". The term does not appear anywhere in the text, meaning there are no mentions, meaningful or otherwise, of \"Monte Carlo\" as a concept or technique.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2411.05924",
@@ -1979,7 +2249,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1211.2895",
@@ -2001,7 +2274,10 @@
       "associated_first_authors": [
         "Ben Hambly"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_92_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1901.07450",
@@ -2024,7 +2300,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_93_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe text does not contain any meaningful mentions of \"Monte Carlo.\" The phrase \"Monte Carlo\" does not appear, nor is there any discussion or description of simulation-based methods, random sampling techniques (beyond a very generic \"sample-based estimator\" which is not specific to Monte Carlo), or related computational approaches that would clearly indicate a reference to Monte Carlo methods. The focus is on theoretical concepts related to adapted Wasserstein distances, topological properties, and stability in mathematical finance.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1905.00368",
@@ -2047,7 +2326,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe term \"Monte Carlo\" does not appear anywhere in the provided \"Related Work\" section, therefore there are no meaningful or incidental mentions of it.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2002.07261",
@@ -2070,7 +2352,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_95_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No section headers found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1706.10186",
@@ -2092,7 +2377,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_96_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2006.12022",
@@ -2115,7 +2403,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_97_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided \"Related Work\" section does not contain any mention of \"Monte Carlo,\" either as a concept, technique, or even in passing. The text discusses various distance metrics (Wasserstein, relative entropy, Hellinger), model uncertainty, sensitivity analysis, and comparisons to other related work (e.g., Lam, Hansen and Sargent, Lindsay), but \"Monte Carlo\" is not mentioned at all.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2104.14245",
@@ -2137,7 +2428,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_98_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe term \"Monte Carlo\" is not present anywhere in the provided \"Related Work\" text. Therefore, there are no meaningful, or even incidental, mentions of the concept.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1610.00999",
@@ -2157,7 +2451,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2208.05656",
@@ -2178,7 +2475,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1712.07699",
@@ -2200,7 +2500,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1705.02933",
@@ -2223,7 +2526,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1711.02764",
@@ -2245,7 +2551,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1612.09103",
@@ -2265,7 +2574,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2007.08376",
@@ -2287,7 +2599,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1509.08988",
@@ -2310,7 +2625,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1709.00641",
@@ -2334,7 +2652,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_107_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2209.07058",
@@ -2355,7 +2676,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2007.08815",
@@ -2377,7 +2701,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2101.07794",
@@ -2398,7 +2725,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided \"Related Work\" section does not contain the phrase \"Monte Carlo\" or any discussion of Monte Carlo methods, simulations, or related concepts. The text focuses on stochastic optimization, sample average approximation, asymptotic and non-asymptotic analysis, and related problems in mathematical finance.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2311.11248",
@@ -2420,7 +2750,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2106.15173",
@@ -2441,7 +2774,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_112_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1805.09652",
@@ -2463,7 +2799,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_113_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2308.04757",
@@ -2484,7 +2823,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1910.00504",
@@ -2505,7 +2847,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"Monte Carlo\" does not appear anywhere in the provided text. Therefore, there are no meaningful (or incidental) mentions of the concept.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2003.10479",
@@ -2526,7 +2871,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_116_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe provided Related Work section does not contain any mentions of \"Monte Carlo,\" either as a concept, technique, or even in passing. The text discusses other estimation methods like large deviations, central limit theorems, and sample average approximation for risk measures and stochastic optimization problems.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2403.11910",
@@ -2548,7 +2896,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_117_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2502.15116",
@@ -2569,7 +2920,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1702.02490",
@@ -2590,7 +2944,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2312.06442",
@@ -2611,7 +2968,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\nThe provided text does not contain any mention of \"Monte Carlo\" or related terms. The discussion revolves around concentration inequalities, complexity measures (like Talagrand's gamma-functionals), random vectors, and probability estimates, without referencing Monte Carlo methods.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2501.14135",
@@ -2635,7 +2995,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_121_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe term \"Monte Carlo\" does not appear anywhere in the provided \"Related Work\" text. While the text mentions \"efficient numerical methods\" in one instance, it does not specify or discuss Monte Carlo methods. Therefore, there are no meaningful mentions of \"Monte Carlo\" as a concept or technique.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2309.02013",
@@ -2656,7 +3019,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_122_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2602.00623",
@@ -2680,7 +3046,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe text does not contain any mention of \"Monte Carlo,\" either as a concept, technique, or even an incidental reference. The discussion focuses on adapted optimal transport, Wasserstein distances, stochastic processes, and related mathematical concepts.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2502.15118",
@@ -2701,7 +3070,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2309.12069",
@@ -2722,7 +3094,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2405.00357",
@@ -2743,7 +3118,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_126_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided \"Related Work\" section does not contain any mention of \"Monte Carlo,\" either as a concept, technique, or even in an incidental way. The text discusses topics such as median-of-means estimators, expected shortfall estimation, resampling methods (bootstrapping), and adversarial robustness, but \"Monte Carlo\" is not present.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2509.13606",
@@ -2766,7 +3144,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2603.17291",
@@ -2787,7 +3168,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2510.09270",
@@ -2808,7 +3192,10 @@
       "associated_first_authors": [
         "Daniel Bartl"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_129_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided \"Related Work\" section does not contain any mention of \"Monte Carlo\", either as a concept, technique, or even in passing.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2005.14057",
@@ -2830,7 +3217,10 @@
       "associated_first_authors": [
         "Eric Ghysels"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_130_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1907.03370",
@@ -2853,7 +3243,10 @@
       "associated_first_authors": [
         "Eric Ghysels"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_131_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "1912.06307",
@@ -2875,7 +3268,10 @@
       "associated_first_authors": [
         "Eric Ghysels"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2008.03600",
@@ -2898,7 +3294,10 @@
       "associated_first_authors": [
         "Eric Ghysels"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_133_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2307.02673",
@@ -2921,7 +3320,10 @@
       "associated_first_authors": [
         "Eric Ghysels"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_134_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2308.10993",
@@ -2943,7 +3345,10 @@
       "associated_first_authors": [
         "Eric Ghysels"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_135_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2010.08463",
@@ -2966,7 +3371,10 @@
       "associated_first_authors": [
         "Eric Ghysels"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_136_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"Monte Carlo\" does not appear anywhere in the provided text. While the text mentions \"sampling\" techniques (specifically \"importance or rejection sampling\") which are often part of Monte Carlo methods, it does not explicitly discuss or mention \"Monte Carlo\" itself. The prompt specifically asks for actual discussions of \"Monte Carlo\" as a concept or technique, which is not present.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2404.10103",
@@ -2988,7 +3396,10 @@
       "associated_first_authors": [
         "Eric Ghysels"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_137_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\nThe provided text discusses the HHL algorithm, quantum linear system problems, quantum phase estimation, eigenvalue inversion, and Hamiltonian simulation, but it does not contain any mention of \"Monte Carlo\" as a concept or technique.",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2405.01479",
@@ -3009,7 +3420,10 @@
       "associated_first_authors": [
         "Eric Ghysels"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_138_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2212.12981",
@@ -3031,7 +3445,10 @@
       "associated_first_authors": [
         "Eric Ghysels"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_139_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2311.00825",
@@ -3053,7 +3470,10 @@
       "associated_first_authors": [
         "Eric Ghysels"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_140_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2507.21337",
@@ -3075,7 +3495,10 @@
       "associated_first_authors": [
         "Eric Ghysels"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_141_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2509.24780",
@@ -3098,7 +3521,10 @@
       "associated_first_authors": [
         "Eric Ghysels"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_142_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2508.16784",
@@ -3120,7 +3546,10 @@
       "associated_first_authors": [
         "Eric Ghysels"
       ],
-      "figure_1_path": null
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No section headers found",
+      "keyword_evaluated": true
     },
     {
       "arxiv_id": "2511.09793",
@@ -3141,10 +3570,579 @@
       "associated_first_authors": [
         "Eric Ghysels"
       ],
-      "figure_1_path": null
+      "figure_1_path": "data/gold_figures/new_144_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1204.0646",
+      "title": "Arbitrage-free SVI volatility surfaces",
+      "authors": [
+        "Jim Gatheral",
+        "Antoine Jacquier"
+      ],
+      "first_author": "Jim Gatheral",
+      "first_author_normalized": "jim gatheral",
+      "abstract": "In this article, we show how to calibrate the widely-used SVI parameterization of the implied volatility surface in such a way as to guarantee the absence of static arbitrage. In particular, we exhibit a large class of arbitrage-free SVI volatility surfaces with a simple closed-form representation. We demonstrate the high quality of typical SVI fits with a numerical example using recent SPX options data.",
+      "arxiv_url": "https://arxiv.org/abs/1204.0646",
+      "pdf_url": "https://arxiv.org/pdf/1204.0646v4",
+      "source": "rematch",
+      "gscholar_title": "Arbitrage-free SVI volatility surfaces",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_145_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1002.3633",
+      "title": "Convergence of Heston to SVI",
+      "authors": [
+        "Jim Gatheral",
+        "Antoine Jacquier"
+      ],
+      "first_author": "Jim Gatheral",
+      "first_author_normalized": "jim gatheral",
+      "abstract": "In this short note, we prove by an appropriate change of variables that the SVI implied volatility parameterization presented in Gatheral's book and the large-time asymptotic of the Heston implied volatility agree algebraically, thus confirming a conjecture from Gatheral as well as providing a simpler expression for the asymptotic implied volatility in the Heston model. We show how this result can help in interpreting SVI parameters.",
+      "arxiv_url": "https://arxiv.org/abs/1002.3633",
+      "pdf_url": "https://arxiv.org/pdf/1002.3633v1",
+      "source": "rematch",
+      "gscholar_title": "Convergence of Heston to SVI",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1411.7653",
+      "title": "Asymptotic behaviour of the fractional Heston model",
+      "authors": [
+        "Hamza Guennoun",
+        "Antoine Jacquier",
+        "Patrick Roome",
+        "Fangwei Shi"
+      ],
+      "first_author": "Hamza Guennoun",
+      "first_author_normalized": "hamza guennoun",
+      "abstract": "We consider the fractional Heston model originally proposed by Comte, Coutin and Renault. Inspired by recent ground-breaking work on rough volatility, which showed that models with volatility driven by fractional Brownian motion with short memory allows for better calibration of the volatility surface and more robust estimation of time series of historical volatility, we provide a characterisation of the short- and long-maturity asymptotics of the implied volatility smile. Our analysis reveals that the short-memory property precisely provides a jump-type behaviour of the smile for short maturities, thereby fixing the well-known standard inability of classical stochastic volatility models to fit the short-end of the volatility smile.",
+      "arxiv_url": "https://arxiv.org/abs/1411.7653",
+      "pdf_url": "https://arxiv.org/pdf/1411.7653v2",
+      "source": "rematch",
+      "gscholar_title": "Asymptotic behavior of the fractional Heston model",
+      "match_method": "fuzzy_title (score=99.00990099009901)",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_147_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1405.3561",
+      "title": "An explicit Euler scheme with strong rate of convergence for financial SDEs with non-Lipschitz coefficients",
+      "authors": [
+        "Jean-Francois Chassagneux",
+        "Antoine Jacquier",
+        "Ivo Mihaylov"
+      ],
+      "first_author": "Jean-Francois Chassagneux",
+      "first_author_normalized": "jean-francois chassagneux",
+      "abstract": "We consider the approximation of stochastic differential equations (SDEs) with non-Lipschitz drift or diffusion coefficients. We present a modified explicit Euler-Maruyama discretisation scheme that allows us to prove strong convergence, with a rate. Under some regularity and integrability conditions, we obtain the optimal strong error rate. We apply this scheme to SDEs widely used in the mathematical finance literature, including the Cox-Ingersoll-Ross~(CIR), the 3/2 and the Ait-Sahalia models, as well as a family of mean-reverting processes with locally smooth coefficients. We numerically illustrate the strong convergence of the scheme and demonstrate its efficiency in a multilevel Monte Carlo setting.",
+      "arxiv_url": "https://arxiv.org/abs/1405.3561",
+      "pdf_url": "https://arxiv.org/pdf/1405.3561v4",
+      "source": "rematch",
+      "gscholar_title": "An explicit Euler scheme with strong rate of convergence for financial SDEs with non-Lipschitz coefficients",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_148_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1410.7206",
+      "title": "Large-Maturity Regimes of the Heston Forward Smile",
+      "authors": [
+        "Antoine Jacquier",
+        "Patrick Roome"
+      ],
+      "first_author": "Antoine Jacquier",
+      "first_author_normalized": "antoine jacquier",
+      "abstract": "We provide a full characterisation of the large-maturity forward implied volatility smile in the Heston model. Although the leading decay is provided by a fairly classical large deviations behaviour, the algebraic expansion providing the higher-order terms highly depends on the parameters, and different powers of the maturity come into play. As a by-product of the analysis we provide new implied volatility asymptotics, both in the forward case and in the spot case, as well as extended SVI-type formulae. The proofs are based on extensions and refinements of sharp large deviations theory, in particular in cases where standard convexity arguments fail.",
+      "arxiv_url": "https://arxiv.org/abs/1410.7206",
+      "pdf_url": "https://arxiv.org/pdf/1410.7206v2",
+      "source": "rematch",
+      "gscholar_title": "The large-maturity smile for the Heston model",
+      "match_method": "fuzzy_title (score=80.0)",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_149_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "0911.2992",
+      "title": "Asymptotic formulae for implied volatility in the Heston model",
+      "authors": [
+        "Martin Forde",
+        "Antoine Jacquier",
+        "Aleksandar Mijatovic"
+      ],
+      "first_author": "Martin Forde",
+      "first_author_normalized": "martin forde",
+      "abstract": "In this paper we prove an approximate formula expressed in terms of elementary functions for the implied volatility in the Heston model. The formula consists of the constant and first order terms in the large maturity expansion of the implied volatility function. The proof is based on saddlepoint methods and classical properties of holomorphic functions.",
+      "arxiv_url": "https://arxiv.org/abs/0911.2992",
+      "pdf_url": "https://arxiv.org/pdf/0911.2992v3",
+      "source": "rematch",
+      "gscholar_title": "Asymptotic formulae for implied volatility in the Heston model",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_150_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1210.7111",
+      "title": "Generalised arbitrage-free SVI volatility surfaces",
+      "authors": [
+        "Gaoyue Guo",
+        "Antoine Jacquier",
+        "Claude Martini",
+        "Leo Neufcourt"
+      ],
+      "first_author": "Gaoyue Guo",
+      "first_author_normalized": "gaoyue guo",
+      "abstract": "In this article we propose a generalisation of the recent work of Gatheral and Jacquier on explicit arbitrage-free parameterisations of implied volatility surfaces. We also discuss extensively the notion of arbitrage freeness and Roger Lee's moment formula using the recent analysis by Roper. We further exhibit an arbitrage-free volatility surface different from Gatheral's SVI parameterisation.",
+      "arxiv_url": "https://arxiv.org/abs/1210.7111",
+      "pdf_url": "https://arxiv.org/pdf/1210.7111v4",
+      "source": "rematch",
+      "gscholar_title": "Generalized arbitrage-free SVI volatility surfaces",
+      "match_method": "fuzzy_title (score=98.0)",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_151_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1108.3998",
+      "title": "Large deviations and stochastic volatility with jumps: asymptotic implied volatility for affine models",
+      "authors": [
+        "Antoine Jacquier",
+        "Martin Keller-Ressel",
+        "Aleksandar Mijatovic"
+      ],
+      "first_author": "Antoine Jacquier",
+      "first_author_normalized": "antoine jacquier",
+      "abstract": "Let $σ_t(x)$ denote the implied volatility at maturity $t$ for a strike $K=S_0 e^{xt}$, where $x\\in\\bbR$ and $S_0$ is the current value of the underlying. We show that $σ_t(x)$ has a uniform (in $x$) limit as maturity $t$ tends to infinity, given by the formula $σ_\\infty(x)=\\sqrt{2}(h^*(x)^{1/2}+(h^*(x)-x)^{1/2})$, for $x$ in some compact neighbourhood of zero in the class of affine stochastic volatility models. The function $h^*$ is the convex dual of the limiting cumulant generating function $h$ of the scaled log-spot process. We express $h$ in terms of the functional characteristics of the underlying model. The proof of the limiting formula rests on the large deviation behaviour of the scaled log-spot process as time tends to infinity. We apply our results to obtain the limiting smile for several classes of stochastic volatility models with jumps used in applications (e.g. Heston with state-independent jumps, Bates with state-dependent jumps and Barndorff-Nielsen-Shephard model).",
+      "arxiv_url": "https://arxiv.org/abs/1108.3998",
+      "pdf_url": "https://arxiv.org/pdf/1108.3998v1",
+      "source": "rematch",
+      "gscholar_title": "Large deviations and stochastic volatility with jumps: asymptotic implied volatility for affine models",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_152_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1212.0779",
+      "title": "Asymptotics of forward implied volatility",
+      "authors": [
+        "Antoine Jacquier",
+        "Patrick Roome"
+      ],
+      "first_author": "Antoine Jacquier",
+      "first_author_normalized": "antoine jacquier",
+      "abstract": "We prove here a general closed-form expansion formula for forward-start options and the forward implied volatility smile in a large class of models, including the Heston stochastic volatility and time-changed exponential Lévy models. This expansion applies to both small and large maturities and is based solely on the properties of the forward characteristic function of the underlying process. \nThe method is based on sharp large deviations techniques, and allows us to recover (in particular) many results for the spot implied volatility smile. In passing we (i) show that the forward-start date has to be rescaled in order to obtain non-trivial small-maturity asymptotics, (ii) prove that the forward-start date may influence the large-maturity behaviour of the forward smile, and (iii) provide some examples of models with finite quadratic variation where the small-maturity forward smile does not explode.",
+      "arxiv_url": "https://arxiv.org/abs/1212.0779",
+      "pdf_url": "https://arxiv.org/pdf/1212.0779v4",
+      "source": "rematch",
+      "gscholar_title": "Asymptotics of forward implied volatility",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_153_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1004.0125",
+      "title": "Variance dispersion and correlation swaps",
+      "authors": [
+        "Antoine Jacquier",
+        "Saad Slaoui"
+      ],
+      "first_author": "Antoine Jacquier",
+      "first_author_normalized": "antoine jacquier",
+      "abstract": "In the recent years, banks have sold structured products such as worst-of options, Everest and Himalayas, resulting in a short correlation exposure. They have hence become interested in offsetting part of this exposure, namely buying back correlation. Two ways have been proposed for such a strategy : either pure correlation swaps or dispersion trades, taking position in an index option and the opposite position in the components options. These dispersion trades have been set up using calls, puts, straddles, variance swaps as well as third generation volatility products. When considering a dispersion trade using variance swaps, one immediately sees that it gives a correlation exposure. Empirical analysis have showed that this implied correlation was not equal to the strike of a correlation swap with the same maturity. The purpose of this paper is to theoretically explain such a spread. In fact, we prove that the P&L of a dispersion trade is equal to the sum of the spread between implied and realised correlation - multiplied by an average variance of the components - and a volatility part. Furthermore, this volatility part is of second order, and, more precisely, is of volga order. Thus the observed correlation spread can be totally explained by the volga of the dispersion trade. This result is to be reviewed when considering different weighting schemes for the dispersion trade.",
+      "arxiv_url": "https://arxiv.org/abs/1004.0125",
+      "pdf_url": "https://arxiv.org/pdf/1004.0125v1",
+      "source": "rematch",
+      "gscholar_title": "Variance dispersion and correlation swaps",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_154_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1502.03254",
+      "title": "Mass at zero in the uncorrelated SABR model and implied volatility asymptotics",
+      "authors": [
+        "Archil Gulisashvili",
+        "Blanka Horvath",
+        "Antoine Jacquier"
+      ],
+      "first_author": "Archil Gulisashvili",
+      "first_author_normalized": "archil gulisashvili",
+      "abstract": "We study the mass at the origin in the uncorrelated SABR stochastic volatility model, and derive several tractable expressions, in particular when time becomes small or large. As an application--in fact the original motivation for this paper--we derive small-strike expansions for the implied volatility when the maturity becomes short or large. These formulae, by definition arbitrage free, allow us to quantify the impact of the mass at zero on existing implied volatility approximations, and in particular how correct/erroneous these approximations become.",
+      "arxiv_url": "https://arxiv.org/abs/1502.03254",
+      "pdf_url": "https://arxiv.org/pdf/1502.03254v2",
+      "source": "rematch",
+      "gscholar_title": "Mass at zero in the uncorrelated SABR model and implied volatility asymptotics",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1303.4268",
+      "title": "The Small-Maturity Heston Forward Smile",
+      "authors": [
+        "Antoine Jacquier",
+        "Patrick Roome"
+      ],
+      "first_author": "Antoine Jacquier",
+      "first_author_normalized": "antoine jacquier",
+      "abstract": "In this paper we investigate the asymptotics of forward-start options and the forward implied volatility smile in the Heston model as the maturity approaches zero. We prove that the forward smile for out-of-the-money options explodes and compute a closed-form high-order expansion detailing the rate of the explosion. Furthermore the result shows that the square-root behaviour of the variance process induces a singularity such that for certain parameter configurations one cannot obtain high-order out-of-the-money forward smile asymptotics. In the at-the-money case a separate model-independent analysis shows that the small-maturity limit is well defined for any Ito diffusion. The proofs rely on the theory of sharp large deviations (and refinements) and incidentally we provide an example of degenerate large deviations behaviour.",
+      "arxiv_url": "https://arxiv.org/abs/1303.4268",
+      "pdf_url": "https://arxiv.org/pdf/1303.4268v3",
+      "source": "rematch",
+      "gscholar_title": "The small-maturity Heston forward smile",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_156_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1207.0233",
+      "title": "From characteristic functions to implied volatility expansions",
+      "authors": [
+        "Antoine Jacquier",
+        "Matthew Lorig"
+      ],
+      "first_author": "Antoine Jacquier",
+      "first_author_normalized": "antoine jacquier",
+      "abstract": "For any strictly positive martingale $S = \\exp(X)$ for which $X$ has a characteristic function, we provide an expansion for the implied volatility. This expansion is explicit in the sense that it involves no integrals, but only polynomials in the log strike. We illustrate the versatility of our expansion by computing the approximate implied volatility smile in three well-known martingale models: one finite activity exponential Lévy model (Merton), one infinite activity exponential Lévy model (Variance Gamma), and one stochastic volatility model (Heston). Finally, we illustrate how our expansion can be used to perform a model-free calibration of the empirically observed implied volatility surface.",
+      "arxiv_url": "https://arxiv.org/abs/1207.0233",
+      "pdf_url": "https://arxiv.org/pdf/1207.0233v5",
+      "source": "rematch",
+      "gscholar_title": "From characteristic functions to implied volatility expansions",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_157_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1207.1630",
+      "title": "The Smile of certain Lévy-type Models",
+      "authors": [
+        "Antoine Jacquier",
+        "Matthew Lorig"
+      ],
+      "first_author": "Antoine Jacquier",
+      "first_author_normalized": "antoine jacquier",
+      "abstract": "We consider a class of assets whose risk-neutral pricing dynamics are described by an exponential Lévy-type process subject to default. The class of processes we consider features locally-dependent drift, diffusion and default-intensity as well as a locally-dependent Lévy measure. Using techniques from regular perturbation theory and Fourier analysis, we derive a series expansion for the price of a European-style option. We also provide precise conditions under which this series expansion converges to the exact price. Additionally, for a certain subclass of assets in our modeling framework, we derive an expansion for the implied volatility induced by our option pricing formula. The implied volatility expansion is exact within its radius of convergence. As an example of our framework, we propose a class of CEV-like Lévy-type models. Within this class, approximate option prices can be computed by a single Fourier integral and approximate implied volatilities are explicit (i.e., no integration is required). Furthermore, the class of CEV-like Lévy-type models is shown to provide a tight fit to the implied volatility surface of S{&}P500 index options.",
+      "arxiv_url": "https://arxiv.org/abs/1207.1630",
+      "pdf_url": "https://arxiv.org/pdf/1207.1630v5",
+      "source": "rematch",
+      "gscholar_title": "The smile of certain lévy-type models",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_158_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1310.1020",
+      "title": "Shapes of implied volatility with positive mass at zero",
+      "authors": [
+        "Stefano De Marco",
+        "Caroline Hillairet",
+        "Antoine Jacquier"
+      ],
+      "first_author": "Stefano De Marco",
+      "first_author_normalized": "stefano de marco",
+      "abstract": "We study the shapes of the implied volatility when the underlying distribution has an atom at zero and analyse the impact of a mass at zero on at-the-money implied volatility and the overall level of the smile. We further show that the behaviour at small strikes is uniquely determined by the mass of the atom up to high asymptotic order, under mild assumptions on the remaining distribution on the positive real line. We investigate the structural difference with the no-mass-at-zero case, showing how one can--theoretically--distinguish between mass at the origin and a heavy-left-tailed distribution. We numerically test our model-free results in stochastic models with absorption at the boundary, such as the CEV process, and in jump-to-default models. Note that while Lee's moment formula tells that implied variance is at most asymptotically linear in log-strike, other celebrated results for exact smile asymptotics such as Benaim and Friz (09) or Gulisashvili (10) do not apply in this setting--essentially due to the breakdown of Put-Call duality.",
+      "arxiv_url": "https://arxiv.org/abs/1310.1020",
+      "pdf_url": "https://arxiv.org/pdf/1310.1020v4",
+      "source": "rematch",
+      "gscholar_title": "Shapes of implied volatility with positive mass at zero",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_159_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1203.5020",
+      "title": "Large deviations for the extended Heston model: the large-time case",
+      "authors": [
+        "Antoine Jacquier",
+        "Aleksandar Mijatovic"
+      ],
+      "first_author": "Antoine Jacquier",
+      "first_author_normalized": "antoine jacquier",
+      "abstract": "We study here the large-time behaviour of all continuous affine stochastic volatility models (in the sense of Keller-Ressel) and deduce a closed-form formula for the large-maturity implied volatility smile. Based on refinements of the Gartner-Ellis theorem on the real line, our proof reveals pathological behaviours of the asymptotic smile. In particular, we show that the condition assumed in Gatheral and Jacquier under which the Heston implied volatility converges to the SVI parameterisation is necessary and sufficient.",
+      "arxiv_url": "https://arxiv.org/abs/1203.5020",
+      "pdf_url": "https://arxiv.org/pdf/1203.5020v1",
+      "source": "rematch",
+      "gscholar_title": "Large deviations for the extended Heston model: the large-time case",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_160_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1508.04351",
+      "title": "Implied volatility in strict local martingale models",
+      "authors": [
+        "Antoine Jacquier",
+        "Martin Keller-Ressel"
+      ],
+      "first_author": "Antoine Jacquier",
+      "first_author_normalized": "antoine jacquier",
+      "abstract": "We consider implied volatilities in asset pricing models, where the discounted underlying is a strict local martingale under the pricing measure. Our main result gives an asymptotic expansion of the right wing of the implied volatility smile and shows that the strict local martingale property can be determined from this expansion. This result complements the well-known asymptotic results of Lee and Benaim-Friz, which apply only to true martingales. This also shows that `price bubbles' in the sense of strict local martingale behaviour can in principle be detected by an analysis of implied volatility. Finally we relate our results to left-wing expansions of implied volatilities in models with mass at zero by a duality method based on an absolutely continuous measure change.",
+      "arxiv_url": "https://arxiv.org/abs/1508.04351",
+      "pdf_url": "https://arxiv.org/pdf/1508.04351v1",
+      "source": "rematch",
+      "gscholar_title": "Implied volatility in strict local martingale models",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_161_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1503.08082",
+      "title": "Black-Scholes in a CEV random environment",
+      "authors": [
+        "Antoine Jacquier",
+        "Patrick Roome"
+      ],
+      "first_author": "Antoine Jacquier",
+      "first_author_normalized": "antoine jacquier",
+      "abstract": "Classical (Itô diffusions) stochastic volatility models are not able to capture the steepness of small-maturity implied volatility smiles. Jumps, in particular exponential Lévy and affine models, which exhibit small-maturity exploding smiles, have historically been proposed to remedy this (see \\cite{Tank} for an overview), and more recently rough volatility models \\cite{AlosLeon, Fukasawa}. We suggest here a different route, randomising the Black-Scholes variance by a CEV-generated distribution, which allows us to modulate the rate of explosion (through the CEV exponent) of the implied volatility for small maturities. The range of rates includes behaviours similar to exponential Lévy models and fractional stochastic volatility models.",
+      "arxiv_url": "https://arxiv.org/abs/1503.08082",
+      "pdf_url": "https://arxiv.org/pdf/1503.08082v3",
+      "source": "rematch",
+      "gscholar_title": "Black–Scholes in a CEV random environment",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_162_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1107.4881",
+      "title": "A note on essential smoothness in the Heston model",
+      "authors": [
+        "Martin Forde",
+        "Antoine Jacquier",
+        "Aleksandar Mijatovic"
+      ],
+      "first_author": "Martin Forde",
+      "first_author_normalized": "martin forde",
+      "abstract": "This note studies an issue relating to essential smoothness that can arise when the theory of large deviations is applied to a certain option pricing formula in the Heston model. The note identifies a gap, based on this issue, in the proof of Corollary 2.4 in \\cite{FordeJacquier10} and describes how to circumvent it. This completes the proof of Corollary 2.4 in \\cite{FordeJacquier10} and hence of the main result in \\cite{FordeJacquier10}, which describes the limiting behaviour of the implied volatility smile in the Heston model far from maturity.",
+      "arxiv_url": "https://arxiv.org/abs/1107.4881",
+      "pdf_url": "https://arxiv.org/pdf/1107.4881v1",
+      "source": "rematch",
+      "gscholar_title": "A note on essential smoothness in the Heston model",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1302.6491",
+      "title": "Asymptotic arbitrage in the Heston model",
+      "authors": [
+        "Fatma Haba",
+        "Antoine Jacquier"
+      ],
+      "first_author": "Fatma Haba",
+      "first_author_normalized": "fatma haba",
+      "abstract": "In the context of the Heston model, we establish a precise link between the set of equivalent martingale measures, the ergodicity of the underlying variance process and the concept of asymptotic arbitrage proposed in Kabanov-Kramkov and in Follmer-Schachermayer.",
+      "arxiv_url": "https://arxiv.org/abs/1302.6491",
+      "pdf_url": "https://arxiv.org/pdf/1302.6491v2",
+      "source": "rematch",
+      "gscholar_title": "Asymptotic arbitrage in the Heston model",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1411.7256",
+      "title": "Two examples of non strictly convex large deviations",
+      "authors": [
+        "Stefano De Marco",
+        "Antoine Jacquier",
+        "Patrick Roome"
+      ],
+      "first_author": "Stefano De Marco",
+      "first_author_normalized": "stefano de marco",
+      "abstract": "We present two examples of a large deviations principle where the rate function is not strictly convex. This is motivated by a model used in mathematical finance (the Heston model), and adds a new item to the zoology of non strictly convex large deviations. For one of these examples, we show that the rate function of the Cramer-type of large deviations coincides with that of the Freidlin-Wentzell when contraction principles are applied.",
+      "arxiv_url": "https://arxiv.org/abs/1411.7256",
+      "pdf_url": "https://arxiv.org/pdf/1411.7256v3",
+      "source": "rematch",
+      "gscholar_title": "Two examples of non strictly convex large deviations",
+      "match_method": "exact_title",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_165_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2309.11183",
+      "title": "$\\mathfrak{X}$PDE for $\\mathfrak{X} \\in \\{\\mathrm{BS},\\mathrm{FBS}, \\mathrm{P}\\}$: a rough volatility context",
+      "authors": [
+        "Ofelia Bonesini",
+        "Antoine Jacquier"
+      ],
+      "first_author": "Ofelia Bonesini",
+      "first_author_normalized": "ofelia bonesini",
+      "abstract": "Recent mathematical advances in the context of rough volatility have highlighted interesting and intricate connections between path-dependent partial differential equations and backward stochastic partial differential equations. In this note, we make this link precise, identifying the slightly obscure random field introduced in [Pricing options under rough volatility with backward SPDEs, C. Bayer; J. Qiu and Y. Yao. SIFIN, 13(1), 179-212 (2022)] as a pathwise derivative of the value function.",
+      "arxiv_url": "https://arxiv.org/abs/2309.11183",
+      "pdf_url": "https://arxiv.org/pdf/2309.11183v1",
+      "source": "rematch",
+      "gscholar_title": "PDE for : a rough volatility context",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"Monte Carlo\" does not appear anywhere in the provided \"Related Work\" text. The discussion focuses on specific types of stochastic differential equations (BSPDEs, FBSDEs, SVSDEs), their weak solutions, associated PDEs, and specific mathematical properties and references, without mentioning any computational methods like Monte Carlo.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1608.07158",
+      "title": "The randomised Heston model",
+      "authors": [
+        "Antoine Jacquier",
+        "Fangwei Shi"
+      ],
+      "first_author": "Antoine Jacquier",
+      "first_author_normalized": "antoine jacquier",
+      "abstract": "We propose a randomised version of the Heston model-a widely used stochastic volatility model in mathematical finance-assuming that the starting point of the variance process is a random variable. In such a system, we study the small-and large-time behaviours of the implied volatility, and show that the proposed randomisation generates a short-maturity smile much steeper (`with explosion') than in the standard Heston model, thereby palliating the deficiency of classical stochastic volatility models in short time. We precisely quantify the speed of explosion of the smile for short maturities in terms of the right tail of the initial distribution, and in particular show that an explosion rate of~$t^γ$ ($γ\\in[0,1/2]$) for the squared implied volatility--as observed on market data--can be obtained by a suitable choice of randomisation. The proofs are based on large deviations techniques and the theory of regular variations.",
+      "arxiv_url": "https://arxiv.org/abs/1608.07158",
+      "pdf_url": "https://arxiv.org/pdf/1608.07158v3",
+      "source": "rematch",
+      "gscholar_title": "Small-time moderate deviations for the randomised Heston model",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Stacked Monte Carlo for option pricing",
+      "associated_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/new_167_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
     }
   ],
-  "count": 144,
+  "count": 167,
   "dest_folder_id": null,
-  "generated_at": "2026-05-03T14:15:52.275042"
+  "generated_at": "2026-05-18T11:00:15.781403",
+  "figure_extraction_date": "2026-05-18T20:21:24.887919",
+  "keyword_detection_date": "2026-05-18T20:48:35.781073",
+  "keyword": "Monte Carlo"
 }
