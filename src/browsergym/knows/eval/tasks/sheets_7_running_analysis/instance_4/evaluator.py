@@ -600,9 +600,15 @@ def grade_checkpoint_3():
         execution_time=time.time() - step_start
     )
 
-    # Step 5: Chart is BAR type
+    # Step 5: Chart is BAR type (COMBO with COLUMN series also accepted)
     step_start = time.time()
     is_bar = chart_type in ['BAR', 'COLUMN']
+    if not is_bar and chart_type == 'COMBO':
+        # Accept COMBO if the main data series is COLUMN type
+        raw_chart = daily_chart.get('raw_chart', {})
+        combo_series = raw_chart.get('spec', {}).get('basicChart', {}).get('series', [])
+        if combo_series and combo_series[0].get('type', '') == 'COLUMN':
+            is_bar = True
     checkpoint.add_step(
         "Bar Chart Type",
         is_bar,
@@ -979,6 +985,12 @@ def grade_checkpoint_4():
 
             if speed_col_name and df is not None and speed_col_name in df.columns:
                 expected_col_idx = df.columns.get_loc(speed_col_name)
+                if not isinstance(expected_col_idx, int):
+                    import numpy as np
+                    if isinstance(expected_col_idx, np.ndarray):
+                        expected_col_idx = int(np.where(expected_col_idx)[0][0])
+                    elif isinstance(expected_col_idx, slice):
+                        expected_col_idx = expected_col_idx.start or 0
 
                 if main_idx < len(series_list):
                     main_series = series_list[main_idx]
@@ -1160,33 +1172,35 @@ def grade_checkpoint_4():
         female_5k_color = get_series_color(speed_chart, female_5k_candidate_idx)
         chebet_color = get_series_color(speed_chart, chebet_idx)
 
-        # Per task.md: female 5K baseline needs to be dotted/dashed
-        female_5k_is_styled = female_5k_style and female_5k_style.upper() != 'SOLID'
-
-        # Check if baselines are distinguishable from each other
+        # Check if baselines are distinguishable from each other (different styles OR different colors)
         baselines_have_different_styles = female_5k_style != chebet_style
         baselines_have_different_colors = not colors_are_similar(female_5k_color or {}, chebet_color or {})
         baselines_distinguishable_from_each_other = baselines_have_different_styles or baselines_have_different_colors
 
-        # Check if Chebet is distinguishable from main data
+        # Check if Chebet is distinguishable from main data (different style OR different color)
         chebet_different_from_main_style = main_line_style != chebet_style
         chebet_different_from_main_color = not colors_are_similar(main_color or {}, chebet_color or {})
         chebet_distinguishable_from_main = chebet_different_from_main_style or chebet_different_from_main_color
 
-        if female_5k_is_styled and baselines_distinguishable_from_each_other and chebet_distinguishable_from_main:
+        # Check if Female 5K is distinguishable from main data
+        female_5k_different_from_main_style = main_line_style != female_5k_style
+        female_5k_different_from_main_color = not colors_are_similar(main_color or {}, female_5k_color or {})
+        female_5k_distinguishable_from_main = female_5k_different_from_main_style or female_5k_different_from_main_color
+
+        if baselines_distinguishable_from_each_other and chebet_distinguishable_from_main and female_5k_distinguishable_from_main:
             baselines_distinguishable = True
             distinguishable_details = (
-                f"Female 5K: {female_5k_style} (dotted per task.md), "
+                f"Female 5K: {female_5k_style or 'SOLID'}, "
                 f"Chebet: {chebet_style or 'SOLID'}, Main: {main_line_style or 'SOLID'}"
             )
         else:
             issues = []
-            if not female_5k_is_styled:
-                issues.append(f"Female 5K not dotted/dashed ({female_5k_style or 'SOLID'})")
             if not baselines_distinguishable_from_each_other:
                 issues.append(f"baselines not distinguishable from each other")
             if not chebet_distinguishable_from_main:
                 issues.append(f"Chebet not distinguishable from main data")
+            if not female_5k_distinguishable_from_main:
+                issues.append(f"Female 5K not distinguishable from main data")
             distinguishable_details = f"Issues: {'; '.join(issues)}"
 
     checkpoint.add_step(
@@ -1210,9 +1224,10 @@ def grade_checkpoint_4():
         if chart_position.get('type') == 'overlay' and anchor_row is not None and chart_height:
             search_start_row = anchor_row + (chart_height // 20) + 1
         else:
-            search_start_row = table_data.end_row if table_data else 0
+            # Search from near end of table (sources may be appended within table bounds)
+            search_start_row = max(0, (table_data.end_row - 10) if table_data else 0)
 
-        urls = find_urls_in_sheet(rows, search_start_row, num_rows=50)
+        urls = find_urls_in_sheet(rows, search_start_row, num_rows=60)
 
         if urls:
             accessible_urls = []

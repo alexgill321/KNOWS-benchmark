@@ -274,8 +274,9 @@ def _manual_extract_to_sheettable(sheet_raw: dict, sheet_index: int = 0) -> Opti
             else:
                 headers.append(f'Column{i - start_col}')
 
-        # Extract data rows (after header)
+        # Extract data rows (after header), stopping at gaps of 5+ consecutive empty rows
         data_rows = []
+        consecutive_empty = 0
         for row in rows[header_row_idx + 1:]:
             values = row.get('values', [])
             row_data = []
@@ -286,9 +287,13 @@ def _manual_extract_to_sheettable(sheet_raw: dict, sheet_index: int = 0) -> Opti
                 else:
                     row_data.append('')
 
-            # Skip empty rows
             if any(row_data):
+                consecutive_empty = 0
                 data_rows.append(row_data)
+            else:
+                consecutive_empty += 1
+                if consecutive_empty >= 5:
+                    break  # End of table — large gap detected
 
         if not data_rows:
             return None

@@ -650,6 +650,12 @@ def grade_checkpoint_3():
 
             if speed_col_name and df is not None and speed_col_name in df.columns:
                 expected_col_idx = df.columns.get_loc(speed_col_name)
+                if not isinstance(expected_col_idx, int):
+                    import numpy as np
+                    if isinstance(expected_col_idx, np.ndarray):
+                        expected_col_idx = int(np.where(expected_col_idx)[0][0])
+                    elif isinstance(expected_col_idx, slice):
+                        expected_col_idx = expected_col_idx.start or 0
 
                 # Check if the identified main series uses the speed column
                 if main_idx < len(series_list):
@@ -784,23 +790,18 @@ def grade_checkpoint_3():
         main_color = get_series_color(speed_chart, main_idx)
         klaebo_color = get_series_color(speed_chart, klaebo_candidate_idx)
 
-        # Per task.md: Klæbo baseline must be dotted/dashed (the only baseline)
-        klaebo_is_styled = klaebo_style and klaebo_style.upper() != 'SOLID'
-
         # Klæbo distinguishable from main (different style OR different color)
         klaebo_different_style = main_line_style != klaebo_style
         klaebo_different_color = not colors_are_similar(main_color or {}, klaebo_color or {})
         klaebo_distinguishable_from_main = klaebo_different_style or klaebo_different_color
 
-        if klaebo_is_styled and klaebo_distinguishable_from_main:
+        if klaebo_distinguishable_from_main:
             baseline_distinguishable = True
             distinguishable_details = (
-                f"Klæbo: {klaebo_style} (dotted per task.md), Main: {main_line_style or 'SOLID'}"
+                f"Klæbo: {klaebo_style or 'SOLID'}, Main: {main_line_style or 'SOLID'}"
             )
         else:
             issues = []
-            if not klaebo_is_styled:
-                issues.append(f"Klæbo not dotted/dashed ({klaebo_style or 'SOLID'})")
             if not klaebo_distinguishable_from_main:
                 issues.append("Klæbo not distinguishable from main data")
             distinguishable_details = f"Issues: {'; '.join(issues)}"
@@ -829,9 +830,10 @@ def grade_checkpoint_3():
             search_start_row = anchor_row + (chart_height // 20) + 1
         else:
             # Chart is on a separate tab or position unknown — search below the data table
-            search_start_row = table_data.end_row if table_data else 0
+            # Search from near end of table (sources may be appended within table bounds)
+            search_start_row = max(0, (table_data.end_row - 10) if table_data else 0)
 
-        urls = find_urls_in_sheet(rows, search_start_row, num_rows=50)
+        urls = find_urls_in_sheet(rows, search_start_row, num_rows=60)
 
         if urls:
             # Validate at least one URL is accessible

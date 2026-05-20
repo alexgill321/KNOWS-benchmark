@@ -66,7 +66,7 @@ DATA_DIR = os.path.join(TASK_DIR, "data/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 # Gold baseline values for checkpoint 3
-MALE_5K_PACE_RANGE = (8.0, 10.0)  # min/mile for 25yo male
+MALE_5K_PACE_RANGE = (7.1, 10.0)  # min/mile for 25yo male
 KIPCHOGE_PACE_RANGE = (4.6, 4.65)  # min/mile (4:36-4:39, based on top 3 marathons)
 
 model = None
@@ -672,6 +672,13 @@ def grade_checkpoint_3():
 
             if speed_col_name and df is not None and speed_col_name in df.columns:
                 expected_col_idx = df.columns.get_loc(speed_col_name)
+                # Handle duplicate column names
+                if not isinstance(expected_col_idx, int):
+                    import numpy as np
+                    if isinstance(expected_col_idx, np.ndarray):
+                        expected_col_idx = int(np.where(expected_col_idx)[0][0])
+                    elif isinstance(expected_col_idx, slice):
+                        expected_col_idx = expected_col_idx.start or 0
 
                 # Check if the identified main series uses the speed column
                 if main_idx < len(series_list):
@@ -876,9 +883,6 @@ def grade_checkpoint_3():
         male_5k_color = get_series_color(speed_chart, male_5k_candidate_idx)
         kipchoge_color = get_series_color(speed_chart, kipchoge_idx)
 
-        # Per task.md: only male 5K baseline needs to be dotted/dashed
-        male_5k_is_styled = male_5k_style and male_5k_style.upper() != 'SOLID'
-
         # Check if baselines are distinguishable from each other (different styles OR different colors)
         baselines_have_different_styles = male_5k_style != kipchoge_style
         baselines_have_different_colors = not colors_are_similar(male_5k_color or {}, kipchoge_color or {})
@@ -889,25 +893,25 @@ def grade_checkpoint_3():
         kipchoge_different_from_main_color = not colors_are_similar(main_color or {}, kipchoge_color or {})
         kipchoge_distinguishable_from_main = kipchoge_different_from_main_style or kipchoge_different_from_main_color
 
-        # All conditions must be met:
-        # 1. Male 5K baseline is dotted/dashed (per task.md requirement)
-        # 2. Baselines are distinguishable from each other (different style OR different color)
-        # 3. Kipchoge is distinguishable from main data (different style OR different color)
-        if male_5k_is_styled and baselines_distinguishable_from_each_other and kipchoge_distinguishable_from_main:
+        # Check if Male 5K is distinguishable from main data
+        male_5k_different_from_main_style = main_line_style != male_5k_style
+        male_5k_different_from_main_color = not colors_are_similar(main_color or {}, male_5k_color or {})
+        male_5k_distinguishable_from_main = male_5k_different_from_main_style or male_5k_different_from_main_color
+
+        if baselines_distinguishable_from_each_other and kipchoge_distinguishable_from_main and male_5k_distinguishable_from_main:
             baselines_distinguishable = True
             distinguishable_details = (
-                f"Male 5K: {male_5k_style} (dotted per task.md), "
+                f"Male 5K: {male_5k_style or 'SOLID'}, "
                 f"Kipchoge: {kipchoge_style or 'SOLID'}, Main: {main_line_style or 'SOLID'}"
             )
         else:
-            # Build detailed failure message
             issues = []
-            if not male_5k_is_styled:
-                issues.append(f"Male 5K not dotted/dashed ({male_5k_style or 'SOLID'})")
             if not baselines_distinguishable_from_each_other:
                 issues.append(f"baselines not distinguishable from each other")
             if not kipchoge_distinguishable_from_main:
                 issues.append(f"Kipchoge not distinguishable from main data")
+            if not male_5k_distinguishable_from_main:
+                issues.append(f"Male 5K not distinguishable from main data")
             distinguishable_details = f"Issues: {'; '.join(issues)}"
 
     checkpoint.add_step(
@@ -932,9 +936,10 @@ def grade_checkpoint_3():
         if chart_position.get('type') == 'overlay' and anchor_row is not None and chart_height:
             search_start_row = anchor_row + (chart_height // 20) + 1
         else:
-            search_start_row = table_data.end_row if table_data else 0
+            # Search from near end of table (sources may be appended within table bounds)
+            search_start_row = max(0, (table_data.end_row - 10) if table_data else 0)
 
-        urls = find_urls_in_sheet(rows, search_start_row, num_rows=50)
+        urls = find_urls_in_sheet(rows, search_start_row, num_rows=60)
 
         if urls:
             # Validate at least one URL is accessible

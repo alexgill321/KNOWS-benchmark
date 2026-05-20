@@ -882,8 +882,14 @@ def check_chart_overlap(
     if position.get('type') != 'overlay':
         return False, "Chart not in overlay position"
 
-    anchor_row = position.get('anchor_cell', {}).get('row', 0)
-    anchor_col = position.get('anchor_cell', {}).get('col', 0)
+    anchor_cell = position.get('anchor_cell', {})
+    anchor_row = anchor_cell.get('row') if anchor_cell else None
+    anchor_col = anchor_cell.get('col') if anchor_cell else None
+    # API omits row/col when they're 0, and stored value is None
+    if anchor_row is None:
+        anchor_row = 0
+    if anchor_col is None:
+        anchor_col = 0
     height = position.get('height', 0)
     width = position.get('width', 0)
 
@@ -915,8 +921,13 @@ def check_chart_overlap(
         if other_pos.get('type') != 'overlay':
             continue
 
-        other_anchor_row = other_pos.get('anchor_cell', {}).get('row', 0)
-        other_anchor_col = other_pos.get('anchor_cell', {}).get('col', 0)
+        other_anchor_cell = other_pos.get('anchor_cell', {})
+        other_anchor_row = other_anchor_cell.get('row') if other_anchor_cell else None
+        other_anchor_col = other_anchor_cell.get('col') if other_anchor_cell else None
+        if other_anchor_row is None:
+            other_anchor_row = 0
+        if other_anchor_col is None:
+            other_anchor_col = 0
         other_height = other_pos.get('height', 0)
         other_width = other_pos.get('width', 0)
         other_end_row = other_anchor_row + (other_height // 20) if other_height else other_anchor_row + 15
@@ -1251,6 +1262,13 @@ def identify_series_by_content(
         target_col_name = matched_columns.get(column_name)
         if target_col_name and target_col_name in df.columns:
             expected_col_idx = df.columns.get_loc(target_col_name)
+            # Handle duplicate column names (get_loc returns array/slice instead of int)
+            if not isinstance(expected_col_idx, int):
+                import numpy as np
+                if isinstance(expected_col_idx, np.ndarray):
+                    expected_col_idx = int(np.where(expected_col_idx)[0][0])
+                elif isinstance(expected_col_idx, slice):
+                    expected_col_idx = expected_col_idx.start or 0
             for info in series_info:
                 if info["source_col"] == expected_col_idx:
                     return info["index"]

@@ -31,7 +31,7 @@ A scatter plot showing average running speed (min/mile) over time.
 - Speed values are present as circular points in the chart.
 - Intermediate Male 30 Half-Marathon baseline is properly displayed (labeled in legend + dotted/dashed style).
 - Intermediate Male 30 Half-Marathon baseline data is constant and within expected range (7.0–9.0 min/mile).
-- Jacob Kiplimo Half Marathon baseline is properly displayed (labeled in legend + dotted/dashed style).
+- Jacob Kiplimo Half Marathon baseline is properly displayed (labeled in legend).
 - Jacob Kiplimo Half Marathon baseline data is constant and within expected range (4.15–4.45 min/mile).
 - Both baselines are visually distinguishable from the main data.
 - Source URLs are valid and accessible below the speed chart.

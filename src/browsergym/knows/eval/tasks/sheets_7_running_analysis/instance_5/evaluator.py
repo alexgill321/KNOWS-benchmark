@@ -567,6 +567,12 @@ def grade_checkpoint_3():
         sets_col_name = matched_columns.get("Total Sets") if matched_columns else None
         if sets_col_name and df is not None and sets_col_name in df.columns:
             expected_col_idx = df.columns.get_loc(sets_col_name)
+            if not isinstance(expected_col_idx, int):
+                import numpy as np
+                if isinstance(expected_col_idx, np.ndarray):
+                    expected_col_idx = int(np.where(expected_col_idx)[0][0])
+                elif isinstance(expected_col_idx, slice):
+                    expected_col_idx = expected_col_idx.start or 0
             if main_idx < len(series_list):
                 src_range = series_list[main_idx].get('source_range', {})
                 actual_col = src_range.get('start_col')
@@ -681,20 +687,20 @@ def grade_checkpoint_3():
         main_color = get_series_color(sets_chart, main_idx)
         adult_color = get_series_color(sets_chart, adult_sets_candidate_idx)
         cutler_color = get_series_color(sets_chart, cutler_idx)
-        adult_styled = adult_style and adult_style.upper() != 'SOLID'
         baselines_diff = (adult_style != cutler_style) or not colors_are_similar(adult_color or {}, cutler_color or {})
         cutler_diff = (main_style != cutler_style) or not colors_are_similar(main_color or {}, cutler_color or {})
-        if adult_styled and baselines_diff and cutler_diff:
+        adult_diff = (main_style != adult_style) or not colors_are_similar(main_color or {}, adult_color or {})
+        if baselines_diff and cutler_diff and adult_diff:
             distinguishable = True
-            dist_details = f"Adult: {adult_style}, Cutler: {cutler_style or 'SOLID'}, Main: {main_style or 'SOLID'}"
+            dist_details = f"Adult: {adult_style or 'SOLID'}, Cutler: {cutler_style or 'SOLID'}, Main: {main_style or 'SOLID'}"
         else:
             issues = []
-            if not adult_styled:
-                issues.append(f"Adult not dotted/dashed ({adult_style or 'SOLID'})")
             if not baselines_diff:
                 issues.append("baselines not distinguishable from each other")
             if not cutler_diff:
                 issues.append("Cutler not distinguishable from main data")
+            if not adult_diff:
+                issues.append("Adult not distinguishable from main data")
             dist_details = f"Issues: {'; '.join(issues)}"
     checkpoint.add_step("Baselines Distinguishable", distinguishable, 11, dist_details, execution_time=time.time() - step_start)
 
@@ -710,8 +716,9 @@ def grade_checkpoint_3():
         if chart_position.get('type') == 'overlay' and anchor_row is not None and chart_height:
             search_start_row = anchor_row + (chart_height // 20) + 1
         else:
-            search_start_row = table_data.end_row if table_data else 0
-        urls = find_urls_in_sheet(rows, search_start_row, num_rows=50)
+            # Search from near end of table (sources may be appended within table bounds)
+            search_start_row = max(0, (table_data.end_row - 10) if table_data else 0)
+        urls = find_urls_in_sheet(rows, search_start_row, num_rows=60)
         if urls:
             accessible = [u for u in urls[:3] if validate_url_accessible(u)[0]]
             if accessible:

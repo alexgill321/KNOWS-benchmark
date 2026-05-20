@@ -837,13 +837,17 @@ def match_columns(
     from .text_utils import keywords_exact_match, keywords_llm_match
 
     columns = [str(col) for col in df.columns]
+    # Filter out malformed column names (tab/newline indicate merged cells or paste errors)
+    valid_columns = [col for col in columns if '\t' not in col and '\n' not in col]
+    if not valid_columns:
+        valid_columns = columns  # Fallback to all if everything is malformed
     matched = {}
     unmatched = []
 
     # Phase 1: Keyword matching (fast)
     for col_name, keywords in required_columns:
         # Try to find a column that matches any keyword
-        for col in columns:
+        for col in valid_columns:
             if keywords_exact_match(col, keywords):
                 matched[col_name] = col
                 break
@@ -857,7 +861,7 @@ def match_columns(
             from concurrent.futures import ThreadPoolExecutor, as_completed
 
             def call_llm_for_column(col_name: str, keywords: List[str]) -> Tuple[str, Optional[str]]:
-                result = keywords_llm_match(columns, keywords, model, description=f"column for '{col_name}'", context=context)
+                result = keywords_llm_match(valid_columns, keywords, model, description=f"column for '{col_name}'", context=context)
                 return col_name, result
 
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -875,7 +879,7 @@ def match_columns(
         else:
             # Sequential LLM matching
             for col_name, keywords in unmatched:
-                result = keywords_llm_match(columns, keywords, model, description=f"column for '{col_name}'", context=context)
+                result = keywords_llm_match(valid_columns, keywords, model, description=f"column for '{col_name}'", context=context)
                 if result:
                     matched[col_name] = result
 

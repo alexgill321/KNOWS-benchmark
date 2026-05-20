@@ -349,8 +349,8 @@ def find_cumulative_chart_by_metadata(
     """
     return find_chart_by_metadata(
         charts=charts,
-        title_keywords=['cumulative', 'total distance', 'distance over time', 'total miles'],
-        y_axis_keywords=['cumulative', 'total', 'distance', 'miles'],
+        title_keywords=['cumulative', 'cumulative distance', 'distance over time'],
+        y_axis_keywords=['cumulative', 'cumulative distance', 'distance', 'miles'],
         title_description="chart title related to cumulative distance",
         axis_description="Y-axis label related to cumulative distance",
         matched_columns=matched_columns,

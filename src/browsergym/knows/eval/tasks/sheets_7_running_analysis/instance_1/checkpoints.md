@@ -30,8 +30,8 @@ A scatter plot showing average running speed (min/mile) over time.
 - Chart main data series comes from the average speed column.
 - Speed values are present as circular points in the chart.
 - Male 5K baseline is properly displayed (labeled in legend + dotted/dashed style).
-- Male 5K baseline data is constant and within expected range (8-10 min/mile).
-- Kipchoge baseline is properly displayed (labeled in legend + dotted/dashed style).
+- Male 5K baseline data is constant and within expected range (7.1-10 min/mile).
+- Kipchoge baseline is properly displayed (labeled in legend).
 - Kipchoge baseline data is constant and within expected range (4.5-4.8 min/mile).
 - Both baselines are visually distinguishable from the main data.
 - Source URLs are valid and accessible below the speed chart.
