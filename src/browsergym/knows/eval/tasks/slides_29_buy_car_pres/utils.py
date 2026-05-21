@@ -3,13 +3,13 @@ URL parsing, and per-car CP3 step evaluation."""
 import os
 import re
 import time
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 from src.browsergym.knows.eval.eval_utils.image_utils import binary_judge_image
 from src.browsergym.knows.eval.eval_utils.llm_utils import (
-    extract_json_with_llm as _extract_json_with_llm,
-    evaluate_with_llm as _evaluate_with_llm,
+    extract_json_with_llm as extract_info_with_llm,
+    evaluate_with_llm,
 )
 from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint
 from src.browsergym.knows.eval.eval_utils.slides_utils import (
@@ -19,7 +19,6 @@ from src.browsergym.knows.eval.eval_utils.slides_utils import (
     extract_text_boxes_from_slide,
     extract_title_text,
     get_element_bbox,
-    get_image_area_percentage_from_api,
 )
 from src.browsergym.knows.eval.eval_utils.text_utils import keywords_match_robust
 from src.browsergym.knows.eval.eval_utils.utils import bbox_overlap_ratio
@@ -77,18 +76,19 @@ CP3_PER_CAR_STEPS = [
     "Review URL in History",
     "Rating Matches Review Platform",
 ]
+CP4_STEP_NAMES = [
+    "Title Denotes Best Car Stats",
+    "Lowest Price Car",
+    "Highest MPG Car",
+    "Highest Horsepower Car",
+    "Most Highly Rated Car",
+]
 CP_STEP_SHAPES = [
     ("Title Slide", 2, ["Title Match", "Title Font Size at least 30pt"]),
     ("Car Content Slides", 6, ["Article Visit", "At Least 5 Car Slides"]),
     ("Car Slides Validation", 55,
      [f"Car {c+1} - {n}" for c in range(5) for n in CP3_PER_CAR_STEPS]),
-    ("Summary Slide", 5, [
-        "Title Denotes Best Car Stats",
-        "Lowest Price Car",
-        "Highest MPG Car",
-        "Highest Horsepower Car",
-        "Most Highly Rated Car",
-    ]),
+    ("Summary Slide", 5, CP4_STEP_NAMES),
 ]
 
 # Maps CP4 internal source_key to JSON key used in the winner-extraction prompt.
@@ -98,33 +98,6 @@ CP4_WINNER_KEY_MAP = {
     'hp': 'highest_horsepower',
     'rating': 'highest_rating',
 }
-
-
-def extract_info_with_llm(task_text: str, model: Any) -> Optional[Dict[str, Any]]:
-    """Extract structured information from text using an LLM.
-
-    Args:
-        task_text (str): Prompt text with extraction instructions.
-        model (Any): Callable LLM interface.
-
-    Returns:
-        Optional[Dict[str, Any]]: Parsed JSON dict, or None on failure.
-    """
-    return _extract_json_with_llm(task_text, model)
-
-
-def evaluate_with_llm(task_text: str, model: Any, return_type: Literal["bool", "str", "json"] = "bool") -> Optional[Union[bool, str, Any]]:
-    """Evaluate text using an LLM and return result in specified format.
-
-    Args:
-        task_text (str): The text/question to evaluate.
-        model (Any): Callable LLM interface.
-        return_type (str): Format of the returned result: 'bool', 'str', or 'json'.
-
-    Returns:
-        Optional[Union[bool, str, Any]]: Result in the specified format, or None on error.
-    """
-    return _evaluate_with_llm(task_text, model, return_type=return_type)
 
 
 def evaluate_slide_for_cars(
@@ -239,13 +212,6 @@ def pick_review_url(slide_links: List[str]) -> Optional[str]:
     return slide_links[0]
 
 
-def has_stat_data(stats: Any) -> bool:
-    """True when stats is a dict with at least one non-falsy stat field."""
-    if not isinstance(stats, dict):
-        return False
-    return any(stats.get(k) for k in ("price_numeric", "mpg_numeric", "hp_numeric", "rating_numeric"))
-
-
 def normalize_json_key(s: Any) -> str:
     """Normalize a JSON key to lowercase alphanumeric for case-insensitive lookups."""
     return ''.join(c.lower() for c in str(s) if c.isalnum())
@@ -265,20 +231,24 @@ def is_truthy_flag(value: Any) -> bool:
 _EXPECTED_CAR_STOPWORDS = frozenset({"a", "an", "the", "and", "or", "of", "i"})
 
 
-def expected_car_in_text(text: str, expected_car: str) -> bool:
+def expected_car_in_text(text: str, expected_car: str, category: str = "") -> bool:
     """All required tokens of expected_car present in text (case-insensitive).
 
-    Years (1900-2099) are optional; stopwords dropped.
+    Years (1900-2099), stopwords, and task-category words are optional — the
+    category descriptor (e.g. "coupe", "sports car") is shared by every car in
+    the deck and doesn't distinguish one car from another.
     """
     if not text or not expected_car:
         return False
     text_lower = str(text).lower()
+    optional = set(_EXPECTED_CAR_STOPWORDS)
+    optional.update(re.findall(r'\w+', str(category).lower()))
     raw_tokens = re.findall(r'\w+', str(expected_car).lower())
     required_tokens = []
     for t in raw_tokens:
         if len(t) == 4 and t.isdigit() and 1900 <= int(t) <= 2099:
             continue
-        if t in _EXPECTED_CAR_STOPWORDS:
+        if t in optional:
             continue
         required_tokens.append(t)
     if not required_tokens:
@@ -289,29 +259,58 @@ def expected_car_in_text(text: str, expected_car: str) -> bool:
 
 
 def find_kbb_url_for_car(browsing_history: List[str], make_model: str) -> Optional[str]:
-    """Find a kbb.com URL matching make_model — try all tokens, then >3-char ones."""
+    """Pick kbb.com URL with strongest token overlap; require at least one non-year match; prefer overview over consumer-reviews."""
     if not browsing_history or not make_model:
         return None
 
-    name_tokens = [t for t in re.findall(r'\w+', make_model.lower()) if len(t) > 2]
+    tokens = [t for t in re.findall(r'\w+', make_model.lower()) if len(t) > 1]
+    if not tokens:
+        return None
 
+    best_url = None
+    best_score = 0.0
     for url in browsing_history:
         url_lower = url.lower()
-        if 'kbb.com' in url_lower:
-            if all(token in url_lower for token in name_tokens):
-                return url
-
-    long_tokens = [t for t in name_tokens if len(t) > 3]
-    if long_tokens:
-        for url in browsing_history:
-            url_lower = url.lower()
-            if 'kbb.com' in url_lower:
-                if any(token in url_lower for token in long_tokens):
-                    return url
-    return None
+        if 'kbb.com' not in url_lower:
+            continue
+        matched = [t for t in tokens if t in url_lower]
+        non_year_matches = [t for t in matched if not (len(t) == 4 and t.isdigit() and 1900 <= int(t) <= 2099)]
+        if not non_year_matches:
+            continue
+        score = float(sum(len(t) for t in matched))
+        if 'consumer-reviews' in url_lower:
+            score -= 0.5
+        if score > best_score:
+            best_score = score
+            best_url = url
+    return best_url
 
 
 _STATS_KEYWORDS = ('$', 'mpg', 'hp', 'horsepower', 'rating', '/5', '/10', 'review', 'price')
+
+
+def largest_image_slide_coverage(slide: Any, slide_width_emu: float, slide_height_emu: float) -> float:
+    """Largest single image's on-slide coverage as a percentage (0-100).
+
+    Each image bbox is clipped to the slide rectangle; overflow off the slide
+    edges is not counted. Returns the max clipped coverage across all images.
+    """
+    total_slide_area = slide_width_emu * slide_height_emu
+    if total_slide_area <= 0:
+        return 0.0
+    best = 0.0
+    for element in slide.get('pageElements', []) or []:
+        if 'image' not in element:
+            continue
+        bbox = get_element_bbox(element)
+        x1 = max(0.0, bbox['x'])
+        y1 = max(0.0, bbox['y'])
+        x2 = min(slide_width_emu, bbox['x'] + bbox['width'])
+        y2 = min(slide_height_emu, bbox['y'] + bbox['height'])
+        if x2 > x1 and y2 > y1:
+            coverage = (x2 - x1) * (y2 - y1) / total_slide_area * 100
+            best = max(best, coverage)
+    return min(best, 100.0)
 
 
 def find_title_and_stats_text_boxes(slide: Any) -> "tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]":
@@ -358,9 +357,6 @@ def find_title_and_stats_text_boxes(slide: Any) -> "tuple[Optional[Dict[str, Any
     return (title_box, stats_box)
 
 
-_PRODUCT_DOMAIN_HINTS = ('kbb.com',)
-
-
 def find_year_category_article(
     browsing_history: List[str],
     year: int,
@@ -371,15 +367,12 @@ def find_year_category_article(
     if not browsing_history or model is None or not category:
         return None
 
-    candidates = [
-        u for u in browsing_history
-        if u and not any(hint in u.lower() for hint in _PRODUCT_DOMAIN_HINTS)
-    ]
+    candidates = [u for u in browsing_history if u and 'kbb.com' not in u.lower()]
     if not candidates:
         return None
 
     fetch_tasks = [
-        {'id': url, 'func': fetch_page_text_content, 'args': (url,)}
+        {'id': url, 'func': fetch_page_text_content, 'args': (url, 1_000_000)}
         for url in candidates
     ]
     fetched = parallel_download(fetch_tasks, max_workers=5, use_rate_limit=False)
@@ -400,8 +393,8 @@ Accept if:
 Reject single-car product/listing pages, homepages, unrelated topics, or articles that don't actually cover any {category}s.
 
 URL: {url}
-Page content (truncated):
-{content[:5000]}
+Page content:
+{content}
 
 Answer YES or NO."""
         try:
@@ -433,8 +426,252 @@ def find_review_url_in_history(browsing_history: List[str], review_url: str) -> 
     return False
 
 
-def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, review_urls, web_contents, browsing_history, slide_image_dirs, kbb_example_dirs, slide_width_emu, slide_height_emu, model, presentation=None):
-    """Evaluate all 10 steps for a single car. Returns list of step result dicts."""
+_NUMBER_RE = re.compile(r'\d[\d,]*(?:\.\d+)?')
+
+
+def _extract_first_number(s) -> Optional[float]:
+    """First numeric value in s as float; commas stripped. None if none found."""
+    if s is None:
+        return None
+    m = _NUMBER_RE.search(str(s))
+    if not m:
+        return None
+    try:
+        return float(m.group().replace(',', ''))
+    except ValueError:
+        return None
+
+
+def _extract_all_numbers(s) -> List[float]:
+    """All numeric values in s as floats; commas stripped."""
+    if s is None:
+        return []
+    out: List[float] = []
+    for m in _NUMBER_RE.findall(str(s)):
+        try:
+            out.append(float(m.replace(',', '')))
+        except ValueError:
+            continue
+    return out
+
+
+def compare_price(slide_value, kbb_value) -> bool:
+    """True if slide price is within $1000 of KBB MSRP."""
+    try:
+        kbb = float(kbb_value or 0)
+    except (ValueError, TypeError):
+        kbb = 0.0
+    if kbb <= 0:
+        return False
+    slide_num = _extract_first_number(slide_value)
+    if slide_num is None:
+        return False
+    return abs(slide_num - kbb) <= 1000
+
+
+def compare_hp(slide_value, kbb_value) -> bool:
+    """True if any HP number on the slide is within ±5 of the KBB value."""
+    try:
+        kbb = float(kbb_value or 0)
+    except (ValueError, TypeError):
+        kbb = 0.0
+    if kbb <= 0:
+        return False
+    slide_numbers = _extract_all_numbers(slide_value)
+    return any(abs(sn - kbb) <= 5 for sn in slide_numbers)
+
+
+def compare_mpg(slide_value, mpg_combined, mpg_city, mpg_hwy) -> bool:
+    """True if any number on the slide is within ±1 of any KBB MPG value (combined/city/hwy)."""
+    kbb_values: List[float] = []
+    for v in (mpg_combined, mpg_city, mpg_hwy):
+        try:
+            fv = float(v or 0)
+        except (ValueError, TypeError):
+            continue
+        if fv > 0:
+            kbb_values.append(fv)
+    if not kbb_values:
+        return False
+    slide_numbers = _extract_all_numbers(slide_value)
+    if not slide_numbers:
+        return False
+    return any(abs(sn - kv) <= 1 for sn in slide_numbers for kv in kbb_values)
+
+
+def extract_kbb_stats(kbb_text: str, make_model: str, model: Any) -> Dict[str, Any]:
+    """Extract numeric KBB stats for one car; retry per-field when the bulk pass returns 0."""
+    bulk_task = f"""Extract numerical car stats from this KBB page text.
+
+ The page may cover multiple trims/variants of the model. If "{make_model}" names a specific trim or variant, extract that trim's figures. If "{make_model}" names only a make and model with no trim qualifier, use the model's base/standard configuration — the starting (lowest) MSRP and base-trim specs — not a higher or optioned-up trim. If a figure is not broken out for the relevant trim, fall back to the model's generally-listed figure rather than returning 0; only return 0 when the figure is genuinely absent from the page.
+
+ For fuel efficiency, use whichever metric the page reports for this trim: MPG for gas/diesel vehicles, or MPGe for electric/plug-in-hybrid vehicles. Return it as a plain number.
+
+ Respond ONLY with JSON:
+ {{
+     "price_numeric": <original MSRP when new for this trim (NOT Fair Purchase Price or used market value) as number, 0 if not found>,
+     "mpg_combined": <combined fuel efficiency (MPG or MPGe) as number, 0 if not found>,
+     "mpg_city": <city fuel efficiency (MPG or MPGe) as number, 0 if not found>,
+     "mpg_hwy": <highway fuel efficiency (MPG or MPGe) as number, 0 if not found>,
+     "hp_numeric": <horsepower as number, 0 if not found>
+ }}
+
+ KBB page content:
+ {kbb_text}"""
+    stats = extract_info_with_llm(bulk_task, model)
+    if not isinstance(stats, dict):
+        stats = {}
+
+    retry_prompts = {
+        "price_numeric": f"""Find the original MSRP (price when new) for the {make_model} on this KBB page. It may be labeled "MSRP", "Original MSRP", "Sticker Price", or "Price When New" — do not return the Fair Purchase Price or used market value.
+
+Respond ONLY with JSON: {{"price_numeric": <number, 0 only if truly absent>}}
+
+KBB page content:
+{kbb_text}""",
+        "hp_numeric": f"""Find the horsepower for the {make_model} on this KBB page. It may be labeled "horsepower", "hp", or "bhp", possibly with an RPM figure, or listed in an engine/specs table.
+
+Respond ONLY with JSON: {{"hp_numeric": <number, 0 only if truly absent>}}
+
+KBB page content:
+{kbb_text}""",
+        "mpg_combined": f"""Find the combined fuel efficiency for the {make_model} on this KBB page. It may be labeled "combined MPG", "MPG", or "MPGe" for electric/hybrid vehicles, in a fuel-economy section.
+
+Respond ONLY with JSON: {{"mpg_combined": <number, 0 only if truly absent>}}
+
+KBB page content:
+{kbb_text}""",
+    }
+
+    for field, prompt in retry_prompts.items():
+        try:
+            if float(stats.get(field, 0) or 0) > 0:
+                continue
+        except (ValueError, TypeError):
+            pass
+        retry = extract_info_with_llm(prompt, model)
+        if isinstance(retry, dict) and retry.get(field):
+            stats[field] = retry[field]
+    return stats
+
+
+def _bounded_value(v, lo, hi):
+    """Return float(v) if it falls in [lo, hi], else 0."""
+    try:
+        fv = float(v or 0)
+        return fv if lo <= fv <= hi else 0
+    except (ValueError, TypeError):
+        return 0
+
+
+def resolve_stat_value(cp3_match, slide_v, source_v, lo, hi):
+    """CP3-validated slide first, then source, then slide last-resort."""
+    if cp3_match:
+        v = _bounded_value(slide_v, lo, hi)
+        if v:
+            return v
+    v = _bounded_value(source_v, lo, hi)
+    if v:
+        return v
+    return _bounded_value(slide_v, lo, hi)
+
+
+def resolve_price_value(cp3_match, slide_v, kbb_v, lo, hi):
+    """Pick price using slide-vs-KBB ratio to detect KBB-used-value vs slide-typo."""
+    sv = _bounded_value(slide_v, lo, hi)
+    kv = _bounded_value(kbb_v, lo, hi)
+    if not sv:
+        return kv
+    if not kv:
+        return sv
+    if cp3_match:
+        return sv
+    ratio = sv / kv
+    if ratio >= 1.3:
+        return sv
+    if ratio <= 0.7:
+        return kv
+    return sv
+
+
+def compute_winners(contributing_indices, car_stats, kbb_stats, review_stats, cp3_car_infos, cp3_stat_matches) -> Dict[str, Dict[str, Any]]:
+    """Pick best-per-category car. Returns {lowest_price, highest_mpg, highest_hp, highest_rating} each as {name, value}."""
+    lowest_price = {"name": "", "value": float('inf')}
+    highest_mpg = {"name": "", "value": 0.0}
+    highest_hp = {"name": "", "value": 0.0}
+    highest_rating = {"name": "", "value": 0.0}
+
+    for idx in contributing_indices:
+        stats = car_stats.get(idx) or {}
+        kbb_for_car = kbb_stats.get(idx) or {}
+        review_for_car = review_stats.get(idx) or {}
+        if not stats and not kbb_for_car and not review_for_car:
+            continue
+
+        name = (stats.get('make_model') or '').strip()
+        if not name:
+            cp3_info = cp3_car_infos.get(idx) or {}
+            name = str(cp3_info.get('make_model', '') or '').strip()
+        if not name:
+            continue
+
+        matches = cp3_stat_matches.get(idx, {})
+        slide_price = stats.get('price_numeric', 0) or 0
+        slide_mpg = stats.get('mpg_numeric', 0) or 0
+        slide_hp = stats.get('hp_numeric', 0) or 0
+        slide_rating = stats.get('rating_numeric', 0) or 0
+        price = resolve_price_value(matches.get('price'), slide_price, kbb_for_car.get('price_numeric'), 3_000, 5_000_000)
+        mpg = resolve_stat_value(matches.get('mpg'), slide_mpg, kbb_for_car.get('mpg_combined'), 3, 500)
+        hp = resolve_stat_value(matches.get('hp'), slide_hp, kbb_for_car.get('hp_numeric'), 50, 3_000)
+
+        # Rating: CP3-validated slide first, then review aggregate, then candidates median, then slide fallback.
+        if matches.get('rating') and isinstance(slide_rating, (int, float)) and 0 < float(slide_rating) <= 10:
+            rating_raw = float(slide_rating)
+        elif is_truthy_flag(review_for_car.get('is_aggregate')) and review_for_car.get('rating_numeric'):
+            rating_raw = review_for_car.get('rating_numeric')
+        else:
+            plausible_candidates: List[float] = []
+            for c in (review_for_car.get('candidates') or []):
+                try:
+                    v = float(c)
+                    if 0 < v <= 10:
+                        plausible_candidates.append(v)
+                except (ValueError, TypeError):
+                    continue
+            if plausible_candidates:
+                plausible_candidates.sort()
+                rating_raw = plausible_candidates[len(plausible_candidates) // 2]
+            elif slide_rating:
+                rating_raw = slide_rating
+            else:
+                rating_raw = 0
+        rating = _bounded_value(rating_raw, 0, 10)
+
+        if price and price < lowest_price["value"]:
+            lowest_price = {"name": name, "value": price}
+        if mpg and mpg > highest_mpg["value"]:
+            highest_mpg = {"name": name, "value": mpg}
+        if hp and hp > highest_hp["value"]:
+            highest_hp = {"name": name, "value": hp}
+        if rating and rating > highest_rating["value"]:
+            highest_rating = {"name": name, "value": rating}
+
+    return {
+        "lowest_price": lowest_price,
+        "highest_mpg": highest_mpg,
+        "highest_hp": highest_hp,
+        "highest_rating": highest_rating,
+    }
+
+
+def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, review_urls, web_contents, browsing_history, slide_image_dirs, kbb_example_dirs, slide_width_emu, slide_height_emu, model, presentation=None, stat_matches_out=None, kbb_stats_in=None):
+    """Evaluate all 10 steps for a single car. Returns list of step result dicts.
+
+    If stat_matches_out is a dict, records per-stat boolean verdicts at
+    stat_matches_out[car_idx] with keys 'price', 'mpg', 'hp', 'rating'.
+    kbb_stats_in (optional) is the {car_idx: {price_numeric, mpg_combined, mpg_city, mpg_hwy, hp_numeric}}
+    cache produced by CP3 phase 3b; used for deterministic stat comparison.
+    """
     steps = []
 
     if car_idx >= len(car_slides):
@@ -459,8 +696,16 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
 
     # Step 2: Make and Model Listed as Title
     step_start = time.time()
-    slide_title = extract_title_text(slide)
-    title_match = keywords_match_robust(slide_title, make_model, model=model)
+    try:
+        slide_title = extract_title_text(slide)
+    except Exception as e:
+        print(f"Warning: title extraction failed for car {car_idx}: {e}")
+        slide_title = ""
+    try:
+        title_match = keywords_match_robust(slide_title, make_model, model=model)
+    except Exception as e:
+        print(f"Warning: title-match LLM failed for car {car_idx}: {e}")
+        title_match = False
 
     make_model_in_title = bool(make_model.strip()) and bool(title_match)
     steps.append({"name": f"Car {car_idx+1} - Make and Model Listed as Title", "success": make_model_in_title,
@@ -471,35 +716,47 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
     # Step 3: Picture of correct model
     step_start = time.time()
     correct_picture = False
+    picture_detail = None
     temp_dir = slide_image_dirs.get(car_idx)
     example_dir = kbb_example_dirs.get(car_idx)
-    try:
-        if temp_dir and os.path.exists(temp_dir) and os.listdir(temp_dir):
+    has_picture = bool(temp_dir and os.path.exists(temp_dir) and os.listdir(temp_dir))
+
+    if has_picture:
+        try:
             if example_dir:
                 matching = binary_judge_image(
-                    model,
-                    temp_dir,
+                    model, temp_dir,
                     "Is this an image of the same car model as shown in the example images?",
-                    examples=example_dir
+                    examples=example_dir,
                 )
             else:
                 matching = binary_judge_image(
-                    model,
-                    temp_dir,
-                    f"Is this an image of a {make_model} car or minivan?"
+                    model, temp_dir,
+                    f"Is this an image of a {make_model} vehicle?",
                 )
             correct_picture = bool(matching)
-    except Exception as e:
-        print(f"Error checking car image: {e}")
+        except Exception as e:
+            print(f"Error checking car image for car {car_idx}: {e}")
+            picture_detail = f"Could not evaluate picture (error: {e})"
+    else:
+        picture_detail = "No picture found on slide"
+
+    if correct_picture:
+        picture_detail = "Found picture of correct car model"
+    elif picture_detail is None:
+        picture_detail = f"Picture on slide does not match the expected model ({make_model or 'unknown'})"
 
     steps.append({"name": f"Car {car_idx+1} - Correct Model Picture", "success": correct_picture,
-                "detail": "Found picture of correct car model" if correct_picture
-                else "No matching car picture found",
+                "detail": picture_detail,
                 "execution_time": time.time() - step_start})
 
     # Step 4: Picture takes up at least 50% of slide
     step_start = time.time()
-    max_coverage = get_image_area_percentage_from_api(slide, slide_width_emu, slide_height_emu)
+    try:
+        max_coverage = largest_image_slide_coverage(slide, slide_width_emu, slide_height_emu)
+    except Exception as e:
+        print(f"Warning: image-coverage extraction failed for car {car_idx}: {e}")
+        max_coverage = 0.0
     picture_large = max_coverage >= 50
     steps.append({"name": f"Car {car_idx+1} - Picture >= 50% of Slide", "success": picture_large,
                 "detail": f"Largest image covers {max_coverage:.2f}% of slide" if picture_large
@@ -510,71 +767,97 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
     # text region inside any image bbox => fail). Only the title and the stats
     # /URL combined box are in scope.
     step_start = time.time()
-    title_box, stats_box = find_title_and_stats_text_boxes(slide)
-    in_scope_text = [tb for tb in (title_box, stats_box) if tb]
+    picture_clear = True
+    no_overlap_detail = "Picture does not overlap title or stats text"
+    try:
+        title_box, stats_box = find_title_and_stats_text_boxes(slide)
+        in_scope_text = [tb for tb in (title_box, stats_box) if tb]
 
-    image_bboxes = []
-    for element in slide.get('pageElements', []) or []:
-        if 'image' in element:
-            image_bboxes.append(get_element_bbox(element))
+        image_bboxes = []
+        for element in slide.get('pageElements', []) or []:
+            if 'image' in element:
+                image_bboxes.append(get_element_bbox(element))
 
-    overlap_threshold = 0.2
-    overlapping_text = None
-    for img_bbox in image_bboxes:
-        if not img_bbox.get('width') or not img_bbox.get('height'):
-            continue
-        for tb in in_scope_text:
-            tight = estimate_text_render_bbox(tb, presentation=presentation)
-            if bbox_overlap_ratio(tight, img_bbox) > overlap_threshold:
-                overlapping_text = (tb.get('text', '') or '')[:60]
+        overlap_threshold = 0.2
+        overlapping_text = None
+        for img_bbox in image_bboxes:
+            if not img_bbox.get('width') or not img_bbox.get('height'):
+                continue
+            for tb in in_scope_text:
+                tight = estimate_text_render_bbox(tb, presentation=presentation)
+                if bbox_overlap_ratio(tight, img_bbox) > overlap_threshold:
+                    overlapping_text = (tb.get('text', '') or '')[:60]
+                    break
+            if overlapping_text:
                 break
-        if overlapping_text:
-            break
 
-    picture_clear = overlapping_text is None
-    if not in_scope_text:
-        no_overlap_detail = "No title or stats text boxes found; overlap check skipped"
-    elif picture_clear:
-        no_overlap_detail = "Picture does not overlap title or stats text"
-    else:
-        no_overlap_detail = f"Picture overlaps text region: '{overlapping_text}...'"
+        picture_clear = overlapping_text is None
+        if not in_scope_text:
+            no_overlap_detail = "No title or stats text boxes found; overlap check skipped"
+        elif not picture_clear:
+            no_overlap_detail = f"Picture overlaps text region: '{overlapping_text}...'"
+    except Exception as e:
+        print(f"Warning: overlap check failed for car {car_idx}: {e}")
+        picture_clear = False
+        no_overlap_detail = f"Could not evaluate overlap (error: {e})"
+
     steps.append({"name": f"Car {car_idx+1} - Picture Does Not Overlap Text", "success": picture_clear,
                 "detail": no_overlap_detail,
                 "execution_time": time.time() - step_start})
 
-    # Steps 5-7: Sticker price, fuel efficiency, horsepower from KBB
-    kbb_result = web_contents.get(kbb_urls.get(car_idx))
-    kbb_content = kbb_result[0] if kbb_result else None
-    stat_fields = [
-        ("Sticker Price Matches KBB", "sticker_price", "sticker price"),
-        ("Fuel Efficiency Matches KBB", "fuel_efficiency", "fuel efficiency or MPG"),
-        ("Horsepower Matches KBB", "horsepower", "horsepower"),
-    ]
+    # Steps 6-8: Sticker price, fuel efficiency, horsepower (deterministic compare against CP3-cached KBB stats)
+    kbb_stats = (kbb_stats_in or {}).get(car_idx, {})
+    has_kbb_data = bool(kbb_stats)
 
-    for stat_name, stat_key, stat_desc in stat_fields:
+    for stat_name, stat_key, stat_desc, match_key in (
+        ("Sticker Price Matches KBB", "sticker_price", "sticker price", "price"),
+        ("Fuel Efficiency Matches KBB", "fuel_efficiency", "fuel efficiency or MPG", "mpg"),
+        ("Horsepower Matches KBB", "horsepower", "horsepower", "hp"),
+    ):
         step_start = time.time()
         slide_value = car_info.get(stat_key, '')
         stat_matches = False
         detail = f"No {stat_desc} data to compare"
 
-        if slide_value and kbb_content:
-            try:
-                kbb_truncated = kbb_content[:15000]
-                stat_matches = evaluate_with_llm(
-                    f"Does the following {stat_desc} value from the slide match or closely match the {stat_desc} listed on the Kelly Blue Book source page for this vehicle?\n\nSlide value: {slide_value}\n\nKBB Source content:\n{kbb_truncated}",
-                    model, return_type="bool"
-                )
-                detail = (f"Slide: {slide_value}, verified against KBB" if stat_matches
-                        else f"Slide value '{slide_value}' does not match KBB data")
-            except Exception as e:
-                detail = f"Error comparing {stat_desc}: {e}"
-        elif not slide_value:
+        if not slide_value:
             detail = f"No {stat_desc} found on slide"
-        elif not kbb_content:
-            detail = f"Could not fetch KBB content for comparison"
+        elif not has_kbb_data:
+            detail = "No KBB stats extracted for this car"
+        elif match_key == "price":
+            kbb_val = kbb_stats.get('price_numeric', 0) or 0
+            stat_matches = compare_price(slide_value, kbb_val)
+            if stat_matches:
+                diff = abs((_extract_first_number(slide_value) or 0) - kbb_val)
+                suffix = "matched" if diff < 1 else f"matched with diff ${diff:.0f}"
+                detail = f"Slide: {slide_value} | KBB MSRP: ${kbb_val:.0f} ({suffix})"
+            else:
+                detail = f"Slide '{slide_value}' does not match KBB MSRP ${kbb_val:.0f}"
+        elif match_key == "hp":
+            kbb_val = kbb_stats.get('hp_numeric', 0) or 0
+            stat_matches = compare_hp(slide_value, kbb_val)
+            if stat_matches:
+                diff = min(abs(sn - kbb_val) for sn in _extract_all_numbers(slide_value))
+                suffix = "matched" if diff < 1 else f"matched with diff {diff:.0f} hp"
+                detail = f"Slide: {slide_value} | KBB HP: {kbb_val:.0f} ({suffix})"
+            else:
+                detail = f"Slide '{slide_value}' does not match KBB HP {kbb_val:.0f}"
+        else:  # mpg
+            mc = kbb_stats.get('mpg_combined', 0) or 0
+            mcity = kbb_stats.get('mpg_city', 0) or 0
+            mhwy = kbb_stats.get('mpg_hwy', 0) or 0
+            stat_matches = compare_mpg(slide_value, mc, mcity, mhwy)
+            if stat_matches:
+                kbb_vals = [v for v in (mc, mcity, mhwy) if v]
+                diff = min(abs(sn - kv) for sn in _extract_all_numbers(slide_value) for kv in kbb_vals)
+                suffix = "matched" if diff < 0.05 else f"matched with diff {diff:.1f} mpg"
+                detail = f"Slide: {slide_value} | KBB MPG combined={mc}/city={mcity}/hwy={mhwy} ({suffix})"
+            else:
+                detail = f"Slide '{slide_value}' does not match KBB MPG combined={mc}/city={mcity}/hwy={mhwy}"
 
         steps.append({"name": f"Car {car_idx+1} - {stat_name}", "success": bool(stat_matches),
                     "detail": detail, "execution_time": time.time() - step_start})
+        if stat_matches_out is not None:
+            stat_matches_out.setdefault(car_idx, {})[match_key] = bool(stat_matches)
 
     # Step 8: Review URL provided
     step_start = time.time()
@@ -600,14 +883,18 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
     rating_matches = False
     detail = "No rating data to compare"
     review_result = web_contents.get(review_urls.get(car_idx))
-    review_content = review_result[0] if review_result else None
+    if isinstance(review_result, tuple) and review_result:
+        review_content = review_result[0]
+    elif isinstance(review_result, str):
+        review_content = review_result
+    else:
+        review_content = None
     slide_rating = car_info.get('user_rating', '')
 
     if slide_rating and review_content:
         try:
-            review_truncated = review_content[:15000] if review_content else ""
             rating_matches = evaluate_with_llm(
-                f"Does the following user average rating from the slide match or closely match the average user rating found on the review source page?\n\nSlide rating: {slide_rating}\n\nReview source content:\n{review_truncated}",
+                f"Does the following user average rating from the slide match or closely match the average user rating found on the review source page?\n\nSlide rating: {slide_rating}\n\nReview source content:\n{review_content}",
                 model, return_type="bool"
             )
             detail = (f"Slide rating: {slide_rating}, verified against review platform" if rating_matches
@@ -621,5 +908,7 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
 
     steps.append({"name": f"Car {car_idx+1} - Rating Matches Review Platform", "success": bool(rating_matches),
                 "detail": detail, "execution_time": time.time() - step_start})
+    if stat_matches_out is not None:
+        stat_matches_out.setdefault(car_idx, {})["rating"] = bool(rating_matches)
 
     return steps

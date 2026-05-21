@@ -35,18 +35,19 @@ from src.browsergym.knows.eval.eval_utils.web_utils import download_page_images,
 
 from src.browsergym.knows.eval.tasks.slides_29_buy_car_pres.utils import (
     CP3_PER_CAR_STEPS,
-    CP_STEP_SHAPES,
+    CP4_STEP_NAMES,
     CP4_WINNER_KEY_MAP,
+    CP_STEP_SHAPES,
+    compute_winners,
     evaluate_single_car,
     evaluate_slide_for_cars,
     evaluate_with_llm,
     expected_car_in_text,
-    find_year_category_article,
     extract_all_slide_urls,
     extract_info_with_llm,
+    extract_kbb_stats,
     find_kbb_url_for_car,
-    has_stat_data,
-    is_truthy_flag,
+    find_year_category_article,
     make_failure_checkpoint,
     normalize_json_key,
     parse_task_config,
@@ -77,6 +78,8 @@ _cp3_kbb_urls: Dict[int, str] = {}
 _cp3_review_urls: Dict[int, str] = {}
 _cp3_web_contents: Dict[str, Any] = {}
 _cp3_car_infos: Dict[int, Dict[str, Any]] = {}
+_cp3_stat_matches: Dict[int, Dict[str, bool]] = {}
+_cp3_kbb_stats: Dict[int, Dict[str, float]] = {}
 
 
 def setup_presentation(workspace_doc_id):
@@ -113,22 +116,39 @@ def grade_checkpoint_1():
 
     # Step 1: Exact match on title text
     step_start = time.time()
-    title_text = extract_title_text(title_slide)
+    try:
+        title_text = extract_title_text(title_slide)
+    except Exception as e:
+        print(f"Warning: title extraction failed: {e}")
+        title_text = ""
+    try:
+        text_boxes = extract_text_boxes_from_slide(title_slide)
+    except Exception as e:
+        print(f"Warning: text box extraction failed: {e}")
+        text_boxes = []
+
     title_found = keyword_exact_match(title_text, EXPECTED_TITLE)
     font_big = False
-    text_boxes = extract_text_boxes_from_slide(title_slide)
 
-    for text_box in text_boxes:
-        # (#3) substring=True so titles wrapped in extra text still match
-        if keyword_exact_match(EXPECTED_TITLE, text_box.get('text', ''), substring=True):
-            if not title_found:
-                title_text = text_box.get('text', '')
-                title_found = True
-            # (#5) Only check font if title was found
-            element = text_box.get('element', {})
+    # Find all matching boxes; prefer placeholder-typed, else pick any match whose font meets 30pt.
+    matching_boxes = [
+        tb for tb in text_boxes
+        if keyword_exact_match(EXPECTED_TITLE, tb.get('text', ''), substring=True)
+    ]
+    if matching_boxes:
+        if not title_found:
+            title_text = matching_boxes[0].get('text', '')
+            title_found = True
+        placeholder_boxes = [
+            tb for tb in matching_boxes
+            if tb.get('element', {}).get('shape', {}).get('placeholder', {}).get('type', '') in ('TITLE', 'CENTERED_TITLE', 'SUBTITLE')
+        ]
+        for tb in (placeholder_boxes or matching_boxes):
+            element = tb.get('element', {})
             title_style = get_text_style_from_shape(element.get('shape', {}))
-            font_big = is_text_big(title_style, min_pt=30, element=element)
-            break
+            if is_text_big(title_style, min_pt=30, element=element):
+                font_big = True
+                break
 
     checkpoint.add_step("Title Match", title_found, 1,
                        f"Found exact title '{EXPECTED_TITLE}'" if title_found
@@ -163,10 +183,13 @@ def grade_checkpoint_2(browsing_history=None):
 
     # Step 1: Browsing history contains a visit to article
     step_start = time.time()
-    # (#6) Parameterized keywords from CATEGORY/YEAR
     article_url = ""
     if browsing_history:
-        article_url = find_year_category_article(browsing_history, YEAR, CATEGORY, model)
+        try:
+            article_url = find_year_category_article(browsing_history, YEAR, CATEGORY, model)
+        except Exception as e:
+            print(f"Warning: article-find failed: {e}")
+            article_url = ""
 
     checkpoint.add_step("Article Visit", bool(article_url), 1,
                        f"Browsing history contains visit to a valid article about best {CATEGORY}s: {article_url}" if bool(article_url)
@@ -190,14 +213,13 @@ def grade_checkpoint_2(browsing_history=None):
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
-    # (#8) Extract gold-car list from the article (was commented out in original)
+    # Extract gold-car list from the article
     gold_cars_list: List[str] = []
     if article_url:
         try:
-            article_content = fetch_page_text_content(article_url)
+            article_content = fetch_page_text_content(article_url, 1_000_000)
             article_text = article_content[0] if article_content else None
             if article_text:
-                article_truncated = article_text[:15000]
                 gold_task = f"""Extract the list of {YEAR} {CATEGORY} models discussed in the article.
 
 Respond ONLY with a JSON array of make/model name strings, e.g.:
@@ -206,7 +228,7 @@ Respond ONLY with a JSON array of make/model name strings, e.g.:
 Return [] if no {CATEGORY}s are mentioned.
 
 Article content:
-{article_truncated}"""
+{article_text}"""
                 extracted = extract_info_with_llm(gold_task, model)
                 if isinstance(extracted, list):
                     gold_cars_list = [str(c).strip() for c in extracted if str(c).strip()]
@@ -218,7 +240,7 @@ Article content:
         except Exception as e:
             print(f"Warning: gold-car extraction error: {e}")
 
-    # (#9, #10) Slide range [1:-1] excludes summary; use evaluate_slide_for_cars with gold list
+    # Slide range [1:-1] excludes summary slide; classify each via evaluate_slide_for_cars
     matched_cars = set()
     car_candidate_slides = slides[1:-1] if len(slides) >= 3 else slides[1:]
     for i, slide in enumerate(car_candidate_slides[:6]):
@@ -275,7 +297,7 @@ def grade_checkpoint_3(browsing_history=None):
          model = load_model(model_id)
 
      slides = presentation_data['slides']
-     # (#13) Exclude summary slide
+     # Exclude summary slide
      car_slides = slides[1:-1] if len(slides) >= 3 else []
 
      # Get slide dimensions for coverage calculation
@@ -287,7 +309,11 @@ def grade_checkpoint_3(browsing_history=None):
      print("Phase 1: Extracting car information from slides...")
      extract_tasks = []
      for idx, slide in enumerate(car_slides[:NUM_CARS]):
-         slide_text = extract_slide_text(slide, "\n")
+         try:
+             slide_text = extract_slide_text(slide, "\n")
+         except Exception as e:
+             print(f"Warning: slide-text extraction failed for slide {idx}: {e}")
+             slide_text = ""
          task_text = f"""Extract the following car information from this slide text.
 
  Respond ONLY with this exact JSON format:
@@ -311,9 +337,13 @@ def grade_checkpoint_3(browsing_history=None):
 
      car_infos = {}
      if extract_tasks:
-         car_infos = parallel_execute(extract_tasks)
+         try:
+             car_infos = parallel_execute(extract_tasks)
+         except Exception as e:
+             print(f"Warning: CP3 phase 1 (car-info extraction) failed: {e}")
+             car_infos = {}
 
-     # (#17) Fallback make/model extraction for slides where Phase 1 missed it
+     # Fallback make/model extraction for slides where Phase 1 missed it
      for idx, slide in enumerate(car_slides[:NUM_CARS]):
          car_info = car_infos.get(idx) or {}
          make_model = str(car_info.get("make_model", "") or "").strip()
@@ -323,7 +353,11 @@ def grade_checkpoint_3(browsing_history=None):
              except Exception as e:
                  print(f"Warning: make/model fallback title extraction error on slide {idx}: {e}")
                  title_text = ""
-             slide_text = extract_slide_text(slide, "\n") if not title_text else ""
+             try:
+                 slide_text = extract_slide_text(slide, "\n") if not title_text else ""
+             except Exception as e:
+                 print(f"Warning: slide-text extraction failed for slide {idx}: {e}")
+                 slide_text = ""
              if title_text or slide_text:
                  fallback_task = f"""Extract the make and model of the vehicle described on this slide.
 
@@ -337,7 +371,11 @@ Slide title:
 
 Slide text:
 {slide_text}"""
-                 fallback_result = extract_info_with_llm(fallback_task, model)
+                 try:
+                     fallback_result = extract_info_with_llm(fallback_task, model)
+                 except Exception as e:
+                     print(f"Warning: make/model fallback LLM failed on slide {idx}: {e}")
+                     fallback_result = None
                  if isinstance(fallback_result, dict):
                      fallback_make = str(fallback_result.get("make_model", "") or "").strip()
                  elif isinstance(fallback_result, str):
@@ -362,7 +400,7 @@ Slide text:
              if kbb_url:
                  kbb_urls[idx] = kbb_url
 
-         # (#19) extract_all_slide_urls catches plain-text URLs; pick_review_url prefers known review sites
+         # Catch plain-text URLs; prefer known review sites
          slide_links = extract_all_slide_urls(slide)
          review_url = pick_review_url(slide_links)
          if review_url:
@@ -378,21 +416,56 @@ Slide text:
              urls_to_fetch.add(review_urls[idx])
 
      web_content_tasks = [
-         {'id': url, 'func': fetch_with_fallbacks_extended, 'args': (url,)}
+         {'id': url, 'func': fetch_with_fallbacks_extended, 'args': (url, 1_000_000)}
          for url in urls_to_fetch
      ]
 
      web_contents = {}
      if web_content_tasks:
-         web_contents = parallel_download(web_content_tasks, max_workers=5, use_rate_limit=False)
+         try:
+             web_contents = parallel_download(web_content_tasks, max_workers=5, use_rate_limit=False)
+         except Exception as e:
+             print(f"Warning: CP3 phase 3 (web fetch) failed: {e}")
+             web_contents = {}
 
-     # (#21) Cache CP3 data for CP4 ground-truth validation
+     # Cache CP3 data for CP4 ground-truth validation
      _cp3_kbb_urls.update(kbb_urls)
      _cp3_review_urls.update(review_urls)
      _cp3_web_contents.update(web_contents)
      for idx, info in car_infos.items():
          if info:
              _cp3_car_infos[idx] = dict(info)
+
+     # Phase 3b: Extract numeric KBB stats per car (one LLM call per car; shared with CP4)
+     print("Phase 3b: Extracting numeric KBB stats per car...")
+     kbb_stats_tasks = []
+     for idx, kbb_url in kbb_urls.items():
+         kbb_result = web_contents.get(kbb_url)
+         if isinstance(kbb_result, tuple) and kbb_result:
+             kbb_text = kbb_result[0]
+         elif isinstance(kbb_result, str):
+             kbb_text = kbb_result
+         else:
+             kbb_text = None
+         if not kbb_text:
+             continue
+         make_model = str((car_infos.get(idx) or {}).get('make_model', '') or '').strip()
+         kbb_stats_tasks.append({
+             'id': idx,
+             'func': extract_kbb_stats,
+             'args': (kbb_text, make_model, model)
+         })
+
+     kbb_numeric_stats = {}
+     if kbb_stats_tasks:
+         try:
+             kbb_numeric_stats = parallel_execute(kbb_stats_tasks)
+         except Exception as e:
+             print(f"Warning: CP3 phase 3b (KBB stat extraction) failed: {e}")
+             kbb_numeric_stats = {}
+     for idx, stats in kbb_numeric_stats.items():
+         if stats:
+             _cp3_kbb_stats[idx] = stats
 
      # Phase 4: Download example images from KBB pages
      print("Phase 4: Downloading example images from KBB pages...")
@@ -410,15 +483,21 @@ Slide text:
          })
 
      if kbb_img_tasks:
-         parallel_execute(kbb_img_tasks)
+         try:
+             parallel_execute(kbb_img_tasks)
+         except Exception as e:
+             print(f"Warning: CP3 phase 4 (KBB image download) failed: {e}")
 
      # Remove empty example dirs (no images downloaded)
      for idx in list(kbb_example_dirs.keys()):
          example_dir = kbb_example_dirs[idx]
-         if not os.path.exists(example_dir) or not os.listdir(example_dir):
-             kbb_example_dirs.pop(idx)
-             if os.path.exists(example_dir):
-                 shutil.rmtree(example_dir)
+         try:
+             if not os.path.exists(example_dir) or not os.listdir(example_dir):
+                 kbb_example_dirs.pop(idx)
+                 if os.path.exists(example_dir):
+                     shutil.rmtree(example_dir)
+         except Exception as e:
+             print(f"Warning: example-dir cleanup failed for {example_dir}: {e}")
 
      # Phase 5: Download slide images in parallel
      print("Phase 5: Downloading slide images...")
@@ -427,7 +506,11 @@ Slide text:
      # Collect all image URLs with slide_idx and image_idx
      img_download_tasks = []
      for idx, slide in enumerate(car_slides[:NUM_CARS]):
-         images = extract_slide_images(slide, presentation_id, SLIDES_SERVICE)
+         try:
+             images = extract_slide_images(slide, presentation_id, SLIDES_SERVICE)
+         except Exception as e:
+             print(f"Warning: image extraction failed for slide {idx}: {e}")
+             images = []
          for img_idx, img_info in enumerate(images):
              if img_info['contentUrl']:
                  img_download_tasks.append({
@@ -438,7 +521,11 @@ Slide text:
 
      downloaded_images = {}
      if img_download_tasks:
-         downloaded_images = parallel_execute(img_download_tasks)
+         try:
+             downloaded_images = parallel_execute(img_download_tasks)
+         except Exception as e:
+             print(f"Warning: CP3 phase 5 (slide image download) failed: {e}")
+             downloaded_images = {}
 
      # Save downloaded images to temp dirs, grouped by slide index
      slide_image_dirs = {}  # car_idx -> temp_dir path
@@ -447,9 +534,13 @@ Slide text:
              continue
          slide_idx = int(task_id.split('_')[0])
          temp_dir = os.path.join(DATA_DIR, f"temp_car_{slide_idx}")
-         os.makedirs(temp_dir, exist_ok=True)
-         temp_path = os.path.join(temp_dir, f"temp_image_{task_id}.png")
-         img.save(temp_path)
+         try:
+             os.makedirs(temp_dir, exist_ok=True)
+             temp_path = os.path.join(temp_dir, f"temp_image_{task_id}.png")
+             img.save(temp_path)
+         except Exception as e:
+             print(f"Warning: failed to save image {task_id}: {e}")
+             continue
          slide_image_dirs[slide_idx] = temp_dir
 
      # Phase 6: Evaluate each car slide in parallel
@@ -457,34 +548,34 @@ Slide text:
 
      # Run all car evaluations in parallel
      eval_tasks = [
-         {'id': car_idx, 'func': evaluate_single_car, 'args': (car_idx, car_slides, step_names, car_infos, kbb_urls, review_urls, web_contents, browsing_history, slide_image_dirs, kbb_example_dirs, slide_width_emu, slide_height_emu, model, presentation_data)}
+         {'id': car_idx, 'func': evaluate_single_car, 'args': (car_idx, car_slides, step_names, car_infos, kbb_urls, review_urls, web_contents, browsing_history, slide_image_dirs, kbb_example_dirs, slide_width_emu, slide_height_emu, model, presentation_data, _cp3_stat_matches, _cp3_kbb_stats)}
          for car_idx in range(NUM_CARS)
      ]
-     car_results = parallel_execute(eval_tasks, max_workers=NUM_CARS)
+     try:
+         car_results = parallel_execute(eval_tasks, max_workers=NUM_CARS)
+     except Exception as e:
+         print(f"Warning: CP3 phase 6 (per-car evaluation) failed: {e}")
+         car_results = {}
 
      # Add steps to checkpoint in order (car 0 steps, then car 1 steps, etc.)
-     step_id = 1
+     step_id = 0
      for car_idx in range(NUM_CARS):
-         car_steps = car_results.get(car_idx, [])
-         if not car_steps:
-             # Fallback if parallel execution failed for this car
-             for name in step_names:
-                 checkpoint.add_step(f"Car {car_idx+1} - {name}", False, step_id,
-                                    "Evaluation failed", execution_time=0)
-                 step_id += 1
-         else:
-             for step in car_steps:
-                 checkpoint.add_step(step["name"], step["success"], step_id,
-                                    step["detail"], execution_time=step["execution_time"])
-                 step_id += 1
+         car_steps = car_results.get(car_idx) or [
+             {"name": f"Car {car_idx+1} - {name}", "success": False, "detail": "Evaluation failed", "execution_time": 0}
+             for name in step_names
+         ]
+         for step in car_steps:
+             step_id += 1
+             checkpoint.add_step(step["name"], step["success"], step_id,
+                                step["detail"], execution_time=step["execution_time"])
 
-     # Cleanup all temp image and example directories
-     for temp_dir in slide_image_dirs.values():
-         if temp_dir and os.path.exists(temp_dir):
-             shutil.rmtree(temp_dir)
-     for example_dir in kbb_example_dirs.values():
-         if example_dir and os.path.exists(example_dir):
-             shutil.rmtree(example_dir)
+     # Cleanup all temp image and example directories — a cleanup failure must not void the checkpoint
+     for cleanup_dir in list(slide_image_dirs.values()) + list(kbb_example_dirs.values()):
+         if cleanup_dir and os.path.exists(cleanup_dir):
+             try:
+                 shutil.rmtree(cleanup_dir)
+             except Exception as e:
+                 print(f"Warning: temp-dir cleanup failed for {cleanup_dir}: {e}")
 
      checkpoint.execution_time = time.time() - checkpoint_start
      return checkpoint
@@ -506,13 +597,7 @@ def grade_checkpoint_4():
      checkpoint_start = time.time()
      checkpoint = Checkpoint(total=5, result=0, name="Summary Slide")
 
-     summary_step_names = [
-         "Title Denotes Best Car Stats",
-         "Lowest Price Car",
-         "Highest MPG Car",
-         "Highest Horsepower Car",
-         "Most Highly Rated Car",
-     ]
+     summary_step_names = CP4_STEP_NAMES
 
      if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) < 3:
          for i, name in enumerate(summary_step_names, 1):
@@ -525,17 +610,29 @@ def grade_checkpoint_4():
 
      slides = presentation_data['slides']
      last_slide = slides[-1]
-     last_slide_text = extract_slide_text(last_slide)
+     try:
+         last_slide_text = extract_slide_text(last_slide)
+     except Exception as e:
+         print(f"Warning: last slide text extraction failed: {e}")
+         last_slide_text = ""
 
      # Step 1: The slide title denotes that the slide contains the best car stats
      step_start = time.time()
-     last_slide_title = extract_title_text(last_slide)
+     try:
+         last_slide_title = extract_title_text(last_slide)
+     except Exception as e:
+         print(f"Warning: last slide title extraction failed: {e}")
+         last_slide_title = ""
      title_denotes_best = False
      if last_slide_title.strip():
-         title_denotes_best = evaluate_with_llm(
-             f"Does this slide title indicate or imply that the slide contains the best car stats, best categories, top performers, or a summary/comparison of which cars performed best? Answer Yes for titles that reference 'best', 'top', 'winner', 'summary', 'comparison', 'stats by category', or similar.\n\nSlide title: {last_slide_title}",
-             model, return_type="bool"
-         )
+         try:
+             title_denotes_best = evaluate_with_llm(
+                 f"Does this slide title indicate or imply that the slide contains the best car stats, best categories, top performers, or a summary/comparison of which cars performed best? Answer Yes for titles that reference 'best', 'top', 'winner', 'summary', 'comparison', 'stats by category', or similar.\n\nSlide title: {last_slide_title}",
+                 model, return_type="bool"
+             )
+         except Exception as e:
+             print(f"Warning: title-denotes-best LLM failed: {e}")
+             title_denotes_best = False
      checkpoint.add_step("Title Denotes Best Car Stats", bool(title_denotes_best), 1,
                         f"Title '{last_slide_title}' denotes best car stats" if title_denotes_best
                         else f"Title '{last_slide_title}' does not denote best car stats",
@@ -545,7 +642,11 @@ def grade_checkpoint_4():
      car_slides = slides[1:-1] if len(slides) > 2 else []
      extract_tasks = []
      for idx, slide in enumerate(car_slides):
-         slide_text = extract_slide_text(slide, "\n")
+         try:
+             slide_text = extract_slide_text(slide, "\n")
+         except Exception as e:
+             print(f"Warning: slide-text extraction failed for slide {idx}: {e}")
+             slide_text = ""
          task_text = f"""Extract numerical car stats from this slide text.
 
  Respond ONLY with JSON:
@@ -567,38 +668,26 @@ def grade_checkpoint_4():
 
      car_stats = {}
      if extract_tasks:
-         car_stats = parallel_execute(extract_tasks)
+         try:
+             car_stats = parallel_execute(extract_tasks)
+         except Exception as e:
+             print(f"Warning: CP4 car-stats parallel execute failed: {e}")
+             car_stats = {}
 
-     # (#38, #39) Fetch KBB and review ground-truth stats from CP3-cached content
-     kbb_stats = {}
-     for idx, kbb_url in _cp3_kbb_urls.items():
-         kbb_result = _cp3_web_contents.get(kbb_url)
-         kbb_text = kbb_result[0] if kbb_result else None
-         if not kbb_text:
-             continue
-         kbb_text_capped = kbb_text[:15000]
-         kbb_task = f"""Extract numerical car stats from this KBB page text.
-
- Respond ONLY with JSON:
- {{
-     "price_numeric": <starting MSRP price as number, 0 if not found>,
-     "mpg_numeric": <combined fuel efficiency as number, 0 if not found>,
-     "hp_numeric": <horsepower as number, 0 if not found>
- }}
-
- KBB page content:
- {kbb_text_capped}"""
-         result = extract_info_with_llm(kbb_task, model)
-         if result:
-             kbb_stats[idx] = result
+     # KBB numeric stats already extracted in CP3 phase 3b
+     kbb_stats = dict(_cp3_kbb_stats)
 
      review_stats = {}
      for idx, review_url in _cp3_review_urls.items():
          review_result = _cp3_web_contents.get(review_url)
-         review_text = review_result[0] if review_result else None
+         if isinstance(review_result, tuple) and review_result:
+             review_text = review_result[0]
+         elif isinstance(review_result, str):
+             review_text = review_result
+         else:
+             review_text = None
          if not review_text:
              continue
-         review_text_capped = review_text[:15000]
          review_task = f"""Extract user-rating data from this review page text.
 
  Distinguish a community/consumer aggregate from an editorial single-reviewer score:
@@ -615,97 +704,25 @@ def grade_checkpoint_4():
  }}
 
  Review page content:
- {review_text_capped}"""
-         result = extract_info_with_llm(review_task, model)
+ {review_text}"""
+         try:
+             result = extract_info_with_llm(review_task, model)
+         except Exception as e:
+             print(f"Warning: CP4 review extraction failed for car {idx}: {e}")
+             result = None
          if result:
              review_stats[idx] = result
 
-     # Determine correct winners for each category
-     # Prefer KBB ground-truth for price/MPG/HP; review-platform for rating; fall back to slide values
-     lowest_price = {"name": "", "value": float('inf')}
-     highest_mpg = {"name": "", "value": 0}
-     highest_hp = {"name": "", "value": 0}
-     highest_rating = {"name": "", "value": 0}
-
-     # (#43) Union iteration so KBB/review-only data contributes
      contributing_indices = sorted(
          set(car_stats.keys()) | set(kbb_stats.keys()) | set(review_stats.keys())
      )
-     for idx in contributing_indices:
-         stats = car_stats.get(idx) or {}
-         kbb_for_car = kbb_stats.get(idx) or {}
-         review_for_car = review_stats.get(idx) or {}
-         if not stats and not kbb_for_car and not review_for_car:
-             continue
+     winners = compute_winners(contributing_indices, car_stats, kbb_stats, review_stats, _cp3_car_infos, _cp3_stat_matches)
+     lowest_price = winners["lowest_price"]
+     highest_mpg = winners["highest_mpg"]
+     highest_hp = winners["highest_hp"]
+     highest_rating = winners["highest_rating"]
 
-         name = stats.get('make_model', '') or ''
-         # (#42) Fallback to CP3 car info if CP4 extraction missed the name
-         if not name.strip():
-             cp3_info = _cp3_car_infos.get(idx) or {}
-             name = str(cp3_info.get('make_model', '') or '').strip()
-         if not name.strip():
-             continue
-
-         # Prefer KBB values over slide values for price/MPG/HP
-         slide_price = stats.get('price_numeric', 0) or 0
-         slide_mpg = stats.get('mpg_numeric', 0) or 0
-         slide_hp = stats.get('hp_numeric', 0) or 0
-         slide_rating = stats.get('rating_numeric', 0) or 0
-         price = kbb_for_car.get('price_numeric') or slide_price or 0
-         mpg = kbb_for_car.get('mpg_numeric') or slide_mpg or 0
-         hp = kbb_for_car.get('hp_numeric') or slide_hp or 0
-
-         # Prefer review-platform aggregate rating
-         review_rating_is_aggregate = is_truthy_flag(review_for_car.get('is_aggregate')) and review_for_car.get('rating_numeric')
-         if review_rating_is_aggregate:
-             rating = review_for_car.get('rating_numeric')
-         else:
-             plausible_candidates: List[float] = []
-             for c in (review_for_car.get('candidates') or []):
-                 try:
-                     v = float(c)
-                     if 0 < v <= 10:
-                         plausible_candidates.append(v)
-                 except (ValueError, TypeError):
-                     continue
-             if plausible_candidates:
-                 plausible_candidates.sort()
-                 rating = plausible_candidates[len(plausible_candidates) // 2]
-             elif slide_rating:
-                 rating = slide_rating
-             else:
-                 rating = 0
-
-         # (#40) Plausibility bounds to filter hallucinated values
-         try:
-             price = float(price)
-             if 3_000 <= price <= 5_000_000 and price < lowest_price["value"]:
-                 lowest_price = {"name": name, "value": price}
-         except (ValueError, TypeError):
-             pass
-
-         try:
-             mpg = float(mpg)
-             if 3 <= mpg <= 500 and mpg > highest_mpg["value"]:
-                 highest_mpg = {"name": name, "value": mpg}
-         except (ValueError, TypeError):
-             pass
-
-         try:
-             hp = float(hp)
-             if 50 <= hp <= 3_000 and hp > highest_hp["value"]:
-                 highest_hp = {"name": name, "value": hp}
-         except (ValueError, TypeError):
-             pass
-
-         try:
-             rating = float(rating)
-             if 0 < rating <= 10 and rating > highest_rating["value"]:
-                 highest_rating = {"name": name, "value": rating}
-         except (ValueError, TypeError):
-             pass
-
-     # (#35, #41) Extract winner names from summary slide, then compare programmatically
+     # Extract winner names from summary slide, then compare programmatically
      step_start = time.time()
      last_slide_title_capped = (last_slide_title or "")[:500]
      last_slide_text_capped = (last_slide_text or "")[:8000]
@@ -730,7 +747,11 @@ Respond ONLY with this JSON:
     "highest_horsepower": "<make and model>",
     "highest_rating": "<make and model>"
 }}"""
-     summary_winners = extract_info_with_llm(winner_prompt, model) or {}
+     try:
+         summary_winners = extract_info_with_llm(winner_prompt, model) or {}
+     except Exception as e:
+         print(f"Warning: winner extraction LLM failed: {e}")
+         summary_winners = {}
      _normalized_winners = {normalize_json_key(k): v for k, v in summary_winners.items()}
      step_elapsed = time.time() - step_start
 
@@ -756,7 +777,7 @@ Respond ONLY with this JSON:
              correct_winner = False
              detail = f"Summary slide did not list a car for {step_name} (expected '{expected_car}')"
          else:
-             correct_winner = expected_car_in_text(listed_car, expected_car)
+             correct_winner = expected_car_in_text(listed_car, expected_car, CATEGORY)
              detail = (f"The correct car '{expected_car}' is listed for {step_name}"
                        if correct_winner
                        else f"Slide listed '{listed_car}' for {step_name} (expected '{expected_car}')")
@@ -767,17 +788,19 @@ Respond ONLY with this JSON:
      return checkpoint
 
 
-# (#45, #46) Per-checkpoint exception isolation with full-shape failure checkpoints
+# Per-checkpoint exception isolation with full-shape failure checkpoints
 def grade_checkpoints(workspace_doc_id: str, cached_models: Dict[str, Any] = None, browsing_history: List[str] = None):
     total_start = time.time()
     checkpoints: List[Checkpoint] = []
 
-    # (#44) Reset cross-checkpoint caches
-    global model, _cp3_kbb_urls, _cp3_review_urls, _cp3_web_contents, _cp3_car_infos
+    # Reset cross-checkpoint caches
+    global model, _cp3_kbb_urls, _cp3_review_urls, _cp3_web_contents, _cp3_car_infos, _cp3_stat_matches, _cp3_kbb_stats
     _cp3_kbb_urls = {}
     _cp3_review_urls = {}
     _cp3_web_contents = {}
     _cp3_car_infos = {}
+    _cp3_stat_matches = {}
+    _cp3_kbb_stats = {}
 
     if cached_models and model_id in cached_models:
         model = cached_models[model_id]
