@@ -294,8 +294,8 @@
       "expected_new_papers": 3
     },
     {
-      "original_paper_title": "PerturBench - Benchmarking ML for Cellular Perturbation",
-      "original_paper_arxiv_id": null,
+      "original_paper_title": "PerturBench: Benchmarking Machine Learning Models for Cellular Perturbation Analysis",
+      "original_paper_arxiv_id": "2408.10609",
       "first_authors": [
         "Yan Wu"
       ],

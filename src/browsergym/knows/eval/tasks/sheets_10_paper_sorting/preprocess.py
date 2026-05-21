@@ -430,34 +430,32 @@ def discover_new_papers_for_entry(entry: Dict, skip_scholar: bool = False, model
             }
             new_papers.append(paper)
 
-    # Path B: Direct arXiv URLs (fallback or when no gscholar)
-    elif entry['direct_paper_links']:
-        print(f"    Using direct arXiv links for: {original_title[:40]}...")
-
-        for arxiv_url in entry['direct_paper_links']:
-            arxiv_id = extract_arxiv_id_from_url(arxiv_url)
-            if not arxiv_id:
-                print(f"      Could not extract ID from: {arxiv_url}")
-                continue
-
-            if arxiv_id in seen_arxiv_ids:
-                continue
-            seen_arxiv_ids.add(arxiv_id)
-
-            metadata = fetch_arxiv_metadata(arxiv_id)
-            if metadata:
+    # Path B: No gscholar — search arXiv by author name and include all results
+    else:
+        print(f"    No gscholar for: {original_title[:40]}...")
+        print(f"    Searching arXiv by author name directly")
+        for author_name in entry['first_authors']:
+            print(f"      Searching arXiv for author: {author_name}...")
+            arxiv_papers = search_arxiv_by_author(author_name, max_results=500, first_author_only=first_author_only)
+            for p in arxiv_papers:
+                arxiv_id = p['arxiv_id']
+                if arxiv_id in seen_arxiv_ids:
+                    continue
+                # Skip the original paper itself
+                if arxiv_id == entry.get('original_paper_arxiv_id'):
+                    continue
+                seen_arxiv_ids.add(arxiv_id)
                 paper = {
-                    **metadata,
-                    'first_author_normalized': normalize_author_name(metadata['first_author']),
-                    'source': 'direct_link',
+                    **p,
+                    'first_author_normalized': normalize_author_name(p.get('authors', [''])[0]),
+                    'source': 'arxiv_author_search',
                     'associated_original_paper': original_title,
                     'associated_first_authors': entry['first_authors'],
                     'figure_1_path': None,
                 }
                 new_papers.append(paper)
-                print(f"      Fetched: {arxiv_id} - {metadata['title'][:40]}...")
-
-            time.sleep(3)
+            print(f"      Added {len(new_papers)} papers from arXiv author search")
+            time.sleep(0.5)
 
     return new_papers
 

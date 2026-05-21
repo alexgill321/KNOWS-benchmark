@@ -10,16 +10,18 @@
         "kimi team"
       ],
       "gscholar_urls": [],
-      "new_papers_count": 3,
+      "new_papers_count": 4,
       "new_paper_arxiv_ids": [
         "2510.26692",
         "2504.07491",
-        "2501.12599"
+        "2501.12599",
+        "2602.02276"
       ],
       "new_paper_titles": [
         "Kimi Linear: An Expressive, Efficient Attention Architecture",
         "Kimi-VL Technical Report",
-        "Kimi k1.5: Scaling Reinforcement Learning with LLMs"
+        "Kimi k1.5: Scaling Reinforcement Learning with LLMs",
+        "Kimi K2.5: Visual Agentic Intelligence"
       ],
       "expected_new_papers": 3
     },
@@ -38,7 +40,7 @@
         "https://scholar.google.com/citations?user=EIy0uooAAAAJ&hl=en&oi=sra",
         "https://scholar.google.com/citations?user=_8s9f44AAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 11,
+      "new_papers_count": 12,
       "new_paper_arxiv_ids": [
         "2406.11944",
         "2007.02414",
@@ -50,7 +52,8 @@
         "2503.09576",
         "2506.04360",
         "2410.13879",
-        "2312.16291"
+        "2312.16291",
+        "2605.09160"
       ],
       "new_paper_titles": [
         "Transcoders Find Interpretable LLM Feature Circuits",
@@ -63,7 +66,8 @@
         "Manify: A Python Library for Learning Non-Euclidean Representations",
         "Even Faster Hyperbolic Random Forests: A Beltrami-Klein Wrapper Approach",
         "Mixed-curvature decision trees and random forests",
-        "Observable Propagation: Uncovering Feature Vectors in Transformers"
+        "Observable Propagation: Uncovering Feature Vectors in Transformers",
+        "Objective-Specific Privileged Bases via Full-Prefix Matryoshka Learning"
       ],
       "expected_new_papers": 3
     },
@@ -79,7 +83,7 @@
       "gscholar_urls": [
         "https://scholar.google.com/citations?user=ccxOv_QAAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 36,
+      "new_papers_count": 38,
       "new_paper_arxiv_ids": [
         "2501.09405",
         "2501.06482",
@@ -116,7 +120,9 @@
         "2602.00931",
         "2510.00678",
         "2506.15753",
-        "2511.20836"
+        "2511.20836",
+        "2605.11328",
+        "2605.03214"
       ],
       "new_paper_titles": [
         "Artificial Intelligence, Ambient Backscatter Communication and Non-Terrestrial Networks: A 6G Commixture",
@@ -154,7 +160,9 @@
         "Continuous-Utility Direct Preference Optimization",
         "Net-Zero 6G from Earth to Orbit: Sustainable Design of Integrated Terrestrial and Non-Terrestrial Networks",
         "QPPG: Quantum-Preconditioned Policy Gradient for Link Adaptation in Rayleigh Fading Channels",
-        "Structured Prompts Improve Evaluation of Language Models"
+        "Structured Prompts Improve Evaluation of Language Models",
+        "Epistemic Uncertainty for Test-Time Discovery",
+        "Canonical Optimization for MIMO MAC Design"
       ],
       "expected_new_papers": 3
     },
@@ -221,7 +229,7 @@
       "gscholar_urls": [
         "https://scholar.google.com/citations?user=UO0MJeQAAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 12,
+      "new_papers_count": 18,
       "new_paper_arxiv_ids": [
         "2405.09719",
         "2405.02750",
@@ -234,7 +242,13 @@
         "2310.15513",
         "2602.06130",
         "2602.07080",
-        "2506.11244"
+        "2506.11244",
+        "2009.13312",
+        "2010.06294",
+        "2205.04602",
+        "2208.14559",
+        "2204.00350",
+        "2210.12553"
       ],
       "new_paper_titles": [
         "Spectral Editing of Activations for Large Language Model Alignment",
@@ -248,7 +262,13 @@
         "A Joint Matrix Factorization Analysis of Multilingual Representations",
         "Self-Improving World Modelling with Latent Actions",
         "CodeCircuit: Toward Inferring LLM-Generated Code Correctness via Attribution Graphs",
-        "Iterative Multilingual Spectral Attribute Erasure"
+        "Iterative Multilingual Spectral Attribute Erasure",
+        "Reducing Quantity Hallucinations in Abstractive Summarization",
+        "Extending Implicit Discourse Relation Recognition to the PDTB-3",
+        "A Unified Model for Reverse Dictionary and Definition Modelling",
+        "To Adapt or to Fine-tune: A Case Study on Abstractive Summarization",
+        "Revisiting Shallow Discourse Parsing in the PDTB-3: Handling Intra-sentential Implicits",
+        "Understanding Domain Learning in Language Models Through Subpopulation Analysis"
       ],
       "expected_new_papers": 3
     },
@@ -267,7 +287,7 @@
         "https://scholar.google.com/citations?user=7w0xLF4AAAAJ&hl=en&oi=sra",
         "https://scholar.google.com/citations?user=msRx3NwAAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 20,
+      "new_papers_count": 24,
       "new_paper_arxiv_ids": [
         "2209.15162",
         "2310.08744",
@@ -288,7 +308,11 @@
         "2602.10067",
         "2602.02315",
         "2508.02527",
-        "2604.28119"
+        "2604.28119",
+        "2605.05115",
+        "2605.12412",
+        "2605.01148",
+        "2510.24256"
       ],
       "new_paper_titles": [
         "Linearly Mapping from Image to Text Space",
@@ -310,7 +334,11 @@
         "Features as Rewards: Scalable Supervision for Open-Ended Tasks via Interpretability",
         "The Shape of Beliefs: Geometry, Dynamics, and Interventions along Representation Manifolds of Language Models' Posteriors",
         "I Have No Mouth, and I Must Rhyme: Uncovering Internal Phonetic Representations in LLaMA 3.2",
-        "Do Sparse Autoencoders Capture Concept Manifolds?"
+        "Do Sparse Autoencoders Capture Concept Manifolds?",
+        "Manifold Steering Reveals the Shared Geometry of Neural Network Representation and Behavior",
+        "Stories in Space: In-Context Learning Trajectories in Conceptual Belief Space",
+        "Arithmetic in the Wild: Llama uses Base-10 Addition to Reason About Cyclic Concepts",
+        "From Memorization to Reasoning in the Spectrum of Loss Curvature"
       ],
       "expected_new_papers": 3
     },
@@ -329,7 +357,7 @@
         "https://scholar.google.com/citations?user=Iu6nUEkAAAAJ&hl=en&oi=sra",
         "https://scholar.google.com/citations?user=CRfOlOEAAAAJ&hl=en&oi=sra"
       ],
-      "new_papers_count": 22,
+      "new_papers_count": 47,
       "new_paper_arxiv_ids": [
         "2505.15117",
         "2406.11709",
@@ -352,7 +380,32 @@
         "2602.15012",
         "2601.02702",
         "2603.05909",
-        "2601.09667"
+        "2601.09667",
+        "2503.05777",
+        "2504.21035",
+        "2406.15948",
+        "2210.11658",
+        "2505.03054",
+        "2511.07317",
+        "2201.13305",
+        "2211.07628",
+        "2204.13261",
+        "2311.02310",
+        "2305.13993",
+        "2305.19759",
+        "2512.05145",
+        "2505.21757",
+        "2311.15954",
+        "2506.06589",
+        "2604.08525",
+        "2210.03221",
+        "2602.03183",
+        "2209.12702",
+        "2605.11388",
+        "2605.03871",
+        "2604.17283",
+        "2410.02677",
+        "2404.06664"
       ],
       "new_paper_titles": [
         "An Empirical Study on Reinforcement Learning for Reasoning-Search Interleaved LLM Agents",
@@ -376,11 +429,36 @@
         "Cold-Start Personalization via Training-Free Priors from Structured World Models",
         "MultiSessionCollab: Learning User Preferences with Memory to Improve Long-Term Collaboration",
         "InfoGatherer: Principled Information Seeking via Evidence Retrieval and Strategic Questioning",
-        "Collaborative Multi-Agent Test-Time Reinforcement Learning for Reasoning"
+        "Collaborative Multi-Agent Test-Time Reinforcement Learning for Reasoning",
+        "Medical Hallucinations in Foundation Models and Their Impact on Healthcare",
+        "A False Sense of Privacy: Evaluating Textual Data Sanitization Beyond Surface-level Privacy Leakage",
+        "Teaching LLMs to Abstain across Languages via Multilingual Feedback",
+        "A New Approach to Extract Fetal Electrocardiogram Using Affine Combination of Adaptive Filters",
+        "BLAB: Brutally Long Audio Bench",
+        "RLVE: Scaling Up Reinforcement Learning for Language Models with Adaptive Verifiable Environments",
+        "Optimizing LLVM Pass Sequences with Shackleton: A Linear Genetic Programming Framework",
+        "Language Agnostic Code-Mixing Data Augmentation by Predicting Linguistic Patterns",
+        "Genetic Improvement in the Shackleton Framework for Optimizing LLVM Pass Sequences",
+        "Narrowing the Gap between Zero- and Few-shot Machine Translation by Matching Styles",
+        "Condensing Multilingual Knowledge with Lightweight Language-Specific Modules",
+        "Simple yet Effective Code-Switching Language Identification with Multitask Pre-Training and Transfer Learning",
+        "Self-Improving VLM Judges Without Human Annotations",
+        "BehaviorSFT: Behavioral Token Conditioning for Clinical Agents Across the Proactivity Spectrum",
+        "A Quantitative Approach to Understand Self-Supervised Models as Cross-lingual Feature Extractors",
+        "Precise Information Control in Long-Form Text Generation",
+        "Ads in AI Chatbots? An Analysis of How Large Language Models Navigate Conflicts of Interest",
+        "PQLM -- Multilingual Decentralized Portable Quantum Language Model for Privacy Protection",
+        "Privasis: Synthesizing the Largest \"Public\" Private Dataset from Scratch",
+        "End-to-End Lyrics Recognition with Self-supervised Learning",
+        "Deep Reasoning in General Purpose Agents via Structured Meta-Cognition",
+        "EvoLM: Self-Evolving Language Models through Co-Evolved Discriminative Rubrics",
+        "HorizonBench: Long-Horizon Personalization with Evolving Preferences",
+        "CulturalBench: A Robust, Diverse, and Challenging Cultural Benchmark by Human-AI CulturalTeaming",
+        "CulturalTeaming: AI-Assisted Interactive Red-Teaming for Challenging LLMs' (Lack of) Multicultural Knowledge"
       ],
       "expected_new_papers": 3
     }
   ],
   "count": 7,
-  "generated_at": "2026-05-05T19:50:18.752824"
+  "generated_at": "2026-05-20T18:52:03.970580"
 }

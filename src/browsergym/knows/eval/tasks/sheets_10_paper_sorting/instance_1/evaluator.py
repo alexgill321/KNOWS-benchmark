@@ -493,13 +493,13 @@ def grade_checkpoint_1():
 
     # Required columns with keywords for matching
     required_columns = [
-        ("Title", ["title", "paper", "name"]),
+        ("Title", ["title", "paper title", "paper name", "name"]),
         ("Authors", ["author", "authors", "by"]),
         ("Abstract", ["abstract", "summary"]),
-        ("arXiv Link", ["arxiv", "link", "url"]),
-        ("Drive Link", ["drive", "pdf", "file", "google"]),
-        ("Figure 1", ["figure 1", "figure", "fig", "image", "screenshot"]),
-        ("New Papers", ["new", "checkbox", "added", "new paper"])
+        ("arXiv Link", ["arxiv", "arxiv link", "arxiv url", "paper link", "link", "url"]),
+        ("Drive Link", ["drive link", "drive pdf link", "pdf link", "drive pdf", "drive", "pdf", "google drive"]),
+        ("Figure 1", ["figure 1", "figure", "fig", "fig 1", "image", "screenshot"]),
+        ("New Papers", ["new paper", "new", "checkbox", "added", "is new"])
     ]
 
     original_columns = [str(col) for col in df.columns]
@@ -641,7 +641,8 @@ def grade_checkpoint_2():
             'has_keyword': gold.get('has_chain_of_thought', gold.get('has_keyword', False)),
             'keyword_evaluated': gold.get('keyword_evaluated', True),
             'has_figure': bool(gold.get('figure_1_path')),
-            'is_new_paper': False
+            'is_new_paper': False,
+            'sheet_row': matched_row.name + 1  # +1 for header row
         })
 
         # Step 2: Validate each column of the matched row
@@ -872,6 +873,9 @@ def grade_checkpoint_3():
                 user_title = str(row.get(title_col, '')).lower().strip()
                 if user_title in original_titles_normalized:
                     continue
+                # Fuzzy fallback for special characters (e.g. Λ vs L)
+                if any(fuzzy_match_text(user_title, orig, threshold=90)[0] for orig in original_titles_normalized):
+                    continue
 
             # Also skip by arXiv ID if available
             arxiv_col = matched_columns.get('arXiv Link')
@@ -894,7 +898,7 @@ def grade_checkpoint_3():
             papers_with_enough_new += 1
             details.append(f"{original_title[:30]}...: {matching_new_papers}/{expected_new} OK")
         else:
-            details.append(f"{original_title[:30]}...: {matching_new_papers}/{expected_new} MISSING")
+            details.append(f"{original_title[:30]}...: found {matching_new_papers}, need {expected_new}")
 
     step_time = time.time() - checkpoint_start
 
@@ -905,12 +909,12 @@ def grade_checkpoint_3():
     if papers_with_enough_new == N:
         checkpoint.add_step("Paper Coverage", True, 1,
                           f"All {N} original papers have ≥3 new papers from their first authors",
-                          execution_time=step_time)
+                          score=0, execution_time=step_time)
     else:
         checkpoint.add_step("Paper Coverage", False, 1,
                           f"{papers_with_enough_new}/{N} original papers have enough new papers. "
                           f"Missing: {'; '.join(missing)}",
-                          execution_time=step_time)
+                          score=0, execution_time=step_time)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -989,6 +993,9 @@ def grade_checkpoint_4():
         if title_col:
             user_title = str(row.get(title_col, '')).lower().strip()
             if user_title in original_titles_normalized:
+                continue
+            # Fuzzy fallback for special characters (e.g. Λ vs L)
+            if any(fuzzy_match_text(user_title, orig, threshold=90)[0] for orig in original_titles_normalized):
                 continue
 
         # Also skip by arXiv ID if available
@@ -1106,7 +1113,8 @@ def grade_checkpoint_4():
             'has_keyword': gold.get('has_chain_of_thought', gold.get('has_keyword', False)),
             'keyword_evaluated': gold.get('keyword_evaluated', True),
             'has_figure': bool(gold.get('figure_1_path')),
-            'is_new_paper': True
+            'is_new_paper': True,
+            'sheet_row': row_idx + 1  # +1 for header row
         })
 
         # Validate each column of the matched row against gold data
@@ -1338,17 +1346,19 @@ def grade_checkpoint_5():
     yellow_count = len(yellow_rows)
 
     if len(evaluated_papers) > 0 and expected_yellow > 0:
-        # Check both: enough yellow rows AND no extra yellow rows
-        yellow_correct = min(yellow_count, expected_yellow)
-        has_extras = yellow_count > expected_yellow
-        highlight_score = int(yellow_correct / expected_yellow * 10)
-        if has_extras:
-            highlight_score = max(0, highlight_score - (yellow_count - expected_yellow))
+        # Check which specific rows should be yellow vs which are yellow
+        expected_yellow_rows = set(p.get('sheet_row') for p in keyword_positive if p.get('sheet_row') is not None)
+        actual_yellow_rows = set(yellow_rows)
+        correctly_yellow = len(expected_yellow_rows & actual_yellow_rows)
+        extra_yellow = len(actual_yellow_rows - expected_yellow_rows)
+        highlight_score = int(correctly_yellow / expected_yellow * 10)
+        if extra_yellow > 0:
+            highlight_score = max(0, highlight_score - extra_yellow)
         checkpoint.result += highlight_score
-        msg = f"{yellow_count} yellow rows (expected {expected_yellow}, {highlight_score}/10)"
-        if has_extras:
-            msg += f" — {yellow_count - expected_yellow} extra yellow rows"
-        checkpoint.add_step("Yellow Highlighting", yellow_count == expected_yellow, 1,
+        msg = f"{correctly_yellow}/{expected_yellow} correct yellow rows ({highlight_score}/10)"
+        if extra_yellow > 0:
+            msg += f" — {extra_yellow} extra yellow rows"
+        checkpoint.add_step("Yellow Highlighting", correctly_yellow == expected_yellow and extra_yellow == 0, 1,
                           msg, execution_time=time.time() - step_start)
     elif len(evaluated_papers) > 0 and expected_yellow == 0:
         # No yellow expected — penalize if there are any yellow rows
