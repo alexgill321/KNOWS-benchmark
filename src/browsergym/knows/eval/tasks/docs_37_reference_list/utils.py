@@ -19,22 +19,17 @@ from src.browsergym.knows.eval.eval_utils.text_utils import (
 )
 from src.browsergym.knows.eval.eval_utils.web_utils import fetch_page_title
 
-# Dark green 2 RGB values as seen in Google Docs API (approx #38761D)
-DARK_GREEN_2_RGB = {"red": 0.2196, "green": 0.4627, "blue": 0.1137}
-# Dark cyan 1 RGB values as seen in Google Docs API (approx #007074)
-DARK_CYAN_1_RGB = {"red": 0.0, "green": 0.439, "blue": 0.455}
+# Dark green 2 RGB values as seen in Google Docs API 
+DARK_GREEN_2_RGB = {"red": 0.219, "green": 0.463, "blue": 0.113}
+# Dark cyan 1 RGB values as seen in Google Docs API 
+DARK_CYAN_1_RGB = {"red": 0.270, "green": 0.506, "blue": 0.557}
+# Light magenta 1 RGB values as seen in Google Docs API 
+LIGHT_MAGENTA_1_RGB = {"red": 0.760, "green": 0.4824, "blue": 0.6275}
+# Dark yellow 1 RGB values as seen in Google Docs API 
+DARK_YELLOW_1_RGB = {"red": 0.945, "green": 0.761, "blue": 0.196}
+# Dark purple 1 RGB values as seen in Google Docs API 
+DARK_PURPLE_1_RGB = {"red": 0.4039, "green": 0.3059, "blue": 0.6549}
 COLOR_TOLERANCE = 0.03
-
-# Valid reference categories
-VALID_CATEGORIES = {
-    "Academic Articles",
-    "Textbooks",
-    "Blogs",
-    "Code Implementations",
-    "Tutorials",
-    "Wikipedia",
-    "Presentations",
-}
 
 
 def iter_paragraphs(document):
@@ -112,6 +107,54 @@ def is_dark_cyan_1(text_style):
     return colors_are_similar(fg, DARK_CYAN_1_RGB, tolerance=COLOR_TOLERANCE)
 
 
+def is_light_magenta_1(text_style):
+    """Check if a textStyle's foregroundColor matches light magenta 1.
+
+    Args:
+        text_style (dict): The textStyle dict from a textRun.
+
+    Returns:
+        bool: True if the color matches light magenta 1 within tolerance.
+    """
+    fg = text_style.get("foregroundColor", {}).get("color", {}).get("rgbColor", {})
+    if not fg:
+        return False
+
+    return colors_are_similar(fg, LIGHT_MAGENTA_1_RGB, tolerance=COLOR_TOLERANCE)
+
+
+def is_dark_yellow_1(text_style):
+    """Check if a textStyle's foregroundColor matches dark yellow 1.
+
+    Args:
+        text_style (dict): The textStyle dict from a textRun.
+
+    Returns:
+        bool: True if the color matches dark yellow 1 within tolerance.
+    """
+    fg = text_style.get("foregroundColor", {}).get("color", {}).get("rgbColor", {})
+    if not fg:
+        return False
+
+    return colors_are_similar(fg, DARK_YELLOW_1_RGB, tolerance=COLOR_TOLERANCE)
+
+
+def is_dark_purple_1(text_style):
+    """Check if a textStyle's foregroundColor matches dark purple 1.
+
+    Args:
+        text_style (dict): The textStyle dict from a textRun.
+
+    Returns:
+        bool: True if the color matches dark purple 1 within tolerance.
+    """
+    fg = text_style.get("foregroundColor", {}).get("color", {}).get("rgbColor", {})
+    if not fg:
+        return False
+
+    return colors_are_similar(fg, DARK_PURPLE_1_RGB, tolerance=COLOR_TOLERANCE)
+
+
 def parse_slide_numbers(text):
     """Extract slide numbers from text like ' Slide: 6, 7'.
 
@@ -186,24 +229,31 @@ def extract_headings_with_bookmarks(document):
 
 
 def extract_bullet_sections(document):
-    """Extract all bullet list sections grouped by lecture and category.
+    """Extract reference category sections grouped by lecture.
 
-    Walks the document paragraphs, tracking the current lecture (any heading
-    style or M/D-formatted paragraph) and category (nesting-level-0 bullet).
-    Returns a list of section dicts, each representing one category under
-    one lecture.
+    Walks the document section by section: a heading-styled (or M/D-formatted)
+    non-bullet paragraph starts a new lecture. Within a lecture, every non-empty
+    non-link line starts a new category block, and the hyperlink lines that
+    follow it become that block's items.
+
+    A category block is created from ANY non-link line — bulleted or not — so a
+    category header that is missing its bullet (or otherwise malformed) still
+    yields a section whose links can be evaluated. The `category_is_bold` and
+    `category_is_bullet` flags capture the header's actual formatting so the
+    format-checking steps can report what is wrong.
 
     Args:
         document (dict): Full Google Docs API document response.
 
     Returns:
-        list[dict]: List of dicts with keys:
-            - lecture (str): The lecture heading text.
-            - category (str): The category title text (e.g. "Academic Articles").
-            - category_is_bold (bool): Whether the category title is bold.
-            - items (list[dict]): List of link items in this section, each with:
-                - text (str): Full text of the bullet item.
-                - has_link (bool): Whether the item contains a hyperlink.
+        list[dict]: One dict per category block, with keys:
+            - lecture (str): The parent lecture heading text.
+            - category (str): The category header text (e.g. "Academic Articles").
+            - category_is_bold (bool): Whether the category header text is bold.
+            - category_is_bullet (bool): Whether the category header is a bullet.
+            - items (list[dict]): Link items in this block, each with:
+                - text (str): Full text of the link line.
+                - has_link (bool): Always True (only hyperlink lines are items).
     """
     sections = []
     current_lecture = None
@@ -213,68 +263,59 @@ def extract_bullet_sections(document):
         paragraph = info["paragraph"]
         bullet = info["bullet"]
 
-        # Detect lecture boundary: any heading style or M/D-formatted non-bullet paragraph
-        if not bullet and (info["style_type"].startswith("HEADING") or matches_lecture_title_format(get_paragraph_text(paragraph))):
-            # Save previous section if exists
+        # Section boundary: a heading-styled (or M/D-formatted) non-bullet
+        # paragraph starts a new lecture.
+        if not bullet and (info["style_type"].startswith("HEADING")
+                           or matches_lecture_title_format(get_paragraph_text(paragraph))):
             if current_section:
                 sections.append(current_section)
                 current_section = None
             current_lecture = get_paragraph_text(paragraph)
             continue
 
-        if bullet and current_lecture:
-            nesting_level = bullet.get("nestingLevel", 0)
+        if not current_lecture:
+            continue
 
-            if nesting_level == 0:
-                # Category header bullet
-                has_link = any(
-                    "link" in e.get("textRun", {}).get("textStyle", {})
-                    for e in paragraph.get("elements", [])
-                    if "textRun" in e
-                )
-                if not has_link:
-                    # Save previous section
-                    if current_section:
-                        sections.append(current_section)
+        has_link = any(
+            "link" in e.get("textRun", {}).get("textStyle", {})
+            for e in paragraph.get("elements", [])
+            if "textRun" in e
+        )
 
-                    category_text = get_paragraph_text(paragraph)
-                    # Check if the category title text itself is bold
-                    category_is_bold = False
-                    for elem in paragraph.get("elements", []):
-                        if "textRun" in elem:
-                            ts = elem["textRun"].get("textStyle", {})
-                            content = elem["textRun"].get("content", "").strip()
-                            if content:
-                                category_is_bold = ts.get("bold", False)
-                                break
-
-                    current_section = {
-                        "lecture": current_lecture,
-                        "category": category_text,
-                        "category_is_bold": category_is_bold,
-                        "items": [],
-                    }
-                    continue
-
-            # Link entry (nesting level >= 1, or level 0 with a link)
+        if has_link:
+            # A hyperlink line is an item of the current category block.
             if current_section:
-                item_text = get_paragraph_text(paragraph)
-                has_link = any(
-                    "link" in e.get("textRun", {}).get("textStyle", {})
-                    for e in paragraph.get("elements", [])
-                    if "textRun" in e
-                )
                 current_section["items"].append({
-                    "text": item_text,
-                    "has_link": has_link,
+                    "text": get_paragraph_text(paragraph),
+                    "has_link": True,
                 })
-        else:
-            # Non-bullet, non-heading: finalize current section
-            if current_section:
-                sections.append(current_section)
-                current_section = None
+            continue
 
-    # Don't forget last section
+        text = get_paragraph_text(paragraph)
+        if not text:
+            continue
+
+        # A non-empty, non-link line is a category header — it starts a new
+        # category block, regardless of whether it is bulleted.
+        if current_section:
+            sections.append(current_section)
+
+        category_is_bold = False
+        for elem in paragraph.get("elements", []):
+            if "textRun" in elem:
+                tr = elem["textRun"]
+                if tr.get("content", "").strip():
+                    category_is_bold = tr.get("textStyle", {}).get("bold", False)
+                    break
+
+        current_section = {
+            "lecture": current_lecture,
+            "category": text,
+            "category_is_bold": category_is_bold,
+            "category_is_bullet": bool(bullet),
+            "items": [],
+        }
+
     if current_section:
         sections.append(current_section)
 
@@ -318,23 +359,24 @@ def get_gold_lectures(gold_data):
     return lectures
 
 
-def match_valid_category(category_text, model=None, valid_categories=None):
+def match_valid_category(category_text, valid_categories, model=None):
     """Check if a category title matches one of the valid reference categories.
 
     Uses keywords_match_robust for exact match first, then LLM semantic fallback.
+    The valid category set is instance-specific and must be supplied by the
+    caller (each instance defines its own categories based on its task.md).
 
     Args:
         category_text (str): The category title from the document.
+        valid_categories (set|list): The instance's valid category names.
         model: Optional LLM model callable for fallback matching.
-        valid_categories (set|None): Override the default VALID_CATEGORIES set.
 
     Returns:
         str|None: The matched canonical category name, or None if no match.
     """
-    cats = valid_categories if valid_categories is not None else VALID_CATEGORIES
     return keywords_match_robust(
         category_text,
-        list(cats),
+        list(valid_categories),
         model=model,
         description="reference list category type",
     )
@@ -344,127 +386,212 @@ def match_valid_category(category_text, model=None, valid_categories=None):
 def extract_reference_links(document):
     """Extract detailed reference link items from the document.
 
-    Walks the document structure and extracts every hyperlink bullet item
-    with its URL, anchor text, slide numbers, parent lecture, and category.
+    Walks the document section by section: a heading-styled (or M/D-formatted)
+    non-bullet paragraph starts a new lecture section, and everything until the
+    next such paragraph belongs to that section. Within a section, every line
+    carrying a hyperlink is collected as a reference; any other non-empty line
+    is treated as the current category label.
+
+    Reference links are collected regardless of whether the category line above
+    them is correctly formatted (bulleted/bold or not) — a malformed category
+    header therefore does NOT cause its links to be dropped. Category-format
+    checks are handled separately (see extract_bullet_sections).
 
     Args:
         document (dict): Full Google Docs API document response.
 
     Returns:
         list[dict]: List of reference dicts with keys:
-            - lecture (str): The parent lecture heading text.
-            - category (str): The category this link is under.
+            - lecture (str): The parent lecture/section heading text.
+            - category (str): The most recent category label above the link
+              ("" if no category line preceded it within the section).
             - anchor_text (str): The visible hyperlink text.
             - url (str): The hyperlink URL.
             - slide_numbers (list[int]): Parsed slide numbers from the item text.
-            - full_text (str): The full text of the bullet item.
-            - link_is_bold (bool): Whether the hyperlink text is bold.
-            - link_is_dark_green_2 (bool): Whether the hyperlink text is dark green 2.
-            - non_link_is_bold (bool): Whether any non-whitespace, non-link text
-              in the same bullet (e.g. " Slide: 6") is also bold. Used to enforce
-              the "(and only the hyperlink)" rule from task.md.
+            - full_text (str): The full text of the line.
+            - link_is_* (bool): Formatting flags for the hyperlink span.
+            - non_link_is_* (bool): Whether any non-whitespace, non-link text in
+              the same line is also styled — used to enforce the "(and only the
+              hyperlink)" rule from task.md.
     """
     references = []
     current_lecture = None
-    current_category = None
+    current_category = ""
 
     for info in iter_paragraphs(document):
         paragraph = info["paragraph"]
         bullet = info["bullet"]
 
-        # Detect lecture boundary: any heading style or M/D-formatted non-bullet paragraph
-        if not bullet and (info["style_type"].startswith("HEADING") or matches_lecture_title_format(get_paragraph_text(paragraph))):
+        # Section boundary: a heading-styled (or M/D-formatted) non-bullet
+        # paragraph starts a new lecture section.
+        if not bullet and (info["style_type"].startswith("HEADING")
+                           or matches_lecture_title_format(get_paragraph_text(paragraph))):
             current_lecture = get_paragraph_text(paragraph)
-            current_category = None
+            current_category = ""
             continue
 
-        if bullet and current_lecture:
-            nesting_level = bullet.get("nestingLevel", 0)
+        if not current_lecture:
+            continue
 
-            if nesting_level == 0:
-                # Check if this is a category header (no link) or a link item
-                has_link = any(
-                    "link" in e.get("textRun", {}).get("textStyle", {})
-                    for e in paragraph.get("elements", [])
-                    if "textRun" in e
-                )
-                if not has_link:
-                    current_category = get_paragraph_text(paragraph)
-                    continue
+        # Within a section: a line carrying a hyperlink is a reference entry;
+        # any other non-empty line is treated as a category label. Links are
+        # collected regardless of the category line's formatting.
+        has_link = any(
+            "link" in e.get("textRun", {}).get("textStyle", {})
+            for e in paragraph.get("elements", [])
+            if "textRun" in e
+        )
 
-            # This is a link entry — extract URL and anchor text
-            if current_category:
-                anchor_text = ""
-                url = ""
-                full_text = get_paragraph_text(paragraph)
-                link_is_bold = False
-                link_is_italic = False
-                link_is_dark_green = False
-                link_is_dark_cyan = False
-                link_font_size = None
-                non_link_is_bold = False
-                non_link_is_italic = False
-                non_link_is_dark_green_2 = False
-                non_link_is_dark_cyan_1 = False
-                non_link_is_12pt = False
+        if not has_link:
+            category_text = get_paragraph_text(paragraph)
+            if category_text:
+                current_category = category_text
+            continue
 
-                for elem in paragraph.get("elements", []):
-                    if "textRun" not in elem:
-                        continue
-                    tr = elem["textRun"]
-                    ts = tr.get("textStyle", {})
-                    content = tr.get("content", "")
+        # Reference (link) entry — extract URL, anchor text, and formatting.
+        anchor_text = ""
+        url = ""
+        full_text = get_paragraph_text(paragraph)
+        link_is_bold = False
+        link_is_italic = False
+        link_is_underline = False
+        link_is_dark_green = False
+        link_is_dark_cyan = False
+        link_is_light_magenta = False
+        link_is_dark_yellow = False
+        link_is_dark_purple = False
+        link_is_strikethrough = False
+        link_font_size = None
+        non_link_is_bold = False
+        non_link_is_italic = False
+        non_link_is_underline = False
+        non_link_is_dark_green_2 = False
+        non_link_is_dark_cyan_1 = False
+        non_link_is_light_magenta_1 = False
+        non_link_is_dark_yellow_1 = False
+        non_link_is_dark_purple_1 = False
+        non_link_is_12pt = False
+        non_link_font_size = None
 
-                    if "link" in ts:
-                        link_url = ts["link"].get("url", "")
-                        if link_url and not url:
-                            url = link_url
-                            anchor_text = content.strip()
-                            link_is_bold = ts.get("bold", False)
-                            link_is_italic = ts.get("italic", False)
-                            link_is_dark_green = is_dark_green_2(ts)
-                            link_is_dark_cyan = is_dark_cyan_1(ts)
-                            link_font_size = ts.get("fontSize", {}).get("magnitude")
-                    else:
-                        if content.strip():
-                            # Track formatting leaks outside the hyperlink span
-                            if ts.get("bold", False):
-                                non_link_is_bold = True
-                            if ts.get("italic", False):
-                                non_link_is_italic = True
-                            if is_dark_green_2(ts):
-                                non_link_is_dark_green_2 = True
-                            if is_dark_cyan_1(ts):
-                                non_link_is_dark_cyan_1 = True
-                            if ts.get("fontSize", {}).get("magnitude") == 12:
-                                non_link_is_12pt = True
+        for elem in paragraph.get("elements", []):
+            if "textRun" not in elem:
+                continue
+            tr = elem["textRun"]
+            ts = tr.get("textStyle", {})
+            content = tr.get("content", "")
 
-                slide_numbers = parse_slide_numbers(full_text)
+            if "link" in ts:
+                link_url = ts["link"].get("url", "")
+                if link_url and not url:
+                    url = link_url
+                    anchor_text = content.strip()
+                    link_is_bold = ts.get("bold", False)
+                    link_is_italic = ts.get("italic", False)
+                    link_is_underline = ts.get("underline", False)
+                    link_is_dark_green = is_dark_green_2(ts)
+                    link_is_dark_cyan = is_dark_cyan_1(ts)
+                    link_is_light_magenta = is_light_magenta_1(ts)
+                    link_is_dark_yellow = is_dark_yellow_1(ts)
+                    link_is_dark_purple = is_dark_purple_1(ts)
+                    link_is_strikethrough = ts.get("strikethrough", False)
+                    link_font_size = ts.get("fontSize", {}).get("magnitude")
+            else:
+                if content.strip():
+                    # Track formatting leaks outside the hyperlink span
+                    if ts.get("bold", False):
+                        non_link_is_bold = True
+                    if ts.get("italic", False):
+                        non_link_is_italic = True
+                    if ts.get("underline", False):
+                        non_link_is_underline = True
+                    if is_dark_green_2(ts):
+                        non_link_is_dark_green_2 = True
+                    if is_dark_cyan_1(ts):
+                        non_link_is_dark_cyan_1 = True
+                    if is_light_magenta_1(ts):
+                        non_link_is_light_magenta_1 = True
+                    if is_dark_yellow_1(ts):
+                        non_link_is_dark_yellow_1 = True
+                    if is_dark_purple_1(ts):
+                        non_link_is_dark_purple_1 = True
+                    nl_size = ts.get("fontSize", {}).get("magnitude")
+                    if nl_size == 12:
+                        non_link_is_12pt = True
+                    if nl_size is not None and (non_link_font_size is None or nl_size > non_link_font_size):
+                        non_link_font_size = nl_size
 
-                if url:
-                    references.append({
-                        "lecture": current_lecture,
-                        "category": current_category,
-                        "anchor_text": anchor_text,
-                        "url": url,
-                        "slide_numbers": slide_numbers,
-                        "full_text": full_text,
-                        "link_is_bold": link_is_bold,
-                        "link_is_italic": link_is_italic,
-                        "link_is_dark_green_2": link_is_dark_green,
-                        "link_is_dark_cyan_1": link_is_dark_cyan,
-                        "link_font_size": link_font_size,
-                        "non_link_is_bold": non_link_is_bold,
-                        "non_link_is_italic": non_link_is_italic,
-                        "non_link_is_dark_green_2": non_link_is_dark_green_2,
-                        "non_link_is_dark_cyan_1": non_link_is_dark_cyan_1,
-                        "non_link_is_12pt": non_link_is_12pt,
-                    })
-        else:
-            if not bullet:
-                current_category = None
+        slide_numbers = parse_slide_numbers(full_text)
+
+        if url:
+            references.append({
+                "lecture": current_lecture,
+                "category": current_category,
+                "anchor_text": anchor_text,
+                "url": url,
+                "slide_numbers": slide_numbers,
+                "full_text": full_text,
+                "link_is_bold": link_is_bold,
+                "link_is_italic": link_is_italic,
+                "link_is_underline": link_is_underline,
+                "link_is_dark_green_2": link_is_dark_green,
+                "link_is_dark_cyan_1": link_is_dark_cyan,
+                "link_is_light_magenta_1": link_is_light_magenta,
+                "link_is_dark_yellow_1": link_is_dark_yellow,
+                "link_is_dark_purple_1": link_is_dark_purple,
+                "link_is_strikethrough": link_is_strikethrough,
+                "link_font_size": link_font_size,
+                "non_link_is_bold": non_link_is_bold,
+                "non_link_is_italic": non_link_is_italic,
+                "non_link_is_underline": non_link_is_underline,
+                "non_link_is_dark_green_2": non_link_is_dark_green_2,
+                "non_link_is_dark_cyan_1": non_link_is_dark_cyan_1,
+                "non_link_is_light_magenta_1": non_link_is_light_magenta_1,
+                "non_link_is_dark_yellow_1": non_link_is_dark_yellow_1,
+                "non_link_is_dark_purple_1": non_link_is_dark_purple_1,
+                "non_link_is_12pt": non_link_is_12pt,
+                "non_link_font_size": non_link_font_size,
+            })
 
     return references
+
+
+def extract_inactive_links_section(document):
+    """Locate the 'Inactive Links' section and return its hyperlink URLs.
+
+    Scans the document for a paragraph whose text is 'Inactive Links'
+    (case-insensitive, whitespace-normalized). Once found, collects every
+    hyperlink URL appearing in subsequent paragraphs until the next
+    heading-styled non-bullet paragraph (or the end of the document).
+
+    Args:
+        document (dict): Full Google Docs API document response.
+
+    Returns:
+        tuple: (section_found (bool), urls (list[str])). urls may contain
+        duplicates if the same link appears on more than one bullet.
+    """
+    found = False
+    in_section = False
+    urls = []
+    for info in iter_paragraphs(document):
+        paragraph = info["paragraph"]
+        text = re.sub(r"\s+", " ", get_paragraph_text(paragraph)).strip()
+        if not in_section:
+            if text.lower() == "inactive links":
+                found = True
+                in_section = True
+            continue
+        # Inside the section: stop at the next heading-styled, non-bullet paragraph.
+        if not info["bullet"] and info["style_type"].startswith("HEADING"):
+            break
+        for elem in paragraph.get("elements", []):
+            tr = elem.get("textRun")
+            if not tr:
+                continue
+            url = tr.get("textStyle", {}).get("link", {}).get("url", "")
+            if url:
+                urls.append(url)
+    return found, urls
 
 
 def check_link_name_relevance(anchor_text, url, model, page_title=None):
@@ -568,9 +695,9 @@ _NON_HTML_EXTENSIONS = re.compile(
 
 
 def is_dead_link(url, timeout=10):
-    """Check if a URL is dead by detecting HTTP 403 or 410 responses.
+    """Check if a URL is dead by detecting HTTP 404 or 410 responses.
 
-    Only HTTP 403 (Not Found) and 410 (Gone) are treated as dead.
+    Only HTTP 404 (Not Found) and 410 (Gone) are treated as dead.
     All other outcomes are treated as alive.
 
     Args:

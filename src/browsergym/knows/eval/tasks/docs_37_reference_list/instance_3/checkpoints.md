@@ -1,6 +1,6 @@
 # Checkpoints
 
-This task has 190 points in total.
+This task has 200 points in total.
 
 ## Checkpoint 1 (20 pt, 2 steps × 10 pt each): Lecture Title
 
@@ -18,7 +18,7 @@ This task has 190 points in total.
 - No empty bullet lists. (10 pt, proportional)
 - No bullet lists with titles that don't match the categories. (10 pt, proportional)
 
-## Checkpoint 3 (90 pt, 9 steps × 10 pt each): Reference links
+## Checkpoint 3 (100 pt, 10 steps × 10 pt each): Reference links
 
 ### Outcome Evaluation:
 
@@ -31,6 +31,7 @@ This task has 190 points in total.
 - Publication year and first author are included after the hyperlink in the correct format "(YYYY, First Author)". Skipped for dead links. (10 pt, proportional)
 - The name of each link is relevant to the webpage it opens. Skipped for dead links. (10 pt, proportional)
 - Dead links are present in the document with strikethrough formatting applied to the anchor text. (10 pt, proportional)
+- Within each category, the bullets are sorted in descending order by publication year, then alphabetically by title. Dead links are ignored when checking sort order. (10 pt, proportional)
 
 ## Checkpoint 4 (40 pt, 4 steps × 10 pt each): Multiple references
 

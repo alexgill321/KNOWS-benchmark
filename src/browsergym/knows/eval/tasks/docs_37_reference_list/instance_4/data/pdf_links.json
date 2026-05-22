@@ -1,2144 +1,263 @@
 [
   {
-    "name": "Captioning and Accessibility",
-    "url": "https://accessibility.mit.edu",
-    "list_type": "Others",
+    "name": "Trends, Rhythms, and Aberrations in Global Climate 65 Ma to Present",
+    "url": "http://dx.doi.org/ 10.1126/science.1059412",
+    "list_type": "Research Papers",
     "lecture": "Climate through Geologic History",
-    "slides": [
-      5
-    ]
+    "slides": [7]
   },
   {
-    "name": "@mitocw.bsky.social on Bluesky",
-    "url": "https://bsky.app/profile/mitocw.bsky.social",
-    "list_type": "Others",
+    "name": "A Pliocene-Pleistocene stack of 57 Globally Distributed Benthic δ18O Records",
+    "url": "http://dx.doi.org/10.1029/2004PA001071",
+    "list_type": "Research Papers",
     "lecture": "Climate through Geologic History",
-    "slides": [
-      5
-    ]
+    "slides": [8]
   },
   {
-    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
-    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-    "list_type": "Others",
+    "name": "Black-body radiation",
+    "url": "http://en.wikipedia.org/wiki/Black-body_radiation#mediaviewer/File:Black_body.svg",
+    "list_type": "Wikipedia",
     "lecture": "Climate through Geologic History",
-    "slides": [
-      5
-    ]
+    "slides": [2]
   },
   {
-    "name": "OCW Gift Form",
-    "url": "https://giving.mit.edu/give/to/ocw/?utm_source=ocw&utm_medium=homepage_banner&utm_campaign=nextgen_home",
-    "list_type": "Others",
+    "name": "State of the Earth's Cryosphere at the Beginning of the 21st Century: Glaciers, Global Snow Cover, Floating Ice, and Permafrost and Periglacial Environments",
+    "url": "http://pubs.usgs.gov/pp/p1386a",
+    "list_type": "Research Papers",
     "lecture": "Climate through Geologic History",
-    "slides": [
-      2
-    ]
+    "slides": [13]
   },
   {
-    "name": "MIT OpenCourseWare (@MITOCW@mastodon.social) - Mastodon",
-    "url": "https://mastodon.social/@mitocw",
-    "list_type": "Others",
+    "name": "USGS Professional Paper 1386-A: Figure Gallery 2, Figure 40",
+    "url": "http://pubs.usgs.gov/pp/p1386a/gallery2-fig40.html",
+    "list_type": "Research Papers",
     "lecture": "Climate through Geologic History",
-    "slides": [
-      5
-    ]
+    "slides": [13]
   },
   {
-    "name": "MIT OpenCourseWare",
-    "url": "https://mitocw.zendesk.com/hc/en-us",
-    "list_type": "Others",
-    "lecture": "Climate through Geologic History",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "Contact Us",
-    "url": "https://mitocw.zendesk.com/hc/en-us/requests/new",
-    "list_type": "Others",
-    "lecture": "Climate through Geologic History",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT Open Learning brings Online Learning to MIT and the world",
-    "url": "https://openlearning.mit.edu/",
-    "list_type": "Others",
-    "lecture": "Climate through Geologic History",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "JavaScript is not available.",
-    "url": "https://twitter.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Climate through Geologic History",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT Open Course Ware",
-    "url": "https://www.facebook.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Climate through Geologic History",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@mitocw) • Instagram photos and videos",
-    "url": "https://www.instagram.com/mitocw",
-    "list_type": "Others",
-    "lecture": "Climate through Geologic History",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://www.linkedin.com/company/mit-opencourseware/",
-    "list_type": "Others",
-    "lecture": "Climate through Geologic History",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OEGlobal – Open Education Global",
-    "url": "https://www.oeglobal.org/",
-    "list_type": "Others",
-    "lecture": "Climate through Geologic History",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare - YouTube",
-    "url": "https://www.youtube.com/mitocw",
-    "list_type": "Videos",
-    "lecture": "Climate through Geologic History",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Captioning and Accessibility",
-    "url": "https://accessibility.mit.edu",
-    "list_type": "Others",
+    "name": "File:Venus Topo 090 East, 773-,663,-110.jpg - Wikimedia Commons",
+    "url": "http://commons.wikimedia.org/wiki/File:Venus_Topo_090_East,_773-,663,-110.jpg",
+    "list_type": "Wikipedia",
     "lecture": "Comparative Planetology",
-    "slides": [
-      5
-    ]
+    "slides": [8]
   },
   {
-    "name": "@mitocw.bsky.social on Bluesky",
-    "url": "https://bsky.app/profile/mitocw.bsky.social",
-    "list_type": "Others",
-    "lecture": "Comparative Planetology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
-    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-    "list_type": "Others",
-    "lecture": "Comparative Planetology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OCW Gift Form",
-    "url": "https://giving.mit.edu/give/to/ocw/?utm_source=ocw&utm_medium=homepage_banner&utm_campaign=nextgen_home",
-    "list_type": "Others",
-    "lecture": "Comparative Planetology",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@MITOCW@mastodon.social) - Mastodon",
-    "url": "https://mastodon.social/@mitocw",
-    "list_type": "Others",
-    "lecture": "Comparative Planetology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://mitocw.zendesk.com/hc/en-us",
-    "list_type": "Others",
-    "lecture": "Comparative Planetology",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "Contact Us",
-    "url": "https://mitocw.zendesk.com/hc/en-us/requests/new",
-    "list_type": "Others",
-    "lecture": "Comparative Planetology",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT Open Learning brings Online Learning to MIT and the world",
-    "url": "https://openlearning.mit.edu/",
-    "list_type": "Others",
-    "lecture": "Comparative Planetology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "JavaScript is not available.",
-    "url": "https://twitter.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Comparative Planetology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT Open Course Ware",
-    "url": "https://www.facebook.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Comparative Planetology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@mitocw) • Instagram photos and videos",
-    "url": "https://www.instagram.com/mitocw",
-    "list_type": "Others",
-    "lecture": "Comparative Planetology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://www.linkedin.com/company/mit-opencourseware/",
-    "list_type": "Others",
-    "lecture": "Comparative Planetology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OEGlobal – Open Education Global",
-    "url": "https://www.oeglobal.org/",
-    "list_type": "Others",
-    "lecture": "Comparative Planetology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare - YouTube",
-    "url": "https://www.youtube.com/mitocw",
-    "list_type": "Videos",
-    "lecture": "Comparative Planetology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Captioning and Accessibility",
-    "url": "https://accessibility.mit.edu",
-    "list_type": "Others",
+    "name": "Cell (biology)",
+    "url": "http://en.wikipedia.org/wiki/Cell_%28biology%29#mediaviewer/File:Celltypes.svg",
+    "list_type": "Wikipedia",
     "lecture": "Earth History and Geobiology",
-    "slides": [
-      5
-    ]
+    "slides": [24]
   },
   {
-    "name": "@mitocw.bsky.social on Bluesky",
-    "url": "https://bsky.app/profile/mitocw.bsky.social",
-    "list_type": "Others",
+    "name": "Oxygen",
+    "url": "http://en.wikipedia.org/wiki/Oxygen#mediaviewer/File:Oxygenation-atm.svg",
+    "list_type": "Wikipedia",
     "lecture": "Earth History and Geobiology",
-    "slides": [
-      5
-    ]
+    "slides": [28]
   },
   {
-    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
-    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-    "list_type": "Others",
-    "lecture": "Earth History and Geobiology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OCW Gift Form",
-    "url": "https://giving.mit.edu/give/to/ocw/?utm_source=ocw&utm_medium=homepage_banner&utm_campaign=nextgen_home",
-    "list_type": "Others",
-    "lecture": "Earth History and Geobiology",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@MITOCW@mastodon.social) - Mastodon",
-    "url": "https://mastodon.social/@mitocw",
-    "list_type": "Others",
-    "lecture": "Earth History and Geobiology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://mitocw.zendesk.com/hc/en-us",
-    "list_type": "Others",
-    "lecture": "Earth History and Geobiology",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "Contact Us",
-    "url": "https://mitocw.zendesk.com/hc/en-us/requests/new",
-    "list_type": "Others",
-    "lecture": "Earth History and Geobiology",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT Open Learning brings Online Learning to MIT and the world",
-    "url": "https://openlearning.mit.edu/",
-    "list_type": "Others",
-    "lecture": "Earth History and Geobiology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "JavaScript is not available.",
-    "url": "https://twitter.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Earth History and Geobiology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT Open Course Ware",
-    "url": "https://www.facebook.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Earth History and Geobiology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@mitocw) • Instagram photos and videos",
-    "url": "https://www.instagram.com/mitocw",
-    "list_type": "Others",
-    "lecture": "Earth History and Geobiology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://www.linkedin.com/company/mit-opencourseware/",
-    "list_type": "Others",
-    "lecture": "Earth History and Geobiology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OEGlobal – Open Education Global",
-    "url": "https://www.oeglobal.org/",
-    "list_type": "Others",
-    "lecture": "Earth History and Geobiology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare - YouTube",
-    "url": "https://www.youtube.com/mitocw",
-    "list_type": "Videos",
-    "lecture": "Earth History and Geobiology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Captioning and Accessibility",
-    "url": "https://accessibility.mit.edu",
-    "list_type": "Others",
+    "name": "The Great Sumatra-Andaman Earthquake of 26 December 2004",
+    "url": "http://dx.doi.org/10.1126/science.1112250",
+    "list_type": "Research Papers",
     "lecture": "Earthquakes",
-    "slides": [
-      5
-    ]
+    "slides": [4]
   },
   {
-    "name": "@mitocw.bsky.social on Bluesky",
-    "url": "https://bsky.app/profile/mitocw.bsky.social",
-    "list_type": "Others",
-    "lecture": "Earthquakes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
-    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-    "list_type": "Others",
-    "lecture": "Earthquakes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OCW Gift Form",
-    "url": "https://giving.mit.edu/give/to/ocw/?utm_source=ocw&utm_medium=homepage_banner&utm_campaign=nextgen_home",
-    "list_type": "Others",
-    "lecture": "Earthquakes",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@MITOCW@mastodon.social) - Mastodon",
-    "url": "https://mastodon.social/@mitocw",
-    "list_type": "Others",
-    "lecture": "Earthquakes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://mitocw.zendesk.com/hc/en-us",
-    "list_type": "Others",
-    "lecture": "Earthquakes",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "Contact Us",
-    "url": "https://mitocw.zendesk.com/hc/en-us/requests/new",
-    "list_type": "Others",
-    "lecture": "Earthquakes",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT Open Learning brings Online Learning to MIT and the world",
-    "url": "https://openlearning.mit.edu/",
-    "list_type": "Others",
-    "lecture": "Earthquakes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "JavaScript is not available.",
-    "url": "https://twitter.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Earthquakes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT Open Course Ware",
-    "url": "https://www.facebook.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Earthquakes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@mitocw) • Instagram photos and videos",
-    "url": "https://www.instagram.com/mitocw",
-    "list_type": "Others",
-    "lecture": "Earthquakes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://www.linkedin.com/company/mit-opencourseware/",
-    "list_type": "Others",
-    "lecture": "Earthquakes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OEGlobal – Open Education Global",
-    "url": "https://www.oeglobal.org/",
-    "list_type": "Others",
-    "lecture": "Earthquakes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare - YouTube",
-    "url": "https://www.youtube.com/mitocw",
-    "list_type": "Videos",
-    "lecture": "Earthquakes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Captioning and Accessibility",
-    "url": "https://accessibility.mit.edu",
-    "list_type": "Others",
-    "lecture": "Geologic Time: Relative versus Absolute Dating",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "@mitocw.bsky.social on Bluesky",
-    "url": "https://bsky.app/profile/mitocw.bsky.social",
-    "list_type": "Others",
-    "lecture": "Geologic Time: Relative versus Absolute Dating",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
-    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-    "list_type": "Others",
-    "lecture": "Geologic Time: Relative versus Absolute Dating",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OCW Gift Form",
-    "url": "https://giving.mit.edu/give/to/ocw/?utm_source=ocw&utm_medium=homepage_banner&utm_campaign=nextgen_home",
-    "list_type": "Others",
-    "lecture": "Geologic Time: Relative versus Absolute Dating",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@MITOCW@mastodon.social) - Mastodon",
-    "url": "https://mastodon.social/@mitocw",
-    "list_type": "Others",
-    "lecture": "Geologic Time: Relative versus Absolute Dating",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://mitocw.zendesk.com/hc/en-us",
-    "list_type": "Others",
-    "lecture": "Geologic Time: Relative versus Absolute Dating",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "Contact Us",
-    "url": "https://mitocw.zendesk.com/hc/en-us/requests/new",
-    "list_type": "Others",
-    "lecture": "Geologic Time: Relative versus Absolute Dating",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT Open Learning brings Online Learning to MIT and the world",
-    "url": "https://openlearning.mit.edu/",
-    "list_type": "Others",
-    "lecture": "Geologic Time: Relative versus Absolute Dating",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "JavaScript is not available.",
-    "url": "https://twitter.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Geologic Time: Relative versus Absolute Dating",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT Open Course Ware",
-    "url": "https://www.facebook.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Geologic Time: Relative versus Absolute Dating",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@mitocw) • Instagram photos and videos",
-    "url": "https://www.instagram.com/mitocw",
-    "list_type": "Others",
-    "lecture": "Geologic Time: Relative versus Absolute Dating",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://www.linkedin.com/company/mit-opencourseware/",
-    "list_type": "Others",
-    "lecture": "Geologic Time: Relative versus Absolute Dating",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OEGlobal – Open Education Global",
-    "url": "https://www.oeglobal.org/",
-    "list_type": "Others",
-    "lecture": "Geologic Time: Relative versus Absolute Dating",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare - YouTube",
-    "url": "https://www.youtube.com/mitocw",
-    "list_type": "Videos",
-    "lecture": "Geologic Time: Relative versus Absolute Dating",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Captioning and Accessibility",
-    "url": "https://accessibility.mit.edu",
-    "list_type": "Others",
+    "name": "File:Megatherium americanum complete.JPG - Wikimedia Commons",
+    "url": "http://commons.wikimedia.org/wiki/File:Megatherium_americanum_complete.JPG",
+    "list_type": "Wikipedia",
     "lecture": "Glaciers",
-    "slides": [
-      5
-    ]
+    "slides": [6]
   },
   {
-    "name": "@mitocw.bsky.social on Bluesky",
-    "url": "https://bsky.app/profile/mitocw.bsky.social",
-    "list_type": "Others",
+    "name": "File:Megatherum DB.jpg - Wikimedia Commons",
+    "url": "http://commons.wikimedia.org/wiki/File:Megatherum_DB.jpg",
+    "list_type": "Wikipedia",
     "lecture": "Glaciers",
-    "slides": [
-      5
-    ]
+    "slides": [6]
   },
   {
-    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
-    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-    "list_type": "Others",
+    "name": "Santa Cruz Province, Argentina",
+    "url": "http://en.wikipedia.org/wiki/Santa_Cruz_Province,_Argentina#mediaviewer/File:Perito_Moreno_Glacier_Patagonia_Argentina_Luca_Galuzzi_2005.JPG",
+    "list_type": "Wikipedia",
     "lecture": "Glaciers",
-    "slides": [
-      5
-    ]
+    "slides": [2]
   },
   {
-    "name": "OCW Gift Form",
-    "url": "https://giving.mit.edu/give/to/ocw/?utm_source=ocw&utm_medium=homepage_banner&utm_campaign=nextgen_home",
-    "list_type": "Others",
-    "lecture": "Glaciers",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@MITOCW@mastodon.social) - Mastodon",
-    "url": "https://mastodon.social/@mitocw",
-    "list_type": "Others",
-    "lecture": "Glaciers",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://mitocw.zendesk.com/hc/en-us",
-    "list_type": "Others",
-    "lecture": "Glaciers",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "Contact Us",
-    "url": "https://mitocw.zendesk.com/hc/en-us/requests/new",
-    "list_type": "Others",
-    "lecture": "Glaciers",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT Open Learning brings Online Learning to MIT and the world",
-    "url": "https://openlearning.mit.edu/",
-    "list_type": "Others",
-    "lecture": "Glaciers",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "JavaScript is not available.",
-    "url": "https://twitter.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Glaciers",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT Open Course Ware",
-    "url": "https://www.facebook.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Glaciers",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@mitocw) • Instagram photos and videos",
-    "url": "https://www.instagram.com/mitocw",
-    "list_type": "Others",
-    "lecture": "Glaciers",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://www.linkedin.com/company/mit-opencourseware/",
-    "list_type": "Others",
-    "lecture": "Glaciers",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OEGlobal – Open Education Global",
-    "url": "https://www.oeglobal.org/",
-    "list_type": "Others",
-    "lecture": "Glaciers",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare - YouTube",
-    "url": "https://www.youtube.com/mitocw",
-    "list_type": "Videos",
-    "lecture": "Glaciers",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Captioning and Accessibility",
-    "url": "https://accessibility.mit.edu",
-    "list_type": "Others",
+    "name": "File:Almandine.jpeg - Wikimedia Commons",
+    "url": "http://commons.wikimedia.org/wiki/File:Almandine.jpeg",
+    "list_type": "Wikipedia",
     "lecture": "Introduction to Minerals",
-    "slides": [
-      5
-    ]
+    "slides": [25]
   },
   {
-    "name": "@mitocw.bsky.social on Bluesky",
-    "url": "https://bsky.app/profile/mitocw.bsky.social",
-    "list_type": "Others",
+    "name": "File:GraphiteUSGOV.jpg - Wikimedia Commons",
+    "url": "http://commons.wikimedia.org/wiki/File:GraphiteUSGOV.jpg",
+    "list_type": "Wikipedia",
     "lecture": "Introduction to Minerals",
-    "slides": [
-      5
-    ]
+    "slides": [3]
   },
   {
-    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
-    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-    "list_type": "Others",
+    "name": "File:Halite09.jpg - Wikimedia Commons",
+    "url": "http://commons.wikimedia.org/wiki/File:Halite09.jpg",
+    "list_type": "Wikipedia",
     "lecture": "Introduction to Minerals",
-    "slides": [
-      5
-    ]
+    "slides": [8, 10]
   },
   {
-    "name": "OCW Gift Form",
-    "url": "https://giving.mit.edu/give/to/ocw/?utm_source=ocw&utm_medium=homepage_banner&utm_campaign=nextgen_home",
-    "list_type": "Others",
+    "name": "Diamond",
+    "url": "http://en.wikipedia.org/wiki/Diamond#mediaviewer/File:Rough_diamond.jpg",
+    "list_type": "Wikipedia",
     "lecture": "Introduction to Minerals",
-    "slides": [
-      2
-    ]
+    "slides": [3, 6, 10, 30]
   },
   {
-    "name": "MIT OpenCourseWare (@MITOCW@mastodon.social) - Mastodon",
-    "url": "https://mastodon.social/@mitocw",
-    "list_type": "Others",
+    "name": "File:Calcite-HUGE.jpg",
+    "url": "http://en.wikipedia.org/wiki/File:Calcite-HUGE.jpg",
+    "list_type": "Wikipedia",
     "lecture": "Introduction to Minerals",
-    "slides": [
-      5
-    ]
+    "slides": [27]
   },
   {
-    "name": "MIT OpenCourseWare",
-    "url": "https://mitocw.zendesk.com/hc/en-us",
-    "list_type": "Others",
+    "name": "File:Dolomite-Magnésite- Navarre.jpg",
+    "url": "http://en.wikipedia.org/wiki/File:Dolomite-Magn%C3%A9site-_Navarre.jpg",
+    "list_type": "Wikipedia",
     "lecture": "Introduction to Minerals",
-    "slides": [
-      2
-    ]
+    "slides": [27]
   },
   {
-    "name": "Contact Us",
-    "url": "https://mitocw.zendesk.com/hc/en-us/requests/new",
-    "list_type": "Others",
-    "lecture": "Introduction to Minerals",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT Open Learning brings Online Learning to MIT and the world",
-    "url": "https://openlearning.mit.edu/",
-    "list_type": "Others",
-    "lecture": "Introduction to Minerals",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "JavaScript is not available.",
-    "url": "https://twitter.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Introduction to Minerals",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT Open Course Ware",
-    "url": "https://www.facebook.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Introduction to Minerals",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@mitocw) • Instagram photos and videos",
-    "url": "https://www.instagram.com/mitocw",
-    "list_type": "Others",
-    "lecture": "Introduction to Minerals",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://www.linkedin.com/company/mit-opencourseware/",
-    "list_type": "Others",
-    "lecture": "Introduction to Minerals",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OEGlobal – Open Education Global",
-    "url": "https://www.oeglobal.org/",
-    "list_type": "Others",
-    "lecture": "Introduction to Minerals",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare - YouTube",
-    "url": "https://www.youtube.com/mitocw",
-    "list_type": "Videos",
-    "lecture": "Introduction to Minerals",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Captioning and Accessibility",
-    "url": "https://accessibility.mit.edu",
-    "list_type": "Others",
-    "lecture": "Landslides and Debris Flows",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "@mitocw.bsky.social on Bluesky",
-    "url": "https://bsky.app/profile/mitocw.bsky.social",
-    "list_type": "Others",
-    "lecture": "Landslides and Debris Flows",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
-    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-    "list_type": "Others",
-    "lecture": "Landslides and Debris Flows",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OCW Gift Form",
-    "url": "https://giving.mit.edu/give/to/ocw/?utm_source=ocw&utm_medium=homepage_banner&utm_campaign=nextgen_home",
-    "list_type": "Others",
-    "lecture": "Landslides and Debris Flows",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@MITOCW@mastodon.social) - Mastodon",
-    "url": "https://mastodon.social/@mitocw",
-    "list_type": "Others",
-    "lecture": "Landslides and Debris Flows",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://mitocw.zendesk.com/hc/en-us",
-    "list_type": "Others",
-    "lecture": "Landslides and Debris Flows",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "Contact Us",
-    "url": "https://mitocw.zendesk.com/hc/en-us/requests/new",
-    "list_type": "Others",
-    "lecture": "Landslides and Debris Flows",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT Open Learning brings Online Learning to MIT and the world",
-    "url": "https://openlearning.mit.edu/",
-    "list_type": "Others",
-    "lecture": "Landslides and Debris Flows",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "JavaScript is not available.",
-    "url": "https://twitter.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Landslides and Debris Flows",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT Open Course Ware",
-    "url": "https://www.facebook.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Landslides and Debris Flows",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@mitocw) • Instagram photos and videos",
-    "url": "https://www.instagram.com/mitocw",
-    "list_type": "Others",
-    "lecture": "Landslides and Debris Flows",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://www.linkedin.com/company/mit-opencourseware/",
-    "list_type": "Others",
-    "lecture": "Landslides and Debris Flows",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OEGlobal – Open Education Global",
-    "url": "https://www.oeglobal.org/",
-    "list_type": "Others",
-    "lecture": "Landslides and Debris Flows",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare - YouTube",
-    "url": "https://www.youtube.com/mitocw",
+    "name": "CAUGHT ON CAMERA: Rock Slide Closes TN Highway 64 in Polk Co",
+    "url": "http://youtu.be/ZVYGJYnJTi0",
     "list_type": "Videos",
     "lecture": "Landslides and Debris Flows",
-    "slides": [
-      5
-    ]
+    "slides": [3]
   },
   {
-    "name": "Captioning and Accessibility",
-    "url": "https://accessibility.mit.edu",
-    "list_type": "Others",
-    "lecture": "Oceanic Crust Formation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "@mitocw.bsky.social on Bluesky",
-    "url": "https://bsky.app/profile/mitocw.bsky.social",
-    "list_type": "Others",
-    "lecture": "Oceanic Crust Formation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
-    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-    "list_type": "Others",
-    "lecture": "Oceanic Crust Formation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OCW Gift Form",
-    "url": "https://giving.mit.edu/give/to/ocw/?utm_source=ocw&utm_medium=homepage_banner&utm_campaign=nextgen_home",
-    "list_type": "Others",
-    "lecture": "Oceanic Crust Formation",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@MITOCW@mastodon.social) - Mastodon",
-    "url": "https://mastodon.social/@mitocw",
-    "list_type": "Others",
-    "lecture": "Oceanic Crust Formation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://mitocw.zendesk.com/hc/en-us",
-    "list_type": "Others",
-    "lecture": "Oceanic Crust Formation",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "Contact Us",
-    "url": "https://mitocw.zendesk.com/hc/en-us/requests/new",
-    "list_type": "Others",
-    "lecture": "Oceanic Crust Formation",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT Open Learning brings Online Learning to MIT and the world",
-    "url": "https://openlearning.mit.edu/",
-    "list_type": "Others",
-    "lecture": "Oceanic Crust Formation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "JavaScript is not available.",
-    "url": "https://twitter.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Oceanic Crust Formation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT Open Course Ware",
-    "url": "https://www.facebook.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Oceanic Crust Formation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@mitocw) • Instagram photos and videos",
-    "url": "https://www.instagram.com/mitocw",
-    "list_type": "Others",
-    "lecture": "Oceanic Crust Formation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://www.linkedin.com/company/mit-opencourseware/",
-    "list_type": "Others",
-    "lecture": "Oceanic Crust Formation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OEGlobal – Open Education Global",
-    "url": "https://www.oeglobal.org/",
-    "list_type": "Others",
-    "lecture": "Oceanic Crust Formation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare - YouTube",
-    "url": "https://www.youtube.com/mitocw",
+    "name": "Amazing Flash Flood / Debris Flow Southern Utah HD",
+    "url": "http://youtu.be/_yCnQuILmsM",
     "list_type": "Videos",
+    "lecture": "Landslides and Debris Flows",
+    "slides": [5]
+  },
+  {
+    "name": "Submersible Study of an Oceanic Megamullion in the Central North Atlantic",
+    "url": "http://dx.doi.org/10.1029/2001JB000373",
+    "list_type": "Research Papers",
     "lecture": "Oceanic Crust Formation",
-    "slides": [
-      5
-    ]
+    "slides": [23]
   },
   {
-    "name": "Captioning and Accessibility",
-    "url": "https://accessibility.mit.edu",
-    "list_type": "Others",
-    "lecture": "Origin and Age of the Earth",
-    "slides": [
-      5
-    ]
+    "name": "File:Earth surface NGDC 2000.jpg - Wikimedia Commons",
+    "url": "http://commons.wikimedia.org/wiki/File:Earth_surface_NGDC_2000.jpg",
+    "list_type": "Wikipedia",
+    "lecture": "Plate Tectonics",
+    "slides": [2, 6]
   },
   {
-    "name": "@mitocw.bsky.social on Bluesky",
-    "url": "https://bsky.app/profile/mitocw.bsky.social",
-    "list_type": "Others",
-    "lecture": "Origin and Age of the Earth",
-    "slides": [
-      5
-    ]
+    "name": "Depth Extent of the Lau Back-arc Spreading Center and Its Relation to Subduction Processes",
+    "url": "http://dx.doi.org/10.1126/science.278.5336.254",
+    "list_type": "Research Papers",
+    "lecture": "Plate Tectonics",
+    "slides": [8]
   },
   {
-    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
-    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-    "list_type": "Others",
-    "lecture": "Origin and Age of the Earth",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OCW Gift Form",
-    "url": "https://giving.mit.edu/give/to/ocw/?utm_source=ocw&utm_medium=homepage_banner&utm_campaign=nextgen_home",
-    "list_type": "Others",
-    "lecture": "Origin and Age of the Earth",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@MITOCW@mastodon.social) - Mastodon",
-    "url": "https://mastodon.social/@mitocw",
-    "list_type": "Others",
-    "lecture": "Origin and Age of the Earth",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://mitocw.zendesk.com/hc/en-us",
-    "list_type": "Others",
-    "lecture": "Origin and Age of the Earth",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "Contact Us",
-    "url": "https://mitocw.zendesk.com/hc/en-us/requests/new",
-    "list_type": "Others",
-    "lecture": "Origin and Age of the Earth",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT Open Learning brings Online Learning to MIT and the world",
-    "url": "https://openlearning.mit.edu/",
-    "list_type": "Others",
-    "lecture": "Origin and Age of the Earth",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "JavaScript is not available.",
-    "url": "https://twitter.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Origin and Age of the Earth",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT Open Course Ware",
-    "url": "https://www.facebook.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Origin and Age of the Earth",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@mitocw) • Instagram photos and videos",
-    "url": "https://www.instagram.com/mitocw",
-    "list_type": "Others",
-    "lecture": "Origin and Age of the Earth",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://www.linkedin.com/company/mit-opencourseware/",
-    "list_type": "Others",
-    "lecture": "Origin and Age of the Earth",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OEGlobal – Open Education Global",
-    "url": "https://www.oeglobal.org/",
-    "list_type": "Others",
-    "lecture": "Origin and Age of the Earth",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare - YouTube",
-    "url": "https://www.youtube.com/mitocw",
-    "list_type": "Videos",
-    "lecture": "Origin and Age of the Earth",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Captioning and Accessibility",
-    "url": "https://accessibility.mit.edu",
-    "list_type": "Others",
-    "lecture": "Overview: Introduction to the Introduction of Geology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "@mitocw.bsky.social on Bluesky",
-    "url": "https://bsky.app/profile/mitocw.bsky.social",
-    "list_type": "Others",
-    "lecture": "Overview: Introduction to the Introduction of Geology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
-    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-    "list_type": "Others",
-    "lecture": "Overview: Introduction to the Introduction of Geology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OCW Gift Form",
-    "url": "https://giving.mit.edu/give/to/ocw/?utm_source=ocw&utm_medium=homepage_banner&utm_campaign=nextgen_home",
-    "list_type": "Others",
-    "lecture": "Overview: Introduction to the Introduction of Geology",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@MITOCW@mastodon.social) - Mastodon",
-    "url": "https://mastodon.social/@mitocw",
-    "list_type": "Others",
-    "lecture": "Overview: Introduction to the Introduction of Geology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://mitocw.zendesk.com/hc/en-us",
-    "list_type": "Others",
-    "lecture": "Overview: Introduction to the Introduction of Geology",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "Contact Us",
-    "url": "https://mitocw.zendesk.com/hc/en-us/requests/new",
-    "list_type": "Others",
-    "lecture": "Overview: Introduction to the Introduction of Geology",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT Open Learning brings Online Learning to MIT and the world",
-    "url": "https://openlearning.mit.edu/",
-    "list_type": "Others",
-    "lecture": "Overview: Introduction to the Introduction of Geology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "JavaScript is not available.",
-    "url": "https://twitter.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Overview: Introduction to the Introduction of Geology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT Open Course Ware",
-    "url": "https://www.facebook.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Overview: Introduction to the Introduction of Geology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@mitocw) • Instagram photos and videos",
-    "url": "https://www.instagram.com/mitocw",
-    "list_type": "Others",
-    "lecture": "Overview: Introduction to the Introduction of Geology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://www.linkedin.com/company/mit-opencourseware/",
-    "list_type": "Others",
-    "lecture": "Overview: Introduction to the Introduction of Geology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OEGlobal – Open Education Global",
-    "url": "https://www.oeglobal.org/",
-    "list_type": "Others",
-    "lecture": "Overview: Introduction to the Introduction of Geology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare - YouTube",
-    "url": "https://www.youtube.com/mitocw",
-    "list_type": "Videos",
-    "lecture": "Overview: Introduction to the Introduction of Geology",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Captioning and Accessibility",
-    "url": "https://accessibility.mit.edu",
-    "list_type": "Others",
+    "name": "Tectonic Model for the Proterozoic Growth of North America",
+    "url": "http://dx.doi.org/10.1130/GES00055.1",
+    "list_type": "Research Papers",
     "lecture": "Plate Tectonics",
     "slides": [
-      5
+      18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36
     ]
   },
   {
-    "name": "@mitocw.bsky.social on Bluesky",
-    "url": "https://bsky.app/profile/mitocw.bsky.social",
-    "list_type": "Others",
-    "lecture": "Plate Tectonics",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
-    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-    "list_type": "Others",
-    "lecture": "Plate Tectonics",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OCW Gift Form",
-    "url": "https://giving.mit.edu/give/to/ocw/?utm_source=ocw&utm_medium=homepage_banner&utm_campaign=nextgen_home",
-    "list_type": "Others",
-    "lecture": "Plate Tectonics",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@MITOCW@mastodon.social) - Mastodon",
-    "url": "https://mastodon.social/@mitocw",
-    "list_type": "Others",
-    "lecture": "Plate Tectonics",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://mitocw.zendesk.com/hc/en-us",
-    "list_type": "Others",
-    "lecture": "Plate Tectonics",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "Contact Us",
-    "url": "https://mitocw.zendesk.com/hc/en-us/requests/new",
-    "list_type": "Others",
-    "lecture": "Plate Tectonics",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT Open Learning brings Online Learning to MIT and the world",
-    "url": "https://openlearning.mit.edu/",
-    "list_type": "Others",
-    "lecture": "Plate Tectonics",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "JavaScript is not available.",
-    "url": "https://twitter.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Plate Tectonics",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT Open Course Ware",
-    "url": "https://www.facebook.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Plate Tectonics",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@mitocw) • Instagram photos and videos",
-    "url": "https://www.instagram.com/mitocw",
-    "list_type": "Others",
-    "lecture": "Plate Tectonics",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://www.linkedin.com/company/mit-opencourseware/",
-    "list_type": "Others",
-    "lecture": "Plate Tectonics",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OEGlobal – Open Education Global",
-    "url": "https://www.oeglobal.org/",
-    "list_type": "Others",
-    "lecture": "Plate Tectonics",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare - YouTube",
-    "url": "https://www.youtube.com/mitocw",
-    "list_type": "Videos",
-    "lecture": "Plate Tectonics",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Captioning and Accessibility",
-    "url": "https://accessibility.mit.edu",
-    "list_type": "Others",
+    "name": "Dynamic single-thread channels maintained by the interaction of flow and vegetation",
+    "url": "http://dx.doi.org/10.1130/G23260A.1",
+    "list_type": "Research Papers",
     "lecture": "Rivers",
-    "slides": [
-      5
-    ]
+    "slides": [13]
   },
   {
-    "name": "@mitocw.bsky.social on Bluesky",
-    "url": "https://bsky.app/profile/mitocw.bsky.social",
-    "list_type": "Others",
+    "name": "File:Mississippi River Delta and Sediment Plume.jpg",
+    "url": "http://en.wikipedia.org/wiki/File:Mississippi_River_Delta_and_Sediment_Plume.jpg",
+    "list_type": "Wikipedia",
     "lecture": "Rivers",
-    "slides": [
-      5
-    ]
+    "slides": [18, 19]
   },
   {
-    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
-    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-    "list_type": "Others",
+    "name": "Nile River and Delta from Orbit",
+    "url": "http://en.wikipedia.org/wiki/Nile#mediaviewer/File:Nile_River_and_delta_from_orbit.jpg",
+    "list_type": "Wikipedia",
     "lecture": "Rivers",
-    "slides": [
-      5
-    ]
+    "slides": [17]
   },
   {
-    "name": "OCW Gift Form",
-    "url": "https://giving.mit.edu/give/to/ocw/?utm_source=ocw&utm_medium=homepage_banner&utm_campaign=nextgen_home",
-    "list_type": "Others",
-    "lecture": "Rivers",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@MITOCW@mastodon.social) - Mastodon",
-    "url": "https://mastodon.social/@mitocw",
-    "list_type": "Others",
-    "lecture": "Rivers",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://mitocw.zendesk.com/hc/en-us",
-    "list_type": "Others",
-    "lecture": "Rivers",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "Contact Us",
-    "url": "https://mitocw.zendesk.com/hc/en-us/requests/new",
-    "list_type": "Others",
-    "lecture": "Rivers",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT Open Learning brings Online Learning to MIT and the world",
-    "url": "https://openlearning.mit.edu/",
-    "list_type": "Others",
-    "lecture": "Rivers",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "JavaScript is not available.",
-    "url": "https://twitter.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Rivers",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT Open Course Ware",
-    "url": "https://www.facebook.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Rivers",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@mitocw) • Instagram photos and videos",
-    "url": "https://www.instagram.com/mitocw",
-    "list_type": "Others",
-    "lecture": "Rivers",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://www.linkedin.com/company/mit-opencourseware/",
-    "list_type": "Others",
-    "lecture": "Rivers",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OEGlobal – Open Education Global",
-    "url": "https://www.oeglobal.org/",
-    "list_type": "Others",
-    "lecture": "Rivers",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare - YouTube",
-    "url": "https://www.youtube.com/mitocw",
-    "list_type": "Videos",
-    "lecture": "Rivers",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Captioning and Accessibility",
-    "url": "https://accessibility.mit.edu",
-    "list_type": "Others",
+    "name": "Fault rocks and fault mechanisms",
+    "url": "http://dx.doi.org/10.1144/gsjgs.133.3.0191",
+    "list_type": "Research Papers",
     "lecture": "Rock Structure and Deformation",
-    "slides": [
-      5
-    ]
+    "slides": [5]
   },
   {
-    "name": "@mitocw.bsky.social on Bluesky",
-    "url": "https://bsky.app/profile/mitocw.bsky.social",
-    "list_type": "Others",
+    "name": "Brittle-ductile transition zone",
+    "url": "http://en.wikipedia.org/wiki/Brittle%E2%80%93ductile_transition_zone#mediaviewer/File:Brittle_Ductile.png",
+    "list_type": "Wikipedia",
     "lecture": "Rock Structure and Deformation",
-    "slides": [
-      5
-    ]
+    "slides": [4]
   },
   {
-    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
-    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-    "list_type": "Others",
-    "lecture": "Rock Structure and Deformation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OCW Gift Form",
-    "url": "https://giving.mit.edu/give/to/ocw/?utm_source=ocw&utm_medium=homepage_banner&utm_campaign=nextgen_home",
-    "list_type": "Others",
-    "lecture": "Rock Structure and Deformation",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@MITOCW@mastodon.social) - Mastodon",
-    "url": "https://mastodon.social/@mitocw",
-    "list_type": "Others",
-    "lecture": "Rock Structure and Deformation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://mitocw.zendesk.com/hc/en-us",
-    "list_type": "Others",
-    "lecture": "Rock Structure and Deformation",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "Contact Us",
-    "url": "https://mitocw.zendesk.com/hc/en-us/requests/new",
-    "list_type": "Others",
-    "lecture": "Rock Structure and Deformation",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT Open Learning brings Online Learning to MIT and the world",
-    "url": "https://openlearning.mit.edu/",
-    "list_type": "Others",
-    "lecture": "Rock Structure and Deformation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "JavaScript is not available.",
-    "url": "https://twitter.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Rock Structure and Deformation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT Open Course Ware",
-    "url": "https://www.facebook.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Rock Structure and Deformation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@mitocw) • Instagram photos and videos",
-    "url": "https://www.instagram.com/mitocw",
-    "list_type": "Others",
-    "lecture": "Rock Structure and Deformation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://www.linkedin.com/company/mit-opencourseware/",
-    "list_type": "Others",
-    "lecture": "Rock Structure and Deformation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OEGlobal – Open Education Global",
-    "url": "https://www.oeglobal.org/",
-    "list_type": "Others",
-    "lecture": "Rock Structure and Deformation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare - YouTube",
-    "url": "https://www.youtube.com/mitocw",
-    "list_type": "Videos",
-    "lecture": "Rock Structure and Deformation",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Captioning and Accessibility",
-    "url": "https://accessibility.mit.edu",
-    "list_type": "Others",
+    "name": "In Situ Evidence for an Ancient Aqueous Environment at Meridiani Planum, Mars",
+    "url": "http://dx.doi.org/10.1126/science.1104559",
+    "list_type": "Research Papers",
     "lecture": "Sedimentary Rocks",
-    "slides": [
-      5
-    ]
+    "slides": [18]
   },
   {
-    "name": "@mitocw.bsky.social on Bluesky",
-    "url": "https://bsky.app/profile/mitocw.bsky.social",
-    "list_type": "Others",
+    "name": "File:Palau stingless jellyfish.jpg",
+    "url": "http://en.wikipedia.org/wiki/File:Palau_stingless_jellyfish.jpg",
+    "list_type": "Wikipedia",
     "lecture": "Sedimentary Rocks",
-    "slides": [
-      5
-    ]
+    "slides": [2]
   },
   {
-    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
-    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-    "list_type": "Others",
+    "name": "Stranded on a Late Cambrian shoreline: Medusae from central Wisconsin",
+    "url": "http://mr.crossref.org/iPage?doi=10.1130%2F0091-7613%282002%29030%3C0147%3ASOALCS%3E2.0.CO%3B2",
+    "list_type": "Research Papers",
     "lecture": "Sedimentary Rocks",
-    "slides": [
-      5
-    ]
+    "slides": [2]
   },
   {
-    "name": "OCW Gift Form",
-    "url": "https://giving.mit.edu/give/to/ocw/?utm_source=ocw&utm_medium=homepage_banner&utm_campaign=nextgen_home",
-    "list_type": "Others",
-    "lecture": "Sedimentary Rocks",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@MITOCW@mastodon.social) - Mastodon",
-    "url": "https://mastodon.social/@mitocw",
-    "list_type": "Others",
-    "lecture": "Sedimentary Rocks",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://mitocw.zendesk.com/hc/en-us",
-    "list_type": "Others",
-    "lecture": "Sedimentary Rocks",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "Contact Us",
-    "url": "https://mitocw.zendesk.com/hc/en-us/requests/new",
-    "list_type": "Others",
-    "lecture": "Sedimentary Rocks",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT Open Learning brings Online Learning to MIT and the world",
-    "url": "https://openlearning.mit.edu/",
-    "list_type": "Others",
-    "lecture": "Sedimentary Rocks",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "JavaScript is not available.",
-    "url": "https://twitter.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Sedimentary Rocks",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT Open Course Ware",
-    "url": "https://www.facebook.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Sedimentary Rocks",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@mitocw) • Instagram photos and videos",
-    "url": "https://www.instagram.com/mitocw",
-    "list_type": "Others",
-    "lecture": "Sedimentary Rocks",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://www.linkedin.com/company/mit-opencourseware/",
-    "list_type": "Others",
-    "lecture": "Sedimentary Rocks",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OEGlobal – Open Education Global",
-    "url": "https://www.oeglobal.org/",
-    "list_type": "Others",
-    "lecture": "Sedimentary Rocks",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare - YouTube",
-    "url": "https://www.youtube.com/mitocw",
-    "list_type": "Videos",
-    "lecture": "Sedimentary Rocks",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Captioning and Accessibility",
-    "url": "https://accessibility.mit.edu",
-    "list_type": "Others",
+    "name": "File:Earth surface NGDC 2000.jpg - Wikimedia Commons",
+    "url": "http://commons.wikimedia.org/wiki/File:Earth_surface_NGDC_2000.jpg",
+    "list_type": "Wikipedia",
     "lecture": "Topography",
-    "slides": [
-      5
-    ]
+    "slides": [16]
   },
   {
-    "name": "@mitocw.bsky.social on Bluesky",
-    "url": "https://bsky.app/profile/mitocw.bsky.social",
-    "list_type": "Others",
+    "name": "Gravity of Earth",
+    "url": "http://en.wikipedia.org/wiki/Gravity_of_Earth",
+    "list_type": "Wikipedia",
     "lecture": "Topography",
-    "slides": [
-      5
-    ]
+    "slides": [12]
   },
   {
-    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
-    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-    "list_type": "Others",
-    "lecture": "Topography",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OCW Gift Form",
-    "url": "https://giving.mit.edu/give/to/ocw/?utm_source=ocw&utm_medium=homepage_banner&utm_campaign=nextgen_home",
-    "list_type": "Others",
-    "lecture": "Topography",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@MITOCW@mastodon.social) - Mastodon",
-    "url": "https://mastodon.social/@mitocw",
-    "list_type": "Others",
-    "lecture": "Topography",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://mitocw.zendesk.com/hc/en-us",
-    "list_type": "Others",
-    "lecture": "Topography",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "Submit a request",
-    "url": "https://mitocw.zendesk.com/hc/en-us/requests/new",
-    "list_type": "Others",
-    "lecture": "Topography",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT Open Learning brings Online Learning to MIT and the world",
-    "url": "https://openlearning.mit.edu/",
-    "list_type": "Others",
-    "lecture": "Topography",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "JavaScript is not available.",
-    "url": "https://twitter.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Topography",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT Open Course Ware",
-    "url": "https://www.facebook.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Topography",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@mitocw) • Instagram photos and videos",
-    "url": "https://www.instagram.com/mitocw",
-    "list_type": "Others",
-    "lecture": "Topography",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://www.linkedin.com/company/mit-opencourseware/",
-    "list_type": "Others",
-    "lecture": "Topography",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OEGlobal – Open Education Global",
-    "url": "https://www.oeglobal.org/",
-    "list_type": "Others",
-    "lecture": "Topography",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare - YouTube",
-    "url": "https://www.youtube.com/mitocw",
-    "list_type": "Videos",
-    "lecture": "Topography",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "Captioning and Accessibility",
-    "url": "https://accessibility.mit.edu",
-    "list_type": "Others",
+    "name": "File:Large eruptions - dark.jpg - Wikimedia Commons",
+    "url": "http://commons.wikimedia.org/wiki/File:Large_eruptions_-_dark.jpg",
+    "list_type": "Wikipedia",
     "lecture": "Volcanoes",
-    "slides": [
-      5
-    ]
+    "slides": [3]
   },
   {
-    "name": "@mitocw.bsky.social on Bluesky",
-    "url": "https://bsky.app/profile/mitocw.bsky.social",
-    "list_type": "Others",
+    "name": "On the ages of flood basalt events",
+    "url": "http://dx.doi.org/10.1016/S1631-0713(03)00006-3",
+    "list_type": "Research Papers",
     "lecture": "Volcanoes",
-    "slides": [
-      5
-    ]
+    "slides": [5]
   },
   {
-    "name": "Deed - Attribution-NonCommercial-ShareAlike 4.0 International - Creative Commons",
-    "url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
-    "list_type": "Others",
+    "name": "File:Extinction intensity.svg",
+    "url": "http://en.wikipedia.org/wiki/File:Extinction_intensity.svg",
+    "list_type": "Wikipedia",
     "lecture": "Volcanoes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OCW Gift Form",
-    "url": "https://giving.mit.edu/give/to/ocw/?utm_source=ocw&utm_medium=homepage_banner&utm_campaign=nextgen_home",
-    "list_type": "Others",
-    "lecture": "Volcanoes",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@MITOCW@mastodon.social) - Mastodon",
-    "url": "https://mastodon.social/@mitocw",
-    "list_type": "Others",
-    "lecture": "Volcanoes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://mitocw.zendesk.com/hc/en-us",
-    "list_type": "Others",
-    "lecture": "Volcanoes",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "Contact Us",
-    "url": "https://mitocw.zendesk.com/hc/en-us/requests/new",
-    "list_type": "Others",
-    "lecture": "Volcanoes",
-    "slides": [
-      2
-    ]
-  },
-  {
-    "name": "MIT Open Learning brings Online Learning to MIT and the world",
-    "url": "https://openlearning.mit.edu/",
-    "list_type": "Others",
-    "lecture": "Volcanoes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "JavaScript is not available.",
-    "url": "https://twitter.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Volcanoes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT Open Course Ware",
-    "url": "https://www.facebook.com/MITOCW",
-    "list_type": "Others",
-    "lecture": "Volcanoes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare (@mitocw) • Instagram photos and videos",
-    "url": "https://www.instagram.com/mitocw",
-    "list_type": "Others",
-    "lecture": "Volcanoes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare",
-    "url": "https://www.linkedin.com/company/mit-opencourseware/",
-    "list_type": "Others",
-    "lecture": "Volcanoes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "OEGlobal – Open Education Global",
-    "url": "https://www.oeglobal.org/",
-    "list_type": "Others",
-    "lecture": "Volcanoes",
-    "slides": [
-      5
-    ]
-  },
-  {
-    "name": "MIT OpenCourseWare - YouTube",
-    "url": "https://www.youtube.com/mitocw",
-    "list_type": "Videos",
-    "lecture": "Volcanoes",
-    "slides": [
-      5
-    ]
+    "slides": [5]
   }
 ]

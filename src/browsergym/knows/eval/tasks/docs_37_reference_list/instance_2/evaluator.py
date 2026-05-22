@@ -31,7 +31,6 @@ from src.browsergym.knows.eval.tasks.docs_37_reference_list.utils import (
     extract_headings_with_bookmarks,
     extract_bullet_sections,
     extract_reference_links,
-    get_gold_lectures,
     match_valid_category,
     match_text_quiet,
     is_raw_url,
@@ -44,6 +43,7 @@ from src.browsergym.knows.eval.tasks.docs_37_reference_list.utils import (
 TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/docs_37_reference_list/instance_2/")
 GOLD_DATA_PATH = os.path.join(TASK_DIR, "data/gold_outputs.json")
 PAGE_TITLES_PATH = os.path.join(TASK_DIR, "data/page_titles.json")
+SCHEDULE_PATH = os.path.join(TASK_DIR, "data/schedule.json")
 
 # Instance-2 specific valid categories
 VALID_CATEGORIES_2 = {"Tutorials", "Textbooks", "Videos"}
@@ -84,7 +84,20 @@ def grade_checkpoint_1():
     _added = set()
 
     try:
-        gold_lectures = get_gold_lectures(gold_data)
+        with open(SCHEDULE_PATH, "r", encoding="utf-8") as f:
+            schedule = json.load(f)
+        # The full expected lecture list comes from schedule.json: every lecture
+        # gets a heading even if it has no qualifying reference links (and is
+        # therefore absent from gold_outputs.json).
+        gold_lectures = []
+        for entry in schedule:
+            title = entry.get("lecture_title", "").strip()
+            if not title or not entry.get("lecture_slides_link"):
+                continue
+            module_match = re.search(r"\d+", entry.get("module", ""))
+            if module_match:
+                gold_lectures.append(f"Module {module_match.group()}: {title}")
+
         doc_headings = extract_headings_with_bookmarks(document)
         total_count = len(gold_lectures)
 
@@ -189,7 +202,7 @@ def grade_checkpoint_2():
     """Checkpoint 2 (40pt): Topics bullet lists — categories, bold, non-empty, no invalid."""
     _STEPS = [
         (1, "Valid category titles (gold coverage)", 10),
-        (2, "Category titles in bold", 10),
+        (2, "Bullet list starts with title in bold", 10),
         (3, "No empty bullet lists", 10),
         (4, "No invalid category titles", 10),
     ]
@@ -203,6 +216,16 @@ def grade_checkpoint_2():
 
     try:
         sections = extract_bullet_sections(document)
+        if not sections or len(sections) == 0:
+            for step in _STEPS:
+                checkpoint.add_step(
+                    name=step[1], success=False, step_id=step[0],
+                    details="No bullet sections found in the document.",
+                    score=0, max_score=step[2], execution_time=0,
+                )
+            checkpoint.execution_time = time.time() - start
+            return checkpoint
+        
         total_sections = len(sections)
 
         gold_pairs = set()
@@ -268,27 +291,36 @@ def grade_checkpoint_2():
             )
         _added.add(1)
 
-        # --- Step 2: Category titles in bold ---
+        # --- Step 2: Bullet list starts with the title in bold ---
         t = time.time()
         try:
-            bold_pass = 0
-            bold_details = []
+            format_pass = 0
+            format_details = []
             for section in sections:
-                if section["category_is_bold"]:
-                    bold_pass += 1
+                is_bold = section["category_is_bold"]
+                is_bullet = section["category_is_bullet"]
+                if is_bold and is_bullet:
+                    format_pass += 1
                 else:
-                    bold_details.append(f"Not bold: '{section['category']}' under '{section['lecture']}'")
-            score_2 = calculate_percentage_score(bold_pass, total_sections, 10)
+                    problems = []
+                    if not is_bullet:
+                        problems.append("not a bullet")
+                    if not is_bold:
+                        problems.append("not bold")
+                    format_details.append(
+                        f"{' & '.join(problems)}: '{section['category']}' under '{section['lecture']}'"
+                    )
+            score_2 = calculate_percentage_score(format_pass, total_sections, 10)
             checkpoint.add_step(
-                name="Category titles in bold",
-                success=(bold_pass == total_sections), step_id=2,
-                details=f"{bold_pass}/{total_sections} category titles are bold. "
-                        + "; ".join(bold_details[:5]) if bold_details else f"{bold_pass}/{total_sections} all bold",
+                name="Bullet list starts with title in bold",
+                success=(format_pass == total_sections), step_id=2,
+                details=f"{format_pass}/{total_sections} category titles are bold bullets. "
+                        + "; ".join(format_details[:5]) if format_details else f"{format_pass}/{total_sections} all correct",
                 score=score_2, max_score=10, execution_time=time.time() - t,
             )
         except Exception as e:
             checkpoint.add_step(
-                name="Category titles in bold",
+                name="Bullet list starts with title in bold",
                 success=False, step_id=2, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
             )
@@ -383,24 +415,20 @@ def grade_checkpoint_3():
 
         unique_doc_lectures = {r["lecture"] for r in doc_refs}
         unique_gold_lectures = {item["lecture"] for item in gold_data}
-        doc_lecture_to_gold = {}
+        # Resolve each doc lecture to its single best-matching gold lecture.
+        doc_lecture_best_gold = {}
         for dl in unique_doc_lectures:
-            matched_golds = set()
-            for gl in unique_gold_lectures:
-                if match_text_quiet(dl, [gl], threshold=75)[0]:
-                    matched_golds.add(gl)
-            doc_lecture_to_gold[dl] = matched_golds
+            matched_gl, _ = match_text_quiet(dl, list(unique_gold_lectures), threshold=75)
+            doc_lecture_best_gold[dl] = matched_gl
 
         gold_to_doc = {}
+        for r in doc_refs:
+            resolved = doc_lecture_best_gold.get(r["lecture"])
+            if resolved is None:
+                continue
+            gold_to_doc.setdefault((resolved, r["url"]), r)
         for gold_item in gold_data:
-            gold_url = gold_item["url"]
-            gold_lecture = gold_item["lecture"]
-            matched_ref = next(
-                (r for r in doc_refs if r["url"] == gold_url
-                 and gold_lecture in doc_lecture_to_gold.get(r["lecture"], set())),
-                None
-            )
-            gold_to_doc[(gold_lecture, gold_url)] = matched_ref
+            gold_to_doc.setdefault((gold_item["lecture"], gold_item["url"]), None)
         gold_to_doc_cache = gold_to_doc
 
         ref_counts = {}
@@ -410,12 +438,14 @@ def grade_checkpoint_3():
 
         # --- Step 1: All references present ---
         t = time.time()
+        found_items = []
         try:
             present_count = 0
             presence_details = []
             for gold_item in gold_data:
                 if gold_to_doc[(gold_item["lecture"], gold_item["url"])]:
                     present_count += 1
+                    found_items.append(gold_item)
                 else:
                     presence_details.append(f"Missing: '{gold_item['name']}'")
             score_1 = calculate_percentage_score(present_count, total_gold, 10)
@@ -439,13 +469,13 @@ def grade_checkpoint_3():
         try:
             dup_pass = 0
             dup_details = []
-            for gold_item in gold_data:
-                key = (gold_item["lecture"], gold_item["url"])
-                count = ref_counts.get(key, 0)
+            for gold_item in found_items:
+                ref = gold_to_doc[(gold_item["lecture"], gold_item["url"])]
+                count = ref_counts.get((ref["lecture"], ref["url"]), 0)
                 if count <= 1:
                     dup_pass += 1
                 else:
-                    dup_details.append(f"Appears {count}x in '{gold_item['lecture']}': '{gold_item['name']}'")
+                    dup_details.append(f"Appears {count}x in '{ref['lecture']}': '{gold_item['name']}'")
             score_2 = calculate_percentage_score(dup_pass, total_gold, 10)
             checkpoint.add_step(
                 name="No duplicate reference links",
@@ -467,7 +497,7 @@ def grade_checkpoint_3():
         try:
             cat_pass = 0
             cat_details = []
-            for gold_item in gold_data:
+            for gold_item in found_items:
                 ref = gold_to_doc[(gold_item["lecture"], gold_item["url"])]
                 if not ref:
                     cat_details.append(f"Missing: '{gold_item['name']}'")
@@ -504,7 +534,7 @@ def grade_checkpoint_3():
         try:
             slide_match_count = 0
             slide_match_details = []
-            for gold_item in gold_data:
+            for gold_item in found_items:
                 ref = gold_to_doc[(gold_item["lecture"], gold_item["url"])]
                 if not ref:
                     slide_match_details.append(f"Missing: '{gold_item['name']}'")
@@ -536,7 +566,7 @@ def grade_checkpoint_3():
         try:
             format_pass = 0
             format_details = []
-            for gold_item in gold_data:
+            for gold_item in found_items:
                 ref = gold_to_doc[(gold_item["lecture"], gold_item["url"])]
                 if not ref:
                     format_details.append(f"Missing: '{gold_item['name']}'")
@@ -566,7 +596,7 @@ def grade_checkpoint_3():
         try:
             slide_fmt_pass = 0
             slide_fmt_details = []
-            for gold_item in gold_data:
+            for gold_item in found_items:
                 ref = gold_to_doc[(gold_item["lecture"], gold_item["url"])]
                 if not ref:
                     slide_fmt_details.append(f"Missing: '{gold_item['name']}'")
@@ -596,7 +626,7 @@ def grade_checkpoint_3():
         try:
             author_pass = 0
             author_details = []
-            for gold_item in gold_data:
+            for gold_item in found_items:
                 ref = gold_to_doc[(gold_item["lecture"], gold_item["url"])]
                 if not ref:
                     author_details.append(f"Missing: '{gold_item['name']}'")
@@ -693,25 +723,34 @@ def grade_checkpoint_3():
         # --- Step 9: No dead hyperlinks ---
         t = time.time()
         try:
-            unique_urls = list({r["url"] for r in doc_refs if r.get("url")})
-            dead_link_tasks = [
-                {"id": url, "func": is_dead_link, "args": (url,), "kwargs": {}}
-                for url in unique_urls
-            ]
-            dead_check_results = parallel_execute(dead_link_tasks, max_workers=20) if dead_link_tasks else {}
-            dead_urls = []
-            for url in unique_urls:
-                result = dead_check_results.get(url)
-                if isinstance(result, tuple) and result[0]:
-                    dead_urls.append((url, result[1]))
-            no_dead = len(dead_urls) == 0
-            dead_details = [f"{url} ({reason})" for url, reason in dead_urls[:5]]
-            checkpoint.add_step(
-                name="No dead hyperlinks",
-                success=no_dead, step_id=9,
-                details="No dead links found" if no_dead else f"{len(dead_urls)} dead link(s): " + "; ".join(dead_details),
-                score=10 if no_dead else 0, max_score=10, execution_time=time.time() - t,
-            )
+            # unique_urls = list({r["url"] for r in doc_refs if r.get("url")})
+            unique_urls = list({gold_item["url"] for gold_item in found_items if gold_item.get("url")})
+            if len(unique_urls) == 0 and len(gold_data) > 0:
+                checkpoint.add_step(
+                    name="No dead hyperlinks",
+                    success=False, step_id=9,
+                    details="No urls found",
+                    score=0, max_score=10, execution_time=time.time() - t,
+                )
+            else:
+                dead_link_tasks = [
+                    {"id": url, "func": is_dead_link, "args": (url,), "kwargs": {}}
+                    for url in unique_urls
+                ]
+                dead_check_results = parallel_execute(dead_link_tasks, max_workers=20) if dead_link_tasks else {}
+                dead_urls = []
+                for url in unique_urls:
+                    result = dead_check_results.get(url)
+                    if isinstance(result, tuple) and result[0]:
+                        dead_urls.append((url, result[1]))
+                no_dead = len(dead_urls) == 0
+                dead_details = [f"{url} ({reason})" for url, reason in dead_urls[:5]]
+                checkpoint.add_step(
+                    name="No dead hyperlinks",
+                    success=no_dead, step_id=9,
+                    details="No dead links found" if no_dead else f"{len(dead_urls)} dead link(s): " + "; ".join(dead_details),
+                    score=10 if no_dead else 0, max_score=10, execution_time=time.time() - t,
+                )
         except Exception as e:
             checkpoint.add_step(
                 name="No dead hyperlinks",
@@ -748,7 +787,7 @@ def grade_checkpoint_4():
 
     try:
         doc_refs = doc_refs_cache if doc_refs_cache is not None else extract_reference_links(document)
-        multi_slide_gold = [item for item in gold_data if item.get("num_slides", 1) > 1]
+        multi_slide_gold = [item for item in gold_data if len(item.get("slides") or []) > 1]
         total_multi = len(multi_slide_gold)
 
         if total_multi == 0:
