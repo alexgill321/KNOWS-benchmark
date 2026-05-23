@@ -1,6 +1,6 @@
 # Checkpoints
 
-This task has 28 points in total.
+This task has 31 points in total.
 
 ## Checkpoint 1 (5 pts): Color Extraction
 The agent found and extracted beach/coastal wedding color information from at least two articles and color names are listed vertically in the top-left area of the main sheet.
@@ -17,9 +17,9 @@ Article links are placed in the column immediately to the right of each color na
 
 ### Outcome Evaluation:
 - The column next to color names contains URLs/links.
-- Each color name has a corresponding article link.
-- Links are functional and lead to the source articles.
-- Proper alignment exists between color names and their source links.
+- Each color name has a corresponding article link in the same row.
+- The article links are functional and reachable.
+- The links lead to relevant wedding-color content.
 
 ## Checkpoint 3 (4 pts): Color Cell Formatting
 Cells are filled with colors matching the color names in the third column.
@@ -35,19 +35,20 @@ Fabric or textile store links are provided in the fourth column next to each col
 
 ### Outcome Evaluation:
 - The column to the right of the colored cells contains links to fabric or textile stores or color pages.
-- Links are functional and lead to relevant fabric/textile color information (LLM judge that the linked page is from a fabric or textile store, not a paint store).
 - Each color has an associated fabric/textile store link.
+- Links are functional and lead to relevant fabric/textile color information (LLM judge that the linked page is from a fabric or textile store, not a paint store).
 
-## Checkpoint 5 (4 pts): Beach Wedding Decoration Matrix
+## Checkpoint 5 (5 pts): Beach Wedding Decoration Matrix
 A beach wedding decoration matrix is created below the color list with images.
 
 ### Outcome Evaluation:
 - At least 5 types of beach wedding decorations are listed in the leftmost column (API for location, LLM judge that items are beach-wedding-specific such as centerpieces, bridesmaid dresses, table runners, shell decorations, or invitations).
 - Column headers contain the same color names from the original list (exact text match).
+- The matrix column headers appear in the same order as the original color list.
 - At least half of the matrix cells contain images.
 - Images show the specified decoration type in the corresponding color (VLM judge).
 
-## Checkpoint 6 (4 pts): Day/Evening Color Palette Tab
+## Checkpoint 6 (6 pts): Day/Evening Color Palette Tab
 A new tab contains at least 10 labeled color palette combinations.
 
 ### Outcome Evaluation:

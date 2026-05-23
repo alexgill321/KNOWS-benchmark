@@ -1,6 +1,6 @@
 # Checkpoints
 
-This task has 25 points in total.
+This task has 26 points in total.
 
 ## Checkpoint 1 (5 pts): Color Extraction
 The agent found and extracted wedding color information from at least two articles and color names are listed vertically in the top-left area of the main sheet.
@@ -17,9 +17,9 @@ Article links are placed in the column immediately to the right of each color na
 
 ### Outcome Evaluation:
 - The column next to color names contains URLs/links.
-- Each color name has a corresponding article link.
-- Links are functional and lead to the source articles.
-- Proper alignment exists between color names and their source links.
+- Each color name has a corresponding article link in the same row.
+- The article links are functional and reachable.
+- The links lead to relevant wedding-color content.
 
 ## Checkpoint 3 (4 pts): Color Cell Formatting
 Cells are filled with colors matching the color names in the third column.
@@ -35,15 +35,16 @@ Paint store links are provided in the fourth column next to each color.
 
 ### Outcome Evaluation:
 - The column to the right contains links to paint stores or color pages.
-- Links are functional and lead to relevant paint/color information.
 - Each color has an associated paint store link.
+- Links are functional and lead to relevant paint/color information.
 
-## Checkpoint 5 (4 pts): Wedding Decoration Matrix
+## Checkpoint 5 (5 pts): Wedding Decoration Matrix
 A wedding decoration matrix is created below the color list with images.
 
 ### Outcome Evaluation:
 - At least 3 types of wedding decorations are listed in the leftmost column (API for location, LLM judge for content).
 - Column headers contain the same color names from the original list (exact text match).
+- The matrix column headers appear in the same order as the original color list.
 - At least half of the matrix cells contain images.
 - Images show the specified decoration type in the corresponding color (VLM judge).
 
