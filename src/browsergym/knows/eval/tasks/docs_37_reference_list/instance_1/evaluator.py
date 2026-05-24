@@ -98,6 +98,16 @@ def grade_checkpoint_1():
     checkpoint = Checkpoint(total=30, result=0, name="Lecture Title")
     _added = set()
 
+    if not document:
+        for sid, sname, smax in _STEPS:
+            checkpoint.add_step(
+                name=sname, success=False, step_id=sid,
+                details="Error fetching document content.",
+                score=0, max_score=smax, execution_time=0,
+            )
+        checkpoint.execution_time = time.time() - start
+        return checkpoint
+
     try:
         # --- Shared preparation ---
         # The full expected lecture list comes from notion_schedule.json: every
@@ -257,6 +267,16 @@ def grade_checkpoint_2():
     checkpoint = Checkpoint(total=40, result=0, name="Topics bullet lists")
     _added = set()
 
+    if not document:
+        for sid, sname, smax in _STEPS:
+            checkpoint.add_step(
+                name=sname, success=False, step_id=sid,
+                details="Error fetching document content.",
+                score=0, max_score=smax, execution_time=0,
+            )
+        checkpoint.execution_time = time.time() - start
+        return checkpoint
+
     try:
         sections = extract_bullet_sections(document)
         
@@ -340,17 +360,11 @@ def grade_checkpoint_2():
             format_details = []
             for section in sections:
                 is_bold = section["category_is_bold"]
-                is_bullet = section["category_is_bullet"]
-                if is_bold and is_bullet:
+                if is_bold:
                     format_pass += 1
                 else:
-                    problems = []
-                    if not is_bullet:
-                        problems.append("not a bullet")
-                    if not is_bold:
-                        problems.append("not bold")
                     format_details.append(
-                        f"{' & '.join(problems)}: '{section['category']}' under '{section['lecture']}'"
+                        f"'{section['category']}' under '{section['lecture']}' not bold"
                     )
             score_2 = calculate_percentage_score(format_pass, total_sections, 10)
             checkpoint.add_step(
@@ -447,6 +461,16 @@ def grade_checkpoint_3():
     start = time.time()
     checkpoint = Checkpoint(total=80, result=0, name="Reference links")
     _added = set()
+
+    if not document:
+        for sid, sname, smax in _STEPS:
+            checkpoint.add_step(
+                name=sname, success=False, step_id=sid,
+                details="Error fetching document content.",
+                score=0, max_score=smax, execution_time=0,
+            )
+        checkpoint.execution_time = time.time() - start
+        return checkpoint
 
     try:
         doc_refs = extract_reference_links(document)
@@ -772,6 +796,16 @@ def grade_checkpoint_4():
     start = time.time()
     checkpoint = Checkpoint(total=30, result=0, name="Multiple references")
     _added = set()
+
+    if not document:
+        for sid, sname, smax in _STEPS:
+            checkpoint.add_step(
+                name=sname, success=False, step_id=sid,
+                details="Error fetching document content.",
+                score=0, max_score=smax, execution_time=0,
+            )
+        checkpoint.execution_time = time.time() - start
+        return checkpoint
 
     try:
         doc_refs = doc_refs_cache if doc_refs_cache is not None else extract_reference_links(document)
