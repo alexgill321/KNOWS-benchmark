@@ -714,12 +714,16 @@ def grade_checkpoint_5(color_region: Optional[Dict] = None):
                 messages = [
                     {"role": "system", "content": [{"type": "text", "text": (
                         "You judge whether a piece of text is a single short "
-                        "sentence (one sentence, not a list, not multiple "
-                        "sentences, not a single word). Answer Yes or No."
+                        "description: one self-contained unit (either a full "
+                        "sentence or a descriptive phrase/fragment). Answer "
+                        "'Yes' for one sentence OR one descriptive phrase. "
+                        "Answer 'No' only if it is multiple sentences, a "
+                        "bulleted/numbered list, or just a single word."
                     )}]},
                     {"role": "user", "content": [{"type": "text", "text": (
                         f"Text: {text!r}\n"
-                        f"Is this a single short sentence? Answer Yes or No."
+                        f"Is this a single short description (one sentence or "
+                        f"one descriptive phrase)? Answer Yes or No."
                     )}]},
                 ]
                 sent_tasks.append({"id": str(idx), "messages": messages})
@@ -754,7 +758,11 @@ def grade_checkpoint_5(color_region: Optional[Dict] = None):
                         "You judge whether a sentence describes the mood, "
                         "feeling, or emotional impression evoked by a colour "
                         "(rather than something unrelated like a recipe or "
-                        "definition). Answer Yes or No."
+                        "definition). Dual-use words like 'radiant', "
+                        "'vibrant', 'glowing', 'warm', 'soft', 'cool', or "
+                        "'bright' count as mood/feeling even when they also "
+                        "describe a physical property — they carry an "
+                        "emotional/atmospheric connotation. Answer Yes or No."
                     )}]},
                     {"role": "user", "content": [{"type": "text", "text": (
                         f"Color: {nm!r}\nText: {text!r}\n"
