@@ -21,6 +21,34 @@ UNVERIFIABLE_DOMAINS = [
 ]
 
 
+# Opt-in aggressive HTML cleaning: extra tags + class/id pattern matches on
+# top of the default strip. Used by callers that need clean article text
+# (e.g. CP2/CP4 content relevance in sheets_45). Disabled by default to keep
+# existing callers unchanged.
+_AGGRESSIVE_JUNK_TAGS = (
+    'noscript', 'iframe', 'form', 'button',
+)
+_AGGRESSIVE_JUNK_CLASS_ID = re.compile(
+    r'\b('
+    r'ad|ads|advert|advertisement|sponsored|promo|popup|modal|'
+    r'cookie|newsletter|subscribe|signup|'
+    r'sidebar|related|recommend|popular|trending|'
+    r'comment|disqus|share|social|'
+    r'menu|breadcrumb|toolbar'
+    r')\b',
+    re.IGNORECASE,
+)
+
+
+def _strip_aggressive_junk(soup) -> None:
+    for el in soup(_AGGRESSIVE_JUNK_TAGS):
+        el.decompose()
+    for el in soup.find_all(attrs={'class': _AGGRESSIVE_JUNK_CLASS_ID}):
+        el.decompose()
+    for el in soup.find_all(attrs={'id': _AGGRESSIVE_JUNK_CLASS_ID}):
+        el.decompose()
+
+
 def is_unverifiable_url(url: str) -> bool:
     """Check if URL is from a domain known to block programmatic downloads.
 
@@ -333,18 +361,23 @@ def fetch_page_text_content(
     url: str,
     timeout: int = 10,
     max_chars: int = 15000,
-    headers: Optional[Dict[str, str]] = None
+    headers: Optional[Dict[str, str]] = None,
+    aggressive_strip: bool = False,
 ) -> Tuple[Optional[str], str]:
     """Fetch URL and convert HTML to readable text content.
 
     Removes non-content elements (script, style, nav, header, footer, aside)
-    and returns cleaned text suitable for LLM analysis.
+    and returns cleaned text suitable for LLM analysis. When
+    ``aggressive_strip=True``, additionally removes inline ads, sidebars,
+    cookie banners, comment widgets, and similar non-article elements.
 
     Args:
         url: URL to fetch.
         timeout: Request timeout in seconds.
         max_chars: Maximum characters to return (truncates if exceeded).
         headers: Optional HTTP headers to send with request.
+        aggressive_strip: When True, also remove inline ads / sidebars /
+            comments / forms / iframes via class+id pattern matching.
 
     Returns:
         Tuple of (text_content or None, status_details).
@@ -364,15 +397,21 @@ def fetch_page_text_content(
 
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Remove script, style, and other non-content elements
         for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
             element.decompose()
 
-        # Get text and clean whitespace
-        text = soup.get_text(separator=' ')
-        text = re.sub(r'\s+', ' ', text).strip()
+        text_default = re.sub(r'\s+', ' ', soup.get_text(separator=' ')).strip()
 
-        # Truncate if needed
+        if aggressive_strip:
+            _strip_aggressive_junk(soup)
+            text = re.sub(r'\s+', ' ', soup.get_text(separator=' ')).strip()
+            # Safety net: if aggressive strip removed more than half the content,
+            # our class/id regex over-matched the article body. Fall back.
+            if len(text) < len(text_default) * 0.5:
+                text = text_default
+        else:
+            text = text_default
+
         if len(text) > max_chars:
             text = text[:max_chars] + "..."
 
@@ -389,7 +428,8 @@ def fetch_page_text_content(
 def fetch_page_text_content_playwright(
     url: str,
     max_chars: int = 15000,
-    timeout: int = 10
+    timeout: int = 10,
+    aggressive_strip: bool = False,
 ) -> Tuple[Optional[str], str]:
     """Fetch URL using Playwright headless browser for JS-rendered content.
 
@@ -406,6 +446,8 @@ def fetch_page_text_content_playwright(
         url: URL to fetch.
         max_chars: Maximum characters to return (default 15000).
         timeout: Navigation timeout in seconds.
+        aggressive_strip: When True, also remove inline ads / sidebars /
+            comments / forms / iframes via class+id pattern matching.
 
     Returns:
         Tuple of (markdown_content or None, status_details).
@@ -469,6 +511,8 @@ def fetch_page_text_content_playwright(
         soup = BeautifulSoup(html_content, 'html.parser')
         for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
             element.decompose()
+        if aggressive_strip:
+            _strip_aggressive_junk(soup)
 
         # Isolate main content area
         main_content = (
@@ -511,7 +555,8 @@ def _looks_like_deny_page(content: Optional[str]) -> bool:
     return any(m in head for m in _DENY_PAGE_MARKERS)
 
 
-def fetch_with_fallbacks(url: str, max_chars: int = 15000, timeout: int = 15) -> Tuple[Optional[str], str]:
+def fetch_with_fallbacks(url: str, max_chars: int = 15000, timeout: int = 15,
+                         aggressive_strip: bool = False) -> Tuple[Optional[str], str]:
     """Fetch URL content with multiple fallback strategies.
 
     Tries in order:
@@ -527,6 +572,8 @@ def fetch_with_fallbacks(url: str, max_chars: int = 15000, timeout: int = 15) ->
         url: URL to fetch.
         max_chars: Maximum characters to return.
         timeout: Request timeout in seconds.
+        aggressive_strip: When True, also remove ads / sidebars / comments
+            via class+id pattern matching. Forwarded to each strategy.
 
     Returns:
         Tuple of (text_content or None, status_details).
@@ -534,39 +581,38 @@ def fetch_with_fallbacks(url: str, max_chars: int = 15000, timeout: int = 15) ->
     def _is_real_content(c: Optional[str]) -> bool:
         return bool(c and len(c.strip()) > 200 and not _looks_like_deny_page(c))
 
-    # Strategy 1: Plain requests + HTML parsing (fast, handles most sites)
-    content, status = fetch_page_text_content(url, max_chars=max_chars, timeout=timeout)
+    content, status = fetch_page_text_content(url, max_chars=max_chars, timeout=timeout,
+                                              aggressive_strip=aggressive_strip)
     if _is_real_content(content):
         return content, "OK (requests)"
 
-    # Strategy 2: Playwright with stealth (for JS-rendered pages and bot-detection bypass)
-    content, status = fetch_page_text_content_playwright(url, max_chars=max_chars, timeout=timeout)
+    content, status = fetch_page_text_content_playwright(url, max_chars=max_chars, timeout=timeout,
+                                                        aggressive_strip=aggressive_strip)
     if _is_real_content(content):
         return content, "OK (playwright)"
 
-    # Strategy 3: Playwright retry with longer timeout
-    content, status = fetch_page_text_content_playwright(url, max_chars=max_chars, timeout=timeout * 2)
+    content, status = fetch_page_text_content_playwright(url, max_chars=max_chars, timeout=timeout * 2,
+                                                        aggressive_strip=aggressive_strip)
     if _is_real_content(content):
         return content, "OK (playwright-retry)"
 
-    # Strategy 4: Wayback Machine archived snapshot
     try:
         wb_api = f"https://archive.org/wayback/available?url={url}"
         resp = requests.get(wb_api, timeout=10)
         snapshot = resp.json().get('archived_snapshots', {}).get('closest', {})
         wb_url = snapshot.get('url', '')
         if wb_url:
-            content, status = fetch_page_text_content(wb_url, timeout=timeout, max_chars=max_chars)
+            content, status = fetch_page_text_content(wb_url, timeout=timeout, max_chars=max_chars,
+                                                      aggressive_strip=aggressive_strip)
             if _is_real_content(content):
                 return content, "OK (wayback)"
     except Exception:
         pass
 
-    # Strategy 5: archive.today snapshot (often has pages Wayback doesn't).
-    # Use curl-cffi because archive.ph is itself Cloudflare-protected.
     try:
         archive_url = f"https://archive.ph/newest/{url}"
-        content, status = _fetch_with_curl_cffi(archive_url, max_chars=max_chars, timeout=timeout)
+        content, status = _fetch_with_curl_cffi(archive_url, max_chars=max_chars, timeout=timeout,
+                                                aggressive_strip=aggressive_strip)
         if _is_real_content(content):
             head = content[:1500].lower()
             if 'no results' not in head and 'no archive' not in head:
@@ -584,12 +630,18 @@ _DENY_PAGE_MARKERS = (
 )
 
 
-def _fetch_with_curl_cffi(url: str, max_chars: int = 15000, timeout: int = 30) -> Tuple[Optional[str], str]:
+def _fetch_with_curl_cffi(url: str, max_chars: int = 15000, timeout: int = 30,
+                          aggressive_strip: bool = False) -> Tuple[Optional[str], str]:
     """Fetch URL via curl-cffi, sweeping browser TLS/HTTP2 fingerprints.
 
     Edmunds-style sites block Chrome fingerprints but accept Safari; some
     Cloudflare hosts are the inverse. Tries each profile until one returns a
     200 that doesn't look like a deny/challenge page. Returns `(content, status)`.
+
+    Args:
+        url, max_chars, timeout: as elsewhere.
+        aggressive_strip: When True, also remove ads / sidebars / comments
+            via class+id pattern matching.
     """
     try:
         from curl_cffi import requests as curl_requests
@@ -615,8 +667,18 @@ def _fetch_with_curl_cffi(url: str, max_chars: int = 15000, timeout: int = 30) -
         soup = BeautifulSoup(body, 'html.parser')
         for el in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
             el.decompose()
-        text = soup.get_text(separator=' ')
-        text = re.sub(r'\s+', ' ', text).strip()
+
+        text_default = re.sub(r'\s+', ' ', soup.get_text(separator=' ')).strip()
+
+        if aggressive_strip:
+            _strip_aggressive_junk(soup)
+            text = re.sub(r'\s+', ' ', soup.get_text(separator=' ')).strip()
+            # Safety net: aggressive over-strips when article body is wrapped
+            # in a class matching the junk regex. Fall back to default.
+            if len(text) < len(text_default) * 0.5:
+                text = text_default
+        else:
+            text = text_default
         if len(text) > max_chars:
             text = text[:max_chars] + '...'
         if len(text) <= 200:
@@ -626,15 +688,20 @@ def _fetch_with_curl_cffi(url: str, max_chars: int = 15000, timeout: int = 30) -
     return None, last_status
 
 
-def fetch_with_fallbacks_extended(url: str, max_chars: int = 15000, timeout: int = 30) -> Tuple[Optional[str], str]:
+def fetch_with_fallbacks_extended(url: str, max_chars: int = 15000, timeout: int = 30,
+                                  aggressive_strip: bool = False) -> Tuple[Optional[str], str]:
     """`fetch_with_fallbacks` (5 strategies) + curl-cffi profile sweep as a 6th
     strategy for Cloudflare/edmunds-style hosts whose TLS/HTTP2 fingerprint blocks
     Python's `requests` and Playwright. Returns `(content, status)`.
+
+    ``aggressive_strip`` is forwarded to every strategy.
     """
-    content, status = fetch_with_fallbacks(url, max_chars=max_chars, timeout=timeout)
+    content, status = fetch_with_fallbacks(url, max_chars=max_chars, timeout=timeout,
+                                           aggressive_strip=aggressive_strip)
     if content:
         return content, status
-    cf_content, cf_status = _fetch_with_curl_cffi(url, max_chars=max_chars, timeout=timeout)
+    cf_content, cf_status = _fetch_with_curl_cffi(url, max_chars=max_chars, timeout=timeout,
+                                                  aggressive_strip=aggressive_strip)
     if cf_content:
         return cf_content, cf_status
     return None, f"{status}; {cf_status}"

@@ -47,8 +47,8 @@ DEFAULT_COLOR_MAX_ROW = 30          # row cap for the colour-name list scan
 DEFAULT_MATRIX_MAX_ROW = 80         # row cap for the decoration-matrix scan
 HEADER_MATCH_RATIO = 0.5            # fraction of header cells that must be colours
 DEFAULT_HEX_TOLERANCE = 45.0        # max RGB distance for a hex "match"
-DEFAULT_RELEVANCE_THRESHOLD = 1.0   # every reachable link must be on-topic
 PALETTE_LABEL_MAX_COL = 6           # max col when searching for palette label col
+TOP_LEFT_MAX_ROW = 20               # CP1 top-left placement tolerance
 _BROWSER_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -153,35 +153,143 @@ def robust_vlm_calls(
     samples: int = 2,
     max_workers: int = 10,
 ) -> Dict[str, bool]:
-    """Judge each VLM/LLM task ``samples`` times; an item fails only if every
-    sample fails it.
+    """Judge each VLM/LLM task up to ``samples`` times; an item fails only if
+    every sample fails it.
 
     Model calls are non-deterministic, so a genuinely-correct item can be
     mis-judged on a single call. Honouring a lone dissenting pass means one
     noisy false-negative cannot fail a step that requires every item to pass.
 
+    Lazy retry: the first wave calls every task once. Only tasks that failed
+    the first wave are re-called in subsequent waves, up to ``samples - 1``
+    more times. The semantics match a flat ``samples``-pass any-yes vote
+    (same final answer) while avoiding redundant calls on items that already
+    passed.
+
     Args:
         vlm_tasks: Tasks as for ``fast_parallel_vlm_calls`` (``id`` / ``messages``).
         model: The loaded model callable.
-        samples: Number of times to judge each task.
+        samples: Maximum number of times to judge each task.
         max_workers: Parallel worker cap.
 
     Returns:
-        Dict mapping each task id to ``True`` unless all of its samples
-        returned ``False``. Empty input yields ``{}``.
+        Dict mapping each task id to ``True`` if any sample returned ``True``,
+        else ``False``. Empty input yields ``{}``.
     """
     if not vlm_tasks:
         return {}
-    expanded = [
-        {"id": f"{t['id']}##{k}", "messages": t["messages"]}
-        for t in vlm_tasks
-        for k in range(samples)
-    ]
-    raw = fast_parallel_vlm_calls(expanded, model, max_workers=max_workers)
-    return {
-        t["id"]: any(raw.get(f"{t['id']}##{k}", False) for k in range(samples))
-        for t in vlm_tasks
-    }
+    first = fast_parallel_vlm_calls(vlm_tasks, model, max_workers=max_workers)
+    results: Dict[str, bool] = {t["id"]: bool(first.get(t["id"], False)) for t in vlm_tasks}
+    remaining = [t for t in vlm_tasks if not results[t["id"]]]
+    for _ in range(max(0, samples - 1)):
+        if not remaining:
+            break
+        retry = fast_parallel_vlm_calls(remaining, model, max_workers=max_workers)
+        for t in remaining:
+            if retry.get(t["id"], False):
+                results[t["id"]] = True
+        remaining = [t for t in remaining if not results[t["id"]]]
+    return results
+
+
+def parallel_vlm_describe(
+    tasks: List[Dict[str, Any]],
+    model: Any,
+    max_workers: int = 10,
+) -> Dict[str, str]:
+    """Run multimodal calls in parallel and return raw text responses.
+
+    Mirrors ``fast_parallel_vlm_calls`` but yields strings instead of bools —
+    used by callers that need free-text output (e.g. describing a colour).
+    """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    if not tasks:
+        return {}
+    results: Dict[str, str] = {}
+
+    def _call(task):
+        try:
+            return task["id"], (model(task["messages"]) or "").strip()
+        except Exception as e:
+            print(f"  VLM describe failed for {task['id']}: {e}")
+            return task["id"], ""
+
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        for fut in as_completed({ex.submit(_call, t): t for t in tasks}):
+            tid, text = fut.result()
+            results[tid] = text
+    return results
+
+
+def apply_describe_then_judge_override(
+    res: Dict[str, bool],
+    swatches: List[Tuple[str, str]],
+    model: Any,
+) -> None:
+    """CP3 step 2 second-opinion: lift VLM false-negatives via describe+judge.
+
+    For each idx in ``res`` where ``res[idx] is False``:
+      1. Ask the VLM to describe the swatch open-endedly.
+      2. Ask a text LLM whether the description matches the agent's name.
+    If the LLM judge says Yes, set ``res[idx] = True`` (override).
+
+    Mutates ``res`` in place. No-ops when ``model is None``, no failures, or
+    swatches is empty.
+    """
+    if model is None or not res or not swatches:
+        return
+    failed_ids = [k for k, v in res.items() if not v]
+    if not failed_ids:
+        return
+
+    desc_tasks = []
+    for k in failed_ids:
+        idx = int(k)
+        if idx >= len(swatches):
+            continue
+        _nm, p = swatches[idx]
+        messages = [
+            {"role": "system", "content": [{"type": "text", "text": (
+                "Describe the colour in this image with a short, specific "
+                "phrase (e.g. 'bright royal blue', 'muted sage green', "
+                "'deep wine red'). Output the phrase only."
+            )}]},
+            {"role": "user", "content": [
+                {"type": "image", "image": p},
+            ]},
+        ]
+        desc_tasks.append({"id": k, "messages": messages})
+    descriptions = parallel_vlm_describe(desc_tasks, model)
+
+    judge_tasks = []
+    for k in failed_ids:
+        idx = int(k)
+        if idx >= len(swatches):
+            continue
+        desc = (descriptions.get(k) or "").strip()
+        if not desc:
+            continue
+        nm = swatches[idx][0]
+        messages = [
+            {"role": "system", "content": [{"type": "text", "text": (
+                "You judge whether a colour description matches a named "
+                "colour. Answer 'Yes' if they refer to the same colour, "
+                "'No' if different (even if related — e.g. 'royal blue' is "
+                "NOT 'navy blue'; 'Blue Emerald' is NOT 'emerald green'; "
+                "'bright emerald' IS 'emerald green')."
+            )}]},
+            {"role": "user", "content": [{"type": "text", "text": (
+                f"Agent's name: '{nm}'.\n"
+                f"Independent description: '{desc}'.\n"
+                f"Same colour? Answer Yes or No."
+            )}]},
+        ]
+        judge_tasks.append({"id": k, "messages": messages})
+    overrides = robust_vlm_calls(judge_tasks, model)
+    for k, ok in overrides.items():
+        if ok:
+            res[k] = True
 
 
 # ---------------------------------------------------------------------------
@@ -191,17 +299,8 @@ def robust_vlm_calls(
 def cell_bg_hex(sheet_tab: Dict, row_idx: int, col_idx: int) -> Optional[str]:
     """Return the cell background colour as ``#rrggbb``, or None for white / no fill.
 
-    The Sheets API omits a colour channel whose value is 0, so a missing
-    channel must default to 0.0 (not 1.0) — otherwise pure-primary fills such
-    as ``{'blue': 1}`` are mis-read as white.
-
-    Args:
-        sheet_tab: Sheet tab dict.
-        row_idx: 0-based row index.
-        col_idx: 0-based column index.
-
-    Returns:
-        Lowercase ``#rrggbb`` hex string, or None for a white / unfilled cell.
+    Missing RGB channels default to 0 (Sheets API omits zero channels, so
+    ``{'blue': 1}`` would otherwise misread as white).
     """
     bg = get_background_color({"sheets": [sheet_tab]}, row_idx, col_idx)
     if not bg:
@@ -440,9 +539,15 @@ def headers_in_order(
         Tuple ``(is_ordered, detail)``. ``is_ordered`` is True when fewer
         than two headers match a colour (order cannot be assessed).
     """
-    # Prefer exact match; fall back to substring so 'Champagne Gold' resolves
-    # to its own entry instead of collapsing onto an earlier 'Champagne'.
+    # Pass 1: exact normalised match. Pass 2: substring fallback, but only
+    # to colours that are NOT a substring of another expected colour
+    # (otherwise 'Champagne Gold' header could substring-match to a
+    # 'Champagne' entry that was meant for a different position).
     normalised = [_normalize_color_name(c) for c in color_names]
+    ambiguous = {
+        i for i, ci in enumerate(normalised)
+        if ci and any(i != j and ci in cj for j, cj in enumerate(normalised))
+    }
     indexed: List[Tuple[str, int]] = []
     for h in header_names:
         if not h or not h.strip():
@@ -451,7 +556,8 @@ def headers_in_order(
         idx = next((i for i, c in enumerate(normalised) if c == nh), None)
         if idx is None:
             idx = next(
-                (i for i, c in enumerate(color_names) if color_names_match(h, c)),
+                (i for i, c in enumerate(color_names)
+                 if i not in ambiguous and color_names_match(h, c)),
                 None,
             )
         if idx is not None:
@@ -949,26 +1055,21 @@ def url_matches_topic(
     exclude_keywords: Optional[Tuple[str, ...]] = None,
     model: Any = None,
     topic_description: Optional[str] = None,
-) -> bool:
+    color_name: Optional[str] = None,
+) -> Optional[bool]:
     """Generic check: does a URL / page relate to a given topic?
 
     Strategy: (1) allow-listed domain hit, (2) topic-keyword hit with no
     excluded keyword present, (3) optional LLM fallback judging the page text.
 
-    Args:
-        url: The URL.
-        page_text: Text content fetched from the page (may be empty). The
-            actual page body when available, otherwise the page title.
-        topic_keywords: Keywords identifying the topic.
-        domains: Optional allow-list of domains that always pass.
-        exclude_keywords: Keywords that disqualify a URL (e.g. a competing
-            store type). A URL containing any of these never passes the
-            keyword/domain heuristic.
-        model: Optional LLM model for the fallback.
-        topic_description: Human-readable topic for the LLM prompt.
+    When ``color_name`` is provided the keyword/domain shortcut tiers are
+    skipped — only the LLM tier can confirm the page is for that specific
+    colour, since keyword/domain checks don't know about the colour.
 
     Returns:
-        True if the URL plausibly relates to the topic.
+        True / False — keyword/domain or LLM verdict on relevance.
+        None — LLM fallback could not produce a verdict (every call raised).
+        Callers should treat None as "unjudged" rather than "irrelevant".
     """
     combined = f"{url} {page_text or ''}".lower()
     domains = domains or ()
@@ -976,7 +1077,8 @@ def url_matches_topic(
 
     has_exclude = any(x.lower() in combined for x in exclude_keywords)
 
-    if not has_exclude:
+    # Shortcut tiers only apply when no per-colour gate is requested.
+    if color_name is None and not has_exclude:
         if any(d.lower() in combined for d in domains):
             return True
         if any(k.lower() in combined for k in topic_keywords):
@@ -990,21 +1092,27 @@ def url_matches_topic(
                 f" Answer 'No' if the page is actually about "
                 f"{', '.join(exclude_keywords)}."
             )
+        colour_clause = ""
+        if color_name:
+            colour_clause = (
+                f" Specifically, the page should relate to the colour "
+                f"{color_name!r} (e.g. mention, depict, or sell that colour)."
+            )
         snippet = (page_text or "").strip()
         prompt = (
             f"URL: {url}\n"
-            f"{'Page content: ' + snippet[:3000] if snippet else '(page content unavailable)'}\n"
-            f"Could this page reasonably be about {desc}?{excl_note} "
+            f"{'Page content: ' + snippet[:10000] if snippet else '(page content unavailable)'}\n"
+            f"Could this page reasonably be about {desc}?{colour_clause}{excl_note} "
             f"Answer Yes or No."
         )
-        # Judge twice; a lone dissenting pass is honoured so one noisy
-        # false-negative cannot fail the link.
         votes = []
         for _ in range(2):
             try:
                 votes.append(bool(evaluate_with_llm(prompt, model, return_type="bool")))
             except Exception as e:
                 print(f"  LLM error in url_matches_topic: {e}")
+        if not votes:
+            return None  # total API failure — caller treats as unjudged
         return any(votes)
 
     return False
@@ -1025,13 +1133,16 @@ def make_topic_matcher(
         topic_description: Human-readable topic for the LLM prompt.
 
     Returns:
-        Callable ``(url, page_text, model=None) -> bool``.
+        Callable ``(url, page_text, model=None, color_name=None) -> Optional[bool]``.
+        Returns None when the LLM fallback couldn't reach a verdict.
     """
-    def _matcher(url: str, page_text: str, model: Any = None) -> bool:
+    def _matcher(url: str, page_text: str, model: Any = None,
+                 color_name: Optional[str] = None) -> Optional[bool]:
         return url_matches_topic(
             url, page_text, topic_keywords,
             domains=domains, exclude_keywords=exclude_keywords,
             model=model, topic_description=topic_description,
+            color_name=color_name,
         )
     return _matcher
 
@@ -1044,32 +1155,38 @@ def validate_and_match_urls(
     end_row: int,
     relevance_fn: Any,
     model: Any = None,
-    relevance_threshold: float = DEFAULT_RELEVANCE_THRESHOLD,
     precomputed_urls: Optional[List[str]] = None,
-) -> List[str]:
-    """Validate a column of URLs: liveness and content relevance.
+) -> Tuple[List[str], int, int, List[str]]:
+    """Validate a column of URLs: liveness and per-row content relevance.
 
-    Presence/coverage checks are left to the caller so each evaluation
-    criterion maps to exactly one checkpoint step.
+    Phase 1 fetches every unique URL once (URL-deduped). Phase 2 judges
+    relevance per row, threading the row's colour into ``relevance_fn`` so
+    the same URL across two colour rows is judged independently with each
+    colour in context.
 
     Args:
         sheet_tab: Sheet tab dict.
-        color_names: Colour names corresponding to each row.
+        color_names: Colour names per row (parallel to the row range).
         col_idx: 0-based column index to scan for URLs.
         start_row: First row (inclusive, 0-based).
         end_row: Last row (exclusive, 0-based).
-        relevance_fn: Callable ``(url, page_text, model=) -> bool``.
+        relevance_fn: Callable ``(url, page_text, model=, color_name=) -> bool``.
         model: Optional LLM model passed to *relevance_fn*.
-        relevance_threshold: Minimum fraction of reachable URLs that must match.
         precomputed_urls: If provided, used directly instead of re-scanning the
             column (avoids a redundant second scan by the caller).
 
     Returns:
-        List of failure description strings (empty if all checks pass).
-        Strings contain ``"reachable"`` for liveness issues and ``"relevant"``
-        for content-match issues so the caller can classify them.
+        Tuple of:
+        - ``liveness_failures``: list of failure strings (only "reachable"
+          messages — empty if every URL is reachable).
+        - ``rel_matched``: number of rows whose URL was judged relevant for
+          that row's colour.
+        - ``rel_total``: number of rows that were reachable and thus
+          judgeable. Equals 0 when no URL could be fetched.
+        - ``failed_colours``: colour names whose URL was judged irrelevant
+          (for the failure detail).
     """
-    failures: List[str] = []
+    liveness_failures: List[str] = []
 
     if precomputed_urls is not None:
         urls_found = list(precomputed_urls)
@@ -1083,19 +1200,17 @@ def validate_and_match_urls(
                 urls_found.append(found[0])
 
     if not urls_found:
-        failures.append(f"No URLs found in col {col_idx}")
-        return failures
+        liveness_failures.append(f"No URLs found in col {col_idx}")
+        return liveness_failures, 0, 0, []
 
     # Phase 1: fetch real page content for each unique URL using browser-grade
     # fallbacks (requests -> Playwright -> Wayback -> archive.today ->
-    # curl-cffi browser-TLS sweep). A URL is "reachable" only if its actual
-    # content could be retrieved; a URL no strategy can fetch is genuinely
-    # dead. This defeats bot-protection (Cloudflare 5xx, WAF 404s) that plain
-    # requests cannot.
+    # curl-cffi). A URL is "reachable" only if real content came back.
     unique_urls = list(dict.fromkeys(urls_found))
     fetch_tasks = [
         {"id": url, "func": fetch_with_fallbacks_extended,
-         "args": (url,), "kwargs": {"max_chars": 4000}}
+         "args": (url,),
+         "kwargs": {"max_chars": 50000, "aggressive_strip": True}}
         for url in unique_urls
     ]
     fetched = parallel_execute(fetch_tasks, max_workers=10)
@@ -1115,39 +1230,54 @@ def validate_and_match_urls(
     )
 
     if dead:
-        failures.append(
+        liveness_failures.append(
             f"{dead_rows}/{len(urls_found)} URLs are not reachable "
             f"(no content could be retrieved): {dead[:3]}"
         )
 
-    # Phase 2: relevance — judge the actual fetched page content.
-    reachable_urls = [u for u in urls_found if u in content_by_url]
-    if reachable_urls:
-        unique_reachable = list(dict.fromkeys(reachable_urls))
+    # Phase 2: per-row relevance. Reachable URLs go through the LLM judge;
+    # dead URLs auto-fail (their rows count toward the denominator but
+    # contribute 0 to ``matched``). Same URL across two rows = 2 LLM calls
+    # with that row's colour in the prompt; fetch is still URL-deduped.
+    reachable_rows = [
+        (i, url) for i, url in enumerate(urls_found) if url in content_by_url
+    ]
+    relevance_tasks = [
+        {"id": f"row_{i}", "func": relevance_fn,
+         "args": (url, content_by_url[url]),
+         "kwargs": {"model": model,
+                    "color_name": color_names[i] if i < len(color_names) else None}}
+        for i, url in reachable_rows
+    ]
+    relevance_results = (
+        parallel_execute(relevance_tasks, max_workers=10)
+        if relevance_tasks else {}
+    )
+    matched = sum(1 for v in relevance_results.values() if v)
 
-        def _check_relevance(url: str) -> bool:
-            return relevance_fn(url, content_by_url[url], model=model)
+    # rel_total = every URL-bearing row. Dead URLs count as 0, so the
+    # relevance score reflects the agent's full URL set, not just the
+    # reachable subset. This makes step 4 honest when many URLs are dead.
+    rel_total = len(urls_found)
 
-        relevance_tasks = [
-            {"id": url, "func": _check_relevance, "args": (url,)}
-            for url in unique_reachable
-        ]
-        relevance_results = parallel_execute(relevance_tasks, max_workers=10)
+    # failed_colours: dead-URL rows + reachable-but-irrelevant rows +
+    # reachable-but-unjudged (relevance_fn returned None on API failure).
+    failed_colours: List[str] = []
+    for i, url in enumerate(urls_found):
+        if i >= len(color_names):
+            continue
+        if url not in content_by_url:
+            failed_colours.append(f"{color_names[i]} (URL unreachable)")
+            continue
+        verdict = relevance_results.get(f"row_{i}")
+        if verdict is None:
+            failed_colours.append(f"{color_names[i]} (judge unavailable)")
+        elif not verdict:
+            failed_colours.append(color_names[i])
 
-        matched = sum(
-            1 for url in reachable_urls if relevance_results.get(url)
-        )
-
-        print(f"  [DEBUG] {matched}/{len(reachable_urls)} URLs match relevance check")
-
-        rel_ratio = matched / len(reachable_urls)
-        if rel_ratio < relevance_threshold:
-            failures.append(
-                f"Only {matched}/{len(reachable_urls)} links lead to relevant "
-                f"content ({rel_ratio:.0%})"
-            )
-
-    return failures
+    print(f"  [DEBUG] {matched}/{rel_total} rows judged relevant "
+          f"({len(reachable_rows)} reachable)")
+    return liveness_failures, matched, rel_total, failed_colours
 
 
 def grade_url_column(
@@ -1162,17 +1292,17 @@ def grade_url_column(
 ) -> Checkpoint:
     """Shared logic for URL-column checkpoints (article links / store links).
 
-    Scans the URL column once, then checks presence, per-colour coverage,
-    liveness and relevance. With ``total_steps >= 4`` liveness and relevance
-    are separate steps; otherwise they are combined into one.
+    Four steps: URL column type purity, per-row link presence, links
+    functional, content relevance. The relevance step is 10 pts and is
+    awarded proportionally to the per-row match count.
 
     Args:
         checkpoint_name: Human-readable checkpoint name.
         sheet_tab: The main sheet tab dict.
         color_region: Region dict from ``find_color_region`` (or None).
         col_offset: Column offset from the colour-name column.
-        relevance_fn: Callable ``(url, title, model=) -> bool``.
-        total_steps: Number of evaluation steps for this checkpoint.
+        relevance_fn: Callable ``(url, page_text, model=, color_name=) -> bool``.
+        total_steps: Step count exposed by the checkpoint (must be 4).
         step_names: Ordered step names mirroring checkpoints.md.
         model: Optional LLM model for relevance matching.
 
@@ -1180,7 +1310,10 @@ def grade_url_column(
         Populated Checkpoint object.
     """
     start = time.time()
-    checkpoint = Checkpoint(total=total_steps, result=0, name=checkpoint_name)
+    # Step weights: 1 (purity) + 1 (presence) + 1 (functional) + 10 (relevance).
+    URL_CHECKPOINT_TOTAL_POINTS = 13
+    checkpoint = Checkpoint(total=URL_CHECKPOINT_TOTAL_POINTS, result=0,
+                            name=checkpoint_name)
 
     if sheet_tab is None or color_region is None:
         return fail_all_steps(
@@ -1190,28 +1323,44 @@ def grade_url_column(
     col_idx = color_region["col"] + col_offset
     names = color_region["names"]
     rows = get_row_data(sheet_tab)
+    sheet_raw = {"sheets": [sheet_tab]}
 
     urls_found: List[str] = []
     missing_rows: List[str] = []
+    non_url_rows: List[Tuple[str, str]] = []   # (color_name, text)
     for i, r_idx in enumerate(range(color_region["start_row"], color_region["end_row"])):
         found = find_urls_in_sheet(rows, start_row=r_idx, num_rows=1,
                                    start_col=col_idx, end_col=col_idx + 1)
+        nm = names[i] if i < len(names) else f"row {r_idx}"
         if found:
             urls_found.append(found[0])
         else:
-            missing_rows.append(names[i] if i < len(names) else f"row {r_idx}")
+            missing_rows.append(nm)
+            text = (get_cell_value(sheet_raw, r_idx, col_idx) or "").strip()
+            if text:
+                non_url_rows.append((nm, text))
 
-    # Step 1: column contains URLs
+    # Empty column: nothing to grade. Fails all downstream steps too.
     if not urls_found:
         return fail_all_steps(
             checkpoint, step_names, f"No URLs found in col {col_idx}.", start
         )
-    checkpoint.add_step(
-        step_names[0], True, 1,
-        f"{len(urls_found)}/{len(names)} rows have a URL in col {col_idx}.",
-    )
 
-    # Step 2: each colour has a corresponding link
+    # Step 1: URL Column Type — every populated cell must be a URL, not free text.
+    if not non_url_rows:
+        checkpoint.add_step(
+            step_names[0], True, 1,
+            f"All {len(urls_found)} populated cells in col {col_idx} contain URLs.",
+        )
+    else:
+        sample = [f"{nm}: {txt[:40]!r}" for nm, txt in non_url_rows[:3]]
+        checkpoint.add_step(
+            step_names[0], False, 1,
+            f"{len(non_url_rows)} cell(s) in col {col_idx} contain free text "
+            f"instead of URLs: {sample}",
+        )
+
+    # Step 2: per-row link presence.
     if not missing_rows:
         checkpoint.add_step(
             step_names[1], True, 2, f"All {len(names)} colours have a link.",
@@ -1223,8 +1372,8 @@ def grade_url_column(
             f"{missing_rows[:5]}",
         )
 
-    # Step 3(+): liveness / relevance
-    failures = validate_and_match_urls(
+    # Steps 3 & 4: liveness + per-row relevance.
+    liveness_failures, rel_matched, rel_total, failed_colours = validate_and_match_urls(
         sheet_tab=sheet_tab,
         color_names=names,
         col_idx=col_idx,
@@ -1234,32 +1383,41 @@ def grade_url_column(
         model=model,
         precomputed_urls=urls_found,
     )
-    liveness_failures = [f for f in failures if "reachable" in f]
-    relevance_failures = [f for f in failures if "relevant" in f]
 
-    if total_steps >= 4:
-        if not liveness_failures:
-            checkpoint.add_step(
-                step_names[2], True, 3,
-                f"All {len(urls_found)} URLs are reachable.",
-            )
-        else:
-            checkpoint.add_step(step_names[2], False, 3, "; ".join(liveness_failures))
-        if not relevance_failures:
-            checkpoint.add_step(
-                step_names[3], True, 4, "Links lead to relevant content.",
-            )
-        else:
-            checkpoint.add_step(step_names[3], False, 4, "; ".join(relevance_failures))
+    # Step 3: Links Functional (binary, 1 pt).
+    if not liveness_failures:
+        checkpoint.add_step(
+            step_names[2], True, 3,
+            f"All {len(urls_found)} URLs are reachable.",
+        )
     else:
-        all_failures = liveness_failures + relevance_failures
-        if not all_failures:
+        checkpoint.add_step(step_names[2], False, 3, "; ".join(liveness_failures))
+
+    # Step 4: Content Relevance (10 pts, proportional to rel_matched / rel_total).
+    if rel_total == 0:
+        checkpoint.add_step(
+            step_names[3], False, 4,
+            "No reachable URLs to judge relevance.",
+            max_score=10,
+        )
+    else:
+        rel_score = round(rel_matched * 10 / rel_total)
+        if rel_matched == rel_total:
             checkpoint.add_step(
-                step_names[2], True, 3,
-                f"All {len(urls_found)} URLs are reachable and relevant.",
+                step_names[3], True, 4,
+                f"All {rel_matched}/{rel_total} links lead to relevant "
+                f"content ({rel_score}/10 pts).",
+                score=rel_score, max_score=10,
             )
         else:
-            checkpoint.add_step(step_names[2], False, 3, "; ".join(all_failures))
+            # Cap below max so a failing step never claims full credit.
+            rel_score = min(rel_score, 9)
+            checkpoint.add_step(
+                step_names[3], False, 4,
+                f"Only {rel_matched}/{rel_total} links lead to relevant content "
+                f"({rel_score}/10 pts). Irrelevant for: {failed_colours[:5]}",
+                score=rel_score, max_score=10,
+            )
 
     checkpoint.execution_time = time.time() - start
     return checkpoint
@@ -1286,7 +1444,7 @@ def lookup_colorhexa_name(hex_str: str) -> Optional[str]:
     if not hex_str:
         return None
     h = hex_str.lstrip("#").strip().lower()
-    if len(h) != 6:
+    if not _HEX_TEXT_RE.match(h):
         return None
     title = fetch_page_title(
         f"https://www.colorhexa.com/{h}",

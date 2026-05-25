@@ -1,6 +1,6 @@
 # Checkpoints
 
-This task has 31 points in total.
+This task has 68 points in total.
 
 ## Checkpoint 1 (5 pts): Color Extraction
 The agent found and extracted beach/coastal wedding color information from at least two articles and color names are listed vertically in the top-left area of the main sheet.
@@ -12,41 +12,42 @@ The agent found and extracted beach/coastal wedding color information from at le
 - The agent searched for and found at least 2 articles about beach or coastal wedding colors (agent trace, LLM judge that the articles are about beach/coastal weddings).
 - All extracted colors belong to the specified coral, turquoise, or sand categories (LLM judge that each color falls into the category).
 
-## Checkpoint 2 (4 pts): Article Source Links
+## Checkpoint 2 (13 pts): Article Source Links
 Article links are placed in the column immediately to the right of each color name.
 
 ### Outcome Evaluation:
-- The column next to color names contains URLs/links.
-- Each color name has a corresponding article link in the same row.
-- The article links are functional and reachable.
-- The links lead to relevant wedding-color content.
+- The article column is a URL/link column (every populated cell contains a URL, not free text). (1 pt)
+- Each color name has a corresponding article link in the same row. (1 pt)
+- The article links are functional and reachable. (1 pt)
+- The links lead to relevant wedding-color content for that color. (10 pts, proportional)
 
-## Checkpoint 3 (4 pts): Color Cell Formatting
+## Checkpoint 3 (12 pts): Color Cell Formatting
 Cells are filled with colors matching the color names in the third column.
 
 ### Outcome Evaluation:
-- The column to the right of the links contains cells filled with background colors.
-- The fill colors visually match or closely approximate the named colors (VLM judge).
-- The hex value for the cell color matches the color shade hex found in https://www.colorhexa.com/.
-- Each color name has a corresponding colored cell.
+- The fill column is a colour-fill column (every populated cell has a background fill, not just typed text). (1 pt)
+- The fill colors match the named colors or are extremely close to them (VLM judge). (5 pts, proportional)
+- The hex value for the cell color matches the color shade hex found in https://www.colorhexa.com/. (5 pts, proportional)
+- Each color name has a corresponding colored cell. (1 pt)
 
-## Checkpoint 4 (3 pts): Fabric/Textile Store References
+## Checkpoint 4 (13 pts): Fabric/Textile Store References
 Fabric or textile store links are provided in the fourth column next to each color.
 
 ### Outcome Evaluation:
-- The column to the right of the colored cells contains links to fabric or textile stores or color pages.
-- Each color has an associated fabric/textile store link.
-- Links are functional and lead to relevant fabric/textile color information (LLM judge that the linked page is from a fabric or textile store, not a paint store).
+- The store column is a URL/link column (every populated cell contains a URL, not free text). (1 pt)
+- Each color has an associated fabric/textile store link. (1 pt)
+- The fabric/textile store links are functional and reachable. (1 pt)
+- The links lead to relevant fabric/textile color content for that color (LLM judge that the linked page is from a fabric or textile store, not a paint store). (10 pts, proportional)
 
-## Checkpoint 5 (5 pts): Beach Wedding Decoration Matrix
+## Checkpoint 5 (15 pts): Beach Wedding Decoration Matrix
 A beach wedding decoration matrix is created below the color list with images.
 
 ### Outcome Evaluation:
-- At least 5 types of beach wedding decorations are listed in the leftmost column (API for location, LLM judge that items are beach-wedding-specific such as centerpieces, bridesmaid dresses, table runners, shell decorations, or invitations).
-- Column headers contain the same color names from the original list (exact text match).
-- The matrix column headers appear in the same order as the original color list.
-- At least half of the matrix cells contain images.
-- Images show the specified decoration type in the corresponding color (VLM judge).
+- At least 5 types of beach wedding decorations are listed in the leftmost column (API for location, LLM judge that items are beach-wedding-specific such as centerpieces, bridesmaid dresses, table runners, shell decorations, or invitations). (1 pt)
+- Column headers contain the same color names from the original list (exact text match). (1 pt)
+- The matrix column headers appear in the same order as the original color list. (1 pt)
+- At least half of the matrix cells contain images. (2 pts)
+- Images show the specified decoration type in the corresponding color (VLM judge). (10 pts, proportional)
 
 ## Checkpoint 6 (6 pts): Day/Evening Color Palette Tab
 A new tab contains at least 10 labeled color palette combinations.

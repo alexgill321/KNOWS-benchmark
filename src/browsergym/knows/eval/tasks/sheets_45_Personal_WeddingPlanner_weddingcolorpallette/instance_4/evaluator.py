@@ -10,7 +10,8 @@ Named Color Palette Tab (with a creative-palette-name step).
 import os
 import shutil
 import sys
-from typing import List, Optional
+from collections import Counter
+from typing import Dict, List, Optional
 import time
 import traceback
 import argparse
@@ -43,6 +44,7 @@ from src.browsergym.knows.eval.eval_utils.web_utils import download_image_from_u
 # Shared task-agnostic utilities
 from src.browsergym.knows.eval.tasks.sheets_45_Personal_WeddingPlanner_weddingcolorpallette.utils import (
     DEFAULT_COLOR_MAX_ROW,
+    TOP_LEFT_MAX_ROW,
     cell_bg_hex,
     classify_colors_batch,
     collect_reference_bg_hexes,
@@ -63,6 +65,7 @@ from src.browsergym.knows.eval.tasks.sheets_45_Personal_WeddingPlanner_weddingco
     hex_to_rgb,
     is_placeholder_image_url,
     lookup_colorhexa_name,
+    apply_describe_then_judge_override,
     make_topic_matcher,
     read_column_values,
     render_color_swatch,
@@ -75,7 +78,6 @@ from src.browsergym.knows.eval.tasks.sheets_45_Personal_WeddingPlanner_weddingco
 # ===========================================================================
 
 # Evaluator tolerance for the "top-left" placement check (not stated in task.md).
-TOP_LEFT_MAX_ROW = 20
 
 # Checkpoint thresholds / counts — extracted from task.md by setup().
 # A field left None means task.md extraction could not determine it, and the
@@ -90,9 +92,6 @@ PALETTE_CELLS_PER_ROW = None
 
 # Pass ratio for CP5 Image Coverage — task.md asks for "at least half".
 IMAGE_COVERAGE_RATIO = 0.5
-
-# Max images sampled for the CP5 VLM verification.
-MAX_VLM_IMAGE_CHECKS = 15
 
 # Article-source relevance config (checkpoints 1 & 2).
 ARTICLE_KEYWORDS = (
@@ -137,9 +136,11 @@ CP5_NAME = "Mood Descriptions"
 CP6_NAME = "Wedding Decoration Matrix"
 CP7_NAME = "Named Color Palette Tab"
 
-# Step counts for the URL-column checkpoints.
+# CP2/CP4 share the same 4-step shape and 13-pt total
+# (1 purity + 1 presence + 1 functional + 10 proportional relevance).
 CP_URL_TOTAL_STEPS = 4
-CP_STORE_TOTAL_STEPS = 3
+CP_STORE_TOTAL_STEPS = 4
+CP_URL_TOTAL_POINTS = 13
 
 # Ordered step names per checkpoint (mirror checkpoints.md outcome bullets).
 STEP_NAMES = {
@@ -148,20 +149,22 @@ STEP_NAMES = {
         "Article Research", "Color Category Match",
     ],
     "article_links": [
-        "URLs Present", "Full Coverage", "Links Functional", "Content Relevance",
+        "URL Column Type", "Per-Row Link Presence", "Links Functional", "Content Relevance",
     ],
     "color_formatting": [
-        "Fills Present", "Visual Match", "Hex Matches colorhexa", "Full Coverage",
+        "Fill Column Type", "Visual Match", "Hex Matches colorhexa", "Full Coverage",
     ],
     "store_links": [
-        "URLs Present", "Full Coverage", "Links Functional & Relevant",
+        "URL Column Type", "Per-Color Link Presence", "Links Functional",
+        "Content Relevance",
     ],
     "decoration_matrix": [
         "Decoration Types", "Header Color Match", "Header Color Order",
         "Image Coverage", "VLM Image Verification",
     ],
     "mood_descriptions": [
-        "Mood Column Present", "Single Sentence", "Mood Content", "Full Coverage",
+        "Per-Color Mood Presence", "Single Sentence", "Mood Content",
+        "Distinct Mood Variety",
     ],
     "palette_named": [
         "Palette Tab Exists", "Minimum Palette Rows", "Creative Palette Name",
@@ -180,7 +183,6 @@ model_id = "gemini-2.5-flash-google-ai"
 sheet_id = None
 sheet_raw = None
 main_tab = None
-color_region = None  # cached by grade_checkpoint_1 for reuse
 
 
 def setup(workspace_doc_id: str):
@@ -189,7 +191,7 @@ def setup(workspace_doc_id: str):
     Args:
         workspace_doc_id: Google Sheets document ID to evaluate.
     """
-    global sheet_id, sheet_raw, main_tab, color_region
+    global sheet_id, sheet_raw, main_tab
     global COLOR_CATEGORIES, CATEGORY_LABEL, MIN_ARTICLES, MIN_COLORS
     global MIN_DECORATION_TYPES, MIN_PALETTE_ROWS, PALETTE_CELLS_PER_ROW
 
@@ -205,8 +207,6 @@ def setup(workspace_doc_id: str):
         print("ERROR: could not fetch sheet data")
         main_tab = None
 
-    color_region = None
-
     # Extract checkpoint thresholds / categories from this instance's task.md.
     task_md_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "task.md")
     cfg = extract_task_config(task_md_path, model=get_model(model_id))
@@ -220,10 +220,12 @@ def setup(workspace_doc_id: str):
     print(f"  [CONFIG] extracted from task.md: {cfg}")
 
 
-def grade_checkpoint_1(browsing_history: Optional[List[str]] = None):
+def grade_checkpoint_1(
+    color_region: Optional[Dict] = None,
+    browsing_history: Optional[List[str]] = None,
+):
     """Checkpoint 1: Color Extraction (5 pts)."""
     print("----------------- CHECKPOINT 1 ----------------")
-    global color_region
     steps = STEP_NAMES["color_extraction"]
     start = time.time()
     checkpoint = Checkpoint(total=5, result=0, name=CP1_NAME)
@@ -232,8 +234,7 @@ def grade_checkpoint_1(browsing_history: Optional[List[str]] = None):
         if main_tab is None:
             return fail_all_steps(checkpoint, steps, "Sheet data unavailable.", start)
 
-        region = find_color_region(main_tab, columns=(0, 1), max_row=DEFAULT_COLOR_MAX_ROW)
-        color_region = region
+        region = color_region
 
         if region is None:
             return fail_all_steps(
@@ -356,8 +357,8 @@ def grade_checkpoint_1(browsing_history: Optional[List[str]] = None):
         return fail_all_steps(fresh, steps, f"Checkpoint error: {e}", start)
 
 
-def grade_checkpoint_2():
-    """Checkpoint 2: Article Source Links (4 pts)."""
+def grade_checkpoint_2(color_region: Optional[Dict] = None):
+    """Checkpoint 2: Article Source Links (13 pts)."""
     print("----------------- CHECKPOINT 2 ----------------")
     steps = STEP_NAMES["article_links"]
     start = time.time()
@@ -369,16 +370,20 @@ def grade_checkpoint_2():
         )
     except Exception as e:
         traceback.print_exc()
-        cp = Checkpoint(total=CP_URL_TOTAL_STEPS, result=0, name=CP2_NAME)
+        cp = Checkpoint(total=CP_URL_TOTAL_POINTS, result=0, name=CP2_NAME)
         return fail_all_steps(cp, steps, f"Checkpoint error: {e}", start)
 
 
-def grade_checkpoint_3():
-    """Checkpoint 3: Color Cell Formatting (4 pts)."""
+def grade_checkpoint_3(color_region: Optional[Dict] = None):
+    """Checkpoint 3: Color Cell Formatting (12 pts).
+
+    Step weights: Fill Column Type 1 pt; Visual Match 5 pts proportional;
+    Hex Matches colorhexa 5 pts proportional; Full Coverage 1 pt.
+    """
     print("----------------- CHECKPOINT 3 ----------------")
     steps = STEP_NAMES["color_formatting"]
     start = time.time()
-    checkpoint = Checkpoint(total=4, result=0, name=CP3_NAME)
+    checkpoint = Checkpoint(total=12, result=0, name=CP3_NAME)
 
     try:
         if main_tab is None or color_region is None:
@@ -387,9 +392,11 @@ def grade_checkpoint_3():
         fill_col = color_region["col"] + 2
         sr, er = color_region["start_row"], color_region["end_row"]
         names = color_region["names"]
+        sheet_raw_main = {"sheets": [main_tab]}
 
         filled = []   # (color_name, hex)
         missing = []
+        text_only_rows = []   # (color_name, text) — cell has text but no fill
         for i, r_idx in enumerate(range(sr, er)):
             h = cell_bg_hex(main_tab, r_idx, fill_col)
             nm = names[i] if i < len(names) else f"row {r_idx}"
@@ -397,53 +404,79 @@ def grade_checkpoint_3():
                 filled.append((nm, h.lower()))
             else:
                 missing.append(nm)
+                text = (get_cell_value(sheet_raw_main, r_idx, fill_col) or "").strip()
+                if text:
+                    text_only_rows.append((nm, text))
 
-        # Step 1: cells have background fills
+        # Early-exit: empty fill column fails all 4 steps.
         if not filled:
             return fail_all_steps(
                 checkpoint, steps, f"No background fills found in col {fill_col}.", start,
             )
-        checkpoint.add_step(
-            steps[0], True, 1,
-            f"{len(filled)}/{len(names)} cells have background fill.",
-        )
+
+        # Step 1: Fill Column Type — every populated cell in the fill column
+        # must have a background fill (not just typed text).
+        if not text_only_rows:
+            checkpoint.add_step(
+                steps[0], True, 1,
+                f"Fill column is a colour-fill column "
+                f"({len(filled)} fills, no text-only cells).",
+            )
+        else:
+            sample = [f"{nm}: {txt[:40]!r}" for nm, txt in text_only_rows[:3]]
+            checkpoint.add_step(
+                steps[0], False, 1,
+                f"{len(text_only_rows)} cell(s) in col {fill_col} contain text "
+                f"instead of a background fill: {sample}",
+            )
 
         model = get_model(model_id)
 
         # Step 2: fills visually match the named colours (VLM swatch judge)
         visual_passed, visual_total, visual_done = 0, 0, False
+        visual_items: list = []
+        res: dict = {}
+        render_failures: list = []
         if model is not None:
             temp_dir = os.path.join(
                 os.path.dirname(os.path.abspath(__file__)), "temp_swatches"
             )
             try:
-                swatches = []  # (color_name, swatch_path)
+                swatches = []  # (color_name, path_or_None)
                 for nm, chex in filled:
                     p = render_color_swatch(chex, temp_dir)
-                    if p:
-                        swatches.append((nm, p))
-                if swatches:
+                    swatches.append((nm, p))
+                    if not p:
+                        render_failures.append(nm)
+                rendered = [(nm, p) for nm, p in swatches if p]
+                if rendered:
                     vlm_tasks = []
-                    for idx, (nm, p) in enumerate(swatches):
+                    for idx, (nm, p) in enumerate(rendered):
                         messages = [
                             {"role": "system", "content": [{"type": "text", "text": (
-                                "You judge whether a colour swatch image reasonably "
-                                "represents a named colour. Be lenient: answer 'Yes' "
-                                "if the swatch is in the right colour family, 'No' "
-                                "only if it is clearly the wrong colour."
+                                "You judge whether a colour swatch image matches a "
+                                "named colour. Answer 'Yes' only if the swatch is "
+                                "the named colour or extremely close to it "
+                                "(distinguishable only by minor shade variation). "
+                                "Answer 'No' if it is noticeably different."
                             )}]},
                             {"role": "user", "content": [
                                 {"type": "image", "image": p},
                                 {"type": "text", "text": (
-                                    f"Does this swatch reasonably represent the "
-                                    f"colour '{nm}'? Answer Yes or No."
+                                    f"Does this swatch match the colour '{nm}' "
+                                    f"(or is it extremely close to it)? "
+                                    f"Answer Yes or No."
                                 )},
                             ]},
                         ]
                         vlm_tasks.append({"id": str(idx), "messages": messages})
                     res = robust_vlm_calls(vlm_tasks, model)
+                    apply_describe_then_judge_override(res, rendered, model)
                     visual_passed = sum(1 for v in res.values() if v)
-                    visual_total = len(vlm_tasks)
+                    # Denominator = every filled colour; render failures count
+                    # toward total but not toward passes.
+                    visual_total = len(filled)
+                    visual_items = rendered
                     visual_done = True
             finally:
                 if os.path.exists(temp_dir):
@@ -456,39 +489,59 @@ def grade_checkpoint_3():
                 r, g, b = hex_to_rgb(chex)
                 messages = [
                     {"role": "system", "content": [{"type": "text", "text": (
-                        "You judge whether a hex colour reasonably represents a "
-                        "named colour. Be lenient: answer 'Yes' if it is in the "
-                        "right colour family, 'No' only if clearly wrong."
+                        "You judge whether a hex colour matches a named colour. "
+                        "Answer 'Yes' only if the hex represents the named colour "
+                        "or is extremely close to it. Answer 'No' if it is "
+                        "noticeably different."
                     )}]},
                     {"role": "user", "content": [{"type": "text", "text": (
                         f"Color name: '{nm}'\nHex: {chex}, RGB: ({r}, {g}, {b})\n"
-                        f"Does this colour reasonably match the name? Answer Yes or No."
+                        f"Does this hex match the colour '{nm}' (or is it extremely "
+                        f"close)? Answer Yes or No."
                     )}]},
                 ]
                 text_tasks.append({"id": str(idx), "messages": messages})
             res = robust_vlm_calls(text_tasks, model)
             visual_passed = sum(1 for v in res.values() if v)
             visual_total = len(text_tasks)
+            visual_items = filled
             visual_done = True
 
         if not visual_done:
             checkpoint.add_step(
                 steps[1], False, 2,
                 "Model unavailable - could not verify visual colour match.",
+                max_score=5,
+            )
+        elif visual_total == 0:
+            checkpoint.add_step(
+                steps[1], False, 2,
+                "No fills available to verify visual colour match.",
+                max_score=5,
             )
         else:
-            ratio = visual_passed / visual_total if visual_total else 0
-            if visual_total > 0 and visual_passed == visual_total:
+            visual_score = round(visual_passed * 5 / visual_total)
+            if visual_passed == visual_total:
                 checkpoint.add_step(
                     steps[1], True, 2,
-                    f"{visual_passed}/{visual_total} fills visually match "
-                    f"their named colours ({ratio:.0%}).",
+                    f"{visual_passed}/{visual_total} fills visually match their "
+                    f"named colours ({visual_score}/5 pts).",
+                    score=visual_score, max_score=5,
                 )
             else:
+                visual_score = min(visual_score, 4)   # fail caps below max
+                vlm_no = [visual_items[int(k)][0]
+                          for k, v in res.items() if not v]
+                rf_note = (
+                    f" ({len(render_failures)} unrenderable)"
+                    if render_failures else ""
+                )
                 checkpoint.add_step(
                     steps[1], False, 2,
                     f"Only {visual_passed}/{visual_total} fills visually match "
-                    f"their named colours ({ratio:.0%}).",
+                    f"their named colours{rf_note} ({visual_score}/5 pts). "
+                    f"Failed: {(vlm_no + render_failures)[:8]}",
+                    score=visual_score, max_score=5,
                 )
 
         # Step 3: hex value matches colorhexa.com's colour for that hex
@@ -505,11 +558,13 @@ def grade_checkpoint_3():
             checkpoint.add_step(
                 steps[2], False, 3,
                 "colorhexa unreachable - could not verify any hex value.",
+                max_score=5,
             )
         elif model is None:
             checkpoint.add_step(
                 steps[2], False, 3,
                 "Model unavailable - could not compare colorhexa names.",
+                max_score=5,
             )
         else:
             judge_tasks = []
@@ -529,18 +584,23 @@ def grade_checkpoint_3():
                 judge_tasks.append({"id": str(idx), "messages": messages})
             jres = robust_vlm_calls(judge_tasks, model)
             matched = sum(1 for v in jres.values() if v)
-            ratio = matched / len(resolved)
+            hex_score = round(matched * 5 / len(resolved))
             if matched == len(resolved):
                 checkpoint.add_step(
                     steps[2], True, 3,
                     f"{matched}/{len(resolved)} hex values are consistent with "
-                    f"colorhexa.com ({ratio:.0%}).",
+                    f"colorhexa.com ({hex_score}/5 pts).",
+                    score=hex_score, max_score=5,
                 )
             else:
+                hex_score = min(hex_score, 4)   # fail caps below max
+                failed_names = [resolved[int(k)][0] for k, v in jres.items() if not v]
                 checkpoint.add_step(
                     steps[2], False, 3,
                     f"Only {matched}/{len(resolved)} hex values are consistent "
-                    f"with colorhexa.com ({ratio:.0%}).",
+                    f"with colorhexa.com ({hex_score}/5 pts). "
+                    f"Failed: {failed_names[:8]}",
+                    score=hex_score, max_score=5,
                 )
 
         # Step 4: each colour name has a corresponding colored cell
@@ -560,12 +620,12 @@ def grade_checkpoint_3():
 
     except Exception as e:
         traceback.print_exc()
-        fresh = Checkpoint(total=4, result=0, name=CP3_NAME)
+        fresh = Checkpoint(total=12, result=0, name=CP3_NAME)
         return fail_all_steps(fresh, steps, f"Checkpoint error: {e}", start)
 
 
-def grade_checkpoint_4():
-    """Checkpoint 4: Paint Store References (3 pts)."""
+def grade_checkpoint_4(color_region: Optional[Dict] = None):
+    """Checkpoint 4: Paint Store References (13 pts)."""
     print("----------------- CHECKPOINT 4 ----------------")
     steps = STEP_NAMES["store_links"]
     start = time.time()
@@ -577,12 +637,15 @@ def grade_checkpoint_4():
         )
     except Exception as e:
         traceback.print_exc()
-        cp = Checkpoint(total=CP_STORE_TOTAL_STEPS, result=0, name=CP4_NAME)
+        cp = Checkpoint(total=CP_URL_TOTAL_POINTS, result=0, name=CP4_NAME)
         return fail_all_steps(cp, steps, f"Checkpoint error: {e}", start)
 
 
-def grade_checkpoint_5():
-    """Checkpoint 5: Mood Descriptions (4 pts).
+def grade_checkpoint_5(color_region: Optional[Dict] = None):
+    """Checkpoint 5: Mood Descriptions (12 pts).
+
+    Step weights: Mood Column Present 1 pt; Single Sentence 5 pts proportional;
+    Mood Content 5 pts proportional; Full Coverage 1 pt.
 
     A column to the right of the paint-store column should contain a
     short, single-sentence description of the mood/feeling each colour evokes.
@@ -590,7 +653,7 @@ def grade_checkpoint_5():
     print("----------------- CHECKPOINT 5 ----------------")
     steps = STEP_NAMES["mood_descriptions"]
     start = time.time()
-    checkpoint = Checkpoint(total=4, result=0, name=CP5_NAME)
+    checkpoint = Checkpoint(total=12, result=0, name=CP5_NAME)
 
     try:
         if main_tab is None or color_region is None:
@@ -612,29 +675,38 @@ def grade_checkpoint_5():
             else:
                 empty.append(nm)
 
-        # Step 1: mood column present (at least some non-empty cells)
+        # Early-exit: no mood text anywhere — all 4 steps fail.
         if not moods:
             return fail_all_steps(
                 checkpoint, steps,
                 f"No mood text found in col {mood_col}.", start,
             )
-        checkpoint.add_step(
-            steps[0], True, 1,
-            f"Mood column found at col {mood_col} with {len(moods)}/{len(names)} "
-            f"cells populated.",
-        )
+
+        # Step 1: Per-Color Mood Presence — every colour row has a non-empty mood cell.
+        if not empty:
+            checkpoint.add_step(
+                steps[0], True, 1,
+                f"All {len(names)} colours have a mood description.",
+            )
+        else:
+            checkpoint.add_step(
+                steps[0], False, 1,
+                f"{len(empty)}/{len(names)} colours missing mood text: {empty[:5]}",
+            )
 
         model = get_model(model_id)
 
-        # Step 2: each cell is a single short sentence
+        # Step 2: each cell is a single short sentence (5 pts, proportional)
         if model is None:
             checkpoint.add_step(
                 steps[1], False, 2,
                 "Model unavailable - could not verify sentence structure.",
+                max_score=5,
             )
             checkpoint.add_step(
                 steps[2], False, 3,
                 "Model unavailable - could not verify mood content.",
+                max_score=5,
             )
         else:
             sent_tasks = []
@@ -653,19 +725,28 @@ def grade_checkpoint_5():
                 sent_tasks.append({"id": str(idx), "messages": messages})
             sent_res = robust_vlm_calls(sent_tasks, model)
             sent_passed = sum(1 for v in sent_res.values() if v)
+            sent_score = round(sent_passed * 5 / len(sent_tasks))
             if sent_passed == len(sent_tasks):
                 checkpoint.add_step(
                     steps[1], True, 2,
-                    f"All {len(sent_tasks)} mood cells are a single sentence.",
+                    f"All {len(sent_tasks)} mood cells are a single sentence "
+                    f"({sent_score}/5 pts).",
+                    score=sent_score, max_score=5,
                 )
             else:
+                sent_score = min(sent_score, 4)   # fail caps below max
+                failed_sent = [
+                    moods[int(k)][0] for k, v in sent_res.items() if not v
+                ]
                 checkpoint.add_step(
                     steps[1], False, 2,
                     f"Only {sent_passed}/{len(sent_tasks)} mood cells are a "
-                    f"single sentence.",
+                    f"single sentence ({sent_score}/5 pts). "
+                    f"Failed: {failed_sent[:8]}",
+                    score=sent_score, max_score=5,
                 )
 
-            # Step 3: each cell describes the mood/feeling evoked by the colour
+            # Step 3: each cell describes the mood/feeling (5 pts, proportional)
             content_tasks = []
             for idx, (nm, text) in enumerate(moods):
                 messages = [
@@ -684,29 +765,43 @@ def grade_checkpoint_5():
                 content_tasks.append({"id": str(idx), "messages": messages})
             content_res = robust_vlm_calls(content_tasks, model)
             content_passed = sum(1 for v in content_res.values() if v)
+            content_score = round(content_passed * 5 / len(content_tasks))
             if content_passed == len(content_tasks):
                 checkpoint.add_step(
                     steps[2], True, 3,
                     f"All {len(content_tasks)} mood cells describe the colour's "
-                    f"mood/feeling.",
+                    f"mood/feeling ({content_score}/5 pts).",
+                    score=content_score, max_score=5,
                 )
             else:
+                content_score = min(content_score, 4)   # fail caps below max
+                failed_content = [
+                    moods[int(k)][0] for k, v in content_res.items() if not v
+                ]
                 checkpoint.add_step(
                     steps[2], False, 3,
                     f"Only {content_passed}/{len(content_tasks)} mood cells "
-                    f"describe the colour's mood/feeling.",
+                    f"describe the colour's mood/feeling "
+                    f"({content_score}/5 pts). Failed: {failed_content[:8]}",
+                    score=content_score, max_score=5,
                 )
 
-        # Step 4: every colour row has a mood cell
-        if not empty:
+        # Step 4: Distinct Mood Variety — agents shouldn't paste the same mood
+        # description across many cells. Strict "all unique" among populated.
+        unique_texts = {text.lower().strip() for _, text in moods}
+        if len(unique_texts) == len(moods):
             checkpoint.add_step(
                 steps[3], True, 4,
-                f"All {len(names)} colours have a mood description.",
+                f"All {len(moods)} mood descriptions are unique.",
             )
         else:
+            counts = Counter(text.lower().strip() for _, text in moods)
+            repeated = [t for t, c in counts.most_common() if c > 1][:3]
             checkpoint.add_step(
                 steps[3], False, 4,
-                f"{len(empty)}/{len(names)} colours missing mood text: {empty[:5]}",
+                f"{len(moods) - len(unique_texts)} duplicate mood "
+                f"description(s). Repeated text(s): "
+                f"{[t[:40] for t in repeated]}",
             )
 
         checkpoint.execution_time = time.time() - start
@@ -714,22 +809,27 @@ def grade_checkpoint_5():
 
     except Exception as e:
         traceback.print_exc()
-        fresh = Checkpoint(total=4, result=0, name=CP5_NAME)
+        fresh = Checkpoint(total=12, result=0, name=CP5_NAME)
         return fail_all_steps(fresh, steps, f"Checkpoint error: {e}", start)
 
 
-def grade_checkpoint_6():
-    """Checkpoint 6: Wedding Decoration Matrix (5 pts)."""
+def grade_checkpoint_6(color_region: Optional[Dict] = None):
+    """Checkpoint 6: Wedding Decoration Matrix (15 pts).
+
+    Step weights: Decoration Types / Header Color Match / Header Color Order
+    are 1 pt each; Image Coverage is 2 pts; VLM Image Verification is 10 pts
+    awarded proportionally to the pass count.
+    """
     print("----------------- CHECKPOINT 6 ----------------")
     steps = STEP_NAMES["decoration_matrix"]
     start = time.time()
-    checkpoint = Checkpoint(total=5, result=0, name=CP6_NAME)
+    checkpoint = Checkpoint(total=15, result=0, name=CP6_NAME)
 
     try:
         if main_tab is None:
             return fail_all_steps(checkpoint, steps, "Sheet data unavailable.", start)
 
-        region = find_color_region(main_tab, columns=(0, 1))
+        region = color_region
         if region is None:
             return fail_all_steps(
                 checkpoint, steps,
@@ -857,12 +957,14 @@ def grade_checkpoint_6():
                     image_info.append((url, decoration, color_name))
 
         if total_cells == 0:
-            checkpoint.add_step(steps[3], False, 4, "Matrix body has 0 cells.")
+            checkpoint.add_step(steps[3], False, 4, "Matrix body has 0 cells.",
+                                max_score=2)
         elif image_cells / total_cells >= IMAGE_COVERAGE_RATIO:
             checkpoint.add_step(
                 steps[3], True, 4,
                 f"{image_cells}/{total_cells} cells contain images "
                 f"({image_cells / total_cells:.0%}).",
+                max_score=2,
             )
         else:
             checkpoint.add_step(
@@ -870,14 +972,18 @@ def grade_checkpoint_6():
                 f"Only {image_cells}/{total_cells} cells contain images "
                 f"({image_cells / total_cells:.0%}, expected >= "
                 f"{IMAGE_COVERAGE_RATIO:.0%}).",
+                max_score=2,
             )
 
         # Step 5: VLM judge - images show the decoration in the colour
+        # (10 pts, awarded proportionally to the number of images that pass).
         if not image_info:
-            checkpoint.add_step(steps[4], False, 5, "No images found to verify.")
+            checkpoint.add_step(steps[4], False, 5, "No images found to verify.",
+                                max_score=10)
         elif model is None:
             checkpoint.add_step(
                 steps[4], False, 5, "Model unavailable - could not verify images.",
+                max_score=10,
             )
         else:
             temp_dir = os.path.join(
@@ -885,14 +991,7 @@ def grade_checkpoint_6():
             )
             os.makedirs(temp_dir, exist_ok=True)
             try:
-                if len(image_info) > MAX_VLM_IMAGE_CHECKS:
-                    step = len(image_info) / MAX_VLM_IMAGE_CHECKS
-                    sampled = [
-                        image_info[int(i * step)]
-                        for i in range(MAX_VLM_IMAGE_CHECKS)
-                    ]
-                else:
-                    sampled = image_info
+                sampled = image_info  # judge every image; no stride sampling
 
                 # Placeholder/stub images (placehold.co etc.) are never real
                 # decoration photos — fail them without a VLM call.
@@ -904,70 +1003,94 @@ def grade_checkpoint_6():
                     if not is_placeholder_image_url(item[0])
                 ]
 
+                # Dedupe downloads by URL: fetch each unique URL once.
+                # VLM tasks below are still built per-cell so duplicate URLs
+                # across cells get judged independently with their own
+                # (decoration, colour) context.
+                unique_urls = list(dict.fromkeys(url for url, _, _ in real))
                 dl_tasks = [
-                    {"id": f"img_{idx}", "func": download_image_from_url,
-                     "args": (img_url, temp_dir)}
-                    for idx, (img_url, _, _) in enumerate(real)
+                    {"id": url, "func": download_image_from_url,
+                     "args": (url, temp_dir)}
+                    for url in unique_urls
                 ]
-                downloaded = parallel_download(dl_tasks, max_workers=10, use_rate_limit=False)
+                downloaded = parallel_download(dl_tasks, max_workers=20, use_rate_limit=False)
 
                 vlm_tasks = []
-                for idx, (_, decoration, color_name) in enumerate(real):
-                    img_path = downloaded.get(f"img_{idx}")
+                for idx, (img_url, decoration, color_name) in enumerate(real):
+                    img_path = downloaded.get(img_url)
                     if img_path and os.path.exists(img_path):
                         messages = [
                             {"role": "system", "content": [{"type": "text", "text": (
                                 "You verify photos in a wedding decoration matrix. "
-                                "Answer 'Yes' only if the image is an actual "
-                                "photograph of the named decoration in (or "
-                                "prominently featuring) the named colour. Answer "
-                                "'No' if it is a placeholder, a solid-colour "
-                                "swatch, a graphic with text, a logo, or anything "
-                                "that is not a real photograph of that decoration."
+                                "Answer 'Yes' ONLY if the image is a real "
+                                "photograph that shows specifically the named "
+                                "decoration AND that decoration is specifically "
+                                "the named colour. Answer 'No' if either the "
+                                "decoration type is different (even slightly) OR "
+                                "the colour is different — a related or close "
+                                "shade is NOT a match (e.g. royal blue is NOT "
+                                "navy, light green is NOT emerald green, wine is "
+                                "NOT burgundy). Also answer 'No' for placeholders, "
+                                "solid-colour swatches, graphics with text, logos, "
+                                "or anything that is not a real photograph."
                             )}]},
                             {"role": "user", "content": [
                                 {"type": "image", "image": img_path},
                                 {"type": "text", "text": (
                                     f"Decoration: {decoration}\n"
                                     f"Expected colour: {color_name}\n"
-                                    f"Is this image a real photograph of a "
-                                    f"{decoration} in or featuring {color_name}? "
-                                    f"Answer Yes or No."
+                                    f"Does this image show specifically a "
+                                    f"{decoration} in specifically the colour "
+                                    f"{color_name}? Answer Yes or No."
                                 )},
                             ]},
                         ]
                         vlm_tasks.append({"id": f"vlm_{idx}", "messages": messages})
 
                 vlm_results = (
-                    robust_vlm_calls(vlm_tasks, model, max_workers=5)
+                    robust_vlm_calls(vlm_tasks, model, max_workers=10)
                     if vlm_tasks else {}
                 )
+                # Failed downloads count toward the denominator but not the
+                # numerator: an image we couldn't fetch can't earn credit.
+                download_failures = sum(
+                    1 for img_url, _, _ in real
+                    if not (downloaded.get(img_url) and os.path.exists(downloaded[img_url]))
+                )
                 vlm_passed = sum(1 for v in vlm_results.values() if v)
-                # Total assessed = placeholders (auto-fail) + real images judged.
-                vlm_total = placeholder_count + len(vlm_tasks)
+                vlm_total = placeholder_count + download_failures + len(vlm_tasks)
 
                 if vlm_total == 0:
                     checkpoint.add_step(
                         steps[4], False, 5,
                         "No images could be downloaded for VLM verification.",
-                    )
-                elif vlm_passed == vlm_total:
-                    checkpoint.add_step(
-                        steps[4], True, 5,
-                        f"{vlm_passed}/{vlm_total} sampled images are real photos "
-                        f"of the correct decoration in the correct colour.",
+                        max_score=10,
                     )
                 else:
-                    ph_note = (
-                        f" ({placeholder_count} are placeholder/stub images)"
-                        if placeholder_count else ""
-                    )
-                    checkpoint.add_step(
-                        steps[4], False, 5,
-                        f"Only {vlm_passed}/{vlm_total} sampled images are real "
-                        f"photos of the correct decoration in the correct "
-                        f"colour{ph_note}.",
-                    )
+                    vlm_score = round(vlm_passed * 10 / vlm_total)
+                    if vlm_passed == vlm_total:
+                        checkpoint.add_step(
+                            steps[4], True, 5,
+                            f"{vlm_passed}/{vlm_total} sampled images are real photos "
+                            f"of the correct decoration in the correct colour "
+                            f"({vlm_score}/10 pts).",
+                            score=vlm_score, max_score=10,
+                        )
+                    else:
+                        vlm_score = min(vlm_score, 9)   # fail caps below max
+                        notes = []
+                        if placeholder_count:
+                            notes.append(f"{placeholder_count} placeholder")
+                        if download_failures:
+                            notes.append(f"{download_failures} unreachable")
+                        breakdown = f" ({'; '.join(notes)})" if notes else ""
+                        checkpoint.add_step(
+                            steps[4], False, 5,
+                            f"Only {vlm_passed}/{vlm_total} sampled images are real "
+                            f"photos of the correct decoration in the correct "
+                            f"colour{breakdown} ({vlm_score}/10 pts).",
+                            score=vlm_score, max_score=10,
+                        )
             finally:
                 if os.path.exists(temp_dir):
                     shutil.rmtree(temp_dir, ignore_errors=True)
@@ -977,7 +1100,7 @@ def grade_checkpoint_6():
 
     except Exception as e:
         traceback.print_exc()
-        fresh = Checkpoint(total=5, result=0, name=CP6_NAME)
+        fresh = Checkpoint(total=15, result=0, name=CP6_NAME)
         return fail_all_steps(fresh, steps, f"Checkpoint error: {e}", start)
 
 
@@ -1201,13 +1324,20 @@ def grade_checkpoints(workspace_doc_id: str = None, cached_models: dict = None,
     # Pre-load the model once (guarded; shared by all checkpoints).
     get_model(model_id, cached_models)
 
+    # Compute the colour region once and thread it through every checkpoint
+    # that needs it. CP1 grades it; CP2/3/4/5/6 use it for column offsets.
+    region = (
+        find_color_region(main_tab, columns=(0, 1), max_row=DEFAULT_COLOR_MAX_ROW)
+        if main_tab is not None else None
+    )
+
     checkpoints: List[Checkpoint] = [
-        grade_checkpoint_1(browsing_history=browsing_history),
-        grade_checkpoint_2(),
-        grade_checkpoint_3(),
-        grade_checkpoint_4(),
-        grade_checkpoint_5(),
-        grade_checkpoint_6(),
+        grade_checkpoint_1(color_region=region, browsing_history=browsing_history),
+        grade_checkpoint_2(color_region=region),
+        grade_checkpoint_3(color_region=region),
+        grade_checkpoint_4(color_region=region),
+        grade_checkpoint_5(color_region=region),
+        grade_checkpoint_6(color_region=region),
         grade_checkpoint_7(),
     ]
 
