@@ -458,13 +458,13 @@ Answer 'No' only if it's completely generic advice unrelated to soup or pumpkin.
                 tips_are_quotes = False
                 quote_details.append({'tip': tip[:30], 'source': None, 'score': 0})
 
-            step_time = time.time() - step_start
+        step_time = time.time() - step_start
 
-            if tips_are_quotes and len(quote_details) > 0:
-                checkpoint.add_step("Tips Are Direct Quotes", True, 6, "All tips verified as quotes from sources", execution_time=step_time)
-            else:
-                not_found = [d['tip'] for d in quote_details if d['source'] is None]
-                checkpoint.add_step("Tips Are Direct Quotes", False, 6, f"Tips not found in sources: {not_found[:2]}", execution_time=step_time)
+        if tips_are_quotes and len(quote_details) > 0:
+            checkpoint.add_step("Tips Are Direct Quotes", True, 6, "All tips verified as quotes from sources", execution_time=step_time)
+        else:
+            not_found = [d['tip'] for d in quote_details if d['source'] is None]
+            checkpoint.add_step("Tips Are Direct Quotes", False, 6, f"Tips not found in sources: {not_found[:2]}", execution_time=step_time)
 
     # =========================================================================
     # Step 1.7: Image from Original
