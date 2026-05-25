@@ -1,0 +1,253 @@
+{
+  "task_name": "slides_42_personal_none_product_comparison",
+  "instance": "instance_4",
+  "eval_steps": [
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Title Match",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Title Is Bold",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Subtitle Lists All Ink Brands",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Portland Tattoo Scene Image Found",
+      "category": "visual_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Image Is Right of Title",
+      "category": "spatial_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Charcoal/Gold/Crimson Colors Used",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Challenge Explanation",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Goal Explanation",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Color Vibrancy Found",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Ink Longevity Found",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Safety Certifications Found",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Viscosity and Needle Compatibility Found",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Range of Shades Found",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Device Name as Title (x3 devices)",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Source Link in Slide (x3 devices)",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Two Product Images (x3 devices)",
+      "category": "visual_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Key Features Section (x3 devices)",
+      "category": "structural_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Pros Listed (x3 devices)",
+      "category": "structural_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Cons Listed (x3 devices)",
+      "category": "structural_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Images From Sources (x3 devices)",
+      "category": "visual_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Content From Sources (x3 devices)",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Table Has 3 Columns",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "All Ink Brands as Column Headers",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Color Coding Scheme (Red/Yellow/Green)",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Color Vibrancy Covered",
+      "category": "structural_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Color Vibrancy Color Coding",
+      "category": "formatting_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Ink Longevity Covered",
+      "category": "structural_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Ink Longevity Color Coding",
+      "category": "formatting_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Safety Certifications Covered",
+      "category": "structural_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Safety Certifications Color Coding",
+      "category": "formatting_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Viscosity Covered",
+      "category": "structural_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Viscosity Color Coding",
+      "category": "formatting_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Range of Shades Covered",
+      "category": "structural_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Range of Shades Color Coding",
+      "category": "formatting_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "All Ink Brands Found in Slide",
+      "category": "information_retrieval",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "Summaries Align with Comparison Data",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "Recommendations Based on Artist Styles",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 7",
+      "step_name": "Exactly 8 Slides",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 7",
+      "step_name": "Correct Slide Titles and Order",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 7",
+      "step_name": "Tone Is Creative and Respectful",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 7",
+      "step_name": "Audience-Tailored Content",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    }
+  ],
+  "flagged_steps": []
+}

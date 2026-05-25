@@ -101,7 +101,7 @@ def parse_checkpoints_md(path: Path) -> dict:
         # ---- find the eval section (any variant of the header) ----
         # "Evalutation" is a known typo in slides_51; using Eval\w* to catch any misspelling
         eval_section_match = re.search(
-            r"###\s+(?:Outcome Eval\w*|Eval Steps?)[^#\n]*\n(.*?)(?=^#{1,2} |\Z)",
+            r"###\s+(?:Outcome Eval\w*|Eval Steps?)[^#\n]*\n(.*?)(?=^#{1,3} |\Z)",
             block, re.DOTALL | re.MULTILINE | re.IGNORECASE,
         )
         steps = 0
@@ -111,8 +111,9 @@ def parse_checkpoints_md(path: Path) -> dict:
             # Count bullet lines (- ...) or numbered items (1. ...)
             # Exclude --- horizontal rules by requiring the char after [-*] is not another -
             # Also handles files that omit the space after the dash (e.g. "-All topics...")
-            bullet_lines = re.findall(r"^\s*[-*](?!-)\s*.+", body, re.MULTILINE)
-            numbered_lines = re.findall(r"^\s*\d+\.\s+.+", body, re.MULTILINE)
+            # Only match top-level bullets (no leading whitespace) to avoid counting sub-bullets
+            bullet_lines = re.findall(r"^[-*](?!-)\s*.+", body, re.MULTILINE)
+            numbered_lines = re.findall(r"^\d+\.\s+.+", body, re.MULTILINE)
             step_lines = bullet_lines if bullet_lines else numbered_lines
             steps = len(step_lines)
 
