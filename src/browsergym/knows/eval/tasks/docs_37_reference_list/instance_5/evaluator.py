@@ -1,6 +1,5 @@
 import os
 import sys
-import re
 import json
 import time
 import argparse
@@ -32,6 +31,8 @@ from src.browsergym.knows.eval.tasks.docs_37_reference_list.utils import (
     extract_bullet_sections,
     extract_reference_links,
     extract_inactive_links_section,
+    pair_headings_to_gold,
+    title_matches,
     match_valid_category,
     match_text_quiet,
     is_raw_url,
@@ -81,6 +82,7 @@ def grade_checkpoint_1():
         (1, "Title format (Session #: title) matches schedule", 10),
         (2, "Heading 3 style", 10),
     ]
+    global model
     start = time.time()
     checkpoint = Checkpoint(total=20, result=0, name="Lecture Title")
     _added = set()
@@ -98,9 +100,7 @@ def grade_checkpoint_1():
     try:
         with open(SCHEDULE_PATH, "r", encoding="utf-8") as f:
             schedule = json.load(f)
-        # The full expected lecture list comes from schedule.json: every lecture
-        # gets a heading even if it has no qualifying reference links (and is
-        # therefore absent from gold_outputs.json).
+        
         gold_lectures = []
         for entry in schedule:
             title = entry.get("lecture_title", "").strip()
@@ -109,19 +109,14 @@ def grade_checkpoint_1():
                 continue
             gold_lectures.append(f"Session {session}: {title}")
 
+        if model is None:
+            model = load_model(model_id)
         doc_headings = extract_headings_with_bookmarks(document)
         total_count = len(gold_lectures)
 
-        heading_texts = [h["text"] for h in doc_headings]
-        matched_headings = {}
-        for gold_lecture in gold_lectures:
-            matched_text, _ = match_text_quiet(gold_lecture, heading_texts, threshold=75)
-            if matched_text:
-                matched_headings[gold_lecture] = next(
-                    h for h in doc_headings if h["text"] == matched_text
-                )
-            else:
-                matched_headings[gold_lecture] = None
+        matched_headings = pair_headings_to_gold(
+            gold_lectures, doc_headings, model=model
+        )
 
         # --- Step 1: Title format (Session #: title) matches schedule ---
         t = time.time()
@@ -133,22 +128,14 @@ def grade_checkpoint_1():
                 if not heading:
                     format_details.append(f"Missing: '{gold_lecture}'")
                     continue
-                doc_session_match = re.match(r"Session\s+(\d+):\s+.+", heading["text"].strip(), re.IGNORECASE)
-                if not doc_session_match:
+                
+                gold_prefix, sep, gold_rest = gold_lecture.partition(":")
+                gold_prefix = (gold_prefix + ":") if sep else gold_lecture
+                doc_text = heading["text"].strip()
+                starts_ok = doc_text.lower().startswith(gold_prefix.lower())
+                doc_rest = doc_text[len(gold_prefix):].strip() if starts_ok else ""
+                if not starts_ok or not title_matches(doc_rest, gold_rest.strip()):
                     format_details.append(f"Bad format: '{heading['text']}'")
-                    continue
-                gold_session_match = re.match(r"Session\s+(\d+):", gold_lecture.strip(), re.IGNORECASE)
-                if gold_session_match and int(doc_session_match.group(1)) != int(gold_session_match.group(1)):
-                    format_details.append(
-                        f"Wrong session number {doc_session_match.group(1)} "
-                        f"(expected {gold_session_match.group(1)}): '{heading['text']}'"
-                    )
-                    continue
-                _, score = match_text_quiet(heading["text"], [gold_lecture], threshold=75)
-                if score < 75:
-                    format_details.append(
-                        f"Title mismatch ({score}): '{heading['text']}' vs schedule '{gold_lecture}'"
-                    )
                     continue
                 format_pass += 1
             score_1 = calculate_percentage_score(format_pass, total_count, 10)

@@ -6,11 +6,14 @@ hyperlink metadata extraction.
 """
 
 import io
+import json
 import re
 import contextlib
 
 import requests
+from rapidfuzz import fuzz
 
+from src.browsergym.knows.eval.eval_utils.llm_utils import extract_json_with_llm
 from src.browsergym.knows.eval.eval_utils.table_utils import colors_are_similar
 from src.browsergym.knows.eval.eval_utils.text_utils import (
     fuzzy_match_text,
@@ -226,6 +229,127 @@ def extract_headings_with_bookmarks(document):
         })
 
     return headings
+
+
+def pair_headings_to_gold(gold_lectures, doc_headings, model=None):
+    """Pair gold lecture strings to their corresponding doc heading dicts.
+
+    Two-stage matching:
+      1. Prefix match with coverage tie-break: the part of a heading's text
+         before the first ':' (the lecture identifier — "Module 1",
+         "Session 13", "10/15", "Guest Lecture", etc.) must equal the gold
+         lecture's prefix, case-insensitive and whitespace-stripped. When
+         multiple doc headings share the same prefix as a gold lecture, the
+         one whose full text best COVERS gold is chosen (rapidfuzz
+         token_set_ratio — rewards candidates containing all gold tokens, so
+         "guest lecture: fine tuning is challenging" beats "guest lecture:
+         tuning" when matching "guest lecture: tuning is challenging";
+         fuzz.ratio breaks ties toward candidates of similar length to gold).
+      2. LLM fallback (only when ``model`` is provided): any gold lecture left
+         unmatched after stage 1 is paired against the remaining unmatched doc
+         headings by the LLM. The LLM's JSON pairing is parsed and applied
+         one-to-one — no doc heading is bound to two gold lectures.
+
+    Args:
+        gold_lectures (list[str]): Expected lecture title strings.
+        doc_headings (list[dict]): Heading dicts from
+            :func:`extract_headings_with_bookmarks`. Each dict must have a
+            'text' key.
+        model: Optional callable LLM interface. When omitted, stage 2 is
+            skipped and any unmatched gold lectures stay unmatched.
+
+    Returns:
+        dict[str, dict|None]: Map from each gold lecture string to its matched
+        heading dict (or ``None`` if no match was found after both stages).
+    """
+    # --- Stage 1: prefix match with coverage tie-break for duplicates ---
+    matched = {}
+    used_indices = set()
+    headings_by_prefix = {}
+    for idx, h in enumerate(doc_headings):
+        prefix = h["text"].partition(":")[0].strip().lower()
+        if prefix:
+            headings_by_prefix.setdefault(prefix, []).append((idx, h))
+
+    for gold_lecture in gold_lectures:
+        gold_prefix = gold_lecture.partition(":")[0].strip().lower()
+        candidates = [
+            (idx, h) for idx, h in headings_by_prefix.get(gold_prefix, [])
+            if idx not in used_indices
+        ]
+        if not candidates:
+            matched[gold_lecture] = None
+            continue
+        if len(candidates) == 1:
+            chosen_idx, chosen_h = candidates[0]
+        else:
+            chosen_idx, chosen_h = max(
+                candidates,
+                key=lambda ic: (
+                    fuzz.token_set_ratio(gold_lecture, ic[1]["text"]),
+                    fuzz.ratio(gold_lecture, ic[1]["text"]),
+                ),
+            )
+        matched[gold_lecture] = chosen_h
+        used_indices.add(chosen_idx)
+
+    # --- Stage 2: LLM fallback for remaining unmatched pairs ---
+    unmatched_gold = [g for g, h in matched.items() if h is None]
+    remaining_headings = [h for idx, h in enumerate(doc_headings)
+                          if idx not in used_indices]
+
+    if model is None or not unmatched_gold or not remaining_headings:
+        return matched
+
+    available_texts = [h["text"] for h in remaining_headings]
+    prompt = (
+        "Pair each expected lecture title with the document heading that most "
+        "likely refers to the same lecture. Return ONLY a JSON object whose "
+        "keys are the expected titles (exact strings from the first list) and "
+        "whose values are the matched document heading string (exact strings "
+        "from the second list), or null if no good match exists. Do not "
+        "invent headings — only use strings from the provided list.\n\n"
+        f"Expected titles:\n{json.dumps(unmatched_gold, ensure_ascii=False)}\n\n"
+        f"Document headings:\n{json.dumps(available_texts, ensure_ascii=False)}"
+    )
+    result = extract_json_with_llm(prompt, model, expect_type="object")
+    if not isinstance(result, dict):
+        return matched
+
+    heading_lookup = {h["text"]: h for h in remaining_headings}
+    used_doc_texts = set()
+    for gold_lecture in unmatched_gold:
+        doc_text = result.get(gold_lecture)
+        if (isinstance(doc_text, str)
+                and doc_text in heading_lookup
+                and doc_text not in used_doc_texts):
+            matched[gold_lecture] = heading_lookup[doc_text]
+            used_doc_texts.add(doc_text)
+
+    return matched
+
+
+def title_matches(doc_title, gold_title, threshold=70):
+    """Soft-check that a doc title fuzzy-covers the gold title.
+
+    Uses rapidfuzz ``partial_ratio`` (sliding-window substring match) so a doc
+    title that wraps gold's title with extra annotation (e.g. an additional
+    leading clause) still passes. An empty gold title passes vacuously.
+
+    Args:
+        doc_title (str): The title text from the document heading (the part
+            after the prefix colon).
+        gold_title (str): The expected title text from the gold lecture (the
+            part after the prefix colon).
+        threshold (int): Minimum partial_ratio score (0-100). Default 70.
+
+    Returns:
+        bool: True if ``gold_title`` is empty, or if the partial_ratio of
+        ``doc_title`` against ``gold_title`` meets or exceeds ``threshold``.
+    """
+    if not gold_title:
+        return True
+    return fuzz.partial_ratio(doc_title or "", gold_title) >= threshold
 
 
 def extract_bullet_sections(document):
