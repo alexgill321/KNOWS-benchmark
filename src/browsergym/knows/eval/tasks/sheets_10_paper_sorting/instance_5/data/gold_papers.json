@@ -1,0 +1,129 @@
+{
+  "papers": [
+    {
+      "title": "Conformal Prediction under Levy-Prokhorov Distribution Shifts: Robustness to Local and Global Perturbations",
+      "authors": [
+        "Liviu Aolaritei",
+        "Zheyu Oliver Wang",
+        "Julie Zhu",
+        "Michael I. Jordan",
+        "Youssef Marzouk"
+      ],
+      "first_author": "Liviu Aolaritei",
+      "first_author_normalized": "liviu aolaritei",
+      "abstract": "Conformal prediction provides a powerful framework for constructing prediction intervals with finite-sample guarantees, yet its robustness under distribution shifts remains a significant challenge. This paper addresses this limitation by modeling distribution shifts using Levy-Prokhorov (LP) ambiguity sets, which capture both local and global perturbations. We provide a self-contained overview of LP ambiguity sets and their connections to popular metrics such as Wasserstein and Total Variation. We show that the link between conformal prediction and LP ambiguity sets is a natural one: by propagating the LP ambiguity set through the scoring function, we reduce complex high-dimensional distribution shifts to manageable one-dimensional distribution shifts, enabling exact quantification of worst-case quantiles and coverage. Building on this analysis, we construct robust conformal prediction intervals that remain valid under distribution shifts, explicitly linking LP parameters to interval width and confidence levels. Experimental results on real-world datasets demonstrate the effectiveness of the proposed approach.",
+      "arxiv_id": "2502.14105",
+      "arxiv_url": "https://arxiv.org/abs/2502.14105",
+      "gold_labels_first_authors": [
+        "Liviu Aolaritei",
+        "Zheyu Oliver Wang",
+        "Qianyu Julie Zhu"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "liviu aolaritei",
+        "zheyu oliver wang",
+        "qianyu julie zhu"
+      ],
+      "figure_1_path": "data/gold_figures/original_1_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The term \"Bayesian\" does not appear anywhere in the provided \"Related Work\" text.",
+      "keyword_evaluated": true
+    },
+    {
+      "title": "Achievable distributional robustness when the robust risk is only partially identified",
+      "authors": [
+        "Julia Kostin",
+        "Nicola Gnecco",
+        "Fanny Yang"
+      ],
+      "first_author": "Julia Kostin",
+      "first_author_normalized": "julia kostin",
+      "abstract": "In safety-critical applications, machine learning models should generalize well under worst-case distribution shifts, that is, have a small robust risk. Invariance-based algorithms can provably take advantage of structural assumptions on the shifts when the training distributions are heterogeneous enough to identify the robust risk. However, in practice, such identifiability conditions are rarely satisfied -- a scenario so far underexplored in the theoretical literature. In this paper, we aim to fill the gap and propose to study the more general setting when the robust risk is only partially identifiable. In particular, we introduce the worst-case robust risk as a new measure of robustness that is always well-defined regardless of identifiability. Its minimum corresponds to an algorithm-independent (population) minimax quantity that measures the best achievable robustness under partial identifiability. While these concepts can be defined more broadly, in this paper we introduce and derive them explicitly for a linear model for concreteness of the presentation. First, we show that existing robustness methods are provably suboptimal in the partially identifiable case. We then evaluate these methods and the minimizer of the (empirical) worst-case robust risk on real-world gene expression data and find a similar trend: the test error of existing robustness methods grows increasingly suboptimal as the fraction of data from unseen environments increases, whereas accounting for partial identifiability allows for better generalization.",
+      "arxiv_id": "2502.02710",
+      "arxiv_url": "https://arxiv.org/abs/2502.02710",
+      "gold_labels_first_authors": [
+        "Julia Kostin"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "julia kostin"
+      ],
+      "figure_1_path": "data/gold_figures/original_2_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\n**Reasoning:** The term \"Bayesian\" is not present anywhere in the provided Related Work section. The text focuses on distributional robustness, causal models, and partial identifiability, without any mention or discussion of Bayesian concepts or techniques.",
+      "keyword_evaluated": true
+    },
+    {
+      "title": "Triple/Debiased Lasso for Statistical Inference of Conditional Average Treatment Effects",
+      "authors": [
+        "Masahiro Kato"
+      ],
+      "first_author": "Masahiro Kato",
+      "first_author_normalized": "masahiro kato",
+      "abstract": "This study investigates the estimation and the statistical inference about Conditional Average Treatment Effects (CATEs), which have garnered attention as a metric representing individualized causal effects. In our data-generating process, we assume linear models for the outcomes associated with binary treatments and define the CATE as a difference between the expected outcomes of these linear models. This study allows the linear models to be high-dimensional, and our interest lies in consistent estimation and statistical inference for the CATE. In high-dimensional linear regression, one typical approach is to assume sparsity. However, in our study, we do not assume sparsity directly. Instead, we consider sparsity only in the difference of the linear models. We first use a doubly robust estimator to approximate this difference and then regress the difference on covariates with Lasso regularization. Although this regression estimator is consistent for the CATE, we further reduce the bias using the techniques in double/debiased machine learning (DML) and debiased Lasso, leading to $\\sqrt{n}$-consistency and confidence intervals. We refer to the debiased estimator as the triple/debiased Lasso (TDL), applying both DML and debiased Lasso techniques. We confirm the soundness of our proposed method through simulation studies.",
+      "arxiv_id": "2403.03240",
+      "arxiv_url": "https://arxiv.org/abs/2403.03240",
+      "gold_labels_first_authors": [
+        "Masahiro Kato"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "masahiro kato"
+      ],
+      "figure_1_path": "data/gold_figures/original_3_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided \"Related Work\" section does not contain any mention of the term \"Bayesian\" or any related concepts (e.g., priors, posteriors, MCMC, Bayes factors) that would indicate a discussion of Bayesian methods or techniques. The methodologies mentioned focus on traditional regression, kernel methods, random forests, neural networks, various high-dimensional linear regression techniques (Lasso, Ridge, Elastic Net), and Double Machine Learning (DML).",
+      "keyword_evaluated": true
+    },
+    {
+      "title": "Bayesian High-dimensional Linear Regression with Sparse Projection-posterior",
+      "authors": [
+        "Samhita Pal",
+        "Subhashis Ghoshal"
+      ],
+      "first_author": "Samhita Pal",
+      "first_author_normalized": "samhita pal",
+      "abstract": "We consider a novel Bayesian approach to estimation, uncertainty quantification, and variable selection for a high-dimensional linear regression model under sparsity. The number of predictors can be nearly exponentially large relative to the sample size. We put a conjugate normal prior initially disregarding sparsity, but for making an inference, instead of the original multivariate normal posterior, we use the posterior distribution induced by a map transforming the vector of regression coefficients to a sparse vector obtained by minimizing the sum of squares of deviations plus a suitably scaled $\\ell_1$-penalty on the vector. We show that the resulting sparse projection-posterior distribution contracts around the true value of the parameter at the optimal rate adapted to the sparsity of the vector. We show that the true sparsity structure gets a large sparse projection-posterior probability. We further show that an appropriately recentred credible ball has the correct asymptotic frequentist coverage. Finally, we describe how the computational burden can be distributed to many machines, each dealing with only a small fraction of the whole dataset. We conduct a comprehensive simulation study under a variety of settings and found that the proposed method performs well for finite sample sizes. We also apply the method to several real datasets, including the ADNI data, and compare its performance with the state-of-the-art methods. We implemented the method in the \\texttt{R} package called \\texttt{sparseProj}, and all computations have been carried out using this package.",
+      "arxiv_id": "2410.16577",
+      "arxiv_url": "https://arxiv.org/abs/2410.16577",
+      "gold_labels_first_authors": [
+        "Samhita Pal"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "samhita pal"
+      ],
+      "figure_1_path": "data/gold_figures/original_4_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "title": "Doubly Robust Inference in Causal Latent Factor Models",
+      "authors": [
+        "Alberto Abadie",
+        "Anish Agarwal",
+        "Raaz Dwivedi",
+        "Abhin Shah"
+      ],
+      "first_author": "Alberto Abadie",
+      "first_author_normalized": "alberto abadie",
+      "abstract": "This article introduces a new estimator of average treatment effects under unobserved confounding in modern data-rich environments featuring large numbers of units and outcomes. The proposed estimator is doubly robust, combining outcome imputation, inverse probability weighting, and a novel cross-fitting procedure for matrix completion. We derive finite-sample and asymptotic guarantees, and show that the error of the new estimator converges to a mean-zero Gaussian distribution at a parametric rate. Simulation results demonstrate the relevance of the formal properties of the estimators analyzed in this article.",
+      "arxiv_id": "2402.11652",
+      "arxiv_url": "https://arxiv.org/abs/2402.11652",
+      "gold_labels_first_authors": [
+        "Alberto Abadie"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "alberto abadie"
+      ],
+      "figure_1_path": "data/gold_figures/original_5_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    }
+  ],
+  "count": 5,
+  "source_folder_id": "1xDDOPz_AH55ONpjQRgC__IWjgWtbw08O",
+  "generated_at": "2026-05-03T14:18:45.073957",
+  "figure_extraction_date": "2026-05-19T18:11:40.829931",
+  "keyword_detection_date": "2026-05-19T18:19:49.467007",
+  "keyword": "Bayesian"
+}

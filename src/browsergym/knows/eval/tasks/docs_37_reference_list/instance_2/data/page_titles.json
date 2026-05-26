@@ -1,0 +1,17 @@
+{
+  "http://incompleteideas.net/book/RLbook2020.pdf": "RLbook2020.pdf",
+  "https://acl2023-retrieval-lm.github.io/": "ACL 2023 Tutorial: Retrieval-based LMs and Applications",
+  "https://huggingface.co/learn/agents-course/en/unit0/introduction": "Welcome to the 🤗 AI Agents Course · Hugging Face",
+  "https://nlp.seas.harvard.edu/2018/04/03/attention.html": "The Annotated Transformer",
+  "https://jalammar.github.io/illustrated-transformer/": "The Illustrated Transformer - Jay Alammar - Visualizing machine learning one concept at a time.",
+  "http://www.youtube.com/watch?v=x-exzZ-CIUw": "Gemini Robotics: Dexterous skills - YouTube",
+  "http://www.youtube.com/watch?v=ABkv_tJnPi0&t=8": "Wind Up Chattering Teeth - YouTube",
+  "http://www.youtube.com/watch?v=e6xUKhhG9cs": "AI Plays Montezuma's Revenge (Atari 2600) - YouTube",
+  "https://huggingface.co/learn/agents-course/en/unit1/introduction": "Introduction to Agents · Hugging Face",
+  "https://huggingface.co/learn/llm-course/en/chapter1/1": "Introduction · Hugging Face",
+  "https://rlhfbook.com/c/14-reasoning#ref-wang2025ragen": "Reasoning",
+  "https://www.youtube.com/watch?v=PdsKNtEofFY": "Luke Zettlemoyer - Mixed-modal Language Modeling - YouTube",
+  "http://www.youtube.com/watch?v=8L8LiQ-cIWA&t=660": "Let's Play NetHack! Part 1: A Tourist Enters the Dungeon - YouTube",
+  "https://web.stanford.edu/~jurafsky/slp3/": "Speech and Language Processing",
+  "https://huggingface.co/spaces/lerobot/robot-learning-tutorial": "Robot Learning: A Tutorial - a Hugging Face Space by lerobot"
+}

@@ -1,0 +1,54 @@
+[
+  {
+    "name": "Welcome to the 🤗 AI Agents Course · Hugging Face",
+    "url": "https://huggingface.co/learn/agents-course/en/unit0/introduction",
+    "list_type": "Tutorials",
+    "lecture": "Course Overview & Introduction to Agents",
+    "slides": [15]
+  },
+  {
+    "name": "Introduction to Agents · Hugging Face",
+    "url": "https://huggingface.co/learn/agents-course/en/unit1/introduction",
+    "list_type": "Tutorials",
+    "lecture": "Course Overview & Introduction to Agents",
+    "slides": [124]
+  },
+  {
+    "name": "Introduction · Hugging Face",
+    "url": "https://huggingface.co/learn/llm-course/en/chapter1/1",
+    "list_type": "Tutorials",
+    "lecture": "LLM Review",
+    "slides": [3, 101]
+  },
+  {
+    "name": "The Illustrated Transformer – Jay Alammar – Visualizing machine learning one concept at a time.",
+    "url": "https://jalammar.github.io/illustrated-transformer/",
+    "list_type": "Tutorials",
+    "lecture": "LLM Review",
+    "slides": [
+      18, 19, 20, 21, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37,
+      38, 39, 40, 41, 42, 43, 44, 46, 47, 50, 51, 54, 55, 56, 57, 58
+    ]
+  },
+  {
+    "name": "The Annotated Transformer",
+    "url": "https://nlp.seas.harvard.edu/2018/04/03/attention.html",
+    "list_type": "Tutorials",
+    "lecture": "LLM Review",
+    "slides": [3, 16, 101]
+  },
+  {
+    "name": "ACL 2023 Tutorial: Retrieval-based LMs and Applications",
+    "url": "https://acl2023-retrieval-lm.github.io/",
+    "list_type": "Tutorials",
+    "lecture": "RAG & Memory",
+    "slides": [29, 33, 35]
+  },
+  {
+    "name": "Robot Learning: A Tutorial - a Hugging Face Space by lerobot",
+    "url": "https://huggingface.co/spaces/lerobot/robot-learning-tutorial",
+    "list_type": "Tutorials",
+    "lecture": "Robotics",
+    "slides": [20, 21, 41]
+  }
+]

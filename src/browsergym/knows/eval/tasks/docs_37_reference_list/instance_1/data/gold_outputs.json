@@ -1,0 +1,4312 @@
+[
+  {
+    "name": "Language Models: A Guide for the Perplexed",
+    "url": "https://arxiv.org/abs/2311.17301",
+    "list_type": "Academic Articles",
+    "lecture": "8/19: Course Overview & Logistics",
+    "slides": [6, 7],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "The TESCREAL bundle: Eugenics and the promise of utopia through artificial general intelligence | First Monday",
+    "url": "https://firstmonday.org/ojs/index.php/fm/article/view/13636",
+    "list_type": "Academic Articles",
+    "lecture": "8/19: Course Overview & Logistics",
+    "slides": [8],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Natural Language Processing RELIES on Linguistics",
+    "url": "https://arxiv.org/abs/2405.05966",
+    "list_type": "Academic Articles",
+    "lecture": "8/19: Course Overview & Logistics",
+    "slides": [11, 12, 37, 38],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Tokenization as the Initial Phase in NLP",
+    "url": "https://aclanthology.org/C92-4173/",
+    "list_type": "Academic Articles",
+    "lecture": "8/19: Course Overview & Logistics",
+    "slides": [17],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "ACL Is Not an AI Conference",
+    "url": "https://faculty.washington.edu/ebender/papers/ACL_2024_Presidential_Address.pdf",
+    "list_type": "Academic Articles",
+    "lecture": "8/19: Course Overview & Logistics",
+    "slides": [9],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Artificial Intelligence — The Revolution Hasn’t Happened Yet | by Michael Jordan | Medium",
+    "url": "https://medium.com/@mijordan3/artificial-intelligence-the-revolution-hasnt-happened-yet-5e1d5812e1e7",
+    "list_type": "Blogs",
+    "lecture": "8/19: Course Overview & Logistics",
+    "slides": [8],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "ACL is not an AI Conference (?)",
+    "url": "https://gist.github.com/yoavg/f952b7a6cafd2024f44c8bc444a64315",
+    "list_type": "Blogs",
+    "lecture": "8/19: Course Overview & Logistics",
+    "slides": [9, 10, 12],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "The Ultimate Guide to Word Embeddings",
+    "url": "https://neptune.ai/blog/word-embeddings-guide",
+    "list_type": "Blogs",
+    "lecture": "8/19: Course Overview & Logistics",
+    "slides": [19],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Neural Networks, Manifolds, and Topology -- colah's blog",
+    "url": "https://colah.github.io/posts/2014-03-NN-Manifolds-Topology/",
+    "list_type": "Blogs",
+    "lecture": "8/19: Course Overview & Logistics",
+    "slides": [25],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "RLHF: Reinforcement Learning from Human Feedback",
+    "url": "https://huyenchip.com/2023/05/02/rlhf.html",
+    "list_type": "Blogs",
+    "lecture": "8/19: Course Overview & Logistics",
+    "slides": [32, 33],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Learning from Tay’s introduction",
+    "url": "https://blogs.microsoft.com/blog/2016/03/25/learning-tays-introduction/",
+    "list_type": "Blogs",
+    "lecture": "8/19: Course Overview & Logistics",
+    "slides": [33],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Language Processing Pipelines · spaCy Usage Documentation",
+    "url": "https://spacy.io/usage/processing-pipelines",
+    "list_type": "Tutorials",
+    "lecture": "8/19: Course Overview & Logistics",
+    "slides": [36],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Ryan Cotterell’s Slides on Introduction to Natural Language Processing",
+    "url": "https://drive.google.com/file/d/1rRr3BO3Hr3AVfMcHhZVnBgvWVL8UiAdH/view",
+    "list_type": "Presentations",
+    "lecture": "8/19: Course Overview & Logistics",
+    "slides": [6],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Tokenization as the Initial Phase in NLP",
+    "url": "https://aclanthology.org/C92-4173/",
+    "list_type": "Academic Articles",
+    "lecture": "8/21: Machine learning foundations: Logistic regression",
+    "slides": [19],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Embeddings in Speech and Language Processing (3rd ed. draft)",
+    "url": "https://web.stanford.edu/~jurafsky/slp3/5.pdf",
+    "list_type": "Textbooks",
+    "lecture": "8/21: Machine learning foundations: Logistic regression",
+    "slides": [31, 40],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Tokenization as the Initial Phase in NLP",
+    "url": "https://aclanthology.org/C92-4173/",
+    "list_type": "Academic Articles",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [10, 19],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Superbizarre Is Not Superb: Derivational Morphology Improves BERT’s Interpretation of Complex Words",
+    "url": "https://aclanthology.org/2021.acl-long.279/",
+    "list_type": "Academic Articles",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [13],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Robust Open-Vocabulary Translation from Visual Text Representations",
+    "url": "https://aclanthology.org/2021.emnlp-main.576/",
+    "list_type": "Academic Articles",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [14],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "GPT-NeoX-20B: An Open-Source Autoregressive Language Model",
+    "url": "https://arxiv.org/abs/2204.06745",
+    "list_type": "Academic Articles",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [15],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Between words and characters: A Brief History of Open-Vocabulary Modeling and Tokenization in NLP",
+    "url": "https://arxiv.org/abs/2112.10508",
+    "list_type": "Academic Articles",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [22, 23, 27],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Neural Machine Translation of Rare Words with Subword Units",
+    "url": "https://aclanthology.org/P16-1162/",
+    "list_type": "Academic Articles",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [26, 27, 33, 34],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Investigating the Effectiveness of BPE: The Power of Shorter Sequences",
+    "url": "https://aclanthology.org/D19-1141/",
+    "list_type": "Academic Articles",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [26, 27, 33, 34],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Byte Pair Encoding is Suboptimal for Language Model Pretraining",
+    "url": "https://aclanthology.org/2020.findings-emnlp.414/",
+    "list_type": "Academic Articles",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [33],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "A new algorithm for data compression",
+    "url": "https://dl.acm.org/doi/10.5555/177910.177914",
+    "list_type": "Academic Articles",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [26, 27, 33, 34],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Words and Tokens in Speech and Language Processing (3rd ed. draft)",
+    "url": "https://web.stanford.edu/~jurafsky/slp3/2.pdf",
+    "list_type": "Textbooks",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [21, 26, 27, 28, 29, 30, 31, 32, 33, 34],
+    "num_slides": 10,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Integer tokenization is insane",
+    "url": "https://www.beren.io/2023-02-04-Integer-tokenization-is-insane/",
+    "list_type": "Blogs",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [36],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "SolidGoldMagikarp (plus, prompt generation)",
+    "url": "https://www.lesswrong.com/posts/aPeJE8bSo6rAFoLqg/solidgoldmagikarp-plus-prompt-generation",
+    "list_type": "Blogs",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [36],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Pre-tokenizers",
+    "url": "https://github.com/huggingface/tokenizers/tree/main/tokenizers/src/pre_tokenizers",
+    "list_type": "Code Implementations",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [23],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Tokenizers",
+    "url": "https://colab.research.google.com/drive/1d7ZbQvjmVE-OGNtjOPTLp3HyUFeoSzqk?usp=sharing",
+    "list_type": "Code Implementations",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [35],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Huggingface Tokenizers",
+    "url": "https://github.com/huggingface/tokenizers",
+    "list_type": "Code Implementations",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [35],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Tokenizer training",
+    "url": "https://github.com/huggingface/notebooks/blob/main/examples/tokenizer_training.ipynb",
+    "list_type": "Code Implementations",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [35],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Tiktoken",
+    "url": "https://github.com/openai/tiktoken",
+    "list_type": "Code Implementations",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [35],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "MinBPE",
+    "url": "https://github.com/karpathy/minbpe/tree/master",
+    "list_type": "Code Implementations",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [35],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "F-score",
+    "url": "https://en.wikipedia.org/wiki/F-score",
+    "list_type": "Wikipedia",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [7],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "'Let's build the GPT Tokenizer' by Andrej Karpathy",
+    "url": "https://youtu.be/zduSFxRajkE?feature=shared",
+    "list_type": "Tutorials",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [16, 36],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Byte-Pair Encoding tokenization",
+    "url": "https://huggingface.co/learn/llm-course/en/chapter6/5",
+    "list_type": "Tutorials",
+    "lecture": "8/26: Tokenizer; Morphology",
+    "slides": [35],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Between words and characters: A Brief History of Open-Vocabulary Modeling and Tokenization in NLP",
+    "url": "https://arxiv.org/abs/2112.10508",
+    "list_type": "Academic Articles",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [5],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Japanese and Korean voice search",
+    "url": "https://ieeexplore.ieee.org/document/6289079/",
+    "list_type": "Academic Articles",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [6],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Subword Regularization: Improving Neural Network Translation Models with Multiple Subword Candidates",
+    "url": "https://aclanthology.org/P18-1007/",
+    "list_type": "Academic Articles",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [6],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "SentencePiece: A simple and language independent subword tokenizer and detokenizer for Neural Text Processing",
+    "url": "https://aclanthology.org/D18-2012/",
+    "list_type": "Academic Articles",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [6],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Deep Unordered Composition Rivals Syntactic Methods for Text Classification",
+    "url": "https://aclanthology.org/P15-1162/",
+    "list_type": "Academic Articles",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [25],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Embeddings in Speech and Language Processing (3rd ed. draft)",
+    "url": "https://web.stanford.edu/~jurafsky/slp3/5.pdf",
+    "list_type": "Textbooks",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [16, 28],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Neural Networks, Manifolds, and Topology -- colah's blog",
+    "url": "https://colah.github.io/posts/2014-03-NN-Manifolds-Topology/",
+    "list_type": "Blogs",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [11, 12, 14],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Integer tokenization is insane",
+    "url": "https://www.beren.io/2023-02-04-Integer-tokenization-is-insane/",
+    "list_type": "Blogs",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [3],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "SolidGoldMagikarp (plus, prompt generation)",
+    "url": "https://www.lesswrong.com/posts/aPeJE8bSo6rAFoLqg/solidgoldmagikarp-plus-prompt-generation",
+    "list_type": "Blogs",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [3],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Tokenizers",
+    "url": "https://colab.research.google.com/drive/1d7ZbQvjmVE-OGNtjOPTLp3HyUFeoSzqk?usp=sharing",
+    "list_type": "Code Implementations",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [2],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Huggingface Tokenizers",
+    "url": "https://github.com/huggingface/tokenizers",
+    "list_type": "Code Implementations",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [2],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Tokenizer training",
+    "url": "https://github.com/huggingface/notebooks/blob/main/examples/tokenizer_training.ipynb",
+    "list_type": "Code Implementations",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [2],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Tiktoken",
+    "url": "https://github.com/openai/tiktoken",
+    "list_type": "Code Implementations",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [2],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "MinBPE",
+    "url": "https://github.com/karpathy/minbpe/tree/master",
+    "list_type": "Code Implementations",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [2],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "'Let's build the GPT Tokenizer' by Andrej Karpathy",
+    "url": "https://youtu.be/zduSFxRajkE?feature=shared",
+    "list_type": "Tutorials",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [3],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "WordPiece tokenization",
+    "url": "https://huggingface.co/learn/llm-course/en/chapter6/6",
+    "list_type": "Tutorials",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [6],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Unigram tokenization",
+    "url": "https://huggingface.co/learn/nlp-course/en/chapter6/7?fw=pt",
+    "list_type": "Tutorials",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [6],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Byte-Pair Encoding tokenization",
+    "url": "https://huggingface.co/learn/llm-course/en/chapter6/5",
+    "list_type": "Tutorials",
+    "lecture": "8/28: Neural networks foundations: Feedforward neural networks/Neural Classification",
+    "slides": [2],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Adam: A Method for Stochastic Optimization",
+    "url": "https://arxiv.org/abs/1412.6980",
+    "list_type": "Academic Articles",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [8],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Understanding the difficulty of training deep feedforward neural networks",
+    "url": "https://proceedings.mlr.press/v9/glorot10a.html",
+    "list_type": "Academic Articles",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [9],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "The principle of contrast: A constraint on language acquisition",
+    "url": "https://faculty.wcas.northwestern.edu/robvoigt/courses/2023_spring/ling334/readings/Clark1987contrast.pdf",
+    "list_type": "Academic Articles",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [19],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Description of Language Design",
+    "url": "https://pubs.aip.org/asa/jasa/article-abstract/22/6/701/646374/Description-of-Language-Design?redirectedFrom=fulltext",
+    "list_type": "Academic Articles",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [26],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Distributional Structure",
+    "url": "https://link.springer.com/chapter/10.1007/978-94-017-6059-1_36",
+    "list_type": "Academic Articles",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [26],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "A Synopsis of Linguistic Theory",
+    "url": "https://cs.brown.edu/courses/csci2952d/readings/lecture1-firth.pdf",
+    "list_type": "Academic Articles",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [26],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Modal Sense Classification At Large: Paraphrase-Driven Sense Projection, Semantically Enriched Classification Models and Cross-Genre Evaluations",
+    "url": "https://aclanthology.org/2016.lilt-14.3/",
+    "list_type": "Academic Articles",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [28],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Efficient Estimation of Word Representations in Vector Space",
+    "url": "https://arxiv.org/abs/1301.3781",
+    "list_type": "Academic Articles",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [30],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Distributed Representations of Words and Phrases and their Compositionality",
+    "url": "https://arxiv.org/abs/1310.4546",
+    "list_type": "Academic Articles",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [30],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Enriching Word Vectors with Subword Information",
+    "url": "https://aclanthology.org/Q17-1010/",
+    "list_type": "Academic Articles",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [41],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "GloVe: Global Vectors for Word Representation",
+    "url": "https://aclanthology.org/D14-1162/",
+    "list_type": "Academic Articles",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [41],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Neural Networks in Speech and Language Processing (3rd ed. draft)",
+    "url": "https://web.stanford.edu/~jurafsky/slp3/6.pdf",
+    "list_type": "Textbooks",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [1],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Optimization for Training Deep Models",
+    "url": "https://www.deeplearningbook.org/contents/optimization.html",
+    "list_type": "Textbooks",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [5, 8, 9],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "What is gradient descent?",
+    "url": "https://www.ibm.com/think/topics/gradient-descent",
+    "list_type": "Blogs",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [7],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Calculating the derivative of Tanh",
+    "url": "http://ronny.rest/blog/post_2017_08_16_tanh/",
+    "list_type": "Blogs",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [9],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Underfitting vs. Overfitting",
+    "url": "https://scikit-learn.org/stable/auto_examples/model_selection/plot_underfitting_overfitting.html",
+    "list_type": "Blogs",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [10],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "word2vec",
+    "url": "https://code.google.com/archive/p/word2vec/",
+    "list_type": "Blogs",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [30],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Gensim",
+    "url": "https://radimrehurek.com/gensim/",
+    "list_type": "Blogs",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [40],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Understanding and Creating Word Embeddings Notebook",
+    "url": "https://nbviewer.org/github/programminghistorian/jekyll/blob/gh-pages/assets/understanding-creating-word-embeddings/understanding-creating-word-embeddings.ipynb",
+    "list_type": "Code Implementations",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [40],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Understanding and Creating Word Embeddings",
+    "url": "https://programminghistorian.org/en/lessons/understanding-creating-word-embeddings",
+    "list_type": "Tutorials",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [40],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Word representations",
+    "url": "https://fasttext.cc/docs/en/unsupervised-tutorial.html",
+    "list_type": "Tutorials",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [41],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "List of text corpora",
+    "url": "https://en.wikipedia.org/wiki/List_of_text_corpora",
+    "list_type": "Wikipedia",
+    "lecture": "9/4: Vector Semantics and Embeddings/Word embeddings; Lexical semantics",
+    "slides": [36, 37],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Deep Unordered Composition Rivals Syntactic Methods for Text Classification",
+    "url": "https://aclanthology.org/P15-1162/",
+    "list_type": "Academic Articles",
+    "lecture": "9/9: FFNNs with embeddings; Pytorch tutorial/Neural Classification with Word Embeddings; Pytorch",
+    "slides": [7],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Modal Sense Classification At Large: Paraphrase-Driven Sense Projection, Semantically Enriched Classification Models and Cross-Genre Evaluations",
+    "url": "https://aclanthology.org/2016.lilt-14.3/",
+    "list_type": "Academic Articles",
+    "lecture": "9/9: FFNNs with embeddings; Pytorch tutorial/Neural Classification with Word Embeddings; Pytorch",
+    "slides": [10],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Visualizing and Understanding Neural Models in NLP",
+    "url": "https://aclanthology.org/N16-1082/",
+    "list_type": "Academic Articles",
+    "lecture": "9/9: FFNNs with embeddings; Pytorch tutorial/Neural Classification with Word Embeddings; Pytorch",
+    "slides": [16],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "The (too Many) Problems of Analogical Reasoning with Word Vectors",
+    "url": "https://aclanthology.org/S17-1017/",
+    "list_type": "Academic Articles",
+    "lecture": "9/9: FFNNs with embeddings; Pytorch tutorial/Neural Classification with Word Embeddings; Pytorch",
+    "slides": [17],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Lipstick on a Pig: Debiasing Methods Cover up Systematic Gender Biases in Word Embeddings But do not Remove Them",
+    "url": "https://aclanthology.org/N19-1061/",
+    "list_type": "Academic Articles",
+    "lecture": "9/9: FFNNs with embeddings; Pytorch tutorial/Neural Classification with Word Embeddings; Pytorch",
+    "slides": [18],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Language (Technology) is Power: A Critical Survey of “Bias” in NLP",
+    "url": "https://aclanthology.org/2020.acl-main.485/",
+    "list_type": "Academic Articles",
+    "lecture": "9/9: FFNNs with embeddings; Pytorch tutorial/Neural Classification with Word Embeddings; Pytorch",
+    "slides": [18],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Man is to Computer Programmer as Woman is to Homemaker? Debiasing Word Embeddings",
+    "url": "https://arxiv.org/abs/1607.06520",
+    "list_type": "Academic Articles",
+    "lecture": "9/9: FFNNs with embeddings; Pytorch tutorial/Neural Classification with Word Embeddings; Pytorch",
+    "slides": [18],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Mitigating Gender Bias Amplification in Distribution by Posterior Regularization",
+    "url": "https://aclanthology.org/2020.acl-main.264/",
+    "list_type": "Academic Articles",
+    "lecture": "9/9: FFNNs with embeddings; Pytorch tutorial/Neural Classification with Word Embeddings; Pytorch",
+    "slides": [18],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Sense Embeddings are also Biased - Evaluating Social Biases in Static and Contextualised Sense Embeddings",
+    "url": "https://aclanthology.org/2022.acl-long.135/",
+    "list_type": "Academic Articles",
+    "lecture": "9/9: FFNNs with embeddings; Pytorch tutorial/Neural Classification with Word Embeddings; Pytorch",
+    "slides": [18],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Optimization for Training DeepModels",
+    "url": "https://www.deeplearningbook.org/contents/optimization.html",
+    "list_type": "Textbooks",
+    "lecture": "9/9: FFNNs with embeddings; Pytorch tutorial/Neural Classification with Word Embeddings; Pytorch",
+    "slides": [3],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Neural Networks in Speech and Language Processing (3rd ed. draft)",
+    "url": "https://web.stanford.edu/~jurafsky/slp3/6.pdf",
+    "list_type": "Textbooks",
+    "lecture": "9/9: FFNNs with embeddings; Pytorch tutorial/Neural Classification with Word Embeddings; Pytorch",
+    "slides": [1],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Understanding LSTM Networks - colah’s blog",
+    "url": "https://colah.github.io/posts/2015-08-Understanding-LSTMs/",
+    "list_type": "Blogs",
+    "lecture": "9/9: FFNNs with embeddings; Pytorch tutorial/Neural Classification with Word Embeddings; Pytorch",
+    "slides": [13],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "How to Use t-SNE Effectively",
+    "url": "https://distill.pub/2016/misread-tsne/",
+    "list_type": "Blogs",
+    "lecture": "9/9: FFNNs with embeddings; Pytorch tutorial/Neural Classification with Word Embeddings; Pytorch",
+    "slides": [16],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "PyTorch Tutorial",
+    "url": "https://colab.research.google.com/drive/1t0vREvRPZY4SELgfVqElJN7QXqwjT1Su?usp=sharing",
+    "list_type": "Tutorials",
+    "lecture": "9/9: FFNNs with embeddings; Pytorch tutorial/Neural Classification with Word Embeddings; Pytorch",
+    "slides": [19],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Deep Unordered Composition Rivals Syntactic Methods for Text Classification",
+    "url": "https://aclanthology.org/P15-1162/",
+    "list_type": "Academic Articles",
+    "lecture": "9/11: Language Modeling/N-gram & neural language models",
+    "slides": [6],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "What is gradient descent?",
+    "url": "https://www.ibm.com/think/topics/gradient-descent",
+    "list_type": "Blogs",
+    "lecture": "9/11: Language Modeling/N-gram & neural language models",
+    "slides": [9],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Some remarks on Large Language Models by Yoav Goldberg",
+    "url": "https://gist.github.com/yoavg/59d174608e92e845c8994ac2e234c8a9",
+    "list_type": "Blogs",
+    "lecture": "9/11: Language Modeling/N-gram & neural language models",
+    "slides": [15],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Ngram Viewer",
+    "url": "https://books.google.com/ngrams/",
+    "list_type": "Blogs",
+    "lecture": "9/11: Language Modeling/N-gram & neural language models",
+    "slides": [17],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Understanding LSTM Networks - colah’s blog",
+    "url": "https://colah.github.io/posts/2015-08-Understanding-LSTMs/",
+    "list_type": "Blogs",
+    "lecture": "9/11: Language Modeling/N-gram & neural language models",
+    "slides": [33],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "How to generate text: using different decoding methods for language generation with Transformers",
+    "url": "https://huggingface.co/blog/how-to-generate",
+    "list_type": "Blogs",
+    "lecture": "9/11: Language Modeling/N-gram & neural language models",
+    "slides": [35],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Scheduled Sampling for Sequence Prediction with Recurrent Neural Networks",
+    "url": "https://arxiv.org/abs/1506.03099",
+    "list_type": "Academic Articles",
+    "lecture": "9/16: Machine Translation: Seq2Seq/(Neural) Machine Translation",
+    "slides": [9],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Sequence to Sequence Learning with Neural Networks",
+    "url": "https://arxiv.org/abs/1409.3215",
+    "list_type": "Academic Articles",
+    "lecture": "9/16: Machine Translation: Seq2Seq/(Neural) Machine Translation",
+    "slides": [24],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Grammar as a Foreign Language",
+    "url": "https://arxiv.org/abs/1412.7449",
+    "list_type": "Academic Articles",
+    "lecture": "9/16: Machine Translation: Seq2Seq/(Neural) Machine Translation",
+    "slides": [25],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Natural Language Processing by Jacob Eisenstein",
+    "url": "https://github.com/jacobeisenstein/gt-nlp-class/blob/master/notes/eisenstein-nlp-notes.pdf",
+    "list_type": "Textbooks",
+    "lecture": "9/16: Machine Translation: Seq2Seq/(Neural) Machine Translation",
+    "slides": [15, 17, 18],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Visualizing A Neural Machine Translation Model (Mechanics of Seq2seq Models With Attention)",
+    "url": "https://jalammar.github.io/visualizing-neural-machine-translation-mechanics-of-seq2seq-models-with-attention/",
+    "list_type": "Blogs",
+    "lecture": "9/16: Machine Translation: Seq2Seq/(Neural) Machine Translation",
+    "slides": [21],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Sequence to Sequence Learning with Neural Networks",
+    "url": "https://arxiv.org/abs/1409.3215",
+    "list_type": "Academic Articles",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [3],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Grammar as a Foreign Language",
+    "url": "https://arxiv.org/abs/1412.7449",
+    "list_type": "Academic Articles",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [4],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena",
+    "url": "https://arxiv.org/abs/2306.05685",
+    "list_type": "Academic Articles",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [7],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Bleu: a Method for Automatic Evaluation of Machine Translation",
+    "url": "https://aclanthology.org/P02-1040/",
+    "list_type": "Academic Articles",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [8],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Re-evaluating the Role of Bleu in Machine Translation Research",
+    "url": "https://aclanthology.org/E06-1032/",
+    "list_type": "Academic Articles",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [10],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "An Awkward Disparity between BLEU / RIBES Scores and Human Judgements in Machine Translation",
+    "url": "https://aclanthology.org/W15-5009/",
+    "list_type": "Academic Articles",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [10],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Climbing Mont BLEU: The Strange World of Reachable High-BLEU Translations",
+    "url": "https://aclanthology.org/W16-3414/",
+    "list_type": "Academic Articles",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [10],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Tangled up in BLEU: Reevaluating the Evaluation of Automatic Machine Translation Evaluation Metrics",
+    "url": "https://aclanthology.org/2020.acl-main.448/",
+    "list_type": "Academic Articles",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [10],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "BLEURT: Learning Robust Metrics for Text Generation",
+    "url": "https://aclanthology.org/2020.acl-main.704/",
+    "list_type": "Academic Articles",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [11],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "The Curious Case of Neural Text Degeneration",
+    "url": "https://arxiv.org/abs/1904.09751",
+    "list_type": "Academic Articles",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [14, 15, 19],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "OpenNMT: Open-Source Toolkit for Neural Machine Translation",
+    "url": "https://aclanthology.org/P17-4012/",
+    "list_type": "Academic Articles",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [14],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Hierarchical Neural Story Generation",
+    "url": "https://aclanthology.org/P18-1082/",
+    "list_type": "Academic Articles",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [18],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Neural Machine Translation by Jointly Learning to Align and Translate",
+    "url": "https://arxiv.org/abs/1409.0473",
+    "list_type": "Academic Articles",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [22, 34],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Natural Language Processing by Jacob Eisenstein",
+    "url": "https://github.com/jacobeisenstein/gt-nlp-class/blob/master/notes/eisenstein-nlp-notes.pdf",
+    "list_type": "Textbooks",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [6, 9],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "12 Critical Flaws of BLEU",
+    "url": "https://kaitchup.substack.com/p/12-critical-flaws-of-bleu-1d790ccbe1b1",
+    "list_type": "Blogs",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [10],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "How to generate text: using different decoding methods for language generation with Transformers",
+    "url": "https://huggingface.co/blog/how-to-generate",
+    "list_type": "Blogs",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [13, 14, 16, 17, 18, 19],
+    "num_slides": 6,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "WMT 2023 Metrics Shared Task",
+    "url": "https://wmt-metrics-task.github.io/",
+    "list_type": "Tutorials",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [11],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Evaluation of Input Attribution; Select-then-Predict; Pairwise Feature Importance - Attention Concepts Slides",
+    "url": "https://docs.google.com/presentation/d/1OGk76ewruqALLp-3ndoFU23XB949DXz-pAcCiePcj9E/edit?slide=id.p#slide=id.p",
+    "list_type": "Presentations",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [34],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Pairwise Feature Importance (Effective Attention)",
+    "url": "https://youtu.be/-1LfKbkN9_E?si=cILd17t6fNRPQPmG",
+    "list_type": "Presentations",
+    "lecture": "9/18: Machine Translation: BLEU, Decoding, Attention",
+    "slides": [34],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Attention Is All You Need",
+    "url": "https://arxiv.org/abs/1706.03762",
+    "list_type": "Academic Articles",
+    "lecture": "9/23: Transformer",
+    "slides": [8, 24, 28],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Revealing the Dark Secrets of BERT",
+    "url": "https://aclanthology.org/D19-1445/",
+    "list_type": "Academic Articles",
+    "lecture": "9/23: Transformer",
+    "slides": [15],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Convolutional Sequence to Sequence Learning",
+    "url": "https://arxiv.org/pdf/1705.03122",
+    "list_type": "Academic Articles",
+    "lecture": "9/23: Transformer",
+    "slides": [24, 28],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Self-Attention with Relative Position Representations",
+    "url": "https://aclanthology.org/N18-2074.pdf",
+    "list_type": "Academic Articles",
+    "lecture": "9/23: Transformer",
+    "slides": [24, 28],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer",
+    "url": "https://arxiv.org/pdf/1910.10683",
+    "list_type": "Academic Articles",
+    "lecture": "9/23: Transformer",
+    "slides": [24, 28],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "RoFormer: Enhanced Transformer With Rotary Position Embedding",
+    "url": "https://arxiv.org/pdf/2104.09864",
+    "list_type": "Academic Articles",
+    "lecture": "9/23: Transformer",
+    "slides": [24, 28],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Train Short, Test Long: Attention With Linear Biases Enables Input Length Extrapolation",
+    "url": "https://openreview.net/pdf?id=R8sQPpGCv0",
+    "list_type": "Academic Articles",
+    "lecture": "9/23: Transformer",
+    "slides": [24, 28],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Position Information in Transformers: An Overview",
+    "url": "https://direct.mit.edu/coli/article/48/3/733/111478/Position-Information-in-Transformers-An-Overview",
+    "list_type": "Academic Articles",
+    "lecture": "9/23: Transformer",
+    "slides": [27],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Layer Normalization",
+    "url": "https://arxiv.org/abs/1607.06450",
+    "list_type": "Academic Articles",
+    "lecture": "9/23: Transformer",
+    "slides": [34],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Deep Unordered Composition Rivals Syntactic Methods for Text Classification",
+    "url": "https://aclanthology.org/P15-1162/",
+    "list_type": "Academic Articles",
+    "lecture": "9/23: Transformer",
+    "slides": [49],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Understanding and Coding Self-Attention, Multi-Head Attention, Causal-Attention, and Cross-Attention in LLMs",
+    "url": "https://magazine.sebastianraschka.com/p/understanding-and-coding-self-attention",
+    "list_type": "Blogs",
+    "lecture": "9/23: Transformer",
+    "slides": [17, 39, 40, 43],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "What is gradient descent?",
+    "url": "https://www.ibm.com/think/topics/gradient-descent",
+    "list_type": "Blogs",
+    "lecture": "9/23: Transformer",
+    "slides": [50],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "The Illustrated Transformer - Jay Alammar",
+    "url": "https://jalammar.github.io/illustrated-transformer/",
+    "list_type": "Blogs",
+    "lecture": "9/23: Transformer",
+    "slides": [9, 10, 11, 14, 16, 18, 19, 20],
+    "num_slides": 8,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "A Gentle Introduction to Positional Encoding in Transformer Models, Part 1",
+    "url": "https://machinelearningmastery.com/a-gentle-introduction-to-positional-encoding-in-transformer-models-part-1/",
+    "list_type": "Tutorials",
+    "lecture": "9/23: Transformer",
+    "slides": [25, 26],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Deep Unordered Composition Rivals Syntactic Methods for Text Classification",
+    "url": "https://aclanthology.org/P15-1162/",
+    "list_type": "Academic Articles",
+    "lecture": "9/25: Pretraining & Finetuning (FT)",
+    "slides": [3],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding",
+    "url": "https://arxiv.org/abs/1810.04805",
+    "list_type": "Academic Articles",
+    "lecture": "9/25: Pretraining & Finetuning (FT)",
+    "slides": [20, 21, 22, 23],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "RoBERTa: A Robustly Optimized BERT Pretraining Approach",
+    "url": "https://arxiv.org/abs/1907.11692",
+    "list_type": "Academic Articles",
+    "lecture": "9/25: Pretraining & Finetuning (FT)",
+    "slides": [20],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "DeBERTaV3: Improving DeBERTa using ELECTRA-Style Pre-Training with Gradient-Disentangled Embedding Sharing",
+    "url": "https://openreview.net/forum?id=sE7-XhLxHA",
+    "list_type": "Academic Articles",
+    "lecture": "9/25: Pretraining & Finetuning (FT)",
+    "slides": [20],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "BERT Rediscovers the Classical NLP Pipeline",
+    "url": "https://aclanthology.org/P19-1452/",
+    "list_type": "Academic Articles",
+    "lecture": "9/25: Pretraining & Finetuning (FT)",
+    "slides": [24],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Scaling Laws for Neural Language Models",
+    "url": "https://arxiv.org/abs/2001.08361",
+    "list_type": "Academic Articles",
+    "lecture": "9/25: Pretraining & Finetuning (FT)",
+    "slides": [26],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Training Compute-Optimal Large Language Models",
+    "url": "https://arxiv.org/abs/2203.15556",
+    "list_type": "Academic Articles",
+    "lecture": "9/25: Pretraining & Finetuning (FT)",
+    "slides": [26],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "The Llama 3 Herd of Models",
+    "url": "https://arxiv.org/abs/2407.21783",
+    "list_type": "Academic Articles",
+    "lecture": "9/25: Pretraining & Finetuning (FT)",
+    "slides": [26],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "What is gradient descent?",
+    "url": "https://www.ibm.com/think/topics/gradient-descent",
+    "list_type": "Blogs",
+    "lecture": "9/25: Pretraining & Finetuning (FT)",
+    "slides": [4],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "How to generate text: using different decoding methods for language generation with Transformers",
+    "url": "https://huggingface.co/blog/how-to-generate",
+    "list_type": "Blogs",
+    "lecture": "9/25: Pretraining & Finetuning (FT)",
+    "slides": [9],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "The Illustrated Transformer - Jay Alammar",
+    "url": "https://jalammar.github.io/illustrated-transformer/",
+    "list_type": "Blogs",
+    "lecture": "9/25: Pretraining & Finetuning (FT)",
+    "slides": [16, 17, 18],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "A Visual Guide to Using BERT for the First Time",
+    "url": "https://jalammar.github.io/a-visual-guide-to-using-bert-for-the-first-time/",
+    "list_type": "Blogs",
+    "lecture": "9/25: Pretraining & Finetuning (FT)",
+    "slides": [19],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "BERT Rediscovers the Classical NLP Pipeline",
+    "url": "https://aclanthology.org/P19-1452/",
+    "list_type": "Academic Articles",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [3],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Scaling Laws for Neural Language Models",
+    "url": "https://arxiv.org/abs/2001.08361",
+    "list_type": "Academic Articles",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [4],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Training Compute-Optimal Large Language Models",
+    "url": "https://arxiv.org/abs/2203.15556",
+    "list_type": "Academic Articles",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [4],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "The Llama 3 Herd of Models",
+    "url": "https://arxiv.org/abs/2407.21783",
+    "list_type": "Academic Articles",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [4],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Description of Language Design",
+    "url": "https://pubs.aip.org/asa/jasa/article-abstract/22/6/701/646374/Description-of-Language-Design?redirectedFrom=fulltext",
+    "list_type": "Academic Articles",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [9],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "A Synopsis of Linguistic Theory",
+    "url": "https://cs.brown.edu/courses/csci2952d/readings/lecture1-firth.pdf",
+    "list_type": "Academic Articles",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [9],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Deep Unordered Composition Rivals Syntactic Methods for Text Classification",
+    "url": "https://aclanthology.org/P15-1162/",
+    "list_type": "Academic Articles",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [15],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Attention Is All You Need",
+    "url": "https://arxiv.org/abs/1706.03762",
+    "list_type": "Academic Articles",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [16],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "OpenNMT: Open-Source Toolkit for Neural Machine Translation",
+    "url": "https://aclanthology.org/P17-4012/",
+    "list_type": "Academic Articles",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [22],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "The Curious Case of Neural Text Degeneration",
+    "url": "https://arxiv.org/abs/1904.09751",
+    "list_type": "Academic Articles",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [22, 26],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Hierarchical Neural Story Generation",
+    "url": "https://aclanthology.org/P18-1082/",
+    "list_type": "Academic Articles",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [25],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Between words and characters: A Brief History of Open-Vocabulary Modeling and Tokenization in NLP",
+    "url": "https://arxiv.org/abs/2112.10508",
+    "list_type": "Academic Articles",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [30, 32],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Neural Machine Translation of Rare Words with Subword Units",
+    "url": "https://aclanthology.org/P16-1162/",
+    "list_type": "Academic Articles",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [31, 32],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Investigating the Effectiveness of BPE: The Power of Shorter Sequences",
+    "url": "https://aclanthology.org/D19-1141/",
+    "list_type": "Academic Articles",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [31, 32],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "A new algorithm for data compression",
+    "url": "https://dl.acm.org/doi/10.5555/177910.177914",
+    "list_type": "Academic Articles",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [31, 32],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Sequence to Sequence Learning with Neural Networks",
+    "url": "https://arxiv.org/abs/1409.3215",
+    "list_type": "Academic Articles",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [47],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena",
+    "url": "https://arxiv.org/abs/2306.05685",
+    "list_type": "Academic Articles",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [48],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Words and Tokens in Speech and Language Processing (3rd ed. draft)",
+    "url": "https://web.stanford.edu/~jurafsky/slp3/2.pdf",
+    "list_type": "Textbooks",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [31, 32],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Understanding and Coding Self-Attention, Multi-Head Attention, Causal-Attention, and Cross-Attention in LLMs",
+    "url": "https://magazine.sebastianraschka.com/p/understanding-and-coding-self-attention",
+    "list_type": "Blogs",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [17, 18, 19, 20],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "How to generate text: using different decoding methods for language generation with Transformers",
+    "url": "https://huggingface.co/blog/how-to-generate",
+    "list_type": "Blogs",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [21, 22, 23, 24, 25, 26],
+    "num_slides": 6,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "What is gradient descent?",
+    "url": "https://www.ibm.com/think/topics/gradient-descent",
+    "list_type": "Blogs",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [27],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "A Visual Guide to Using BERT for the First Time",
+    "url": "https://jalammar.github.io/a-visual-guide-to-using-bert-for-the-first-time/",
+    "list_type": "Blogs",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [37],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Visualizing A Neural Machine Translation Model (Mechanics of Seq2seq Models With Attention)",
+    "url": "https://jalammar.github.io/visualizing-neural-machine-translation-mechanics-of-seq2seq-models-with-attention/",
+    "list_type": "Blogs",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [46],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Underfitting vs. Overfitting",
+    "url": "https://scikit-learn.org/stable/auto_examples/model_selection/plot_underfitting_overfitting.html",
+    "list_type": "Blogs",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [49],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Pre-tokenizers",
+    "url": "https://github.com/huggingface/tokenizers/tree/main/tokenizers/src/pre_tokenizers",
+    "list_type": "Code Implementations",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [30],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Finetuning pretrained models demo",
+    "url": "https://colab.research.google.com/drive/1ieC5zTGZkt5a0HQ9s1crynareB4MotMh?usp=sharing#scrollTo=8ad58635-d184-47b7-877b-0010eff1db47",
+    "list_type": "Tutorials",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [5],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "F-score",
+    "url": "https://en.wikipedia.org/wiki/F-score",
+    "list_type": "Wikipedia",
+    "lecture": "9/30: Midterm Overview / Wrapping PT/FT; Midterm Overview",
+    "slides": [40],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "The Curious Case of Neural Text Degeneration",
+    "url": "https://arxiv.org/abs/1904.09751",
+    "list_type": "Academic Articles",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [14],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Language Models are Few-Shot Learners",
+    "url": "https://arxiv.org/abs/2005.14165",
+    "list_type": "Academic Articles",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [18, 29],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "The Prompt Report: A Systematic Survey of Prompt Engineering Techniques",
+    "url": "https://arxiv.org/abs/2406.06608",
+    "list_type": "Academic Articles",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [18, 20, 29],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "CONDAQA: A Contrastive Reading Comprehension Dataset for Reasoning about Negation",
+    "url": "https://arxiv.org/abs/2211.00295",
+    "list_type": "Academic Articles",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [21, 24],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Chain-of-Thought Prompting Elicits Reasoning in Large Language Models",
+    "url": "https://arxiv.org/abs/2201.11903",
+    "list_type": "Academic Articles",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [28],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Scaling Instruction-Finetuned Language Models",
+    "url": "https://arxiv.org/abs/2210.11416",
+    "list_type": "Academic Articles",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [32, 33],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Calibrate Before Use: Improving Few-Shot Performance of Language Models",
+    "url": "https://arxiv.org/abs/2102.09690",
+    "list_type": "Academic Articles",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [42, 43],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Rethinking the Role of Demonstrations: What Makes In-Context Learning Work?",
+    "url": "https://arxiv.org/abs/2202.12837",
+    "list_type": "Academic Articles",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [44, 45],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Do Prompt-Based Models Really Understand the Meaning of their Prompts?",
+    "url": "https://arxiv.org/abs/2109.01247",
+    "list_type": "Academic Articles",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [46],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Ground-Truth Labels Matter: A Deeper Look into Input-Label Demonstrations",
+    "url": "https://arxiv.org/abs/2205.12685",
+    "list_type": "Academic Articles",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [46],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Robustness of Demonstration-based Learning Under Limited Data Scenario",
+    "url": "https://arxiv.org/abs/2210.10693",
+    "list_type": "Academic Articles",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [46],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "True Few-Shot Learning with Language Models",
+    "url": "https://arxiv.org/abs/2105.11447",
+    "list_type": "Academic Articles",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [47],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "FLEX: Unifying Evaluation for Few-Shot NLP",
+    "url": "https://arxiv.org/abs/2107.07170",
+    "list_type": "Academic Articles",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [47],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "How to generate text: using different decoding methods for language generation with Transformers",
+    "url": "https://huggingface.co/blog/how-to-generate",
+    "list_type": "Blogs",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [13, 14],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "RLHF: Reinforcement Learning from Human Feedback",
+    "url": "https://huyenchip.com/2023/05/02/rlhf.html",
+    "list_type": "Blogs",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [30, 31],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "The LLM Evaluation guidebook",
+    "url": "https://github.com/huggingface/evaluation-guidebook",
+    "list_type": "Blogs",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [35, 36, 37, 38, 39],
+    "num_slides": 5,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "How does in-context learning work? A framework for understanding the differences from traditional supervised learning",
+    "url": "http://ai.stanford.edu/blog/understanding-incontext/",
+    "list_type": "Blogs",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [46],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Prompting-Demos",
+    "url": "https://colab.research.google.com/drive/14RyRwgkYg_tx5C7WGqS_gi_BqR4FjvI2?usp=sharing",
+    "list_type": "Code Implementations",
+    "lecture": "10/14: Prompting; In-context learning; Chain of Thoughts; Instruction FT",
+    "slides": [23, 26],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "GPT-4 Technical Report",
+    "url": "https://arxiv.org/pdf/2303.08774",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [4, 5, 24, 48, 53],
+    "num_slides": 5,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Training language models to follow instructions with human feedback",
+    "url": "https://arxiv.org/pdf/2203.02155",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [12, 15, 30, 33, 40],
+    "num_slides": 5,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Language Models are Few-Shot Learners",
+    "url": "https://splab.sdu.edu.cn/GPT3.pdf",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [12],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Learning to summarize from human feedback",
+    "url": "https://arxiv.org/abs/2009.01325",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [12, 13, 17, 18, 30, 31, 46, 53],
+    "num_slides": 8,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Deep Reinforcement Learning from Human Preferences",
+    "url": "https://arxiv.org/pdf/1706.03741",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [13],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Improving alignment of dialogue agents via targeted human judgements",
+    "url": "https://arxiv.org/pdf/2209.14375",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [21, 22, 23, 25, 39, 42, 53],
+    "num_slides": 7,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Proximal Policy Optimization Algorithms",
+    "url": "https://arxiv.org/pdf/1707.06347",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [30],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model",
+    "url": "https://arxiv.org/pdf/2305.18290",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [34, 35, 36, 53],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Controllable Preference Optimization: Toward Controllable Multi-Objective Alignment",
+    "url": "https://arxiv.org/pdf/2402.19085",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [36, 53],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Red Teaming Language Models with Language Models",
+    "url": "https://arxiv.org/pdf/2202.03286",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [41, 53],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Red Teaming Language Models to Reduce Harms: Methods, Scaling Behaviors, and Lessons Learned",
+    "url": "https://arxiv.org/pdf/2209.07858",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [41],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Constitutional AI: Harmlessness from AI Feedback",
+    "url": "https://arxiv.org/pdf/2212.08073",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [43, 44, 53],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Safe RLHF: Safe Reinforcement Learning from Human Feedback",
+    "url": "https://openreview.net/forum?id=TyFrPOKYXw",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [45, 53],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Fine-Tuning Language Models from Human Preferences",
+    "url": "https://arxiv.org/pdf/1909.08593",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [46, 53],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "What are human values, and how do we align AI to them?",
+    "url": "https://arxiv.org/pdf/2404.10636",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [46, 47, 53],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "The Llama 3 Herd of Models",
+    "url": "https://arxiv.org/abs/2407.21783",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Llama 2: Open Foundation and Fine-Tuned Chat Models",
+    "url": "https://arxiv.org/pdf/2307.09288",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "ORPO: Monolithic Preference Optimization without Reference Model",
+    "url": "https://arxiv.org/pdf/2403.07691",
+    "list_type": "Academic Articles",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Reinforcement Learning: An Introduction",
+    "url": "https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf",
+    "list_type": "Textbooks",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [28],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "RLHF Book by Nathan Lambert",
+    "url": "https://rlhfbook.com/",
+    "list_type": "Textbooks",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "PPO Trainer Documentation",
+    "url": "https://huggingface.co/docs/trl/ppo_trainer",
+    "list_type": "Blogs",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [18, 32],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "LLM Datasets",
+    "url": "https://github.com/mlabonne/llm-datasets",
+    "list_type": "Blogs",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [26, 53],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "LLMDataHub",
+    "url": "https://github.com/Zjh-819/LLMDataHub",
+    "list_type": "Blogs",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [26],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "RLHF: Reinforcement Learning from Human Feedback by Chip Huyen",
+    "url": "https://huyenchip.com/2023/05/02/rlhf.html",
+    "list_type": "Blogs",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [29, 40],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Superalignment Fast Grants",
+    "url": "https://openai.com/index/superalignment-fast-grants/",
+    "list_type": "Blogs",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [49],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "TRL - Transformer Reinforcement Learning",
+    "url": "https://huggingface.co/docs/trl/index",
+    "list_type": "Blogs",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [52, 53],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Direct Preference Optimization's code",
+    "url": "https://github.com/eric-mitchell/direct-preference-optimization/tree/f8b8c0f49dc92a430bae41585f9d467d3618fe2f",
+    "list_type": "Code Implementations",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [37],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "RLHF: Reinforcement Learning from Human Feedback for generative models",
+    "url": "https://colab.research.google.com/drive/1moUm940HH4gFaZspnqty1x8XZmHxlNoh?usp=sharing",
+    "list_type": "Code Implementations",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [52, 53],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "SuperKnowa RLHF Notebooks",
+    "url": "https://github.com/ibm-ecosystem-engineering/SuperKnowa/tree/main/7.%20RLHF%20Model",
+    "list_type": "Code Implementations",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [52, 53],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "HuggingFace: State-of-the-art Parameter-Efficient Fine-Tuning (PEFT) methods",
+    "url": "https://github.com/huggingface/peft",
+    "list_type": "Code Implementations",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "RL4LMs Github Repository (AllenAI)",
+    "url": "https://github.com/allenai/RL4LMs",
+    "list_type": "Code Implementations",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "OpenRLHF",
+    "url": "https://github.com/OpenRLHF/OpenRLHF",
+    "list_type": "Code Implementations",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Aligning ML Models with Human Feedback",
+    "url": "https://github.com/HumanSignal/RLHF/tree/master",
+    "list_type": "Code Implementations",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "RLHF-V: Multimodal Learning via human feedback",
+    "url": "https://github.com/RLHF-V/RLHF-V",
+    "list_type": "Code Implementations",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Anthropic HH Golden Dataset",
+    "url": "https://huggingface.co/datasets/Unified-Language-Model-Alignment/Anthropic_HH_Golden",
+    "list_type": "Code Implementations",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Chatbot Arena Conversations (HuggingFace) Dataset",
+    "url": "https://huggingface.co/datasets/lmsys/chatbot_arena_conversations",
+    "list_type": "Code Implementations",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "No Robots (HuggingFace) Dataset",
+    "url": "https://huggingface.co/datasets/HuggingFaceH4/no_robots",
+    "list_type": "Code Implementations",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "HelpSteer (NVIDIA) Dataset",
+    "url": "https://huggingface.co/datasets/nvidia/HelpSteer",
+    "list_type": "Code Implementations",
+    "lecture": "10/16: Reinforcement Learning from Human Feedback (RLHF)/RLHF: Leveraging Human Feedback to Fine-Tune Generative Models",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Harnessing the Power of LLMs in Practice: A Survey on ChatGPT and Beyond",
+    "url": "https://arxiv.org/abs/2304.13712",
+    "list_type": "Academic Articles",
+    "lecture": "10/21: Transformer types & Practical considerations/Review of transformer architectures & practical considerations",
+    "slides": [7],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "The Prompt Report: A Systematic Survey of Prompt Engineering Techniques",
+    "url": "https://arxiv.org/abs/2406.06608",
+    "list_type": "Academic Articles",
+    "lecture": "10/21: Transformer types & Practical considerations/Review of transformer architectures & practical considerations",
+    "slides": [21, 22],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "RoFormer: Enhanced Transformer with Rotary Position Embedding",
+    "url": "https://arxiv.org/abs/2104.09864",
+    "list_type": "Academic Articles",
+    "lecture": "10/21: Transformer types & Practical considerations/Review of transformer architectures & practical considerations",
+    "slides": [23],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Train Short, Test Long: Attention With Linear Biases Enables Input Length Extrapolation",
+    "url": "https://openreview.net/pdf?id=R8sQPpGCv0",
+    "list_type": "Academic Articles",
+    "lecture": "10/21: Transformer types & Practical considerations/Review of transformer architectures & practical considerations",
+    "slides": [23],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Language Models are Few-Shot Learners",
+    "url": "https://arxiv.org/abs/2005.14165",
+    "list_type": "Academic Articles",
+    "lecture": "10/21: Transformer types & Practical considerations/Review of transformer architectures & practical considerations",
+    "slides": [32],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "RLHF: Reinforcement Learning from Human Feedback by Chip Huyen",
+    "url": "https://huyenchip.com/2023/05/02/rlhf.html",
+    "list_type": "Blogs",
+    "lecture": "10/21: Transformer types & Practical considerations/Review of transformer architectures & practical considerations",
+    "slides": [3, 4, 5],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Evaluating long context large language models",
+    "url": "https://www.artfish.ai/p/long-context-llms",
+    "list_type": "Blogs",
+    "lecture": "10/21: Transformer types & Practical considerations/Review of transformer architectures & practical considerations",
+    "slides": [24, 25],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "OpenAI deprecate models",
+    "url": "https://platform.openai.com/docs/deprecations",
+    "list_type": "Blogs",
+    "lecture": "10/21: Transformer types & Practical considerations/Review of transformer architectures & practical considerations",
+    "slides": [32],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "How your data is used to improve model performance",
+    "url": "https://help.openai.com/en/articles/5722486-how-your-data-is-used-to-improve-model-performance",
+    "list_type": "Blogs",
+    "lecture": "10/21: Transformer types & Practical considerations/Review of transformer architectures & practical considerations",
+    "slides": [32],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Shaping the future of AI from the history of Transformer by Hyung Won Chung",
+    "url": "https://docs.google.com/presentation/d/1u05yQQaw4QXLVYGLI6o3YoFHv6eC3YN8GvWD8JMumpE/edit?usp=sharing",
+    "list_type": "Presentations",
+    "lecture": "10/21: Transformer types & Practical considerations/Review of transformer architectures & practical considerations",
+    "slides": [14, 16],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Stanford CS25: V4 I Jason Wei & Hyung Won Chung of OpenAI",
+    "url": "https://youtu.be/3gb-ZkVRemQ?feature=shared",
+    "list_type": "Presentations",
+    "lecture": "10/21: Transformer types & Practical considerations/Review of transformer architectures & practical considerations",
+    "slides": [15, 16],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Parameter-Efficient Fine-Tuning for Large Models: A Comprehensive Survey",
+    "url": "https://arxiv.org/abs/2403.14608",
+    "list_type": "Academic Articles",
+    "lecture": "10/28: A) Efficiency: Finetuning with (Q)LoRA / Efficiency: (Q)LoRA, Applications: Question Answering / Reading Comprehension",
+    "slides": [6, 8],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "LoRA: Low-Rank Adaptation of Large Language Models",
+    "url": "https://arxiv.org/abs/2106.09685",
+    "list_type": "Academic Articles",
+    "lecture": "10/28: A) Efficiency: Finetuning with (Q)LoRA / Efficiency: (Q)LoRA, Applications: Question Answering / Reading Comprehension",
+    "slides": [8, 9, 12, 13],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Linformer: Self-Attention with Linear Complexity",
+    "url": "https://arxiv.org/pdf/2006.04768",
+    "list_type": "Academic Articles",
+    "lecture": "10/28: A) Efficiency: Finetuning with (Q)LoRA / Efficiency: (Q)LoRA, Applications: Question Answering / Reading Comprehension",
+    "slides": [10],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "QLoRA: Efficient Finetuning of Quantized LLMs",
+    "url": "https://arxiv.org/abs/2305.14314",
+    "list_type": "Academic Articles",
+    "lecture": "10/28: A) Efficiency: Finetuning with (Q)LoRA / Efficiency: (Q)LoRA, Applications: Question Answering / Reading Comprehension",
+    "slides": [15, 16, 17, 18, 19],
+    "num_slides": 5,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Understanding Quantization for LLMs",
+    "url": "https://medium.com/@lmpo/understanding-model-quantization-for-llms-1573490d44ad",
+    "list_type": "Blogs",
+    "lecture": "10/28: A) Efficiency: Finetuning with (Q)LoRA / Efficiency: (Q)LoRA, Applications: Question Answering / Reading Comprehension",
+    "slides": [2],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Making LLMs even more accessible with bitsandbytes, 4-bit quantization and QLoRA",
+    "url": "https://huggingface.co/blog/4bit-transformers-bitsandbytes",
+    "list_type": "Blogs",
+    "lecture": "10/28: A) Efficiency: Finetuning with (Q)LoRA / Efficiency: (Q)LoRA, Applications: Question Answering / Reading Comprehension",
+    "slides": [12],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "QA Dataset Explosion: A Taxonomy of NLP Resources for Question Answering and Reading Comprehension",
+    "url": "https://arxiv.org/abs/2107.12708",
+    "list_type": "Academic Articles",
+    "lecture": "10/28: B) Application: Question Answering landscape / Efficiency: (Q)LoRA, Applications: Question Answering / Reading Comprehension",
+    "slides": [4, 6, 8, 9, 10, 11, 12],
+    "num_slides": 7,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Natural Questions: A Benchmark for Question Answering Research",
+    "url": "https://aclanthology.org/Q19-1026/",
+    "list_type": "Academic Articles",
+    "lecture": "10/28: B) Application: Question Answering landscape / Efficiency: (Q)LoRA, Applications: Question Answering / Reading Comprehension",
+    "slides": [5],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "DROP: A Reading Comprehension Benchmark Requiring Discrete Reasoning Over Paragraphs",
+    "url": "https://aclanthology.org/N19-1246/",
+    "list_type": "Academic Articles",
+    "lecture": "10/28: B) Application: Question Answering landscape / Efficiency: (Q)LoRA, Applications: Question Answering / Reading Comprehension",
+    "slides": [7],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Question Answering is a Format; When is it Useful?",
+    "url": "https://arxiv.org/abs/1909.11291",
+    "list_type": "Academic Articles",
+    "lecture": "10/28: B) Application: Question Answering landscape / Efficiency: (Q)LoRA, Applications: Question Answering / Reading Comprehension",
+    "slides": [8],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "DROP Dataset",
+    "url": "https://huggingface.co/datasets/ucinlp/drop",
+    "list_type": "Blogs",
+    "lecture": "10/28: B) Application: Question Answering landscape / Efficiency: (Q)LoRA, Applications: Question Answering / Reading Comprehension",
+    "slides": [7],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Natural Questions: A Benchmark for Question Answering Research",
+    "url": "https://aclanthology.org/Q19-1026/",
+    "list_type": "Academic Articles",
+    "lecture": "10/30: Dense retrieval; Answer extraction/Application: Dense retrieval; Answer extraction",
+    "slides": [4],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Which BM25 Do You Mean? A Large-Scale Reproducibility Study of Scoring Variants",
+    "url": "https://link.springer.com/content/pdf/10.1007/978-3-030-45442-5_4.pdf",
+    "list_type": "Academic Articles",
+    "lecture": "10/30: Dense retrieval; Answer extraction/Application: Dense retrieval; Answer extraction",
+    "slides": [8],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Relevance-guided Supervision for OpenQA with ColBERT",
+    "url": "https://direct.mit.edu/tacl/article/doi/10.1162/tacl_a_00405/107205/Relevance-guided-Supervision-for-OpenQA-with",
+    "list_type": "Academic Articles",
+    "lecture": "10/30: Dense retrieval; Answer extraction/Application: Dense retrieval; Answer extraction",
+    "slides": [14, 15],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Speech and Language Processing",
+    "url": "https://web.stanford.edu/~jurafsky/slp3/ed3bookaug20_2024.pdf",
+    "list_type": "Textbooks",
+    "lecture": "10/30: Dense retrieval; Answer extraction/Application: Dense retrieval; Answer extraction",
+    "slides": [10, 12, 13, 14, 21, 22],
+    "num_slides": 6,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "How to Build an Open-Domain Question Answering System?",
+    "url": "https://lilianweng.github.io/posts/2020-10-29-odqa/",
+    "list_type": "Blogs",
+    "lecture": "10/30: Dense retrieval; Answer extraction/Application: Dense retrieval; Answer extraction",
+    "slides": [5],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "ANN Benchmarks",
+    "url": "https://ann-benchmarks.com/index.html",
+    "list_type": "Blogs",
+    "lecture": "10/30: Dense retrieval; Answer extraction/Application: Dense retrieval; Answer extraction",
+    "slides": [7],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "FAISS (Facebook AI Similarity Search)",
+    "url": "https://github.com/facebookresearch/faiss",
+    "list_type": "Code Implementations",
+    "lecture": "10/30: Dense retrieval; Answer extraction/Application: Dense retrieval; Answer extraction",
+    "slides": [17],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "ACL 2023 Tutorial: Retrieval-based Language Models and Applications",
+    "url": "https://acl2023-retrieval-lm.github.io/",
+    "list_type": "Tutorials",
+    "lecture": "10/30: Dense retrieval; Answer extraction/Application: Dense retrieval; Answer extraction",
+    "slides": [16, 19],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Fine-grained Hallucination Detection and Editing for Language Models",
+    "url": "https://arxiv.org/abs/2401.06855",
+    "list_type": "Academic Articles",
+    "lecture": "11/4: Retrieval augmented generation (RAG); Extractive Summarization/Application: Retrieval augmented generation (RAG); Extractive Summarization",
+    "slides": [4],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "RoFormer: Enhanced Transformer with Rotary Position Embedding",
+    "url": "https://arxiv.org/abs/2104.09864",
+    "list_type": "Academic Articles",
+    "lecture": "11/4: Retrieval augmented generation (RAG); Extractive Summarization/Application: Retrieval augmented generation (RAG); Extractive Summarization",
+    "slides": [6],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Train Short, Test Long: Attention With Linear Biases Enables Input Length Extrapolation",
+    "url": "https://openreview.net/pdf?id=R8sQPpGCv0",
+    "list_type": "Academic Articles",
+    "lecture": "11/4: Retrieval augmented generation (RAG); Extractive Summarization/Application: Retrieval augmented generation (RAG); Extractive Summarization",
+    "slides": [6],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Lost in the Middle: How Language Models Use Long Contexts",
+    "url": "https://arxiv.org/abs/2307.03172",
+    "list_type": "Academic Articles",
+    "lecture": "11/4: Retrieval augmented generation (RAG); Extractive Summarization/Application: Retrieval augmented generation (RAG); Extractive Summarization",
+    "slides": [7],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Intuitive or Dependent? Investigating LLMs’ Behavior Style to Conflicting Prompts",
+    "url": "https://aclanthology.org/2024.acl-long.232/",
+    "list_type": "Academic Articles",
+    "lecture": "11/4: Retrieval augmented generation (RAG); Extractive Summarization/Application: Retrieval augmented generation (RAG); Extractive Summarization",
+    "slides": [7],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "The use of MMR, diversity-based reranking for reordering documents and producing summaries",
+    "url": "https://dl.acm.org/doi/10.1145/290941.291025",
+    "list_type": "Academic Articles",
+    "lecture": "11/4: Retrieval augmented generation (RAG); Extractive Summarization/Application: Retrieval augmented generation (RAG); Extractive Summarization",
+    "slides": [21],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Centroid-based summarization of multiple documents: sentence extraction, utility-based evaluation, and user studies",
+    "url": "https://aclanthology.org/W00-0403/",
+    "list_type": "Academic Articles",
+    "lecture": "11/4: Retrieval augmented generation (RAG); Extractive Summarization/Application: Retrieval augmented generation (RAG); Extractive Summarization",
+    "slides": [22],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "A Scalable Global Model for Summarization",
+    "url": "https://aclanthology.org/W09-1802/",
+    "list_type": "Academic Articles",
+    "lecture": "11/4: Retrieval augmented generation (RAG); Extractive Summarization/Application: Retrieval augmented generation (RAG); Extractive Summarization",
+    "slides": [23, 24],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Text Summarization with Pretrained Encoders",
+    "url": "https://aclanthology.org/D19-1387/",
+    "list_type": "Academic Articles",
+    "lecture": "11/4: Retrieval augmented generation (RAG); Extractive Summarization/Application: Retrieval augmented generation (RAG); Extractive Summarization",
+    "slides": [26],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "How to Build an Open-Domain Question Answering System?",
+    "url": "https://lilianweng.github.io/posts/2020-10-29-odqa/",
+    "list_type": "Blogs",
+    "lecture": "11/4: Retrieval augmented generation (RAG); Extractive Summarization/Application: Retrieval augmented generation (RAG); Extractive Summarization",
+    "slides": [3],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "ACL 2023 Tutorial: Retrieval-based Language Models and Applications",
+    "url": "https://acl2023-retrieval-lm.github.io/",
+    "list_type": "Tutorials",
+    "lecture": "11/4: Retrieval augmented generation (RAG); Extractive Summarization/Application: Retrieval augmented generation (RAG); Extractive Summarization",
+    "slides": [5, 9, 10, 11, 12, 13],
+    "num_slides": 6,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Text Summarization with Pretrained Encoders",
+    "url": "https://aclanthology.org/D19-1387/",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [4],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "News Summarization and Evaluation in the Era of GPT-3",
+    "url": "https://arxiv.org/abs/2209.12356",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [7, 16, 26, 27],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Bleu: a Method for Automatic Evaluation of Machine Translation",
+    "url": "https://aclanthology.org/P02-1040/",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [9],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "ROUGE: A Package for Automatic Evaluation of Summaries",
+    "url": "https://aclanthology.org/W04-1013/",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [10],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "BERTScore: Evaluating Text Generation with BERT",
+    "url": "https://arxiv.org/abs/1904.09675",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [13],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "MoverScore: Text Generation Evaluating with Contextualized Embeddings and Earth Mover Distance",
+    "url": "https://aclanthology.org/D19-1053/",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [13],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "BLEURT: Learning Robust Metrics for Text Generation",
+    "url": "https://aclanthology.org/2020.acl-main.704/",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [14],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Towards Question-Answering as an Automatic Metric for Evaluating the Content Quality of a Summary",
+    "url": "https://aclanthology.org/2021.tacl-1.47/",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [15],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena",
+    "url": "https://arxiv.org/abs/2306.05685",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [17, 18, 21],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Large Language Models are not Fair Evaluators",
+    "url": "https://aclanthology.org/2024.acl-long.511/",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [21],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Benchmarking Large Language Models for News Summarization",
+    "url": "https://aclanthology.org/2024.tacl-1.3/",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [23, 24],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "FActScore: Fine-grained Atomic Evaluation of Factual Precision in Long Form Text Generation",
+    "url": "https://aclanthology.org/2023.emnlp-main.741/",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [29],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "ExpertQA: Expert-Curated Questions and Attributed Answers",
+    "url": "https://arxiv.org/abs/2309.07852",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [30],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Factcheck-Bench: Fine-Grained Evaluation Benchmark for Automatic Fact-checkers",
+    "url": "https://arxiv.org/abs/2311.09000",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [30],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "FactPICO: Factuality Evaluation for Plain Language Summarization of Medical Evidence",
+    "url": "https://arxiv.org/abs/2402.11456",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [30],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "TofuEval: Evaluating Hallucinations of LLMs on Topic-Focused Dialogue Summarization",
+    "url": "https://arxiv.org/abs/2402.13249",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [30],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "BooookScore: A systematic exploration of book-length summarization in the era of LLMs",
+    "url": "https://arxiv.org/abs/2310.00785",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [31],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "FABLES: Evaluating faithfulness and content selection in book-length summarization",
+    "url": "https://arxiv.org/abs/2404.01261",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [32],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "InheritSumm: A General, Versatile and Compact Summarizer by Distilling from GPT",
+    "url": "https://arxiv.org/abs/2305.13083",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [33],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Impossible Distillation: from Low-Quality Model to High-Quality Dataset & Model for Summarization and Paraphrasing",
+    "url": "https://arxiv.org/abs/2305.16635",
+    "list_type": "Academic Articles",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [33],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Arena",
+    "url": "https://arena.ai/how-it-works",
+    "list_type": "Blogs",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [19],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "rouge - pypi",
+    "url": "https://pypi.org/project/rouge/",
+    "list_type": "Code Implementations",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [10],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "MoverScore",
+    "url": "https://github.com/AIPHES/emnlp19-moverscore",
+    "list_type": "Code Implementations",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [13],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "BLEURT",
+    "url": "https://github.com/google-research/BLEURT",
+    "list_type": "Code Implementations",
+    "lecture": "11/11: Abstractive summarization; Text generation evaluation/Application: Abstractive summarization; Text generation evaluation",
+    "slides": [14],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "The State and Fate of Linguistic Diversity and Inclusion in the NLP World",
+    "url": "https://aclanthology.org/2020.acl-main.560/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [14, 51],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "mT5: A Massively Multilingual Pre-trained Text-to-Text Transformer",
+    "url": "https://aclanthology.org/2021.naacl-main.41/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [17, 18, 51, 52],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Exploring the limits of transfer learning with a unified text-to-text transformer",
+    "url": "https://dl.acm.org/doi/10.5555/3455716.3455856",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [17],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Glot500: Scaling Multilingual Corpora and Language Models to 500 Languages",
+    "url": "https://aclanthology.org/2023.acl-long.61/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [19, 20, 51, 52],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "The BigScience ROOTS Corpus: A 1.6TB Composite Multilingual Dataset",
+    "url": "https://openreview.net/forum?id=UoEw6KigkUn",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [19, 52],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Super-NaturalInstructions: Generalization via Declarative Instructions on 1600+ NLP Tasks",
+    "url": "https://aclanthology.org/2022.emnlp-main.340.pdf",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [23, 26, 52],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Crosslingual generalization through multitask finetuning",
+    "url": "https://aclanthology.org/2023.acl-long.891/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [23, 25, 26, 51, 52],
+    "num_slides": 5,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Aya Model: An Instruction Finetuned Open-Access Multilingual Language Model",
+    "url": "https://aclanthology.org/2024.acl-long.845/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [26, 27, 29, 30, 48, 51, 52],
+    "num_slides": 7,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Aya Dataset: An Open-Access Collection for Multilingual Instruction Tuning",
+    "url": "https://aclanthology.org/2024.acl-long.620/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [26, 27, 28, 52],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "No language left behind: Scaling human-centered machine translation",
+    "url": "https://arxiv.org/abs/2207.04672",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [27],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Harnessing the Power of Artificial Intelligence to Vitalize Endangered Indigenous Languages: Technologies and Experiences",
+    "url": "https://arxiv.org/pdf/2407.12620",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [28, 53],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "A Survey of Corpora for Germanic Low-Resource Languages and Dialects",
+    "url": "https://aclanthology.org/2023.nodalida-1.41/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [28, 48],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model",
+    "url": "https://arxiv.org/abs/2305.18290",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [33],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Reuse Your Rewards: Reward Model Transfer for Zero-Shot Cross-Lingual Alignment",
+    "url": "https://arxiv.org/abs/2404.12318",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [34, 35, 52],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "RLHF Can Speak Many Languages: Unlocking Multilingual Preference Optimization for LLMs",
+    "url": "https://arxiv.org/pdf/2407.02552",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [37, 38, 39, 40, 41, 46, 52],
+    "num_slides": 7,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Aya 23: Open Weight Releases to Further Multilingual Progress",
+    "url": "https://arxiv.org/pdf/2405.15032",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [43, 44, 45, 51],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Unsupervised Cross-lingual Representation Learning at Scale",
+    "url": "https://aclanthology.org/2020.acl-main.747/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [48, 53],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "When Is Multilinguality a Curse? Language Modeling for 250 High- and Low-Resource Languages",
+    "url": "https://arxiv.org/abs/2311.09205",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [48, 53],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Do All Languages Cost the Same? Tokenization in the Era of Commercial Language Models",
+    "url": "https://aclanthology.org/2023.emnlp-main.614/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [48, 51],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Decolonizing NLP for “Low-resource Languages”",
+    "url": "https://ojs.stanford.edu/ojs/index.php/grace/article/view/2584",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [48, 51],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Which Humans?",
+    "url": "https://osf.io/preprints/psyarxiv/5b26t_v1",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [48, 51],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "MAD-X: An Adapter-Based Framework for Multi-Task Cross-Lingual Transfer",
+    "url": "https://aclanthology.org/2020.emnlp-main.617/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [50, 53],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Breaking the Curse of Multilinguality with Cross-lingual Expert Language Models",
+    "url": "https://arxiv.org/abs/2401.10440",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [50, 53],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "How to Adapt Your Pretrained Multilingual Model to 1600 Languages",
+    "url": "https://aclanthology.org/2021.acl-long.351/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [50, 54],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "BLOOM+1: Adding Language Support to BLOOM for Zero-Shot Prompting",
+    "url": "https://aclanthology.org/2023.acl-long.653/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [50, 54],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "OFA: A Framework of Initializing Unseen Subword Embeddings for Efficient Large-scale Multilingual Continued Pretraining",
+    "url": "https://aclanthology.org/2024.findings-naacl.68/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [50, 54],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "XLM-V: Overcoming the Vocabulary Bottleneck in Multilingual Masked Language Models",
+    "url": "https://aclanthology.org/2023.emnlp-main.813/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [50, 54],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Tokenization Impacts Multilingual Language Modeling: Assessing Vocabulary Allocation and Overlap Across Languages",
+    "url": "https://aclanthology.org/2023.findings-acl.350/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [50, 54],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Multilingual Arbitrage: Optimizing Data Pools to Accelerate Multilingual Progress",
+    "url": "https://arxiv.org/pdf/2408.14960",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [50, 54],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Verifying Annotation Agreement without Multiple Experts: A Case Study with Gujarati SNACS",
+    "url": "https://aclanthology.org/2023.findings-acl.696/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [50],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Breaking the unwritten language barrier: The BULB project",
+    "url": "https://www.sciencedirect.com/science/article/pii/S1877050916300370",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [51],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Global predictors of language endangerment and the future of linguistic diversity",
+    "url": "https://www.nature.com/articles/s41559-021-01604-y",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [51],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Systematic Inequalities in Language Technology Performance across the World’s Languages",
+    "url": "https://aclanthology.org/2022.acl-long.376/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [51],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Abundance of words versus poverty of mind: the hidden human costs co‑created with LLMs",
+    "url": "https://link.springer.com/content/pdf/10.1007/s00146-024-01914-2.pdf",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [51],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Multilingual Denoising Pre-training for Neural Machine Translation",
+    "url": "https://aclanthology.org/2020.tacl-1.47/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [51],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "BLOOM: A 176B-Parameter Open-Access Multilingual Language Model",
+    "url": "https://arxiv.org/abs/2211.05100",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [51],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Few-shot Learning with Multilingual Generative Language Models",
+    "url": "https://arxiv.org/pdf/2112.10668",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [51],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "PolyLM: An Open Source Polyglot Large Language Model",
+    "url": "https://arxiv.org/abs/2307.06018",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [51],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Okapi: Instruction-tuned Large Language Models in Multiple Languages with Reinforcement Learning from Human Feedback",
+    "url": "https://arxiv.org/abs/2307.16039",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [51, 52],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "mGPT: Few-Shot Learners Go Multilingual",
+    "url": "https://aclanthology.org/2024.tacl-1.4",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [51],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "MaLA-500: Massive Language Adaptation of Large Language Models",
+    "url": "https://arxiv.org/pdf/2401.13303",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [51],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Multilingual Instruction Tuning With Just a Pinch of Multilinguality",
+    "url": "https://aclanthology.org/2024.findings-acl.136/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [52],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Multilingual Jailbreak Challenges in Large Language Models",
+    "url": "https://arxiv.org/abs/2310.06474",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [52],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "The Language Barrier: Dissecting Safety Challenges of LLMs in Multilingual Contexts",
+    "url": "https://arxiv.org/pdf/2401.13136",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [52],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Having Beer after Prayer? Measuring Cultural Bias in Large Language Models",
+    "url": "https://arxiv.org/pdf/2305.14456",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [52],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "All Languages Matter: On the Multilingual Safety of LLMs",
+    "url": "https://aclanthology.org/2024.findings-acl.349/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [52],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "From One to Many: Expanding the Scope of Toxicity Mitigation in Language Models",
+    "url": "https://aclanthology.org/2024.findings-acl.893/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [52],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Preference Tuning For Toxicity Mitigation Generalizes Across Languages",
+    "url": "https://arxiv.org/pdf/2406.16235",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [52],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "PolygloToxicityPrompts: Multilingual Evaluation of Neural Toxic Degeneration in Large Language Models",
+    "url": "https://arxiv.org/abs/2405.09373",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [52],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "The Multilingual Alignment Prism: Aligning Global and Local Preferences to Reduce Harm",
+    "url": "https://arxiv.org/abs/2406.18682",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [52],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "MAD-G: Multilingual Adapter Generation for Efficient Cross-Lingual Transfer",
+    "url": "https://aclanthology.org/2021.findings-emnlp.410/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Efficient Test Time Adapter Ensembling for Low-resource Language Varieties",
+    "url": "https://aclanthology.org/2021.findings-emnlp.63/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Cross-lingual Few-Shot Learning on Unseen Languages",
+    "url": "https://aclanthology.org/2022.aacl-main.59/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Lifting the Curse of Multilinguality by Pre-training Modular Transformers",
+    "url": "https://aclanthology.org/2022.naacl-main.255",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "BAD-X: Bilingual Adapters Improve Zero-Shot Cross-Lingual Transfer",
+    "url": "https://aclanthology.org/2022.naacl-main.130/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Hyper-X: A Unified Hypernetwork for Multi-Task Multilingual Transfer",
+    "url": "https://aclanthology.org/2022.emnlp-main.541/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Local Languages, Third Spaces, and other High-Resource Scenarios",
+    "url": "https://aclanthology.org/2022.acl-long.539/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Not always about you: Prioritizing community needs when developing endangered language technology",
+    "url": "https://aclanthology.org/2022.acl-long.272/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "”It’s how you do things that matters”: Attending to Process to Better Serve Indigenous Communities with Language Technologies",
+    "url": "https://aclanthology.org/2024.eacl-short.19/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Modeling the Sacred: Considerations when Using Religious Texts in Natural Language Processing",
+    "url": "https://aclanthology.org/2024.findings-naacl.65/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Must NLP be Extractive?",
+    "url": "https://drive.google.com/file/d/1hvF7_WQrou6CWZydhymYFTYHnd3ZIljV/view?pli=1",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [53],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Phylogeny-Inspired Adaptation of Multilingual Models to New Languages",
+    "url": "https://aclanthology.org/2022.aacl-main.34/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [54],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Expanding Pretrained Models to Thousands More Languages via Lexicon-based Adaptation",
+    "url": "https://aclanthology.org/2022.acl-long.61/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [54],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Don’t Stop Fine-Tuning: On Training Regimes for Few-Shot Cross-Lingual Transfer with Multilingual Language Models",
+    "url": "https://aclanthology.org/2022.emnlp-main.736/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [54],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Cross-lingual Continual Learning",
+    "url": "https://aclanthology.org/2023.acl-long.217/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [54],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Mini-Model Adaptation: Efficiently Extending Pretrained Models to New Languages via Aligned Shallow Training",
+    "url": "https://aclanthology.org/2023.findings-acl.338/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [54],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "How Vocabulary Sharing Facilitates Multilingualism in LLaMA?",
+    "url": "https://arxiv.org/pdf/2311.09071",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [54],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Do Multilingual Language Models Think Better in English?",
+    "url": "https://aclanthology.org/2024.naacl-short.46/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [54],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Do Llamas Work in English? On the Latent Language of Multilingual Transformers",
+    "url": "https://aclanthology.org/2024.acl-long.820/",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [54],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "How Does Quantization Affect Multilingual LLMs?",
+    "url": "https://arxiv.org/pdf/2407.03211",
+    "list_type": "Academic Articles",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [54],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "How many languages are there in the world?",
+    "url": "https://www.ethnologue.com/insights/how-many-languages/",
+    "list_type": "Blogs",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [3],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "langdetect - pypi",
+    "url": "https://pypi.org/project/langdetect/",
+    "list_type": "Blogs",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [17],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Google Cloud Translate API Documentation",
+    "url": "https://cloud.google.com/translate/docs/reference/rest/",
+    "list_type": "Blogs",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [27],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Cohere’s Command R+ Model",
+    "url": "https://docs.cohere.com/docs/command-r-plus",
+    "list_type": "Blogs",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [37],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Introducing Command R+: A Scalable LLM Built for Business",
+    "url": "https://cohere.com/blog/command-r-plus-microsoft-azure",
+    "list_type": "Blogs",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [48],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "GPT-4o",
+    "url": "https://openai.com/index/hello-gpt-4o/",
+    "list_type": "Blogs",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [48],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "AI makes racist decisions based on dialect",
+    "url": "https://www.science.org/content/article/ai-makes-racist-decisions-based-dialect",
+    "list_type": "Blogs",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [48],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Compact Language Detector v3",
+    "url": "https://github.com/google/cld3",
+    "list_type": "Code Implementations",
+    "lecture": "11/13: Beyond English: Multilingual LLMs/Beyond English: Guest Lecture by Maitrey Mehta: Multilingual LLMs",
+    "slides": [17],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale",
+    "url": "https://arxiv.org/abs/2010.11929",
+    "list_type": "Academic Articles",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [7, 8, 13],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Learning Transferable Visual Models From Natural Language Supervision",
+    "url": "https://arxiv.org/abs/2103.00020",
+    "list_type": "Academic Articles",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [14, 15, 16, 17],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Do Androids Laugh at Electric Sheep? Humor \"Understanding\" Benchmarks from The New Yorker Caption Contest",
+    "url": "https://arxiv.org/abs/2209.06293",
+    "list_type": "Academic Articles",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [19],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "LLaVA: Large Language and Vision Assistant",
+    "url": "https://llava-vl.github.io/",
+    "list_type": "Academic Articles",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [26],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Molmo and PixMo: Open Weights and Open Data for State-of-the-Art Vision-Language Models",
+    "url": "https://arxiv.org/abs/2409.17146",
+    "list_type": "Academic Articles",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [27, 28],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Perceiver: General Perception with Iterative Attention",
+    "url": "https://arxiv.org/abs/2103.03206",
+    "list_type": "Academic Articles",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [32, 33],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "AST: Audio Spectrogram Transformer",
+    "url": "https://arxiv.org/abs/2104.01778",
+    "list_type": "Academic Articles",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [44],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Qwen2-Audio Technical Report",
+    "url": "https://arxiv.org/abs/2407.10759",
+    "list_type": "Academic Articles",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [45],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Speech and Language Processing",
+    "url": "https://web.stanford.edu/~jurafsky/slp3/ed3bookaug20_2024.pdf",
+    "list_type": "Textbooks",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [38, 39, 40, 41, 42, 43],
+    "num_slides": 6,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Molmo",
+    "url": "https://allenai.org/blog/molmo",
+    "list_type": "Blogs",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [3, 28],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "CLIP Documentation",
+    "url": "https://huggingface.co/docs/transformers/model_doc/clip",
+    "list_type": "Blogs",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [17],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "GPT-4",
+    "url": "https://openai.com/index/gpt-4-research/",
+    "list_type": "Blogs",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [22, 23],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "RLHF: Reinforcement Learning from Human Feedback by Chip Huyen",
+    "url": "https://huyenchip.com/2023/05/02/rlhf.html",
+    "list_type": "Blogs",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [24],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Perceiver Documentation",
+    "url": "https://huggingface.co/docs/transformers/en/model_doc/perceiver",
+    "list_type": "Blogs",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [33],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Open source implementation of CLIP",
+    "url": "https://github.com/mlfoundations/open_clip",
+    "list_type": "Code Implementations",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [15, 17],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "OpenAI’s CLIP Implementation",
+    "url": "https://github.com/openai/CLIP",
+    "list_type": "Code Implementations",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [17],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Tutorial 11: Vision Transformers",
+    "url": "https://lightning.ai/docs/pytorch/latest/notebooks/course_UvA-DL/11-vision-transformer.html",
+    "list_type": "Tutorials",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [7, 8, 12, 13],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Learning Transferable Visual Models From Natural Language Supervision Conference Presentation",
+    "url": "https://slideslive.com/38958587/learning-transferable-visual-models-from-natural-language-supervision",
+    "list_type": "Presentations",
+    "lecture": "11/18: Vision-and-Language LLMs/Beyond text: Multimodal LLMs",
+    "slides": [14, 15, 16, 17],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Natural Language Processing RELIES on Linguistics",
+    "url": "https://arxiv.org/abs/2405.05966",
+    "list_type": "Academic Articles",
+    "lecture": "11/20: Part-of-speech tagging; Named entity recognition; Hidden Markov Models (HMMs)",
+    "slides": [4, 5],
+    "num_slides": 2,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Building a Large Annotated Corpus of English: The Penn Treebank",
+    "url": "https://aclanthology.org/J93-2004/",
+    "list_type": "Academic Articles",
+    "lecture": "11/20: Part-of-speech tagging; Named entity recognition; Hidden Markov Models (HMMs)",
+    "slides": [14],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Universal Dependencies",
+    "url": "https://direct.mit.edu/coli/article/47/2/255/98516/Universal-Dependencies",
+    "list_type": "Academic Articles",
+    "lecture": "11/20: Part-of-speech tagging; Named entity recognition; Hidden Markov Models (HMMs)",
+    "slides": [15],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Speech and Language Processing",
+    "url": "https://web.stanford.edu/~jurafsky/slp3/ed3bookaug20_2024.pdf",
+    "list_type": "Textbooks",
+    "lecture": "11/20: Part-of-speech tagging; Named entity recognition; Hidden Markov Models (HMMs)",
+    "slides": [10],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Language Processing Pipelines",
+    "url": "https://spacy.io/usage/processing-pipelines",
+    "list_type": "Tutorials",
+    "lecture": "11/20: Part-of-speech tagging; Named entity recognition; Hidden Markov Models (HMMs)",
+    "slides": [3],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Language Processing Pipelines",
+    "url": "https://spacy.io/usage/processing-pipelines",
+    "list_type": "Tutorials",
+    "lecture": "11/25: A) HMM: Parameter Estimation and Inference; Viterbi / Hidden Markov Model: Parameter Estimation and Inference",
+    "slides": [30],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Part-of-Speech Tagging",
+    "url": "https://melaniewalsh.github.io/Intro-Cultural-Analytics/05-Text-Analysis/13-POS-Keywords.html",
+    "list_type": "Tutorials",
+    "lecture": "11/25: A) HMM: Parameter Estimation and Inference; Viterbi / Hidden Markov Model: Parameter Estimation and Inference",
+    "slides": [31],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Named Entity Recognition",
+    "url": "https://melaniewalsh.github.io/Intro-Cultural-Analytics/05-Text-Analysis/12-Named-Entity-Recognition.html",
+    "list_type": "Tutorials",
+    "lecture": "11/25: A) HMM: Parameter Estimation and Inference; Viterbi / Hidden Markov Model: Parameter Estimation and Inference",
+    "slides": [31],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Building a large annotated corpus of English: the Penn Treebank",
+    "url": "https://catalog.ldc.upenn.edu/docs/LDC95T7/cl93.html",
+    "list_type": "Academic Articles",
+    "lecture": "11/25: B) Context free-grammars; Constituency parsing; CKY; Syntax / Constituency Parsing; CKY Algorithm",
+    "slides": [18],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Verb-subject-object word order",
+    "url": "https://en.wikipedia.org/wiki/Verb%E2%80%93subject%E2%80%93object_word_order",
+    "list_type": "Wikipedia",
+    "lecture": "11/25: B) Context free-grammars; Constituency parsing; CKY; Syntax / Constituency Parsing; CKY Algorithm",
+    "slides": [4],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Constituency Parsing with a Self-Attentive Encoder",
+    "url": "https://aclanthology.org/P18-1249/",
+    "list_type": "Academic Articles",
+    "lecture": "11/27: Dependency Parsing",
+    "slides": [6],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Universal Dependencies",
+    "url": "https://aclanthology.org/2021.cl-2.11.pdf",
+    "list_type": "Academic Articles",
+    "lecture": "11/27: Dependency Parsing",
+    "slides": [17],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Universal Dependencies Documentation",
+    "url": "https://universaldependencies.org/",
+    "list_type": "Blogs",
+    "lecture": "11/27: Dependency Parsing",
+    "slides": [17],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Berkeley Neural Parser",
+    "url": "https://spacy.io/universe/project/self-attentive-parser",
+    "list_type": "Tutorials",
+    "lecture": "11/27: Dependency Parsing",
+    "slides": [6],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Transition Based Dependency Parsing",
+    "url": "https://svivek.com/teaching/lectures/slides/dependency-parsing/2-transition-based-parsing.pdf",
+    "list_type": "Presentations",
+    "lecture": "11/27: Dependency Parsing",
+    "slides": [19],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Evaluating Dependency Parsers",
+    "url": "https://svivek.com/teaching/lectures/slides/dependency-parsing/4-evaluating-dependency-parsers.pdf",
+    "list_type": "Presentations",
+    "lecture": "11/27: Dependency Parsing",
+    "slides": [21],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Simple BERT Models for Relation Extraction and Semantic Role Labeling",
+    "url": "https://arxiv.org/abs/1904.05255",
+    "list_type": "Academic Articles",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [49],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Discourse Referents",
+    "url": "https://aclanthology.org/C69-7001/",
+    "list_type": "Academic Articles",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [52],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "End-to-end Neural Coreference Resolution",
+    "url": "https://aclanthology.org/D17-1018/",
+    "list_type": "Academic Articles",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [66, 67, 68, 69],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "BERT for Coreference Resolution: Baselines and Analysis",
+    "url": "https://aclanthology.org/D19-1588/",
+    "list_type": "Academic Articles",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [66, 67, 68, 69],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "PairSpanBERT: An Enhanced Language Model for Bridging Resolution",
+    "url": "https://aclanthology.org/2023.acl-long.383/",
+    "list_type": "Academic Articles",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [78],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Anaphora With Non-nominal Antecedents in Computational Linguistics: a Survey",
+    "url": "https://direct.mit.edu/coli/article/44/3/547/1605/Anaphora-With-Non-nominal-Antecedents-in",
+    "list_type": "Academic Articles",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [79],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Gender Bias in Coreference Resolution:Evaluation and Debiasing Methods",
+    "url": "https://uclanlp.github.io/corefBias/overview",
+    "list_type": "Academic Articles",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [80],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Constituency Parsing using LLMs",
+    "url": "https://arxiv.org/abs/2310.19462",
+    "list_type": "Academic Articles",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [82],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Empirical Study of Zero-Shot NER with ChatGPT",
+    "url": "https://arxiv.org/abs/2310.10035",
+    "list_type": "Academic Articles",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [82],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "ChatGPT is a Potential Zero-Shot Dependency Parser",
+    "url": "https://arxiv.org/abs/2310.16654",
+    "list_type": "Academic Articles",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [82],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "\"You Are An Expert Linguistic Annotator\": Limits of LLMs as Analyzers of Abstract Meaning Representation",
+    "url": "https://arxiv.org/abs/2310.17793",
+    "list_type": "Academic Articles",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [82],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Promptly Predicting Structures: The Return of Inference",
+    "url": "https://arxiv.org/abs/2401.06877",
+    "list_type": "Academic Articles",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [82],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Entity Tracking in Language Models",
+    "url": "https://arxiv.org/abs/2305.02363",
+    "list_type": "Academic Articles",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [82],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Introduction to different levels of Natural Language Processing",
+    "url": "https://www.datascienceprophet.com/different-levels-of-natural-language-processing/",
+    "list_type": "Blogs",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [3],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "QA-SRL",
+    "url": "https://qasrl.org/",
+    "list_type": "Blogs",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [10],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "CoNLL v12 formatted version of the OntoNotes 5.0",
+    "url": "https://github.com/ontonotes/conll-formatted-ontonotes-5.0",
+    "list_type": "Blogs",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [59, 60, 63, 65],
+    "num_slides": 4,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "To Dissect an Octopus: Making Sense of the Form/Meaning Debate | Julian Michael",
+    "url": "https://julianmichael.org/blog/2020/07/23/to-dissect-an-octopus.html",
+    "list_type": "Blogs",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [76],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "ACL 2018 tutorial on Neural Semantic Parsing",
+    "url": "https://github.com/allenai/acl2018-semantic-parsing-tutorial",
+    "list_type": "Code Implementations",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [7, 8, 9],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Language Processing Pipelines",
+    "url": "https://spacy.io/usage/processing-pipelines",
+    "list_type": "Tutorials",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [2],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Semantics",
+    "url": "https://en.wikipedia.org/wiki/Semantics",
+    "list_type": "Wikipedia",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [4, 5, 6],
+    "num_slides": 3,
+    "is_dark_green_2": true,
+    "is_bold": true
+  },
+  {
+    "name": "Abstract Meaning Representation",
+    "url": "https://en.wikipedia.org/wiki/Abstract_Meaning_Representation",
+    "list_type": "Wikipedia",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [10],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Terry Winograd: AI, HCI, Language, and Cognition",
+    "url": "https://thegradientpub.substack.com/p/terry-winograd-ai-hci-language-cognition#details",
+    "list_type": "Presentations",
+    "lecture": "12/2: Semantic role labeling; Semantics; Coreference resolution; Discourse/Semantics & Discourse",
+    "slides": [75],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "Dense Passage Retrieval for Open-Domain Question Answering",
+    "url": "https://aclanthology.org/2020.emnlp-main.550/",
+    "list_type": "Academic Articles",
+    "lecture": "12/4: Final Overview",
+    "slides": [10],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "RLHF: Reinforcement Learning from Human Feedback",
+    "url": "https://huyenchip.com/2023/05/02/rlhf.html",
+    "list_type": "Blogs",
+    "lecture": "12/4: Final Overview",
+    "slides": [3],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  },
+  {
+    "name": "How to Build an Open-Domain Question Answering System?",
+    "url": "https://lilianweng.github.io/posts/2020-10-29-odqa/",
+    "list_type": "Blogs",
+    "lecture": "12/4: Final Overview",
+    "slides": [9],
+    "num_slides": 1,
+    "is_dark_green_2": false,
+    "is_bold": false
+  }
+]

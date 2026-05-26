@@ -1,0 +1,58 @@
+# Google Services
+google-auth>=2.23.0,<3.0.0
+google-api-python-client>=2.100.0
+google-auth-oauthlib>=1.0.0
+google-genai>=1.0.0
+google-cloud-secret-manager>=2.16.0
+
+# HTTP & Web
+requests
+beautifulsoup4
+html2text
+playwright
+chromium
+curl-cffi
+
+# BrowserGym framework (provides browsergym.core.registration)
+browsergym-core
+
+# Data Processing
+pandas
+numpy
+tabulate  # required by pandas.DataFrame.to_markdown() used in evaluators
+
+# Image Processing
+Pillow
+google-auth-httplib2
+fuzzywuzzy
+python-doctr
+python-Levenshtein
+opencv-python
+PyMuPDF
+imagehash
+
+# Text Processing
+rapidfuzz
+
+# Hugging Face (for API access, not local models)
+huggingface-hub
+
+# Academic APIs
+arxiv
+
+# Web Server
+flask
+gunicorn
+
+# Claude API (for perturbation testing with computer use)
+anthropic>=0.40.0
+
+# Optional: Task-specific dependencies (uncomment if needed)
+# oxylabs        # sheets_38 task
+# llama-cpp-python  # Local Llama models
+# qwen-vl-utils     # Qwen VL models
+transformers
+torch
+torchvision
+accelerate
+paperscraper

@@ -1,0 +1,6 @@
+Ingredient,Link,Carbohydrates (g),Fat (g),Fiber (g),Protein (g),Sugar (g),Calcium (mg),Iron (mg),Potassium (mg),Sodium (mg),Vitamin A (µg),Vitamin C (mg)
+granulated sugar,https://fdc.nal.usda.gov/food-details/746784/nutrients,11.952,0.0384,0,0,11.976,0.12,0.006,0.24,0.12,0,0
+unsweetened cocoa powder,https://fdc.nal.usda.gov/food-details/169593/nutrients,3.13,0.74,2,1.06,0.095,6.91,0.751,82.1,1.13,0,0
+hot coffee,https://fdc.nal.usda.gov/food-details/171890/nutrients,0,0.047,0,0.284,0,4.74,0.024,116,4.74,0,0
+milk,https://fdc.nal.usda.gov/food-details/746782/nutrients,2.875,1.725,0,2.035,3,76.5,0,93.5,23.65,19.925,0
+Water,https://fdc.nal.usda.gov/food-details/173647/nutrients,0,0,0,0,0,0.45,0,0,0.6,0,0

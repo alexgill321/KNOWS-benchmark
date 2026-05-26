@@ -1,0 +1,980 @@
+[
+  {
+    "name": "Spring 2021 6.874 Computational Systems Biology: Deep Learning in the Life Sciences",
+    "url": "http://mit6874.github.io",
+    "list_type": "GitHub Repositories",
+    "lecture": "Convolutional Neural Networks",
+    "slides": [
+      1
+    ]
+  },
+  {
+    "name": "Spring 2021 6.874 Computational Systems Biology: Deep Learning in the Life Sciences",
+    "url": "http://compbio.mit.edu/6874",
+    "list_type": "Others",
+    "lecture": "Course Intro + Overview Foundations",
+    "slides": [
+      4
+    ]
+  },
+  {
+    "name": "Deep Learning in the Life Sciences",
+    "url": "http://mit6784.github.io/",
+    "list_type": "GitHub Repositories",
+    "lecture": "Course Intro + Overview Foundations",
+    "slides": [
+      4
+    ]
+  },
+  {
+    "name": "Spring 2021 6.874 Computational Systems Biology: Deep Learning in the Life Sciences",
+    "url": "http://mit6874.github.io/",
+    "list_type": "Others",
+    "lecture": "Course Intro + Overview Foundations",
+    "slides": [
+      7
+    ]
+  },
+  {
+    "name": "NIH Roadmap Epigenomics Program",
+    "url": "http://nihroadmap.nih.gov/epigenomics/",
+    "list_type": "Others",
+    "lecture": "Course Intro + Overview Foundations",
+    "slides": [
+      94
+    ]
+  },
+  {
+    "name": "Requests to teaching staff",
+    "url": "mailto:6.874staff@mit.edu",
+    "list_type": "Others",
+    "lecture": "Course Intro + Overview Foundations",
+    "slides": [
+      4,
+      7
+    ]
+  },
+  {
+    "name": "Sign in - Google Accounts",
+    "url": "http://anshul.kundaje.net",
+    "list_type": "Others",
+    "lecture": "DNA Accessibility, Promoters and Enhancers",
+    "slides": [
+      93
+    ]
+  },
+  {
+    "name": "Sign in - Google Accounts",
+    "url": "http://anshul.kundaje.net/",
+    "list_type": "Others",
+    "lecture": "DNA Accessibility, Promoters and Enhancers",
+    "slides": [
+      93
+    ]
+  },
+  {
+    "name": "Spring 2021 6.874 Computational Systems Biology: Deep Learning in the Life Sciences",
+    "url": "http://mit6874.github.io",
+    "list_type": "GitHub Repositories",
+    "lecture": "DNA Accessibility, Promoters and Enhancers",
+    "slides": [
+      1
+    ]
+  },
+  {
+    "name": "Predicting the sequence specificities of DNA- and RNA-binding proteins by deep learning",
+    "url": "http://www.nature.com/nbt/journal/v33/n8/full/nbt.3300.html",
+    "list_type": "Research Papers",
+    "lecture": "DNA Accessibility, Promoters and Enhancers",
+    "slides": [
+      63
+    ]
+  },
+  {
+    "name": "Chromatin accessibility and the regulatory epigenome",
+    "url": "https://doi.org/10.1038/s41576-018-0089-8",
+    "list_type": "Academic Articles",
+    "lecture": "DNA Accessibility, Promoters and Enhancers",
+    "slides": [
+      158,
+      159
+    ]
+  },
+  {
+    "name": "ChIP-nexus: a specialized ChIP-exo protocol for ultrafine mapping of protein–DNA interactions",
+    "url": "https://doi.org/10.3109/10409238.2015.1051505",
+    "list_type": "Research Papers",
+    "lecture": "DNA Accessibility, Promoters and Enhancers",
+    "slides": [
+      98
+    ]
+  },
+  {
+    "name": "Sequence logo",
+    "url": "https://en.wikipedia.org/wiki/Sequence_logo",
+    "list_type": "Wikipedia",
+    "lecture": "DNA Accessibility, Promoters and Enhancers",
+    "slides": [
+      40
+    ]
+  },
+  {
+    "name": "clara-parabricks/rapids-single-cell-examples",
+    "url": "https://github.com/clara-parabricks/rapids-single-cell-examples/blob/master/notebooks/5k_pbmc_coverage_gpu.ipynb",
+    "list_type": "GitHub Repositories",
+    "lecture": "DNA Accessibility, Promoters and Enhancers",
+    "slides": [
+      171
+    ]
+  },
+  {
+    "name": "kundajelab/tfmodisco",
+    "url": "https://github.com/kundajelab/tfmodisco",
+    "list_type": "GitHub Repositories",
+    "lecture": "DNA Accessibility, Promoters and Enhancers",
+    "slides": [
+      113,
+      114,
+      115,
+      116,
+      117
+    ]
+  },
+  {
+    "name": "Avantika Lal - Genentech",
+    "url": "https://www.linkedin.com/in/avantikalal",
+    "list_type": "Others",
+    "lecture": "DNA Accessibility, Promoters and Enhancers",
+    "slides": [
+      173
+    ]
+  },
+  {
+    "name": "Avantika Lal",
+    "url": "https://www.linkedin.com/in/avantikalal/",
+    "list_type": "Others",
+    "lecture": "DNA Accessibility, Promoters and Enhancers",
+    "slides": [
+      173
+    ]
+  },
+  {
+    "name": "Deep learning-based enhancement of epigenomics data with AtacWorks",
+    "url": "https://www.nature.com/articles/s41467-021-21765-5",
+    "list_type": "Research Papers",
+    "lecture": "DNA Accessibility, Promoters and Enhancers",
+    "slides": [
+      157
+    ]
+  },
+  {
+    "name": "Avantika Lal",
+    "url": "mailto:alal@nvidia.com",
+    "list_type": "Others",
+    "lecture": "DNA Accessibility, Promoters and Enhancers",
+    "slides": [
+      173
+    ]
+  },
+  {
+    "name": "Spring 2021 6.874 Computational Systems Biology: Deep Learning in the Life Sciences",
+    "url": "http://mit6874.github.io",
+    "list_type": "GitHub Repositories",
+    "lecture": "Dimensionality Reduction, Genetics, and Variation",
+    "slides": [
+      1
+    ]
+  },
+  {
+    "name": "How to Use t-SNE Effectively",
+    "url": "https://distill.pub/2016/misread-tsne/",
+    "list_type": "Tutorials",
+    "lecture": "Dimensionality Reduction, Genetics, and Variation",
+    "slides": [
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61
+    ]
+  },
+  {
+    "name": "Pharmaceutical Research and Manufacturers of America",
+    "url": "http://PhRMA.org",
+    "list_type": "Others",
+    "lecture": "Drug discovery",
+    "slides": [
+      4
+    ]
+  },
+  {
+    "name": "Spring 2021 6.874 Computational Systems Biology: Deep Learning in the Life Sciences",
+    "url": "http://compbio.mit.edu/6.874",
+    "list_type": "Others",
+    "lecture": "Electronic health records and patient data",
+    "slides": [
+      1
+    ]
+  },
+  {
+    "name": "EpiMap Repository - EpiMap Repository",
+    "url": "http://compbio.mit.edu/epimap",
+    "list_type": "Others",
+    "lecture": "Electronic health records and patient data",
+    "slides": [
+      14
+    ]
+  },
+  {
+    "name": "Topics – GATK",
+    "url": "http://gatkforums.broadinstitute.org/gatk/discussion/4148/hc-overview-how-the-haplotypecaller-works",
+    "list_type": "Tutorials",
+    "lecture": "Electronic health records and patient data",
+    "slides": [
+      116,
+      128
+    ]
+  },
+  {
+    "name": "European genealogy FAQ",
+    "url": "http://gcbias.org/european-genealogy-faq/",
+    "list_type": "Blogs",
+    "lecture": "Electronic health records and patient data",
+    "slides": [
+      66
+    ]
+  },
+  {
+    "name": "EpiMap Repository - EpiMap Repository",
+    "url": "http://compbio.mit.edu/epimap",
+    "list_type": "Others",
+    "lecture": "GWAS and Rare variants",
+    "slides": [
+      74
+    ]
+  },
+  {
+    "name": "Topics – GATK",
+    "url": "http://gatkforums.broadinstitute.org/gatk/discussion/4148/hc-overview-how-the-haplotypecaller-works",
+    "list_type": "Tutorials",
+    "lecture": "GWAS and Rare variants",
+    "slides": [
+      82
+    ]
+  },
+  {
+    "name": "Spring 2021 6.874 Computational Systems Biology: Deep Learning in the Life Sciences",
+    "url": "http://mit6874.github.io",
+    "list_type": "Others",
+    "lecture": "GWAS and Rare variants",
+    "slides": [
+      1
+    ]
+  },
+  {
+    "name": "From GWAS Hits to Genes and Mechanisms: Challenges and Opportunities",
+    "url": "https://www.cell.com/ajhg/fulltext/S0002-9297(17",
+    "list_type": "Research Papers",
+    "lecture": "GWAS and Rare variants",
+    "slides": [
+      32
+    ]
+  },
+  {
+    "name": "Spring 2021 6.874 Computational Systems Biology: Deep Learning in the Life Sciences",
+    "url": "http://compbio.mit.edu/6874",
+    "list_type": "Others",
+    "lecture": "Gene Expression, Splicing",
+    "slides": [
+      1
+    ]
+  },
+  {
+    "name": "Histone deacetylase",
+    "url": "http://en.wikipedia.org/wiki/Histone_deacetylase#cite_note-20",
+    "list_type": "Wikipedia",
+    "lecture": "Gene Expression, Splicing",
+    "slides": [
+      71
+    ]
+  },
+  {
+    "name": "Histone deacetylase",
+    "url": "http://en.wikipedia.org/wiki/Histone_deacetylase#cite_note-pmid18230051-19",
+    "list_type": "Wikipedia",
+    "lecture": "Gene Expression, Splicing",
+    "slides": [
+      71
+    ]
+  },
+  {
+    "name": "Neurodegenerative diseases",
+    "url": "http://en.wikipedia.org/wiki/Neurodegenerative_diseases",
+    "list_type": "Wikipedia",
+    "lecture": "Gene Expression, Splicing",
+    "slides": [
+      71
+    ]
+  },
+  {
+    "name": "Valproic acid",
+    "url": "http://en.wikipedia.org/wiki/Valproic_acid",
+    "list_type": "Wikipedia",
+    "lecture": "Gene Expression, Splicing",
+    "slides": [
+      71
+    ]
+  },
+  {
+    "name": "illumina/spliceAI",
+    "url": "http://github.com/illumina/spliceAI",
+    "list_type": "GitHub Repositories",
+    "lecture": "Gene Expression, Splicing",
+    "slides": [
+      134
+    ]
+  },
+  {
+    "name": "NIH LINCS Program",
+    "url": "http://lincsproject.org",
+    "list_type": "Others",
+    "lecture": "Gene Expression, Splicing",
+    "slides": [
+      74
+    ]
+  },
+  {
+    "name": "Deep Learning for Image Super-resolution: A Survey",
+    "url": "https://arxiv.org/pdf/1902.06068.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Gene Expression, Splicing",
+    "slides": [
+      15
+    ]
+  },
+  {
+    "name": "BaseSpace Sequence Hub",
+    "url": "https://basespace.illumina.com/s/5u6ThOblecrh",
+    "list_type": "Others",
+    "lecture": "Gene Expression, Splicing",
+    "slides": [
+      134
+    ]
+  },
+  {
+    "name": "Vista Enhancer Browser",
+    "url": "https://enhancer.lbl.gov/",
+    "list_type": "Others",
+    "lecture": "Gene Expression, Splicing",
+    "slides": [
+      60
+    ]
+  },
+  {
+    "name": "From Autoencoder to Beta-VAE",
+    "url": "https://lilianweng.github.io/lil-log/",
+    "list_type": "Blogs",
+    "lecture": "Gene Expression, Splicing",
+    "slides": [
+      87,
+      90
+    ]
+  },
+  {
+    "name": "Where before What, a Weakly Supervised Framework (DECODE) for Precise Enhancer Localization",
+    "url": "https://www.biorxiv.org/content/10.1101/2021.01.27.428477v2.full.pd",
+    "list_type": "Research Papers",
+    "lecture": "Gene Expression, Splicing",
+    "slides": [
+      52
+    ]
+  },
+  {
+    "name": "Where before What, a Weakly Supervised Framework (DECODE) for Precise Enhancer Localization",
+    "url": "https://www.biorxiv.org/content/10.1101/2021.01.27.428477v2.full.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Gene Expression, Splicing",
+    "slides": [
+      52
+    ]
+  },
+  {
+    "name": "Single-cell atlas of the human muscle-nerve interface",
+    "url": "https://www.biorxiv.org/content/10.1101/2021.01.28.428689v1.abstract",
+    "list_type": "Research Papers",
+    "lecture": "Gene Expression, Splicing",
+    "slides": [
+      95
+    ]
+  },
+  {
+    "name": "FactorNet: A deep learning framework for predicting cell-type specific transcription factor binding from nucleotide-sequence and genomic-context features",
+    "url": "https://www.sciencedirect.com/science/article/pii/S1046202318303293",
+    "list_type": "Research Papers",
+    "lecture": "Gene Expression, Splicing",
+    "slides": [
+      67
+    ]
+  },
+  {
+    "name": "On Unifying Deep Generative Models",
+    "url": "https://arxiv.org/pdf/1706.00550.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Generative Models, GANs, VAE",
+    "slides": [
+      118
+    ]
+  },
+  {
+    "name": "hindupuravinash/the-gan-zoo",
+    "url": "https://github.com/hindupuravinash/the-gan-zoo",
+    "list_type": "GitHub Repositories",
+    "lecture": "Generative Models, GANs, VAE",
+    "slides": [
+      109,
+      110
+    ]
+  },
+  {
+    "name": "soumith/ganhacks",
+    "url": "https://github.com/soumith/ganhacks",
+    "list_type": "GitHub Repositories",
+    "lecture": "Generative Models, GANs, VAE",
+    "slides": [
+      110
+    ]
+  },
+  {
+    "name": "Image-to-Image Translation with Conditional Adversarial Networks",
+    "url": "https://phillipi.github.io/pix2pix/",
+    "list_type": "Research Papers",
+    "lecture": "Generative Models, GANs, VAE",
+    "slides": [
+      112
+    ]
+  },
+  {
+    "name": "BBillot/lab2im",
+    "url": "https://github.com/BBillot/lab2im",
+    "list_type": "GitHub Repositories",
+    "lecture": "Imaging and Cancer",
+    "slides": [
+      34
+    ]
+  },
+  {
+    "name": "Gleason Score - Prostate Conditions",
+    "url": "https://www.prostateconditions.org/about-prostate-conditions/prostate-cancer/newly-diagnosed/gleason-score",
+    "list_type": "Others",
+    "lecture": "Imaging applications in healthcare",
+    "slides": [
+      44
+    ]
+  },
+  {
+    "name": "Visualizing and Understanding Convolutional Networks",
+    "url": "https://arxiv.org/pdf/1311.2901.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Interpretability, Dimensionality Reduction",
+    "slides": [
+      65
+    ]
+  },
+  {
+    "name": "Deep Inside Convolutional Networks: Visualising Image Classification Models and Saliency Maps",
+    "url": "https://arxiv.org/pdf/1312.6034.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Interpretability, Dimensionality Reduction",
+    "slides": [
+      21,
+      25,
+      29,
+      50,
+      51
+    ]
+  },
+  {
+    "name": "Striving for Simplicity: The All Convolutional Net",
+    "url": "https://arxiv.org/pdf/1412.6806.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Interpretability, Dimensionality Reduction",
+    "slides": [
+      64,
+      66
+    ]
+  },
+  {
+    "name": "An Analysis of Deep Neural Network Models for Practical Applications",
+    "url": "https://arxiv.org/pdf/1605.07678.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Interpretability, Dimensionality Reduction",
+    "slides": [
+      11,
+      23
+    ]
+  },
+  {
+    "name": "Gradients of Counterfactuals",
+    "url": "https://arxiv.org/pdf/1611.02639.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Interpretability, Dimensionality Reduction",
+    "slides": [
+      61,
+      62
+    ]
+  },
+  {
+    "name": "Axiomatic Attribution for Deep Networks",
+    "url": "https://arxiv.org/pdf/1703.01365.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Interpretability, Dimensionality Reduction",
+    "slides": [
+      54,
+      57
+    ]
+  },
+  {
+    "name": "Understanding Black-box Predictions via Influence Functions",
+    "url": "https://arxiv.org/pdf/1703.04730.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Interpretability, Dimensionality Reduction",
+    "slides": [
+      45
+    ]
+  },
+  {
+    "name": "Learning Important Features Through Propagating Activation Differences",
+    "url": "https://arxiv.org/pdf/1704.02685.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Interpretability, Dimensionality Reduction",
+    "slides": [
+      57
+    ]
+  },
+  {
+    "name": "Learning how to explain neural networks: PatternNet and PatternAttribution",
+    "url": "https://arxiv.org/pdf/1705.05598.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Interpretability, Dimensionality Reduction",
+    "slides": [
+      57
+    ]
+  },
+  {
+    "name": "SmoothGrad: removing noise by adding noise",
+    "url": "https://arxiv.org/pdf/1706.03825.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Interpretability, Dimensionality Reduction",
+    "slides": [
+      52,
+      53,
+      59,
+      60,
+      73
+    ]
+  },
+  {
+    "name": "Interpretation of Neural Networks is Fragile",
+    "url": "https://arxiv.org/pdf/1710.10547.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Interpretability, Dimensionality Reduction",
+    "slides": [
+      45
+    ]
+  },
+  {
+    "name": "Towards better understanding of gradient-based attribution methods for Deep Neural Networks",
+    "url": "https://arxiv.org/pdf/1711.06104.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Interpretability, Dimensionality Reduction",
+    "slides": [
+      49
+    ]
+  },
+  {
+    "name": "Noise-adding Methods of Saliency Map as Series of Higher Order Partial Derivative",
+    "url": "https://arxiv.org/pdf/1806.03000.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Interpretability, Dimensionality Reduction",
+    "slides": [
+      72
+    ]
+  },
+  {
+    "name": "A Benchmark for Interpretability Methods in Deep Neural Networks",
+    "url": "https://arxiv.org/pdf/1806.10758.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Interpretability, Dimensionality Reduction",
+    "slides": [
+      79,
+      80,
+      81
+    ]
+  },
+  {
+    "name": "On Pixel-Wise Explanations for Non-Linear Classifier Decisions by Layer-Wise Relevance Propagation",
+    "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0130140",
+    "list_type": "Research Papers",
+    "lecture": "Interpretability, Dimensionality Reduction",
+    "slides": [
+      57
+    ]
+  },
+  {
+    "name": "Examples are not Enough, Learn to Criticize! Criticism for Interpretability",
+    "url": "https://people.csail.mit.edu/beenkim/papers/KIM2016NIPS_MMD.pdf",
+    "list_type": "Research Papers",
+    "lecture": "Interpretability, Dimensionality Reduction",
+    "slides": [
+      39
+    ]
+  },
+  {
+    "name": "ConvNetJS demo: Classify toy 2D data",
+    "url": "http://cs.stanford.edu/people/karpathy/convnetjs/demo/classify2d.html",
+    "list_type": "Tutorials",
+    "lecture": "ML Foundations",
+    "slides": [
+      96
+    ]
+  },
+  {
+    "name": "CS231n Deep Learning for Computer Vision",
+    "url": "http://cs231n.github.io/neural-networks-case-study/",
+    "list_type": "Tutorials",
+    "lecture": "ML Foundations",
+    "slides": [
+      95,
+      97
+    ]
+  },
+  {
+    "name": "Sensitivity and specificity",
+    "url": "https://en.wikipedia.org/wiki/Sensitivity_and_specificity",
+    "list_type": "Wikipedia",
+    "lecture": "ML Foundations",
+    "slides": [
+      161
+    ]
+  },
+  {
+    "name": "Laboratory of Protein Design and Immunoengineering",
+    "url": "http://www.lpdi.epfl.ch",
+    "list_type": "Others",
+    "lecture": "Protein folding",
+    "slides": [
+      1
+    ]
+  },
+  {
+    "name": "Deciphering interaction fingerprints from protein molecular surfaces using geometric deep learning",
+    "url": "mailto:bruno.correia@epfl.ch",
+    "list_type": "Others",
+    "lecture": "Protein folding",
+    "slides": [
+      1
+    ]
+  },
+  {
+    "name": "Geometric deep learning on graphs and manifolds",
+    "url": "http://helper.ipam.ucla.edu/publications/glws4/glws4_15546.pdf",
+    "list_type": "Presentations",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      43
+    ]
+  },
+  {
+    "name": "Spring 2021 6.874 Computational Systems Biology: Deep Learning in the Life Sciences",
+    "url": "http://mit6874.github.io",
+    "list_type": "GitHub Repositories",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      1
+    ]
+  },
+  {
+    "name": "Graph Convolutional Networks",
+    "url": "http://tkipf.github.io/graph-convolutional-networks/",
+    "list_type": "Blogs",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      95
+    ]
+  },
+  {
+    "name": "Graph Convolutional Networks",
+    "url": "http://tkipf.github.io/misc/SlidesCambridge.pdf",
+    "list_type": "Presentations",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      43
+    ]
+  },
+  {
+    "name": "CS224W",
+    "url": "http://web.stanford.edu/class/cs224w/",
+    "list_type": "Others",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      43
+    ]
+  },
+  {
+    "name": "Graph Neural Networks",
+    "url": "https://atcold.github.io/pytorch-Deep-Learning/en/week13/13-1/",
+    "list_type": "Tutorials",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      43
+    ]
+  },
+  {
+    "name": "UvA DARE",
+    "url": "https://dare.uva.nl/search?identifier=1b63b965-24c4-4bcd-aabb-b849056fa76d",
+    "list_type": "Research Papers",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      43
+    ]
+  },
+  {
+    "name": "Traffic prediction with advanced Graph Neural Networks â Google DeepMind",
+    "url": "https://deepmind.com/blog/article/traffic-prediction-with-advanced-graph-neural-networks",
+    "list_type": "Blogs",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      49
+    ]
+  },
+  {
+    "name": "deepmind/jraph",
+    "url": "https://github.com/deepmind/jraph",
+    "list_type": "GitHub Repositories",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      43
+    ]
+  },
+  {
+    "name": "magicleap/SuperGluePretrainedNetwork",
+    "url": "https://github.com/magicleap/SuperGluePretrainedNetwork",
+    "list_type": "GitHub Repositories",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      49
+    ]
+  },
+  {
+    "name": "Graph Mining @ NeurIPS 2020",
+    "url": "https://gm-neurips-2020.github.io/master-deck.pdf",
+    "list_type": "Presentations",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      43
+    ]
+  },
+  {
+    "name": "The next big thing: the use of graph neural networks to discover particles",
+    "url": "https://news.fnal.gov/2020/09/the-next-big-thing-the-use-of-graph-neural-networks-to-discover-particles/",
+    "list_type": "Blogs",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      49
+    ]
+  },
+  {
+    "name": "Junction Tree Variational Autoencoder for Molecular Graph Generation",
+    "url": "https://qdata.github.io/deep2Read/talks2019/Extra19s/TkachJunctionTreeVAE.pdf",
+    "list_type": "Presentations",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      43
+    ]
+  },
+  {
+    "name": "JavaScript is not available.",
+    "url": "https://twitter.com/petarv_93/status/1306689702020382720?lang=en",
+    "list_type": "Others",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      43
+    ]
+  },
+  {
+    "name": "Graph Representation Learning",
+    "url": "https://www.cs.mcgill.ca/%7Ewlh/grl_book/files/GRL_Book.pdf",
+    "list_type": "Textbooks",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      43
+    ]
+  },
+  {
+    "name": "Deciphering interaction fingerprints from protein molecular surfaces using geometric deep learning",
+    "url": "https://www.nature.com/articles/s41592-019-0666-6",
+    "list_type": "Research Papers",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      49
+    ]
+  },
+  {
+    "name": "How sounds going into our ears become words going through our brains",
+    "url": "https://www.sciencedaily.com/releases/2018/11/181129142352.htm",
+    "list_type": "Blogs",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      4
+    ]
+  },
+  {
+    "name": "Lecture 7/16 : Recurrent neural networks",
+    "url": "https://youtu.be/9T2X6WRUwFU?t=2791",
+    "list_type": "Videos",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      31
+    ]
+  },
+  {
+    "name": "McGurk Effect",
+    "url": "https://youtu.be/PWGeUztTkRA?t=35",
+    "list_type": "Videos",
+    "lecture": "Recurrent Neural Networks, Graph Neural Networks",
+    "slides": [
+      4
+    ]
+  },
+  {
+    "name": "Spring 2021 6.874 Computational Systems Biology: Deep Learning in the Life Sciences",
+    "url": "http://mit6874.github.io",
+    "list_type": "Others",
+    "lecture": "Single cell RNA-sequencing",
+    "slides": [
+      1
+    ]
+  },
+  {
+    "name": "Startseite",
+    "url": "http://www.comp.bio/",
+    "list_type": "Others",
+    "lecture": "Single cell RNA-sequencing",
+    "slides": [
+      119,
+      140
+    ]
+  },
+  {
+    "name": "scvi-tools",
+    "url": "https://scvi-tools.org",
+    "list_type": "Code Implementations",
+    "lecture": "Single cell RNA-sequencing",
+    "slides": [
+      194,
+      196
+    ]
+  },
+  {
+    "name": "scvi-tools",
+    "url": "https://scvi-tools.org/",
+    "list_type": "Code Implementations",
+    "lecture": "Single cell RNA-sequencing",
+    "slides": [
+      196
+    ]
+  },
+  {
+    "name": "Sign in - Google Accounts",
+    "url": "https://sites.google.com/uw.edu/splitseq/home",
+    "list_type": "Tutorials",
+    "lecture": "Single cell RNA-sequencing",
+    "slides": [
+      18
+    ]
+  },
+  {
+    "name": "Email",
+    "url": "mailto:romain_lopez@berkeley.edu",
+    "list_type": "Others",
+    "lecture": "Single cell RNA-sequencing",
+    "slides": [
+      196
+    ]
+  },
+  {
+    "name": "The Electron Microscopy Gallery",
+    "url": "http://academics.hamilton.edu/biology/kbart/EMImages.html",
+    "list_type": "Others",
+    "lecture": "Transcription Factors, DNA methylation",
+    "slides": [
+      29
+    ]
+  },
+  {
+    "name": "Formation of Chromosomal Domains by Loop Extrusion",
+    "url": "http://biorxiv.org/content/early/2015/08/14/024620",
+    "list_type": "Research Papers",
+    "lecture": "Transcription Factors, DNA methylation",
+    "slides": [
+      46
+    ]
+  },
+  {
+    "name": "Spring 2021 6.874 Computational Systems Biology: Deep Learning in the Life Sciences",
+    "url": "http://mit6874.github.io",
+    "list_type": "GitHub Repositories",
+    "lecture": "Transcription Factors, DNA methylation",
+    "slides": [
+      1
+    ]
+  },
+  {
+    "name": "Predicting the sequence specificities of DNA- and RNA-binding proteins by deep learning",
+    "url": "http://www.nature.com/nbt/journal/v33/n8/full/nbt.3300.html",
+    "list_type": "Research Papers",
+    "lecture": "Transcription Factors, DNA methylation",
+    "slides": [
+      84
+    ]
+  },
+  {
+    "name": "Sequence logo",
+    "url": "https://en.wikipedia.org/wiki/Sequence_logo",
+    "list_type": "Wikipedia",
+    "lecture": "Transcription Factors, DNA methylation",
+    "slides": [
+      61
+    ]
+  },
+  {
+    "name": "EpiMap Repository - EpiMap Repository",
+    "url": "http://compbio.mit.edu/epimap",
+    "list_type": "Others",
+    "lecture": "eQTLs",
+    "slides": [
+      23
+    ]
+  },
+  {
+    "name": "European genealogy FAQ",
+    "url": "http://gcbias.org/european-genealogy-faq/",
+    "list_type": "Blogs",
+    "lecture": "eQTLs",
+    "slides": [
+      87
+    ]
+  },
+  {
+    "name": "Spring 2021 6.874 Computational Systems Biology: Deep Learning in the Life Sciences",
+    "url": "http://mit6874.github.io",
+    "list_type": "GitHub Repositories",
+    "lecture": "eQTLs",
+    "slides": [
+      1
+    ]
+  }
+]

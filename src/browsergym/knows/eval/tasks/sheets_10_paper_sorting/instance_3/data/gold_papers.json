@@ -1,0 +1,100 @@
+{
+  "papers": [
+    {
+      "title": "Stacked Monte Carlo for option pricing",
+      "authors": [
+        "Antoine Jacquier",
+        "Emma R. Malone",
+        "Mugad Oumgari"
+      ],
+      "first_author": "Antoine Jacquier",
+      "first_author_normalized": "antoine jacquier",
+      "abstract": "We introduce a stacking version of the Monte Carlo algorithm in the context of option pricing. Introduced recently for aeronautic computations, this simple technique, in the spirit of current machine learning ideas, learns control variates by approximating Monte Carlo draws with some specified function. We describe the method from first principles and suggest appropriate fits, and show its efficiency to evaluate European and Asian Call options in constant and stochastic volatility models.",
+      "arxiv_id": "1903.10795",
+      "arxiv_url": "https://arxiv.org/abs/1903.10795",
+      "gold_labels_first_authors": [
+        "Antoine Jacquier"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "antoine jacquier"
+      ],
+      "figure_1_path": "data/gold_figures/original_1_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "title": "Recent Advances in Reinforcement Learning in Finance",
+      "authors": [
+        "Ben Hambly",
+        "Renyuan Xu",
+        "Huining Yang"
+      ],
+      "first_author": "Ben Hambly",
+      "first_author_normalized": "ben hambly",
+      "abstract": "The rapid changes in the finance industry due to the increasing amount of data have revolutionized the techniques on data processing and data analysis and brought new theoretical and computational challenges. In contrast to classical stochastic control theory and other analytical approaches for solving financial decision-making problems that heavily reply on model assumptions, new developments from reinforcement learning (RL) are able to make full use of the large amount of financial data with fewer model assumptions and to improve decisions in complex financial environments. This survey paper aims to review the recent developments and use of RL approaches in finance. We give an introduction to Markov decision processes, which is the setting for many of the commonly used RL approaches. Various algorithms are then introduced with a focus on value and policy based methods that do not require any model assumptions. Connections are made with neural networks to extend the framework to encompass deep RL algorithms. Our survey concludes by discussing the application of these RL algorithms in a variety of decision-making problems in finance, including optimal execution, portfolio optimization, option pricing and hedging, market making, smart order routing, and robo-advising.",
+      "arxiv_id": "2112.04553",
+      "arxiv_url": "https://arxiv.org/abs/2112.04553",
+      "gold_labels_first_authors": [
+        "Ben Hambly"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "ben hambly"
+      ],
+      "figure_1_path": "data/gold_figures/original_2_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "title": "Optimal nonparametric estimation of the expected shortfall risk",
+      "authors": [
+        "Daniel Bartl",
+        "Stephan Eckstein"
+      ],
+      "first_author": "Daniel Bartl",
+      "first_author_normalized": "daniel bartl",
+      "abstract": "We address the problem of estimating the expected shortfall risk of a financial loss using a finite number of i.i.d. data. It is well known that the classical plug-in estimator suffers from poor statistical performance when faced with (heavy-tailed) distributions that are commonly used in financial contexts. Further, it lacks robustness, as the modification of even a single data point can cause a significant distortion. We propose a novel procedure for the estimation of the expected shortfall and prove that it recovers the best possible statistical properties (dictated by the central limit theorem) under minimal assumptions and for all finite numbers of data. Further, this estimator is adversarially robust: even if a (small) proportion of the data is maliciously modified, the procedure continuous to optimally estimate the true expected shortfall risk. We demonstrate that our estimator outperforms the classical plug-in estimator through a variety of numerical experiments across a range of standard loss distributions.",
+      "arxiv_id": "2405.00357",
+      "arxiv_url": "https://arxiv.org/abs/2405.00357",
+      "gold_labels_first_authors": [
+        "Daniel Bartl"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "daniel bartl"
+      ],
+      "figure_1_path": "data/gold_figures/original_3_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses various statistical concepts and techniques such as median-of-blocks estimators, resampling methods (bootstrapping), and adversarial robustness. However, it does not contain any mention of \"Monte Carlo\" as a concept or technique, neither incidentally nor meaningfully.",
+      "keyword_evaluated": true
+    },
+    {
+      "title": "On Quantum Ambiguity and Potential Exponential Computational Speed-Ups to Solving Dynamic Asset Pricing Models",
+      "authors": [
+        "Eric Ghysels",
+        "Jack Morgan"
+      ],
+      "first_author": "Eric Ghysels",
+      "first_author_normalized": "eric ghysels",
+      "abstract": "We formulate quantum computing solutions to a large class of dynamic nonlinear asset pricing models using algorithms, in theory exponentially more efficient than classical ones, which leverage the quantum properties of superposition and entanglement. The equilibrium asset pricing solution is a quantum state. We introduce quantum decision-theoretic foundations of ambiguity and model/parameter uncertainty to deal with model selection.",
+      "arxiv_id": "2405.01479",
+      "arxiv_url": "https://arxiv.org/abs/2405.01479",
+      "gold_labels_first_authors": [
+        "Eric Ghysels"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "eric ghysels"
+      ],
+      "figure_1_path": "data/gold_figures/original_4_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    }
+  ],
+  "count": 4,
+  "source_folder_id": "1Fc1GthzO8dAuekt-L3dL4FfUbW7wjeZM",
+  "generated_at": "2026-05-03T14:15:52.274442",
+  "figure_extraction_date": "2026-05-18T19:49:54.658258",
+  "keyword_detection_date": "2026-05-18T20:26:42.984956",
+  "keyword": "Monte Carlo"
+}

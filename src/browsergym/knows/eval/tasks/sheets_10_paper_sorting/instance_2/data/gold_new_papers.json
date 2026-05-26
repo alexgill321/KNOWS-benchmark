@@ -1,0 +1,847 @@
+{
+  "papers": [
+    {
+      "arxiv_id": "2502.05823",
+      "title": "Little ado about everything II: an `emergent' dark energy from structure formation to rule cosmic tensions",
+      "authors": [
+        "Andrea Lapi",
+        "Balakrishna S. Haridasu",
+        "Lumen Boco",
+        "Marcos M. Cueli",
+        "Carlo Baccigalupi",
+        "Luigi Danese"
+      ],
+      "first_author": "Andrea Lapi",
+      "first_author_normalized": "andrea lapi",
+      "abstract": "[abridged] The $η$CDM framework is a new cosmological model aimed to cure some drawbacks of the standard $Λ$CDM scenario, such as the origin of the accelerated expansion at late times, the cosmic tensions, and the violation of the cosmological principle due to the progressive development of inhomogeneous/anisotropic conditions in the Universe during structure formation. To this purpose, the model adopts a statistical perspective envisaging a stochastic evolution of large-scale patches in the Universe with typical sizes $10-50\\, h^{-1}$ Mpc, which is meant to describe the complex gravitational processes leading to the formation of the cosmic web. The stochasticity among different patches is technically rendered via the diverse realizations of a multiplicative noise term (`a little ado') in the cosmological equations, and the overall background evolution of the Universe is then operationally defined as an average over the patch ensemble. In this paper we show that such an ensemble-averaged evolution in $η$CDM can be described in terms of a spatially flat cosmology and of an `emergent' dark energy with a time-dependent equation of state, able to originate the cosmic acceleration with the right timing and to solve the coincidence problem. Then we test the $η$CDM model against the most recent supernova type-I$a$, baryon acoustic oscillations and structure growth rate datasets, finding an excellent agreement. Remarkably, we demonstrate that $η$CDM is able to alleviate simultaneously both the $H_0$ and the $fσ_8$ tensions. Finally, we discuss that the Linders' diagnostic test could be helpful to better distinguish $η$CDM from the standard scenario in the near future via upcoming galaxy redshift surveys at intermediate redshifts such as those being conducted by the Euclid mission.",
+      "arxiv_url": "https://arxiv.org/abs/2502.05823",
+      "pdf_url": "https://arxiv.org/pdf/2502.05823v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Little ado about everything. Part II. An'emergent'dark energy from structure formation to rule cosmic tensions",
+      "match_method": "fuzzy_title (score=82.4074074074074)",
+      "associated_original_paper": "Semi-empirical Models of Galaxy Formation and Evolution",
+      "associated_first_authors": [
+        "Andrea Lapi"
+      ],
+      "figure_1_path": "data/gold_figures/new_1_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2408.08611",
+      "title": "Semi-empirical Estimates of the Cosmic Planet Formation Rate",
+      "authors": [
+        "Andrea Lapi",
+        "Lumen Boco",
+        "Francesca Perrotta",
+        "Marcella Massardi"
+      ],
+      "first_author": "Andrea Lapi",
+      "first_author_normalized": "andrea lapi",
+      "abstract": "We devise and exploit a data-driven, semi-empirical framework of galaxy formation and evolution, coupling it to recipes for planet formation from stellar and planetary science, to compute the cosmic planet formation rate, and the properties of the planets' preferred host stellar and galactic environments. We also discuss how the rates and formation sites of planets are affected when considering their habitability, and when including possible threatening sources related to star formation and nuclear activity. Overall, we conservatively estimate a cumulative number of some $10^{20}$ Earth-like planets and around $10^{18}$ habitable Earths in our past lightcone. Finally, we find that a few $10^{17}$ are older than our own Earth, an occurrence which places a loose lower limit a few $10^{-18}$ to the odds for a habitable world to ever hosting a civilization in the observable Universe.",
+      "arxiv_url": "https://arxiv.org/abs/2408.08611",
+      "pdf_url": "https://arxiv.org/pdf/2408.08611v1",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Semi-Empirical Estimates of the Cosmic Planet Formation Rate",
+      "match_method": "exact_title",
+      "associated_original_paper": "Semi-empirical Models of Galaxy Formation and Evolution",
+      "associated_first_authors": [
+        "Andrea Lapi"
+      ],
+      "figure_1_path": "data/gold_figures/new_2_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2507.15436",
+      "title": "Semi-empirical Framework of Supermassive Black Hole Evolution: Highlighting a possible tension between Demographics and Gravitational Wave Background",
+      "authors": [
+        "Andrea Lapi",
+        "Francesco Shankar",
+        "Michele Bosi",
+        "Daniel Roberts",
+        "Hao Fu",
+        "Karthik M. Varadarajan",
+        "Lumen Boco"
+      ],
+      "first_author": "Andrea Lapi",
+      "first_author_normalized": "andrea lapi",
+      "abstract": "The evolution of the supermassive Black Hole (BH) population across cosmic times remains a central unresolved issue in modern astrophysics, due to the many noticeable uncertainties in the involved physical processes that span a huge range of spatial, temporal and energy scales. Here we tackle the problem via a semi-empirical approach with minimal assumptions and data-driven inputs. This is based on a continuity plus Smoluchowski equation framework that allows to unitarily describe the two primary modes of BH growth: gas accretion and binary mergers. Key quantities related to the latter processes are incorporated through educated parameterizations, and then constrained in a Bayesian setup from joint observational estimates of the local BH mass function, of the large-scale BH clustering, and of the nano-Hz stochastic gravitational wave (GW) background measured from Pulsar Timimg Array (PTA) experiments. We find that the BH accretion-related parameters are strongly dependent on the local BH mass function determination: higher normalizations and flatter high-mass slopes in the latter imply lower radiative efficiencies and mean Eddington ratios with a stronger redshift evolution. Additionally, the binary BH merger rate is estimated to be a fraction $\\lesssim 10^{-1}$ of the galaxy merger rate derived from galaxy pairs counts by \\texttt{JWST}, and constrained not to exceed the latter at $\\gtrsim 2σ$. Relatedly, we highlight hints of a possible tension between current constraints on BH demographics and the interpretation of the nano-Hz GW background as predominantly caused by binary BH mergers. Specifically, we bound the latter's contribution to $\\lesssim 30-50\\%$ at $\\sim 3σ$, suggesting that additional astrophysical/cosmological sources are needed to explain the residual part of the signal measured by PTA experiments.",
+      "arxiv_url": "https://arxiv.org/abs/2507.15436",
+      "pdf_url": "https://arxiv.org/pdf/2507.15436v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Semi-empirical framework of supermassive black hole evolution: highlighting a possible tension between demographics and gravitational wave background",
+      "match_method": "exact_title",
+      "associated_original_paper": "Semi-empirical Models of Galaxy Formation and Evolution",
+      "associated_first_authors": [
+        "Andrea Lapi"
+      ],
+      "figure_1_path": "data/gold_figures/new_3_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses gravitational waves from binary black hole mergers, the BH mass function, and the characteristic strain. It does not mention \"dark energy\" at any point, nor does it discuss any related cosmological concepts.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2209.14707",
+      "title": "Probing Early Universe Supercooled Phase Transitions with Gravitational Wave Data",
+      "authors": [
+        "Charles Badger",
+        "Bartosz Fornal",
+        "Katarina Martinovic",
+        "Alba Romero",
+        "Kevin Turbang",
+        "Huai-Ke Guo",
+        "Alberto Mariotti",
+        "Mairi Sakellariadou",
+        "Alexander Sevrin",
+        "Feng-Wei Yang",
+        "Yue Zhao"
+      ],
+      "first_author": "Charles Badger",
+      "first_author_normalized": "charles badger",
+      "abstract": "We investigate the reach of the LIGO/Virgo/KAGRA detectors in the search for signatures of first-order phase transitions in the early Universe. Utilising data from the first three observing runs, we derive constraints on the parameters of the underlying gravitational-wave background, focusing on transitions characterised by strong supercooling. As an application of our analysis, we determine bounds on the parameter space of two representative particle physics models. We also comment on the expected reach of third-generation detectors in probing supercooled phase transitions.",
+      "arxiv_url": "https://arxiv.org/abs/2209.14707",
+      "pdf_url": "https://arxiv.org/pdf/2209.14707v1",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Probing early Universe supercooled phase transitions with gravitational wave data",
+      "match_method": "exact_title",
+      "associated_original_paper": "Rapid detection of gravitational waves from binary black hole mergers using sparse\ndictionary learning",
+      "associated_first_authors": [
+        "Charles Badger",
+        "Rahul Srinivasan"
+      ],
+      "figure_1_path": "data/gold_figures/new_4_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] NO.\n\nThe text provided does not contain any mention of \"dark energy,\" either meaningful or incidental. The discussion focuses entirely on the detectability of gravitational wave backgrounds, first-order phase transitions (FOPTs), and the comparison of different detection methodologies (PI curves, SNR, Bayesian analysis) using LVK detectors.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2406.11742",
+      "title": "Detection Prospects of Gravitational Waves from SU(2) Axion Inflation",
+      "authors": [
+        "Charles Badger",
+        "Hannah Duval",
+        "Tomohiro Fujita",
+        "Sachiko Kuroyanagi",
+        "Alba Romero-Rodríguez",
+        "Mairi Sakellariadou"
+      ],
+      "first_author": "Charles Badger",
+      "first_author_normalized": "charles badger",
+      "abstract": "We study detection prospects of a gravitational-wave background (GWB) sourced by SU(2) gauge fields considering all possible observational constraints. More precisely, we consider bounds set by cosmic microwave background measurements, primordial black hole overproduction, as well as backreaction of the gauge fields on the background evolution. Gravitational-waves data from the first three observing runs of the LIGO-Virgo-KAGRA Collaboration show no evidence for a GWB contribution from axion inflation. However, we are able to place conservative constraints on the parameters of the SU(2) inflation with current data. We investigate conditions on the inflationary potential that would lead to a detectable signal that evades astrophysical and cosmological constraints and discuss detection prospects for third generation networks.",
+      "arxiv_url": "https://arxiv.org/abs/2406.11742",
+      "pdf_url": "https://arxiv.org/pdf/2406.11742v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Detection prospects of gravitational waves from SU (2) axion inflation",
+      "match_method": "exact_title",
+      "associated_original_paper": "Rapid detection of gravitational waves from binary black hole mergers using sparse\ndictionary learning",
+      "associated_first_authors": [
+        "Charles Badger",
+        "Rahul Srinivasan"
+      ],
+      "figure_1_path": "data/gold_figures/new_5_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:**\nThe provided text discusses the energy scale of inflation, the tensor-to-scalar ratio, the Hubble expansion rate during inflation, and CMB polarization experiments. These are concepts related to the early universe and primordial gravitational waves. The term \"dark energy\" is not present anywhere in the text, nor are any related concepts or discussions pertaining to the late-time accelerated expansion of the universe.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2210.06194",
+      "title": "Dictionary learning: a novel approach to detecting binary black holes in the presence of Galactic noise with LISA",
+      "authors": [
+        "Charles Badger",
+        "Katarina Martinovic",
+        "Alejandro Torres-Forné",
+        "Mairi Sakellariadou",
+        "José A. Font"
+      ],
+      "first_author": "Charles Badger",
+      "first_author_normalized": "charles badger",
+      "abstract": "The noise produced by the inspiral of millions of white dwarf binaries in the Milky Way may pose a threat to one of the main goals of the space-based LISA mission: the detection of massive black hole binary mergers. We present a novel study for reconstruction of merger waveforms in the presence of Galactic confusion noise using dictionary learning. We discuss the limitations of untangling signals from binaries with total mass from $10^2 M_{\\odot}$ to $10^4 M_{\\odot}$. Our method proves extremely successful for binaries with total mass greater than $\\sim 3\\times 10^3$ $ M_{\\odot}$ up to redshift 3 in conservative scenarios, and up to redshift 7.5 in optimistic scenarios. In addition, consistently good waveform reconstruction of merger events is found if the signal-to-noise ratio is approximately 5 or greater.",
+      "arxiv_url": "https://arxiv.org/abs/2210.06194",
+      "pdf_url": "https://arxiv.org/pdf/2210.06194v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Dictionary learning: a novel approach to detecting binary black holes in the presence of galactic noise with LISA",
+      "match_method": "exact_title",
+      "associated_original_paper": "Rapid detection of gravitational waves from binary black hole mergers using sparse\ndictionary learning",
+      "associated_first_authors": [
+        "Charles Badger",
+        "Rahul Srinivasan"
+      ],
+      "figure_1_path": "data/gold_figures/new_6_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2407.02908",
+      "title": "High-speed reconstruction of long-duration gravitational waves from extreme mass ratio inspirals using sparse dictionary learning",
+      "authors": [
+        "Charles Badger",
+        "José A. Font",
+        "Mairi Sakellariadou",
+        "Alejandro Torres-Forné"
+      ],
+      "first_author": "Charles Badger",
+      "first_author_normalized": "charles badger",
+      "abstract": "Measuring accurate long-duration gravitational waves from extreme mass ratio inspirals (EMRIs) could provide scientifically fruitful knowledge of massive black hole populations and robust tests for general relatively during the LISA mission. However, the immense computational requirements surrounding EMRI data processing and analysis makes their detection and analysis challenging. We further develop and explore a sparse dictionary learning (SDL) algorithm to expeditiously reconstruct EMRI gravitational waveforms lasting as long as 1 year. A suite of year-long EMRI systems are studied to understand the detection and accurate waveform retrieval prospects of the method. We show that full-year EMRIs can be reconstructed within 2 minutes, some with a false alarm rate less than 0.001/yr and with 1.16 day time windows with mismatch as low as 0.06. This provides an encouraging prospect to use the SDL method for long-duration GW searches like that for EMRIs in this study.",
+      "arxiv_url": "https://arxiv.org/abs/2407.02908",
+      "pdf_url": "https://arxiv.org/pdf/2407.02908v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "High-speed reconstruction of long-duration gravitational waves from extreme-mass-ratio inspirals using sparse dictionary learning",
+      "match_method": "exact_title",
+      "associated_original_paper": "Rapid detection of gravitational waves from binary black hole mergers using sparse\ndictionary learning",
+      "associated_first_authors": [
+        "Charles Badger",
+        "Rahul Srinivasan"
+      ],
+      "figure_1_path": "data/gold_figures/new_7_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2405.17721",
+      "title": "Rapid detection of gravitational waves from binary black hole mergers using sparse dictionary learning",
+      "authors": [
+        "Charles Badger",
+        "Rahul Srinivasan",
+        "Alejandro Torres-Forné",
+        "Marie Anne Bizouard",
+        "José A. Font",
+        "Mairi Sakellariadou",
+        "Astrid Lamberts"
+      ],
+      "first_author": "Charles Badger",
+      "first_author_normalized": "charles badger",
+      "abstract": "Current gravitational wave (GW) detection pipelines for compact binary coalescence based on matched-filtering have reported over 90 confident detections during the first three observing runs of the LIGO-Virgo-KAGRA (LVK) detector network. Decreasing the latency of detection, in particular for future detectors anticipated to have high detection rates, remains an ongoing effort. In this paper, we develop and test a sparse dictionary learning (SDL) algorithm for the rapid detection of GWs. We evaluate the algorithms biases and estimate its GW detection rate for an astrophysical population of binary black holes. The SDL algorithm is assessed using both, simulated data injected into the proposed A+ detector sensitivity and real data containing confident detections from the third LVK observing run. We find that our SDL algorithm can reconstruct a single binary black hole signal in less than 1 s. This suggests that SDL could be regarded as a promising approach for rapid, efficient GW detection in future observing runs of ground-based detectors.",
+      "arxiv_url": "https://arxiv.org/abs/2405.17721",
+      "pdf_url": "https://arxiv.org/pdf/2405.17721v3",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Rapid detection of gravitational waves from binary black hole mergers using sparse dictionary learning",
+      "match_method": "exact_title",
+      "associated_original_paper": "Rapid detection of gravitational waves from binary black hole mergers using sparse\ndictionary learning",
+      "associated_first_authors": [
+        "Charles Badger",
+        "Rahul Srinivasan"
+      ],
+      "figure_1_path": "data/gold_figures/new_8_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2112.04650",
+      "title": "Detecting parity violation from axion inflation with third generation detectors",
+      "authors": [
+        "Charles Badger",
+        "Mairi Sakellariadou"
+      ],
+      "first_author": "Charles Badger",
+      "first_author_normalized": "charles badger",
+      "abstract": "A gravitational wave background is expected to emerge from the superposition of numerous gravitational wave sources of both astrophysical and cosmological origin. A number of cosmological models can have a parity violation, resulting in the generation of circularly polarised gravitational waves. We investigate the constraining power of third generation Einstein Telescope and Cosmic Explorer detectors, for a gravitational wave background generated by early universe axion inflation.",
+      "arxiv_url": "https://arxiv.org/abs/2112.04650",
+      "pdf_url": "https://arxiv.org/pdf/2112.04650v1",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Detecting parity violation from axion inflation with third generation detectors",
+      "match_method": "exact_title",
+      "associated_original_paper": "Rapid detection of gravitational waves from binary black hole mergers using sparse\ndictionary learning",
+      "associated_first_authors": [
+        "Charles Badger",
+        "Rahul Srinivasan"
+      ],
+      "figure_1_path": "data/gold_figures/new_9_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2404.12294",
+      "title": "Bayesian evidence estimation from posterior samples with normalizing flows",
+      "authors": [
+        "Rahul Srinivasan",
+        "Marco Crisostomi",
+        "Roberto Trotta",
+        "Enrico Barausse",
+        "Matteo Breschi"
+      ],
+      "first_author": "Rahul Srinivasan",
+      "first_author_normalized": "rahul srinivasan",
+      "abstract": "We propose a novel method ($floZ$), based on normalizing flows, to estimate the Bayesian evidence (and its numerical uncertainty) from a pre-existing set of samples drawn from the unnormalized posterior distribution. We validate it on distributions whose evidence is known analytically, up to 15 parameter space dimensions, and compare with two state-of-the-art techniques for estimating the evidence: nested sampling (which computes the evidence as its main target) and a $k$-nearest-neighbors technique that produces evidence estimates from posterior samples. Provided representative samples from the target posterior are available, our method is more robust to posterior distributions with sharp features, especially in higher dimensions. For a simple multivariate Gaussian, we demonstrate its accuracy for up to 200 dimensions with $10^5$ posterior samples. $floZ$ has wide applicability, e.g., to estimate evidence from variational inference, Markov Chain Monte Carlo samples, or any other method that delivers samples and their likelihood from the unnormalized posterior density. As a physical application, we use $floZ$ to compute the Bayes factor for the presence of the first overtone in the ringdown signal of the gravitational wave data of GW150914, finding good agreement with nested sampling.",
+      "arxiv_url": "https://arxiv.org/abs/2404.12294",
+      "pdf_url": "https://arxiv.org/pdf/2404.12294v3",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Bayesian evidence estimation from posterior samples with normalizing flows",
+      "match_method": "exact_title",
+      "associated_original_paper": "Rapid detection of gravitational waves from binary black hole mergers using sparse\ndictionary learning",
+      "associated_first_authors": [
+        "Charles Badger",
+        "Rahul Srinivasan"
+      ],
+      "figure_1_path": "data/gold_figures/new_10_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2303.04017",
+      "title": "Understanding the progenitor formation galaxies of merging binary black holes",
+      "authors": [
+        "Rahul Srinivasan",
+        "Astrid Lamberts",
+        "Marie Anne Bizouard",
+        "Tristan Bruel",
+        "Simone Mastrogiovanni"
+      ],
+      "first_author": "Rahul Srinivasan",
+      "first_author_normalized": "rahul srinivasan",
+      "abstract": "With nearly a hundred gravitational wave detections, the origin of black hole mergers has become a key question. Here, we focus on understanding the typical galactic environment in which binary black hole mergers arise. To this end, we synthesize progenitors of binary black hole mergers as a function of the redshift of progenitor formation, present-day formation galaxy mass, and progenitor stellar metallicity for $240$ star formation and binary evolution models. We provide guidelines to infer the formation galaxy properties and time of formation, highlighting the interplay between the star formation rate and the efficiency of forming merging binary black holes from binary stars, both of which strongly depend on metallicity. We find that across models, over 50% of BBH mergers have a progenitor metallicity of a few tenths of Solar metallicity, however, inferring formation galaxy properties strongly depends on both the binary evolution model and global metallicity evolution. The numerous, low-mass black holes ($\\mathrm{\\lesssim 15\\,M_{\\odot}}$) trace the bulk of the star formation in galaxies heavier than the Milky Way ($M_\\mathrm{Gal}$ $\\mathrm{\\gtrsim 10^{10.5}\\,M_{\\odot}}$). In contrast, heavier BBH mergers typically stem from larger black holes forming in lower metallicity dwarf galaxies ($M_\\mathrm{Gal}$ $\\mathrm{\\lesssim 10^{9}\\,M_{\\odot}}$). We find that the progenitors of detectable binary black holes tend to arise from dwarf galaxies at a lower formation redshift ($\\lesssim \\, 1$). We also produce a posterior probability of the progenitor environment for any detected gravitational wave signal. For the massive GW150914 merger, we show that it likely came from a very low metallicity ($Z$ $\\mathrm{\\lesssim}\\,0.025\\,\\mathrm{Z_{\\odot}}$) environment.",
+      "arxiv_url": "https://arxiv.org/abs/2303.04017",
+      "pdf_url": "https://arxiv.org/pdf/2303.04017v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Understanding the progenitor formation galaxies of merging binary black holes",
+      "match_method": "exact_title",
+      "associated_original_paper": "Rapid detection of gravitational waves from binary black hole mergers using sparse\ndictionary learning",
+      "associated_first_authors": [
+        "Charles Badger",
+        "Rahul Srinivasan"
+      ],
+      "figure_1_path": "data/gold_figures/new_11_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2506.22543",
+      "title": "Simulation-based population inference of LISA's Galactic binaries: Bypassing the global fit",
+      "authors": [
+        "Rahul Srinivasan",
+        "Enrico Barausse",
+        "Natalia Korsakova",
+        "Roberto Trotta"
+      ],
+      "first_author": "Rahul Srinivasan",
+      "first_author_normalized": "rahul srinivasan",
+      "abstract": "The Laser Interferometer Space Antenna (LISA) is expected to detect thousands of individually resolved gravitational wave sources, overlapping in time and frequency, on top of unresolved astrophysical and/or primordial backgrounds. Disentangling resolved sources from backgrounds and extracting their parameters in a computationally intensive \"global fit\" is normally regarded as a necessary step toward reconstructing the properties of the underlying astrophysical populations. Here, we show that it is in principle feasible to infer the population properties of the most numerous of LISA sources -- Galactic double white dwarfs -- directly from the frequency (or, equivalently, time) strain series by adopting a simulation-based approach, without extracting and estimating the parameters of each single source. By training a normalizing flow on a custom-designed compression of simulated LISA frequency series from the Galactic double white dwarf population, we demonstrate how to infer the posterior distribution of population parameters (e.g., mass function, frequency, and spatial distributions). This allows for extracting information on the population parameters from both resolved and unresolved sources simultaneously and in a computationally efficient manner. This approach can be extended to other source classes (e.g., massive and stellar-mass black holes, extreme mass ratio inspirals) and to scenarios involving non-Gaussian or non-stationary noise (e.g., data gaps), provided that fast and accurate simulations are available.",
+      "arxiv_url": "https://arxiv.org/abs/2506.22543",
+      "pdf_url": "https://arxiv.org/pdf/2506.22543v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Simulation-based population inference of LISA’s Galactic binaries: Bypassing the global fit",
+      "match_method": "exact_title",
+      "associated_original_paper": "Rapid detection of gravitational waves from binary black hole mergers using sparse\ndictionary learning",
+      "associated_first_authors": [
+        "Charles Badger",
+        "Rahul Srinivasan"
+      ],
+      "figure_1_path": "data/gold_figures/new_12_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2106.12594",
+      "title": "Real-time gravitational-wave science with neural posterior estimation",
+      "authors": [
+        "Maximilian Dax",
+        "Stephen R. Green",
+        "Jonathan Gair",
+        "Jakob H. Macke",
+        "Alessandra Buonanno",
+        "Bernhard Schölkopf"
+      ],
+      "first_author": "Maximilian Dax",
+      "first_author_normalized": "maximilian dax",
+      "abstract": "We demonstrate unprecedented accuracy for rapid gravitational-wave parameter estimation with deep learning. Using neural networks as surrogates for Bayesian posterior distributions, we analyze eight gravitational-wave events from the first LIGO-Virgo Gravitational-Wave Transient Catalog and find very close quantitative agreement with standard inference codes, but with inference times reduced from O(day) to a minute per event. Our networks are trained using simulated data, including an estimate of the detector-noise characteristics near the event. This encodes the signal and noise models within millions of neural-network parameters, and enables inference for any observed data consistent with the training distribution, accounting for noise nonstationarity from event to event. Our algorithm -- called \"DINGO\" -- sets a new standard in fast-and-accurate inference of physical parameters of detected gravitational-wave events, which should enable real-time data analysis without sacrificing accuracy.",
+      "arxiv_url": "https://arxiv.org/abs/2106.12594",
+      "pdf_url": "https://arxiv.org/pdf/2106.12594v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Real-time gravitational wave science with neural posterior estimation",
+      "match_method": "exact_title",
+      "associated_original_paper": "Real-time gravitational-wave inference for binary neutron stars using machine learning",
+      "associated_first_authors": [
+        "Maximilian Dax"
+      ],
+      "figure_1_path": "data/gold_figures/new_13_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2210.05686",
+      "title": "Neural Importance Sampling for Rapid and Reliable Gravitational-Wave Inference",
+      "authors": [
+        "Maximilian Dax",
+        "Stephen R. Green",
+        "Jonathan Gair",
+        "Michael Pürrer",
+        "Jonas Wildberger",
+        "Jakob H. Macke",
+        "Alessandra Buonanno",
+        "Bernhard Schölkopf"
+      ],
+      "first_author": "Maximilian Dax",
+      "first_author_normalized": "maximilian dax",
+      "abstract": "We combine amortized neural posterior estimation with importance sampling for fast and accurate gravitational-wave inference. We first generate a rapid proposal for the Bayesian posterior using neural networks, and then attach importance weights based on the underlying likelihood and prior. This provides (1) a corrected posterior free from network inaccuracies, (2) a performance diagnostic (the sample efficiency) for assessing the proposal and identifying failure cases, and (3) an unbiased estimate of the Bayesian evidence. By establishing this independent verification and correction mechanism we address some of the most frequent criticisms against deep learning for scientific inference. We carry out a large study analyzing 42 binary black hole mergers observed by LIGO and Virgo with the SEOBNRv4PHM and IMRPhenomXPHM waveform models. This shows a median sample efficiency of $\\approx 10\\%$ (two orders-of-magnitude better than standard samplers) as well as a ten-fold reduction in the statistical uncertainty in the log evidence. Given these advantages, we expect a significant impact on gravitational-wave inference, and for this approach to serve as a paradigm for harnessing deep learning methods in scientific applications.",
+      "arxiv_url": "https://arxiv.org/abs/2210.05686",
+      "pdf_url": "https://arxiv.org/pdf/2210.05686v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Neural importance sampling for rapid and reliable gravitational-wave inference",
+      "match_method": "exact_title",
+      "associated_original_paper": "Real-time gravitational-wave inference for binary neutron stars using machine learning",
+      "associated_first_authors": [
+        "Maximilian Dax"
+      ],
+      "figure_1_path": "data/gold_figures/new_14_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2305.17161",
+      "title": "Flow Matching for Scalable Simulation-Based Inference",
+      "authors": [
+        "Maximilian Dax",
+        "Jonas Wildberger",
+        "Simon Buchholz",
+        "Stephen R. Green",
+        "Jakob H. Macke",
+        "Bernhard Schölkopf"
+      ],
+      "first_author": "Maximilian Dax",
+      "first_author_normalized": "maximilian dax",
+      "abstract": "Neural posterior estimation methods based on discrete normalizing flows have become established tools for simulation-based inference (SBI), but scaling them to high-dimensional problems can be challenging. Building on recent advances in generative modeling, we here present flow matching posterior estimation (FMPE), a technique for SBI using continuous normalizing flows. Like diffusion models, and in contrast to discrete flows, flow matching allows for unconstrained architectures, providing enhanced flexibility for complex data modalities. Flow matching, therefore, enables exact density evaluation, fast training, and seamless scalability to large architectures--making it ideal for SBI. We show that FMPE achieves competitive performance on an established SBI benchmark, and then demonstrate its improved scalability on a challenging scientific problem: for gravitational-wave inference, FMPE outperforms methods based on comparable discrete flows, reducing training time by 30% with substantially improved accuracy. Our work underscores the potential of FMPE to enhance performance in challenging inference scenarios, thereby paving the way for more advanced applications to scientific problems.",
+      "arxiv_url": "https://arxiv.org/abs/2305.17161",
+      "pdf_url": "https://arxiv.org/pdf/2305.17161v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Flow matching for scalable simulation-based inference",
+      "match_method": "exact_title",
+      "associated_original_paper": "Real-time gravitational-wave inference for binary neutron stars using machine learning",
+      "associated_first_authors": [
+        "Maximilian Dax"
+      ],
+      "figure_1_path": "data/gold_figures/new_15_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2407.09602",
+      "title": "Real-time gravitational-wave inference for binary neutron stars using machine learning",
+      "authors": [
+        "Maximilian Dax",
+        "Stephen R. Green",
+        "Jonathan Gair",
+        "Nihar Gupte",
+        "Michael Pürrer",
+        "Vivien Raymond",
+        "Jonas Wildberger",
+        "Jakob H. Macke",
+        "Alessandra Buonanno",
+        "Bernhard Schölkopf"
+      ],
+      "first_author": "Maximilian Dax",
+      "first_author_normalized": "maximilian dax",
+      "abstract": "Mergers of binary neutron stars (BNSs) emit signals in both the gravitational-wave (GW) and electromagnetic (EM) spectra. Famously, the 2017 multi-messenger observation of GW170817 led to scientific discoveries across cosmology, nuclear physics, and gravity. Central to these results were the sky localization and distance obtained from GW data, which, in the case of GW170817, helped to identify the associated EM transient, AT 2017gfo, 11 hours after the GW signal. Fast analysis of GW data is critical for directing time-sensitive EM observations; however, due to challenges arising from the length and complexity of signals, it is often necessary to make approximations that sacrifice accuracy. Here, we present a machine learning framework that performs complete BNS inference in just one second without making any such approximations. Our approach enhances multi-messenger observations by providing (i) accurate localization even before the merger; (ii) improved localization precision by $\\sim30\\%$ compared to approximate low-latency methods; and (iii) detailed information on luminosity distance, inclination, and masses, which can be used to prioritize expensive telescope time. Additionally, the flexibility and reduced cost of our method open new opportunities for equation-of-state studies. Finally, we demonstrate that our method scales to extremely long signals, up to an hour in length, thus serving as a blueprint for data analysis for next-generation ground- and space-based detectors.",
+      "arxiv_url": "https://arxiv.org/abs/2407.09602",
+      "pdf_url": "https://arxiv.org/pdf/2407.09602v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Real-time inference for binary neutron star mergers using machine learning",
+      "match_method": "fuzzy_title (score=82.5)",
+      "associated_original_paper": "Real-time gravitational-wave inference for binary neutron stars using machine learning",
+      "associated_first_authors": [
+        "Maximilian Dax"
+      ],
+      "figure_1_path": "data/gold_figures/new_16_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\nThe term \"dark energy\" does not appear anywhere in the provided text, nor are there any discussions or concepts related to it. The text focuses entirely on gravitational wave astronomy, machine learning applications to black hole and neutron star mergers, and related inference techniques.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1808.08957",
+      "title": "Quark-mass dependence in $ω\\to3π$ decays",
+      "authors": [
+        "Maximilian Dax",
+        "Tobias Isken",
+        "Bastian Kubis"
+      ],
+      "first_author": "Maximilian Dax",
+      "first_author_normalized": "maximilian dax",
+      "abstract": "We study the quark-mass dependence of $ω\\to3π$ decays, based on a dispersion-theoretical framework. We rely on the quark-mass-dependent scattering phase shift for the pion-pion $P$-wave extracted from unitarized chiral perturbation theory. The dispersive representation then takes into account the final-state rescattering among all three pions. The described formalism may be used as an extrapolation tool for lattice QCD calculations of three-pion decays, for which $ω\\to3π$ can serve as a paradigm case.",
+      "arxiv_url": "https://arxiv.org/abs/1808.08957",
+      "pdf_url": "https://arxiv.org/pdf/1808.08957v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Quark-mass dependence in  decays",
+      "match_method": "fuzzy_title (score=87.32394366197182)",
+      "associated_original_paper": "Real-time gravitational-wave inference for binary neutron stars using machine learning",
+      "associated_first_authors": [
+        "Maximilian Dax"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2111.13139",
+      "title": "Group equivariant neural posterior estimation",
+      "authors": [
+        "Maximilian Dax",
+        "Stephen R. Green",
+        "Jonathan Gair",
+        "Michael Deistler",
+        "Bernhard Schölkopf",
+        "Jakob H. Macke"
+      ],
+      "first_author": "Maximilian Dax",
+      "first_author_normalized": "maximilian dax",
+      "abstract": "Simulation-based inference with conditional neural density estimators is a powerful approach to solving inverse problems in science. However, these methods typically treat the underlying forward model as a black box, with no way to exploit geometric properties such as equivariances. Equivariances are common in scientific models, however integrating them directly into expressive inference networks (such as normalizing flows) is not straightforward. We here describe an alternative method to incorporate equivariances under joint transformations of parameters and data. Our method -- called group equivariant neural posterior estimation (GNPE) -- is based on self-consistently standardizing the \"pose\" of the data while estimating the posterior over parameters. It is architecture-independent, and applies both to exact and approximate equivariances. As a real-world application, we use GNPE for amortized inference of astrophysical binary black hole systems from gravitational-wave observations. We show that GNPE achieves state-of-the-art accuracy while reducing inference times by three orders of magnitude.",
+      "arxiv_url": "https://arxiv.org/abs/2111.13139",
+      "pdf_url": "https://arxiv.org/pdf/2111.13139v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Group equivariant neural posterior estimation",
+      "match_method": "exact_title",
+      "associated_original_paper": "Real-time gravitational-wave inference for binary neutron stars using machine learning",
+      "associated_first_authors": [
+        "Maximilian Dax"
+      ],
+      "figure_1_path": "data/gold_figures/new_18_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] NO\n\nThe text does not contain any mentions of \"dark energy,\" meaningful or otherwise. It focuses on concepts like equivariance, normalizing flows, and machine learning techniques for parameter inference, particularly in a \"gray-box\" or \"black-box\" setting.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2012.04655",
+      "title": "Dispersive analysis of the Primakoff reaction $γK \\to K π$",
+      "authors": [
+        "Maximilian Dax",
+        "Dominik Stamen",
+        "Bastian Kubis"
+      ],
+      "first_author": "Maximilian Dax",
+      "first_author_normalized": "maximilian dax",
+      "abstract": "We provide a dispersion-theoretical representation of the reaction amplitudes $γK\\to K π$ in all charge channels, based on modern pion-kaon $P$-wave phase shift input. Crossed-channel singularities are fixed from phenomenology as far as possible. We demonstrate how the subtraction constants can be matched to a low-energy theorem and radiative couplings of the $K^*(892)$ resonances, thereby providing a model-independent framework for future analyses of high-precision kaon Primakoff data.",
+      "arxiv_url": "https://arxiv.org/abs/2012.04655",
+      "pdf_url": "https://arxiv.org/pdf/2012.04655v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Dispersive analysis of the Primakoff reaction ",
+      "match_method": "fuzzy_title (score=87.37864077669903)",
+      "associated_original_paper": "Real-time gravitational-wave inference for binary neutron stars using machine learning",
+      "associated_first_authors": [
+        "Maximilian Dax"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2501.17044",
+      "title": "Synthesizing 3D Abstractions by Inverting Procedural Buildings with Transformers",
+      "authors": [
+        "Maximilian Dax",
+        "Jordi Berbel",
+        "Jan Stria",
+        "Leonidas Guibas",
+        "Urs Bergmann"
+      ],
+      "first_author": "Maximilian Dax",
+      "first_author_normalized": "maximilian dax",
+      "abstract": "We generate abstractions of buildings, reflecting the essential aspects of their geometry and structure, by learning to invert procedural models. We first build a dataset of abstract procedural building models paired with simulated point clouds and then learn the inverse mapping through a transformer. Given a point cloud, the trained transformer then infers the corresponding abstracted building in terms of a programmatic language description. This approach leverages expressive procedural models developed for gaming and animation, and thereby retains desirable properties such as efficient rendering of the inferred abstractions and strong priors for regularity and symmetry. Our approach achieves good reconstruction accuracy in terms of geometry and structure, as well as structurally consistent inpainting.",
+      "arxiv_url": "https://arxiv.org/abs/2501.17044",
+      "pdf_url": "https://arxiv.org/pdf/2501.17044v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Synthesizing 3D Abstractions by Inverting Procedural Buildings with Transformers",
+      "match_method": "exact_title",
+      "associated_original_paper": "Real-time gravitational-wave inference for binary neutron stars using machine learning",
+      "associated_first_authors": [
+        "Maximilian Dax"
+      ],
+      "figure_1_path": "data/gold_figures/new_20_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses \"simulation-based inference,\" \"neural posterior estimation,\" and \"procedural inversion\" in the context of inferring building abstractions. It does not contain any mention, meaningful or incidental, of \"dark energy.\"",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2301.12725",
+      "title": "On Redshift Evolution & Negative Dark Energy Density in Pantheon+ Supernovae",
+      "authors": [
+        "Mohammad Malekjani",
+        "Ruairí Mc Conville",
+        "Eoin Ó Colgáin",
+        "Saeed Pourojaghi",
+        "M. M. Sheikh-Jabbari"
+      ],
+      "first_author": "Mohammad Malekjani",
+      "first_author_normalized": "mohammad malekjani",
+      "abstract": "Within the Friedmann-Lemaître-Robertson-Walker (FLRW) framework, the Hubble constant $H_0$ is an integration constant. Thus, consistency of the model demands observational constancy of $H_0$. We demonstrate redshift evolution of best fit $Λ$CDM parameters $(H_0, Ω_{m})$ in Pantheon+ supernove (SNe). Redshift evolution of best fit cosmological parameters is a prerequisite to finding a statistically significant evolution as well as identifying alternative models that are competitive with $Λ$CDM in a Bayesian model comparison. To assess statistical significance, we employ three different methods: i) Bayesian model comparison, ii) mock simulations and iii) profile distributions. The first shows a marginal preference for the vanilla $Λ$CDM model over an ad hoc model with 3 additional parameters and an unphysical jump in cosmological parameters at $z=1$. From mock simulations, we estimate the statistical significance of redshift evolution of best fit parameters and negative dark energy density ($Ω_m > 1$) to be in the $1-2 σ$ range, depending on the criteria employed. Importantly, in direct comparison to the same analysis with the earlier Pantheon sample we find that statistical significance of redshift evolution of best fit parameters has increased, as expected for a physical effect. Our profile distribution analysis demonstrates a shift in $(H_0, Ω_m)$ in excess of $95\\%$ confidence level for SNe with redshifts $z > 1$ and also shows that a degeneracy in MCMC posteriors is not equivalent to a curve of constant $χ^2$. Our findings can be interpreted as a statistical fluctuation or unexplored systematics in Pantheon+ or $Λ$CDM model breakdown. The first two possibilities are disfavoured by similar trends in independent probes.",
+      "arxiv_url": "https://arxiv.org/abs/2301.12725",
+      "pdf_url": "https://arxiv.org/pdf/2301.12725v3",
+      "source": "gscholar_crossref",
+      "gscholar_title": "On redshift evolution and negative dark energy density in Pantheon+ Supernovae",
+      "match_method": "fuzzy_title (score=97.40259740259741)",
+      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
+      "associated_first_authors": [
+        "Mohammad Malekjani"
+      ],
+      "figure_1_path": "data/gold_figures/new_21_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1809.08792",
+      "title": "Can Holographic dark energy models fit the observational data?",
+      "authors": [
+        "Mohammad Malekjani",
+        "Mehdi Rezaei",
+        "Iman A. Akhlaghi"
+      ],
+      "first_author": "Mohammad Malekjani",
+      "first_author_normalized": "mohammad malekjani",
+      "abstract": "In this work we investigate the holographic dark energy models with slowly time-varying model parameter defined based on the current Hubble horizon length scale. While the previous studies on the three popular holographic dark energy models defined based on the future event horizon, Ricci scale and Granda-Oliveros IR cutoffs showed that these models cannot fit the observational data [1], in this work we show that the holographic dark energy models with time-varying model parameter defined on the current Hubble radius are well favored by observations. Using the standard $χ^2$ minimization in the context of Markov Chain Monte Carlo method, we compare the ability of holographic dark energy models with time-varying $c^2$ parameter constructed on the current Hubble length scale against different sets of observational data namely expansion data, growth rate data and expansion+growth rate data respectively. Based on the values of Akaike and Bayesian information criteria, we find that these types of holographic dark energy models are well fitted to both expansion and growth rate observations as equal to $Λ$CDM cosmology. We also put constraints on the cosmological parameters and show that the transition epoch form early decelerated to current accelerated expansion calculated in holographic dark energy models with time-varying model parameter defined on the Hubble length is consistent with observations.",
+      "arxiv_url": "https://arxiv.org/abs/1809.08792",
+      "pdf_url": "https://arxiv.org/pdf/1809.08792v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Can holographic dark energy models fit the observational data?",
+      "match_method": "exact_title",
+      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
+      "associated_first_authors": [
+        "Mohammad Malekjani"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1508.04697",
+      "title": "Effects of ghost dark energy perturbations on the evolution of spherical overdensities",
+      "authors": [
+        "Mohammad Malekjani",
+        "Tayebe Naderi",
+        "Francesco Pace"
+      ],
+      "first_author": "Mohammad Malekjani",
+      "first_author_normalized": "mohammad malekjani",
+      "abstract": "While in the standard cosmological model the accelerated expansion of the Universe is explained by invoking the presence of the cosmological constant term, it is still unclear the true origin of this stunning observational fact. It is therefore interesting to explore alternatives to the simplest scenario, in particular by assuming a more general framework where the fluid responsible of the accelerated expansion is characterised by a time-dependant equation of state. Usually these models, dubbed dark energy models, are purely phenomenological, but in this work we concentrate on a theoretically justified model, the ghost dark energy model. Within the framework of the spherical collapse model, we evaluate effects of dark energy perturbations both at the linear and non-linear level and transfer these results into an observable quantity, the mass function, by speculatively taking into account contributions of dark energy to the mass of the halos. We showed that the growth rate is higher in ghost models and that perturbations enhance the number of structures with respect to the $Λ$CDM model, with stronger effects when the total mass takes into account dark energy clumps.",
+      "arxiv_url": "https://arxiv.org/abs/1508.04697",
+      "pdf_url": "https://arxiv.org/pdf/1508.04697v1",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Effects of ghost dark energy perturbations on the evolution of spherical overdensities",
+      "match_method": "exact_title",
+      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
+      "associated_first_authors": [
+        "Mohammad Malekjani"
+      ],
+      "figure_1_path": null,
+      "has_keyword": true,
+      "keyword_note": "[LaTeX] YES\n\n**Reasoning:**\nThe text contains numerous and extensive discussions of \"dark energy\" (often abbreviated as \"DE\"). It specifically focuses on \"ghost dark energy\" and \"generalised ghost dark energy\" models, describing their theoretical origin, their energy density equations, their equation of state parameters, their role in the Friedmann equations, their fit to cosmological data, and comparisons with other dark energy models like HDE, ADE, and $\\Lambda$CDM. The entire section is dedicated to analyzing and presenting these particular dark energy models and their cosmological implications.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1212.4673",
+      "title": "Cosmography of interacting generalized QCD ghost dark energy",
+      "authors": [
+        "Mohammad Malekjani"
+      ],
+      "first_author": "Mohammad Malekjani",
+      "first_author_normalized": "mohammad malekjani",
+      "abstract": "Exploring the accelerated expansion of the universe, we investigate the generalized ghost dark energy (GGDE) model from the statefinder diagnosis analysis in a flat FRW universe. First we calculate the cosmological evolution and statefinder trajectories for non-interacting case and then extend this work by considering the interaction between dark matter and dark energy components. We show that in the non-interacting case the phantom line can not be crossed and also he evolutionary trajectories of model in $s-r$ plane can not be discriminated. It has been shown that the present location of model in $s-r$ plane would be close to observational value for negative values of model parameter. In the presence of interaction between dark matter and dark energy, the phantom regime is achieved, the accelerated phase of expansion occurs sooner compare with non-interacting case. The GGDE model is also discussed from the viewpoint of perturbation theory by calculating the adiabatic sound speed of the model. Finally, unlike the non-interacting case, the evolutionary trajectories in $s-r$ plane can be discriminated in the interacting model. Like non-interacting model, in the interacting case the present location of GGDE model is closer to observational value for negative values of model parameter.",
+      "arxiv_url": "https://arxiv.org/abs/1212.4673",
+      "pdf_url": "https://arxiv.org/pdf/1212.4673v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Cosmography of interacting generalized QCD ghost dark energy",
+      "match_method": "exact_title",
+      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
+      "associated_first_authors": [
+        "Mohammad Malekjani"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1609.01964",
+      "title": "Spherical collapse model and cluster number counts in power law $f(T)$ gravity",
+      "authors": [
+        "Mohammad Malekjani",
+        "Spyros Basilakos",
+        "Neda Heidari"
+      ],
+      "first_author": "Mohammad Malekjani",
+      "first_author_normalized": "mohammad malekjani",
+      "abstract": "We study the spherical collapse model (SCM) in the framework of spatially flat power law $f(T) \\propto (-T)^{b}$ gravity model. We find that the linear and non-linear growth of spherical overdensities of this particular $f(T)$ model are affected by the power-law parameter $b$. Finally, we compute the predicted number counts of virialized haloes in order to distinguish the current $f(T)$ model from the expectations of the concordance $Λ$ cosmology. Specifically, the present analysis suggests that the $f(T)$ gravity model with positive (negative) $b$ predicts more (less) virialized objects with respect to those of $Λ$CDM.",
+      "arxiv_url": "https://arxiv.org/abs/1609.01964",
+      "pdf_url": "https://arxiv.org/pdf/1609.01964v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Spherical collapse model and cluster number counts in power-law f(T) gravity",
+      "match_method": "exact_title",
+      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
+      "associated_first_authors": [
+        "Mohammad Malekjani"
+      ],
+      "figure_1_path": "data/gold_figures/new_25_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[LaTeX] YES\n\nThe text contains meaningful mentions of \"dark energy\". It explicitly defines and calculates the \"energy density and the pressure of the effective DE component\" (using the abbreviation \"_de\"), and derives its corresponding effective equation of state (EoS) parameter, $w_{de}$. The discussion then analyzes the behavior of $w_{de}$ (e.g., quintessence vs. phantom regimes) and compares the \"dark energy density\" ($\\Omega_d$) of the $f(T)$ model with the $\\Lambda$CDM model, which are central aspects of dark energy research.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "1206.0647",
+      "title": "Polytropic gas scalar field models of dark energy",
+      "authors": [
+        "Mohammad Malekjani"
+      ],
+      "first_author": "Mohammad Malekjani",
+      "first_author_normalized": "mohammad malekjani",
+      "abstract": "In this work we investigate the polytropic gas dark energy model in the non flat universe. We first calculate the evolution of EoS parameter of the model as well as the cosmological evolution of Hubble parameter in the context of polytropic gas dark energy model. Then we reconstruct the dynamics and the potential of the tachyon and K-essence scalar field models according to the evolutionary behavior of polytropic gas model.",
+      "arxiv_url": "https://arxiv.org/abs/1206.0647",
+      "pdf_url": "https://arxiv.org/pdf/1206.0647v2",
+      "source": "gscholar_crossref",
+      "gscholar_title": "Polytropic gas scalar field models of dark energy",
+      "match_method": "exact_title",
+      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
+      "associated_first_authors": [
+        "Mohammad Malekjani"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2511.18657",
+      "title": "How Complex is Dark Energy? A Bayesian Analysis of CPL Extensions with Recent DESI BAO Measurements",
+      "authors": [
+        "Mohammad Malekjani",
+        "Saeed Pourojaghi",
+        "Zahra Davari"
+      ],
+      "first_author": "Mohammad Malekjani",
+      "first_author_normalized": "mohammad malekjani",
+      "abstract": "The nature of dark energy is one of the big puzzling issues in cosmology. While $Λ$CDM provides a good fit to the observational data, evolving dark energy scenarios, such as the CPL parametrization, offer a compelling alternative. In this paper, we present a Bayesian model comparison of various dark energy parametrizations using a joint analysis of Cosmic Microwave Background data, DESI Baryon Acoustic Oscillation measurements, and the PantheonPlus (or Union3) Supernovae type Ia sample. We find that while the $Λ$CDM model is initially favored over a constant $w$CDM model, the CPL parametrization is significantly preferred over $w$CDM, reinforcing recent evidence for an evolving dark energy component, consistent with DESI collaboration findings. Crucially, when testing higher-order CPL extensions, the so-called CPL$^+$ and CPL$^{++}$, our Bayesian analysis shows that the observational data do not favor these more complex scenarios compared to the standard CPL. This result indicates that adding excessive complexity to the CPL form is unwarranted by current observations. Interestingly, similar to the CPL parametrization, alternative two-parameter forms, specifically $w_{de}(a) = w_0 + w_b(1-a)^2$ and $w_{de}(a) = w_0 + w_c(1-a)^3$, yield a better fit to observational data than the standard $Λ$CDM cosmology. Our results challenge the necessity for overly complex CPL extensions and confirm that well-chosen two-parameter $w_0w_a$ parametrizations effectively capture DE evolution with current cosmological data, supporting the recent signals for dynamical dark energy by DESI collaboration.",
+      "arxiv_url": "https://arxiv.org/abs/2511.18657",
+      "pdf_url": "https://arxiv.org/pdf/2511.18657v1",
+      "source": "gscholar_crossref",
+      "gscholar_title": "How complex is dark energy? A Bayesian analysis of CPL extensions with recent DESI BAO measurements",
+      "match_method": "exact_title",
+      "associated_original_paper": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
+      "associated_first_authors": [
+        "Mohammad Malekjani"
+      ],
+      "figure_1_path": "data/gold_figures/new_27_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses cosmological parameters derived from CMB data, such as the acoustic scale ($l_a$), shift parameter ($R$), and physical baryon density ($\\omega_b$), along with $\\Omega_m$ (matter density) and $H_0$ (Hubble constant). While these parameters are components of cosmological models that often include dark energy, the term \"dark energy\" itself is not mentioned or discussed anywhere in the text. The focus is purely on the CMB distance priors and their characterization.",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2310.06028",
+      "title": "Little Ado about Everything: $η$CDM, a Cosmological Model with Fluctuation-driven Acceleration at Late Times",
+      "authors": [
+        "Andrea Lapi",
+        "Lumen Boco",
+        "Marcos M. Cueli",
+        "Balakrishna S. Haridasu",
+        "Tommaso Ronconi",
+        "Carlo Baccigalupi",
+        "Luigi Danese"
+      ],
+      "first_author": "Andrea Lapi",
+      "first_author_normalized": "andrea lapi",
+      "abstract": "[abridged] We propose a model of the Universe (dubbed $η$CDM) featuring a stochastic evolution of the cosmological quantities, that is meant to render small deviations from homogeneity/isotropy on scales of $30-50\\, h^{-1}$ Mpc at late cosmic times, associated to the emergence of the cosmic web. Specifically, we prescribe that the behavior of the matter/radiation energy densities in different patches of the Universe with such a size can be effectively described by a stochastic version of the mass-energy evolution equation. The latter includes an appropriate noise term that statistically accounts for local fluctuations due to inhomogeneities, anisotropic stresses and matter flows. The evolution of the different patches as a function of cosmic time is rendered via the diverse realizations of the noise term; meanwhile, at any given cosmic time, sampling the ensemble of patches will originate a nontrivial spatial distribution of the cosmological quantities. The overall behavior of the Universe will be obtained by averaging over the patch ensemble. We assume a physically reasonable parameterization of the noise term, gauging it against a wealth of cosmological datasets. We find that, with respect to standard $Λ$CDM, the ensemble-averaged cosmic dynamics in the $η$CDM model is substantially altered in three main respects: (i) an accelerated expansion is enforced at late cosmic times without the need for any additional exotic component (e.g., dark energy); (ii) the spatial curvature can stay small even in a low-density Universe; (iii) matter can acquire an effective negative pressure at late times. We provide predictions for the variance of the cosmological quantities among different patches of the Universe at late cosmic times. Finally, we show that in $η$CDM the Hubble-tension is solved, and the cosmic coincidence problem is relieved without invoking the anthropic principle.",
+      "arxiv_url": "https://arxiv.org/abs/2310.06028",
+      "pdf_url": "https://arxiv.org/pdf/2310.06028v2",
+      "source": "rematch",
+      "gscholar_title": "Little Ado about Everything: ηCDM, a Cosmological Model with Fluctuation-driven Acceleration at Late Times",
+      "match_method": "fuzzy_title (score=93.45794392523365)",
+      "associated_original_paper": "Semi-empirical Models of Galaxy Formation and Evolution",
+      "associated_first_authors": [
+        "Andrea Lapi"
+      ],
+      "figure_1_path": "data/gold_figures/new_28_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2009.07023",
+      "title": "A Stochastic Theory of the Hierarchical Clustering I. Halo Mass Function",
+      "authors": [
+        "Andrea Lapi",
+        "Luigi Danese"
+      ],
+      "first_author": "Andrea Lapi",
+      "first_author_normalized": "andrea lapi",
+      "abstract": "We present a new theory for the hierarchical clustering of dark matter (DM) halos based on stochastic differential equations, that constitutes a change of perspective with respect to existing frameworks (e.g., the excursion set approach); this work is specifically focused on the halo mass function. First, we present a stochastic differential equation that describes fluctuations in the mass growth of DM halos, as driven by a multiplicative white (Gaussian) noise dependent on the spherical collapse threshold and on the power spectrum of DM perturbations. We demonstrate that such a noise yields an average drift of the halo population toward larger masses, that quantitatively renders the standard hierarchical clustering. Then, we solve the Fokker-Planck equation associated to the stochastic dynamics, and obtain the Press & Schechter mass function as a (stationary) solution. Moreover, generalizing our treatment to a mass-dependent collapse threshold, we obtain an exact analytic solution capable of fitting remarkably well the N-body mass function over a wide range in mass and redshift. All in all, the new perspective offered by the theory presented here can contribute to better understand the gravitational dynamics leading to the formation, evolution and statistics of DM halos across cosmic times.",
+      "arxiv_url": "https://arxiv.org/abs/2009.07023",
+      "pdf_url": "https://arxiv.org/pdf/2009.07023v1",
+      "source": "rematch",
+      "gscholar_title": "A Stochastic Theory of the Hierarchical Clustering. I. Halo Mass Function",
+      "match_method": "exact_title",
+      "associated_original_paper": "Semi-empirical Models of Galaxy Formation and Evolution",
+      "associated_first_authors": [
+        "Andrea Lapi"
+      ],
+      "figure_1_path": "data/gold_figures/new_29_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2103.05279",
+      "title": "A Stochastic Theory of the Hierarchical Clustering II. Halo progenitor mass function and large-scale bias",
+      "authors": [
+        "Andrea Lapi",
+        "Luigi Danese"
+      ],
+      "first_author": "Andrea Lapi",
+      "first_author_normalized": "andrea lapi",
+      "abstract": "We generalize the stochastic theory of hierarchical clustering presented in paper I by Lapi & Danese (2020) to derive the (conditional) halo progenitor mass function and the related large-scale bias. Specifically, we present a stochastic differential equation that describes fluctuations in the mass growth of progenitor halos of given descendant mass and redshift, as driven by a multiplicative Gaussian white noise involving the power spectrum and the spherical collapse threshold of density perturbations. We demonstrate that, as cosmic time passes, the noise yields an average drift of the progenitors toward larger masses, that quantitatively renders the expectation from the standard extended Press & Schechter (EPS) theory. We solve the Fokker-Planck equation associated to the stochastic dynamics, and obtain as an exact, stationary solution the EPS progenitor mass function. Then we introduce a modification of the stochastic equation in terms of a mass-dependent collapse threshold modulating the noise, and solve analytically the associated Fokker-Planck equation for the progenitor mass function. The latter is found to be in excellent agreement with the outcomes of $N-$body simulations; even more remarkably, this is achieved with the same shape of the collapse threshold used in paper I to reproduce the halo mass function. Finally, we exploit the above results to compute the large-scale halo bias, and find it in pleasing agreement with the $N-$body outcomes. All in all, the present paper illustrates that the stochastic theory of hierarchical clustering introduced in paper I can describe effectively not only halos' abundance, but also their progenitor distribution and their correlation with the large-scale environment across cosmic times.",
+      "arxiv_url": "https://arxiv.org/abs/2103.05279",
+      "pdf_url": "https://arxiv.org/pdf/2103.05279v1",
+      "source": "rematch",
+      "gscholar_title": "A Stochastic Theory of the Hierarchical Clustering. II. Halo Progenitor Mass Function and Large-scale Bias",
+      "match_method": "exact_title",
+      "associated_original_paper": "Semi-empirical Models of Galaxy Formation and Evolution",
+      "associated_first_authors": [
+        "Andrea Lapi"
+      ],
+      "figure_1_path": "data/gold_figures/new_30_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
+    },
+    {
+      "arxiv_id": "2502.12764",
+      "title": "Semi-empirical Models of Galaxy Formation and Evolution",
+      "authors": [
+        "Andrea Lapi",
+        "Lumen Boco",
+        "Francesco Shankar"
+      ],
+      "first_author": "Andrea Lapi",
+      "first_author_normalized": "andrea lapi",
+      "abstract": "We provide a review on semi-empirical models of galaxy formation and evolution. We present a brief census of the three main modeling approaches to galaxy evolution, namely hydrodynamical simulations, semi-analytic models, and semi-empirical models (SEMs). We focus on SEMs in their different flavors, i.e. interpretative, descriptive and hybrid, discussing the peculiarities and highlighting virtues and shortcomings for each of these variants. We dissect a simple and recent hybrid SEM from our team to highlight some technical aspects. We offer some outlook on the prospective developments of SEMs. Finally, we provide a short summary of this review.",
+      "arxiv_url": "https://arxiv.org/abs/2502.12764",
+      "pdf_url": "https://arxiv.org/pdf/2502.12764v1",
+      "source": "rematch",
+      "gscholar_title": "TwO Parameters Semi Empirical Model (TOPSEM): Galaxy Evolution and Bulge/Disk Dicothomy from Two-stage Halo Accretion",
+      "match_method": "llm_semantic",
+      "associated_original_paper": "Semi-empirical Models of Galaxy Formation and Evolution",
+      "associated_first_authors": [
+        "Andrea Lapi"
+      ],
+      "figure_1_path": "data/gold_figures/new_31_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
+    }
+  ],
+  "count": 31,
+  "dest_folder_id": null,
+  "generated_at": "2026-05-11T20:33:40.612855",
+  "figure_extraction_date": "2026-05-17T20:49:43.085150",
+  "keyword_detection_date": "2026-05-18T09:51:11.395385",
+  "keyword": "dark energy"
+}

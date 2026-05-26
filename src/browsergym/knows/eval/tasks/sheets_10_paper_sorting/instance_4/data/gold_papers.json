@@ -1,0 +1,134 @@
+{
+  "papers": [
+    {
+      "title": "VQDNA: Unleashing the Power of Vector Quantization for Multi-Species Genomic Sequence Modeling",
+      "authors": [
+        "Siyuan Li",
+        "Zedong Wang",
+        "Zicheng Liu",
+        "Di Wu",
+        "Cheng Tan",
+        "Jiangbin Zheng",
+        "Yufei Huang",
+        "Stan Z. Li"
+      ],
+      "first_author": "Siyuan Li",
+      "first_author_normalized": "siyuan li",
+      "abstract": "Similar to natural language models, pre-trained genome language models are proposed to capture the underlying intricacies within genomes with unsupervised sequence modeling. They have become essential tools for researchers and practitioners in biology. However, the hand-crafted tokenization policies used in these models may not encode the most discriminative patterns from the limited vocabulary of genomic data. In this paper, we introduce VQDNA, a general-purpose framework that renovates genome tokenization from the perspective of genome vocabulary learning. By leveraging vector-quantized codebooks as learnable vocabulary, VQDNA can adaptively tokenize genomes into pattern-aware embeddings in an end-to-end manner. To further push its limits, we propose Hierarchical Residual Quantization (HRQ), where varying scales of codebooks are designed in a hierarchy to enrich the genome vocabulary in a coarse-to-fine manner. Extensive experiments on 32 genome datasets demonstrate VQDNA's superiority and favorable parameter efficiency compared to existing genome language models. Notably, empirical analysis of SARS-CoV-2 mutations reveals the fine-grained pattern awareness and biological significance of learned HRQ vocabulary, highlighting its untapped potential for broader applications in genomics.",
+      "arxiv_id": "2405.10812",
+      "arxiv_url": "https://arxiv.org/abs/2405.10812",
+      "gold_labels_first_authors": [
+        "Siyuan Li",
+        "Zedong Wang"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "siyuan li",
+        "zedong wang"
+      ],
+      "figure_1_path": "data/gold_figures/original_1_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\n**Reasoning:**\nWhile the exact phrase \"deep learning\" is not explicitly present in the text, the entire section discusses advanced models and techniques that are central to and define the field of deep learning. Specifically:\n\n1.  **Language Models:** The discussion revolves heavily around \"pre-trained language models,\" \"BERT architecture,\" and \"Transformer-based genome language models\" (e.g., DNABERT, Nucleotide Transformer, DNABERT-2). BERT and Transformer models are foundational architectures in deep learning, particularly for natural language processing and, in this case, genomics.\n2.  **Vector Quantization (VQ) and Variants:** The text extensively describes VQ-VAE, VQGAN, and other related models (MaskGIT, MAGE, LQAE). VQ-VAE and VQGAN are well-known deep learning frameworks used for generative modeling and representation learning, often involving neural networks. GPT-2, mentioned as a generator within VQGAN, is also a prominent deep learning model.\n3.  **Core Concepts:** Terms like \"latent space,\" \"attention maps,\" \"fine-tuning,\" \"pre-training,\" and \"tokenization\" are discussed in the context of these models, all of which are common and integral concepts within deep learning methodologies.\n\nTherefore, the paper provides actual and extensive discussions of techniques and models that *are* deep learning, making it a meaningful mention of the concept, even if the explicit phrase is omitted.",
+      "keyword_evaluated": true
+    },
+    {
+      "title": "SpaDiT: Diffusion Transformer for Spatial Gene Expression Prediction using scRNA-seq",
+      "authors": [
+        "Xiaoyu Li",
+        "Fangfang Zhu",
+        "Wenwen Min"
+      ],
+      "first_author": "Xiaoyu Li",
+      "first_author_normalized": "xiaoyu li",
+      "abstract": "The rapid development of spatial transcriptomics (ST) technologies is revolutionizing our understanding of the spatial organization of biological tissues. Current ST methods, categorized into next-generation sequencing-based (seq-based) and fluorescence in situ hybridization-based (image-based) methods, offer innovative insights into the functional dynamics of biological tissues. However, these methods are limited by their cellular resolution and the quantity of genes they can detect. To address these limitations, we propose SpaDiT, a deep learning method that utilizes a diffusion generative model to integrate scRNA-seq and ST data for the prediction of undetected genes. By employing a Transformer-based diffusion model, SpaDiT not only accurately predicts unknown genes but also effectively generates the spatial structure of ST genes. We have demonstrated the effectiveness of SpaDiT through extensive experiments on both seq-based and image-based ST data. SpaDiT significantly contributes to ST gene prediction methods with its innovative approach. Compared to eight leading baseline methods, SpaDiT achieved state-of-the-art performance across multiple metrics, highlighting its substantial bioinformatics contribution.",
+      "arxiv_id": "2407.13182",
+      "arxiv_url": "https://arxiv.org/abs/2407.13182",
+      "gold_labels_first_authors": [
+        "Xiaoyu Li"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "xiaoyu li"
+      ],
+      "figure_1_path": "data/gold_figures/original_2_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "title": "A Review of Graph Neural Networks in Epidemic Modeling",
+      "authors": [
+        "Zewen Liu",
+        "Guancheng Wan",
+        "B. Aditya Prakash",
+        "Max S. Y. Lau",
+        "Wei Jin"
+      ],
+      "first_author": "Zewen Liu",
+      "first_author_normalized": "zewen liu",
+      "abstract": "Since the onset of the COVID-19 pandemic, there has been a growing interest in studying epidemiological models. Traditional mechanistic models mathematically describe the transmission mechanisms of infectious diseases. However, they often suffer from limitations of oversimplified or fixed assumptions, which could cause sub-optimal predictive power and inefficiency in capturing complex relation information. Consequently, Graph Neural Networks(GNNs) have emerged as a progressively popular tool in epidemic research. In this paper, we endeavor to furnish a comprehensive review of GNNs in epidemic tasks and highlight potential future directions. To accomplish this objective, we introduce hierarchical taxonomies for both epidemic tasks and methodologies, offering a trajectory of development within this domain. For epidemic tasks, we establish a taxonomy akin to those typically employed within the epidemic domain. For methodology, we categorize existing work into Neural Models and Hybrid Models. Following this, we perform an exhaustive and systematic examination of the methodologies, encompassing both the tasks and their technical details. Furthermore, we discuss the limitations of existing methods from diverse perspectives and systematically propose future research directions. This survey aims to bridge literature gaps and promote the progression of this promising field, with a list of relevant papers at https://github.com/Emory-Melody/awesome-epidemic-modeling-papers. We hope that it will facilitate synergies between the communities of GNNs and epidemiology, and contribute to their collective progress.",
+      "arxiv_id": "2403.19852",
+      "arxiv_url": "https://arxiv.org/abs/2403.19852",
+      "gold_labels_first_authors": [
+        "Zewen Liu",
+        "Guancheng Wan"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "zewen liu",
+        "guancheng wan"
+      ],
+      "figure_1_path": "data/gold_figures/original_3_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "title": "PerturBench: Benchmarking Machine Learning Models for Cellular Perturbation Analysis",
+      "authors": [
+        "Yan Wu"
+      ],
+      "first_author": "Yan Wu",
+      "first_author_normalized": "yan wu",
+      "abstract": "",
+      "arxiv_id": "2408.10609",
+      "arxiv_url": "https://arxiv.org/abs/2408.10609",
+      "gold_labels_first_authors": [
+        "Yan Wu"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "yan wu"
+      ],
+      "figure_1_path": null,
+      "has_keyword": false,
+      "keyword_note": "No arXiv ID",
+      "keyword_evaluated": false
+    },
+    {
+      "title": "SGNet: Folding Symmetrical Protein Complex with Deep Learning",
+      "authors": [
+        "Zhaoqun Li",
+        "Jingcheng Yu",
+        "Qiwei Ye"
+      ],
+      "first_author": "Zhaoqun Li",
+      "first_author_normalized": "zhaoqun li",
+      "abstract": "Deep learning has made significant progress in protein structure prediction, advancing the development of computational biology. However, despite the high accuracy achieved in predicting single-chain structures, a significant number of large homo-oligomeric assemblies exhibit internal symmetry, posing a major challenge in structure determination. The performances of existing deep learning methods are limited since the symmetrical protein assembly usually has a long sequence, making structural computation infeasible. In addition, multiple identical subunits in symmetrical protein complex cause the issue of supervision ambiguity in label assignment, requiring a consistent structure modeling for the training. To tackle these problems, we propose a protein folding framework called SGNet to model protein-protein interactions in symmetrical assemblies. SGNet conducts feature extraction on a single subunit and generates the whole assembly using our proposed symmetry module, which largely mitigates computational problems caused by sequence length. Thanks to the elaborate design of modeling symmetry consistently, we can model all global symmetry types in quaternary protein structure prediction. Extensive experimental results on a benchmark of symmetrical protein complexes further demonstrate the effectiveness of our method.",
+      "arxiv_id": "2403.04395",
+      "arxiv_url": "https://arxiv.org/abs/2403.04395",
+      "gold_labels_first_authors": [
+        "Zhaoqun Li"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "zhaoqun li"
+      ],
+      "figure_1_path": "data/gold_figures/original_5_fig1.png",
+      "has_keyword": true,
+      "keyword_note": "[HTML] YES\n\nThe text contains a meaningful mention of \"deep learning.\" It explicitly states that \"RFdiffusion[27] introduces a deep-learning framework for designing proteins,\" and then elaborates on its capabilities and limitations within that context. This is a direct discussion of deep learning as a technique used in protein design.",
+      "keyword_evaluated": true
+    }
+  ],
+  "count": 5,
+  "source_folder_id": "1NIx27u2aOywiZRzBNaeucR4x7yWNf8YB",
+  "generated_at": "2026-05-03T14:17:17.000253",
+  "figure_extraction_date": "2026-05-19T14:27:35.782781",
+  "keyword_detection_date": "2026-05-19T15:57:57.677126",
+  "keyword": "deep learning"
+}

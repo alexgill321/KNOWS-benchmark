@@ -1,0 +1,147 @@
+{
+  "original_papers": [
+    {
+      "original_paper_title": "Semi-empirical Models of Galaxy Formation and Evolution",
+      "original_paper_arxiv_id": "2502.12764",
+      "first_authors": [
+        "Andrea Lapi"
+      ],
+      "normalized_first_authors": [
+        "andrea lapi"
+      ],
+      "gscholar_urls": [
+        "https://scholar.google.com/citations?user=SsSpUs0AAAAJ&hl=en&oi=sra"
+      ],
+      "new_papers_count": 7,
+      "new_paper_arxiv_ids": [
+        "2502.05823",
+        "2408.08611",
+        "2507.15436",
+        "2310.06028",
+        "2009.07023",
+        "2103.05279",
+        "2502.12764"
+      ],
+      "new_paper_titles": [
+        "Little ado about everything II: an `emergent' dark energy from structure formation to rule cosmic tensions",
+        "Semi-empirical Estimates of the Cosmic Planet Formation Rate",
+        "Semi-empirical Framework of Supermassive Black Hole Evolution: Highlighting a possible tension between Demographics and Gravitational Wave Background",
+        "Little Ado about Everything: $η$CDM, a Cosmological Model with Fluctuation-driven Acceleration at Late Times",
+        "A Stochastic Theory of the Hierarchical Clustering I. Halo Mass Function",
+        "A Stochastic Theory of the Hierarchical Clustering II. Halo progenitor mass function and large-scale bias",
+        "Semi-empirical Models of Galaxy Formation and Evolution"
+      ],
+      "expected_new_papers": 3
+    },
+    {
+      "original_paper_title": "Rapid detection of gravitational waves from binary black hole mergers using sparse\ndictionary learning",
+      "original_paper_arxiv_id": "2405.17721",
+      "first_authors": [
+        "Charles Badger",
+        "Rahul Srinivasan"
+      ],
+      "normalized_first_authors": [
+        "charles badger",
+        "rahul srinivasan"
+      ],
+      "gscholar_urls": [
+        "https://scholar.google.com/citations?user=bvqMseUAAAAJ&hl=en&oi=sra",
+        "https://scholar.google.com/citations?user=V74safsAAAAJ&hl=en&oi=sra"
+      ],
+      "new_papers_count": 9,
+      "new_paper_arxiv_ids": [
+        "2209.14707",
+        "2406.11742",
+        "2210.06194",
+        "2407.02908",
+        "2405.17721",
+        "2112.04650",
+        "2404.12294",
+        "2303.04017",
+        "2506.22543"
+      ],
+      "new_paper_titles": [
+        "Probing Early Universe Supercooled Phase Transitions with Gravitational Wave Data",
+        "Detection Prospects of Gravitational Waves from SU(2) Axion Inflation",
+        "Dictionary learning: a novel approach to detecting binary black holes in the presence of Galactic noise with LISA",
+        "High-speed reconstruction of long-duration gravitational waves from extreme mass ratio inspirals using sparse dictionary learning",
+        "Rapid detection of gravitational waves from binary black hole mergers using sparse dictionary learning",
+        "Detecting parity violation from axion inflation with third generation detectors",
+        "Bayesian evidence estimation from posterior samples with normalizing flows",
+        "Understanding the progenitor formation galaxies of merging binary black holes",
+        "Simulation-based population inference of LISA's Galactic binaries: Bypassing the global fit"
+      ],
+      "expected_new_papers": 3
+    },
+    {
+      "original_paper_title": "Real-time gravitational-wave inference for binary neutron stars using machine learning",
+      "original_paper_arxiv_id": "2407.09602",
+      "first_authors": [
+        "Maximilian Dax"
+      ],
+      "normalized_first_authors": [
+        "maximilian dax"
+      ],
+      "gscholar_urls": [
+        "https://scholar.google.com/citations?user=VRBv6mEAAAAJ&hl=en&oi=sra"
+      ],
+      "new_papers_count": 8,
+      "new_paper_arxiv_ids": [
+        "2106.12594",
+        "2210.05686",
+        "2305.17161",
+        "2407.09602",
+        "1808.08957",
+        "2111.13139",
+        "2012.04655",
+        "2501.17044"
+      ],
+      "new_paper_titles": [
+        "Real-time gravitational-wave science with neural posterior estimation",
+        "Neural Importance Sampling for Rapid and Reliable Gravitational-Wave Inference",
+        "Flow Matching for Scalable Simulation-Based Inference",
+        "Real-time gravitational-wave inference for binary neutron stars using machine learning",
+        "Quark-mass dependence in $ω\\to3π$ decays",
+        "Group equivariant neural posterior estimation",
+        "Dispersive analysis of the Primakoff reaction $γK \\to K π$",
+        "Synthesizing 3D Abstractions by Inverting Procedural Buildings with Transformers"
+      ],
+      "expected_new_papers": 3
+    },
+    {
+      "original_paper_title": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
+      "original_paper_arxiv_id": "2407.09767",
+      "first_authors": [
+        "Mohammad Malekjani"
+      ],
+      "normalized_first_authors": [
+        "mohammad malekjani"
+      ],
+      "gscholar_urls": [
+        "https://scholar.google.com/citations?user=8zZWSb8AAAAJ&hl=en&oi=sra"
+      ],
+      "new_papers_count": 7,
+      "new_paper_arxiv_ids": [
+        "2301.12725",
+        "1809.08792",
+        "1508.04697",
+        "1212.4673",
+        "1609.01964",
+        "1206.0647",
+        "2511.18657"
+      ],
+      "new_paper_titles": [
+        "On Redshift Evolution & Negative Dark Energy Density in Pantheon+ Supernovae",
+        "Can Holographic dark energy models fit the observational data?",
+        "Effects of ghost dark energy perturbations on the evolution of spherical overdensities",
+        "Cosmography of interacting generalized QCD ghost dark energy",
+        "Spherical collapse model and cluster number counts in power law $f(T)$ gravity",
+        "Polytropic gas scalar field models of dark energy",
+        "How Complex is Dark Energy? A Bayesian Analysis of CPL Extensions with Recent DESI BAO Measurements"
+      ],
+      "expected_new_papers": 3
+    }
+  ],
+  "count": 4,
+  "generated_at": "2026-05-16T13:20:32.617820"
+}

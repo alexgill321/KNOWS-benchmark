@@ -1,0 +1,113 @@
+{
+  "papers": [
+    {
+      "title": "Semi-empirical Models of Galaxy Formation and Evolution",
+      "authors": [
+        "Andrea Lapi",
+        "Lumen Boco",
+        "Francesco Shankar"
+      ],
+      "first_author": "Andrea Lapi",
+      "first_author_normalized": "andrea lapi",
+      "abstract": "We provide a review on semi-empirical models of galaxy formation and evolution. We present a brief census of the three main modeling approaches to galaxy evolution, namely hydrodynamical simulations, semi-analytic models, and semi-empirical models (SEMs). We focus on SEMs in their different flavors, i.e. interpretative, descriptive and hybrid, discussing the peculiarities and highlighting virtues and shortcomings for each of these variants. We dissect a simple and recent hybrid SEM from our team to highlight some technical aspects. We offer some outlook on the prospective developments of SEMs. Finally, we provide a short summary of this review.",
+      "arxiv_id": "2502.12764",
+      "arxiv_url": "https://arxiv.org/abs/2502.12764",
+      "gold_labels_first_authors": [
+        "Andrea Lapi"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "andrea lapi"
+      ],
+      "figure_1_path": "data/gold_figures/original_1_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[LaTeX] No Related Work section found in any .tex file",
+      "keyword_evaluated": true
+    },
+    {
+      "title": "Rapid detection of gravitational waves from binary black hole mergers using sparse dictionary learning",
+      "authors": [
+        "Charles Badger",
+        "Rahul Srinivasan",
+        "Alejandro Torres-Forné",
+        "Marie Anne Bizouard",
+        "José A. Font",
+        "Mairi Sakellariadou",
+        "Astrid Lamberts"
+      ],
+      "first_author": "Charles Badger",
+      "first_author_normalized": "charles badger",
+      "abstract": "Current gravitational wave (GW) detection pipelines for compact binary coalescence based on matched-filtering have reported over 90 confident detections during the first three observing runs of the LIGO-Virgo-KAGRA (LVK) detector network. Decreasing the latency of detection, in particular for future detectors anticipated to have high detection rates, remains an ongoing effort. In this paper, we develop and test a sparse dictionary learning (SDL) algorithm for the rapid detection of GWs. We evaluate the algorithms biases and estimate its GW detection rate for an astrophysical population of binary black holes. The SDL algorithm is assessed using both, simulated data injected into the proposed A+ detector sensitivity and real data containing confident detections from the third LVK observing run. We find that our SDL algorithm can reconstruct a single binary black hole signal in less than 1 s. This suggests that SDL could be regarded as a promising approach for rapid, efficient GW detection in future observing runs of ground-based detectors.",
+      "arxiv_id": "2405.17721",
+      "arxiv_url": "https://arxiv.org/abs/2405.17721",
+      "gold_labels_first_authors": [
+        "Charles Badger",
+        "Rahul Srinivasan"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "charles badger",
+        "rahul srinivasan"
+      ],
+      "figure_1_path": "data/gold_figures/original_2_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] No Related Work section found",
+      "keyword_evaluated": true
+    },
+    {
+      "title": "Real-time gravitational-wave inference for binary neutron stars using machine learning",
+      "authors": [
+        "Maximilian Dax",
+        "Stephen R. Green",
+        "Jonathan Gair",
+        "Nihar Gupte",
+        "Michael Pürrer",
+        "Vivien Raymond",
+        "Jonas Wildberger",
+        "Jakob H. Macke",
+        "Alessandra Buonanno",
+        "Bernhard Schölkopf"
+      ],
+      "first_author": "Maximilian Dax",
+      "first_author_normalized": "maximilian dax",
+      "abstract": "Mergers of binary neutron stars (BNSs) emit signals in both the gravitational-wave (GW) and electromagnetic (EM) spectra. Famously, the 2017 multi-messenger observation of GW170817 led to scientific discoveries across cosmology, nuclear physics, and gravity. Central to these results were the sky localization and distance obtained from GW data, which, in the case of GW170817, helped to identify the associated EM transient, AT 2017gfo, 11 hours after the GW signal. Fast analysis of GW data is critical for directing time-sensitive EM observations; however, due to challenges arising from the length and complexity of signals, it is often necessary to make approximations that sacrifice accuracy. Here, we present a machine learning framework that performs complete BNS inference in just one second without making any such approximations. Our approach enhances multi-messenger observations by providing (i) accurate localization even before the merger; (ii) improved localization precision by $\\sim30\\%$ compared to approximate low-latency methods; and (iii) detailed information on luminosity distance, inclination, and masses, which can be used to prioritize expensive telescope time. Additionally, the flexibility and reduced cost of our method open new opportunities for equation-of-state studies. Finally, we demonstrate that our method scales to extremely long signals, up to an hour in length, thus serving as a blueprint for data analysis for next-generation ground- and space-based detectors.",
+      "arxiv_id": "2407.09602",
+      "arxiv_url": "https://arxiv.org/abs/2407.09602",
+      "gold_labels_first_authors": [
+        "Maximilian Dax"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "maximilian dax"
+      ],
+      "figure_1_path": "data/gold_figures/original_3_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO\n\n**Reasoning:** The provided text discusses machine learning applications in gravitational-wave astronomy, focusing on black hole mergers, binary neutron star (BNS) inference, and equation-of-state inference. There is no mention of \"dark energy\" anywhere in the passage.",
+      "keyword_evaluated": true
+    },
+    {
+      "title": "Cosmological constraints on dark energy parametrizations after DESI 2024: Persistent\ndeviation from standard ΛCDM cosmology",
+      "authors": [
+        "Mohammad Malekjani"
+      ],
+      "first_author": "Mohammad Malekjani",
+      "first_author_normalized": "mohammad malekjani",
+      "abstract": "",
+      "arxiv_id": "2407.09767",
+      "arxiv_url": "https://arxiv.org/abs/2407.09767",
+      "gold_labels_first_authors": [
+        "Mohammad Malekjani"
+      ],
+      "gold_labels_first_authors_normalized": [
+        "mohammad malekjani"
+      ],
+      "figure_1_path": "data/gold_figures/original_4_fig1.png",
+      "has_keyword": false,
+      "keyword_note": "[HTML] NO.\n\n**Reasoning:** The provided text discusses the Cosmic Microwave Background (CMB) radiation, Planck measurements, and various likelihood calculations related to temperature, polarization, and lensing potential spectra. It details the observational data and methods used to examine cosmological models. However, the term \"dark energy\" is not present anywhere in the text, either as a concept being discussed or even as an incidental mention.",
+      "keyword_evaluated": true
+    }
+  ],
+  "count": 4,
+  "source_folder_id": "1Qm2gLrC3PhRqhlAI_WXBjYKqECdPOwBE",
+  "generated_at": "2026-05-03T14:14:38.579965",
+  "figure_extraction_date": "2026-05-17T20:44:01.124592",
+  "keyword_detection_date": "2026-05-18T09:42:19.398994",
+  "keyword": "dark energy"
+}
