@@ -1244,7 +1244,7 @@ class SheetsPersonalTravelPlannerTask(KnowsWorkspaceTask):
     TASK_FAMILY_FOLDER = "sheets_28_personal_travel_planner"
     TASK_ID_PREFIX = "knows.sheets_28_personal_travel_planner"
     WORKSPACE_KIND = WORKSPACE_KIND_SHEETS
-    AVAILABLE_INSTANCES: Tuple[int, ...] = (1,)
+    AVAILABLE_INSTANCES: Tuple[int, ...] = (1, 2, 3, 4, 5)
 
 
 class SheetsWeddingPlannerTask(KnowsWorkspaceTask):
@@ -1314,7 +1314,7 @@ class SlidesProductComparisonTask(KnowsWorkspaceTask):
     TASK_FAMILY_FOLDER = "slides_42_personal_none_product_comparison"
     TASK_ID_PREFIX = "knows.slides_42_product_comparison"
     WORKSPACE_KIND = WORKSPACE_KIND_SLIDES
-    AVAILABLE_INSTANCES: Tuple[int, ...] = (1,)
+    AVAILABLE_INSTANCES: Tuple[int, ...] = (1, 2, 3, 4, 5)
 
 
 class SlidesEventAnnouncementPosterTask(KnowsWorkspaceTask):
