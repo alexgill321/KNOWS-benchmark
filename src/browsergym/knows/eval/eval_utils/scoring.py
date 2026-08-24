@@ -21,6 +21,101 @@ def calculate_percentage_score(success_count: int, total_count: int, max_points:
     return int(floored_percentage * max_points)
 
 
+class StepCategory:
+    """Mechanism-based categories for evaluation steps.
+
+    Each step records the mechanism that decided its outcome: on success, the
+    check that accepted the artifact; on failure, the check that rejected it.
+    For tiered/fallback checks (e.g. exact -> perceptual hash -> VLM), the
+    category is the last mechanism that ran, since it made the final call.
+    """
+    DETERMINISTIC = "deterministic"  # Exact/normalized text match, pixel-exact image match, exact numeric comparison
+    FUZZY_MATCH = "fuzzy_match"  # Tolerance-based non-geometric matching: fuzzy text, perceptual hash, numeric/color tolerance
+    LLM_VLM_JUDGEMENT = "llm_vlm_judgement"  # An LLM/VLM verdict decided the step
+    SPATIAL = "spatial"  # Geometric/rendered-coordinate check: bbox, OCR location, area, pixel visibility
+    STRUCTURAL = "structural"  # Document-structure check: element counts, order, position-in-structure, styles
+    WEB_VISIT = "web_visit"  # String/regex match over the agent's browsing history
+    DEPENDENCY_NOT_EVALUATED = "dependency_not_evaluated"  # Skipped because a prerequisite step failed (failure-only)
+    EXECUTION_ERROR = "execution_error"  # Exception/missing data prevented the check from running (failure-only)
+    VACUOUS_PASS = "vacuous_pass"  # Success recorded although no check actually ran (success-only)
+
+    VALID = {
+        DETERMINISTIC,
+        FUZZY_MATCH,
+        LLM_VLM_JUDGEMENT,
+        SPATIAL,
+        STRUCTURAL,
+        WEB_VISIT,
+        DEPENDENCY_NOT_EVALUATED,
+        EXECUTION_ERROR,
+        VACUOUS_PASS,
+    }
+
+    # Precedence for tie-breaking in aggregate(): most-suspect mechanism first.
+    AGGREGATE_PRECEDENCE = [
+        LLM_VLM_JUDGEMENT,
+        FUZZY_MATCH,
+        SPATIAL,
+        STRUCTURAL,
+        WEB_VISIT,
+        DETERMINISTIC,
+        VACUOUS_PASS,
+        DEPENDENCY_NOT_EVALUATED,
+        EXECUTION_ERROR,
+    ]
+
+    # Maps match_image_tiered()'s match_method return values to categories.
+    MATCH_METHOD_CATEGORIES = {
+        "exact": DETERMINISTIC,
+        "perceptual_hash": FUZZY_MATCH,
+        "vlm": LLM_VLM_JUDGEMENT,
+    }
+
+    @classmethod
+    def from_match_method(cls, match_method: str) -> str:
+        """Map a match_image_tiered() match_method to a step category.
+
+        Args:
+            match_method (str): One of "exact", "perceptual_hash", "vlm".
+
+        Returns:
+            str: The corresponding category; LLM_VLM_JUDGEMENT for unknown
+                methods (the VLM tier is the final arbiter of tiered matching).
+        """
+        return cls.MATCH_METHOD_CATEGORIES.get(match_method, cls.LLM_VLM_JUDGEMENT)
+
+    @classmethod
+    def aggregate(cls, items: List[tuple]) -> str:
+        """Derive one category for a step that aggregates many sub-item checks.
+
+        Rule: if any item failed, the step category is the majority category
+        among the FAILING items (the step's failure is attributed to the
+        mechanism that rejected most items). If all items passed, it is the
+        majority category among all items. Ties are broken by
+        AGGREGATE_PRECEDENCE (most-suspect mechanism first).
+
+        Args:
+            items: List of (category, success) tuples, one per sub-item.
+
+        Returns:
+            str: The aggregated category; EXECUTION_ERROR for an empty list
+                (an aggregate step with nothing to check could not run).
+        """
+        if not items:
+            return cls.EXECUTION_ERROR
+        failing = [category for category, success in items if not success]
+        pool = failing if failing else [category for category, _ in items]
+        counts: Dict[str, int] = {}
+        for category in pool:
+            counts[category] = counts.get(category, 0) + 1
+        max_count = max(counts.values())
+        tied = [c for c, n in counts.items() if n == max_count]
+        for category in cls.AGGREGATE_PRECEDENCE:
+            if category in tied:
+                return category
+        return tied[0]  # Unknown categories: arbitrary but deterministic
+
+
 @dataclass
 class EvaluationStep:
     name: str
@@ -30,6 +125,7 @@ class EvaluationStep:
     score: int = 0
     max_score: int = 1
     execution_time: Optional[float] = None  # Time in seconds
+    category: Optional[str] = None  # StepCategory value: mechanism that decided the outcome
 
 @dataclass
 class Checkpoint:
@@ -51,12 +147,24 @@ class Checkpoint:
         if self.result > self.total:
             raise ValueError(f"result ({self.result}) cannot be greater than total ({self.total})")
     
-    def add_step(self, name: str, success: bool, step_id: int, details: Optional[str] = None, score: int = None, max_score: int = 1, execution_time: Optional[float] = None):
-        """Add an evaluation step to this checkpoint."""
+    def add_step(self, name: str, success: bool, step_id: int, details: Optional[str] = None, score: int = None, max_score: int = 1, execution_time: Optional[float] = None, category: Optional[str] = None):
+        """Add an evaluation step to this checkpoint.
+
+        Args:
+            name (str): Human-readable step name.
+            success (bool): Whether the step passed.
+            step_id (int): Unique step identifier within the evaluator.
+            details (str, optional): Explanation of the outcome.
+            score (int, optional): Points earned; defaults to max_score if success else 0.
+            max_score (int): Maximum points for this step.
+            execution_time (float, optional): Time in seconds.
+            category (str, optional): StepCategory value naming the mechanism
+                that decided the outcome (see StepCategory).
+        """
         if score is None:
             score = max_score if success else 0
         self.result += score
-        step = EvaluationStep(name=name, success=success, step_id=step_id, details=details, score=score, max_score=max_score, execution_time=execution_time)
+        step = EvaluationStep(name=name, success=success, step_id=step_id, details=details, score=score, max_score=max_score, execution_time=execution_time, category=category)
         self.steps.append(step)
         return step
     
@@ -74,7 +182,8 @@ class Checkpoint:
                     "details": step.details,
                     "score": step.score,
                     "max_score": step.max_score,
-                    "execution_time": step.execution_time
+                    "execution_time": step.execution_time,
+                    "category": step.category
                 }
                 for step in self.steps
             ]
@@ -131,6 +240,23 @@ class Result:
             "total_execution_time": self.total_execution_time
         }
     
+    def get_category_summary(self) -> Dict[str, Dict[str, int]]:
+        """Aggregate step outcomes by category across all checkpoints.
+
+        Steps without a category are grouped under "uncategorized".
+
+        Returns:
+            dict: Mapping of category -> {"total": int, "passed": int, "failed": int}.
+        """
+        summary: Dict[str, Dict[str, int]] = {}
+        for cp in self.checkpoints:
+            for step in cp.steps:
+                category = step.category or "uncategorized"
+                entry = summary.setdefault(category, {"total": 0, "passed": 0, "failed": 0})
+                entry["total"] += 1
+                entry["passed" if step.success else "failed"] += 1
+        return summary
+
     def get_detailed_report(self) -> Dict[str, Any]:
         """Get a detailed report of all evaluation steps."""
         return {

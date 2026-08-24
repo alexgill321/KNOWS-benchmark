@@ -11,7 +11,7 @@ from src.browsergym.knows.eval.eval_utils.llm_utils import (
     extract_json_with_llm as extract_info_with_llm,
     evaluate_with_llm,
 )
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, StepCategory
 from src.browsergym.knows.eval.eval_utils.slides_utils import (
     estimate_text_render_bbox,
     extract_slide_links,
@@ -26,11 +26,12 @@ from src.browsergym.knows.eval.eval_utils.parallel_utils import parallel_downloa
 from src.browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_content
 
 
-def make_failure_checkpoint(name: str, total: int, step_names: List[str], reason: str) -> Checkpoint:
+def make_failure_checkpoint(name: str, total: int, step_names: List[str], reason: str,
+                            category: str = StepCategory.EXECUTION_ERROR) -> Checkpoint:
     """Structurally-complete failed Checkpoint — preserves report shape on upstream error."""
     cp = Checkpoint(total=total, result=0, name=name)
     for i, step_name in enumerate(step_names, 1):
-        cp.add_step(step_name, False, i, reason, execution_time=0)
+        cp.add_step(step_name, False, i, reason, execution_time=0, category=category)
     return cp
 
 
@@ -677,7 +678,8 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
     if car_idx >= len(car_slides):
         for name in step_names:
             steps.append({"name": f"Car {car_idx+1} - {name}", "success": False,
-                        "detail": "Car slide not found", "execution_time": 0})
+                        "detail": "Car slide not found", "execution_time": 0,
+                        "category": StepCategory.DEPENDENCY_NOT_EVALUATED})
         return steps
 
     slide = car_slides[car_idx]
@@ -692,7 +694,8 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
     steps.append({"name": f"Car {car_idx+1} - KBB Visit in History", "success": has_kbb_visit,
                 "detail": f"Found KBB visit: {kbb_urls.get(car_idx, 'N/A')}" if has_kbb_visit
                 else "No KBB visit found for this car in browsing history",
-                "execution_time": time.time() - step_start})
+                "execution_time": time.time() - step_start,
+                "category": StepCategory.WEB_VISIT})
 
     # Step 2: Make and Model Listed as Title
     step_start = time.time()
@@ -702,16 +705,20 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
         print(f"Warning: title extraction failed for car {car_idx}: {e}")
         slide_title = ""
     try:
-        title_match = keywords_match_robust(slide_title, make_model, model=model)
+        title_match, title_match_method = keywords_match_robust(slide_title, make_model, model=model, return_method=True)
+        title_category = (StepCategory.DETERMINISTIC if title_match_method == "exact"
+                          else StepCategory.LLM_VLM_JUDGEMENT)
     except Exception as e:
         print(f"Warning: title-match LLM failed for car {car_idx}: {e}")
         title_match = False
+        title_category = StepCategory.EXECUTION_ERROR
 
     make_model_in_title = bool(make_model.strip()) and bool(title_match)
     steps.append({"name": f"Car {car_idx+1} - Make and Model Listed as Title", "success": make_model_in_title,
                 "detail": f"Make/model found: {make_model}" if make_model_in_title
                 else "No make/model found on slide",
-                "execution_time": time.time() - step_start})
+                "execution_time": time.time() - step_start,
+                "category": title_category})
 
     # Step 3: Picture of correct model
     step_start = time.time()
@@ -721,6 +728,7 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
     example_dir = kbb_example_dirs.get(car_idx)
     has_picture = bool(temp_dir and os.path.exists(temp_dir) and os.listdir(temp_dir))
 
+    picture_category = StepCategory.LLM_VLM_JUDGEMENT
     if has_picture:
         try:
             if example_dir:
@@ -738,8 +746,10 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
         except Exception as e:
             print(f"Error checking car image for car {car_idx}: {e}")
             picture_detail = f"Could not evaluate picture (error: {e})"
+            picture_category = StepCategory.EXECUTION_ERROR
     else:
         picture_detail = "No picture found on slide"
+        picture_category = StepCategory.DETERMINISTIC
 
     if correct_picture:
         picture_detail = "Found picture of correct car model"
@@ -748,7 +758,8 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
 
     steps.append({"name": f"Car {car_idx+1} - Correct Model Picture", "success": correct_picture,
                 "detail": picture_detail,
-                "execution_time": time.time() - step_start})
+                "execution_time": time.time() - step_start,
+                "category": picture_category})
 
     # Step 4: Picture takes up at least 50% of slide
     step_start = time.time()
@@ -761,7 +772,8 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
     steps.append({"name": f"Car {car_idx+1} - Picture >= 50% of Slide", "success": picture_large,
                 "detail": f"Largest image covers {max_coverage:.2f}% of slide" if picture_large
                 else f"Largest image covers {max_coverage:.2f}% (need >= 50%)",
-                "execution_time": time.time() - step_start})
+                "execution_time": time.time() - step_start,
+                "category": StepCategory.SPATIAL})
 
     # Step 5: Picture does not overlap title or stats text boxes (>20% of tight
     # text region inside any image bbox => fail). Only the title and the stats
@@ -769,6 +781,7 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
     step_start = time.time()
     picture_clear = True
     no_overlap_detail = "Picture does not overlap title or stats text"
+    overlap_category = StepCategory.SPATIAL
     try:
         title_box, stats_box = find_title_and_stats_text_boxes(slide)
         in_scope_text = [tb for tb in (title_box, stats_box) if tb]
@@ -794,16 +807,19 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
         picture_clear = overlapping_text is None
         if not in_scope_text:
             no_overlap_detail = "No title or stats text boxes found; overlap check skipped"
+            overlap_category = StepCategory.VACUOUS_PASS
         elif not picture_clear:
             no_overlap_detail = f"Picture overlaps text region: '{overlapping_text}...'"
     except Exception as e:
         print(f"Warning: overlap check failed for car {car_idx}: {e}")
         picture_clear = False
         no_overlap_detail = f"Could not evaluate overlap (error: {e})"
+        overlap_category = StepCategory.EXECUTION_ERROR
 
     steps.append({"name": f"Car {car_idx+1} - Picture Does Not Overlap Text", "success": picture_clear,
                 "detail": no_overlap_detail,
-                "execution_time": time.time() - step_start})
+                "execution_time": time.time() - step_start,
+                "category": overlap_category})
 
     # Steps 6-8: Sticker price, fuel efficiency, horsepower (deterministic compare against CP3-cached KBB stats)
     kbb_stats = (kbb_stats_in or {}).get(car_idx, {})
@@ -818,11 +834,14 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
         slide_value = car_info.get(stat_key, '')
         stat_matches = False
         detail = f"No {stat_desc} data to compare"
+        stat_category = StepCategory.FUZZY_MATCH
 
         if not slide_value:
             detail = f"No {stat_desc} found on slide"
+            stat_category = StepCategory.EXECUTION_ERROR
         elif not has_kbb_data:
             detail = "No KBB stats extracted for this car"
+            stat_category = StepCategory.EXECUTION_ERROR
         elif match_key == "price":
             kbb_val = kbb_stats.get('price_numeric', 0) or 0
             stat_matches = compare_price(slide_value, kbb_val)
@@ -855,7 +874,8 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
                 detail = f"Slide '{slide_value}' does not match KBB MPG combined={mc}/city={mcity}/hwy={mhwy}"
 
         steps.append({"name": f"Car {car_idx+1} - {stat_name}", "success": bool(stat_matches),
-                    "detail": detail, "execution_time": time.time() - step_start})
+                    "detail": detail, "execution_time": time.time() - step_start,
+                    "category": stat_category})
         if stat_matches_out is not None:
             stat_matches_out.setdefault(car_idx, {})[match_key] = bool(stat_matches)
 
@@ -865,7 +885,8 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
     steps.append({"name": f"Car {car_idx+1} - Review URL Provided", "success": has_review_url,
                 "detail": f"Review URL found: {review_urls.get(car_idx, 'N/A')}" if has_review_url
                 else "No review URL found in slide",
-                "execution_time": time.time() - step_start})
+                "execution_time": time.time() - step_start,
+                "category": StepCategory.DETERMINISTIC})
 
     # Step 9: Browsing history contains the review platform URL
     step_start = time.time()
@@ -876,7 +897,8 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
     steps.append({"name": f"Car {car_idx+1} - Review URL in History", "success": review_in_history,
                 "detail": "Review URL found in browsing history" if review_in_history
                 else "Review URL not found in browsing history",
-                "execution_time": time.time() - step_start})
+                "execution_time": time.time() - step_start,
+                "category": StepCategory.WEB_VISIT})
 
     # Step 10: User average rating matches review platform
     step_start = time.time()
@@ -891,6 +913,7 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
         review_content = None
     slide_rating = car_info.get('user_rating', '')
 
+    rating_category = StepCategory.EXECUTION_ERROR
     if slide_rating and review_content:
         try:
             rating_matches = evaluate_with_llm(
@@ -899,6 +922,7 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
             )
             detail = (f"Slide rating: {slide_rating}, verified against review platform" if rating_matches
                     else f"Slide rating '{slide_rating}' does not match review platform")
+            rating_category = StepCategory.LLM_VLM_JUDGEMENT
         except Exception as e:
             detail = f"Error comparing rating: {e}"
     elif not slide_rating:
@@ -907,7 +931,8 @@ def evaluate_single_car(car_idx, car_slides, step_names, car_infos, kbb_urls, re
         detail = "Could not fetch review platform content for comparison"
 
     steps.append({"name": f"Car {car_idx+1} - Rating Matches Review Platform", "success": bool(rating_matches),
-                "detail": detail, "execution_time": time.time() - step_start})
+                "detail": detail, "execution_time": time.time() - step_start,
+                "category": rating_category})
     if stat_matches_out is not None:
         stat_matches_out.setdefault(car_idx, {})["rating"] = bool(rating_matches)
 

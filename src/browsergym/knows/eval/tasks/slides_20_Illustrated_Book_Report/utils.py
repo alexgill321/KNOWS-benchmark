@@ -122,7 +122,7 @@ def contains_preserving_diacritics(needle, haystack):
     return needle.casefold() in haystack.casefold()
 
 
-def match_character_name(title_text, gold_characters, threshold=80):
+def match_character_name(title_text, gold_characters, threshold=80, return_method=False):
     """
     Match a slide title against gold character aliases.
 
@@ -135,14 +135,18 @@ def match_character_name(title_text, gold_characters, threshold=80):
         title_text (str): The slide title text.
         gold_characters (list[str]): List of gold character aliases.
         threshold (int): Minimum fuzzy match score for fallback.
+        return_method (bool): If True, return (matched_alias, score, method)
+            where method is "word_boundary", "fuzzy", or None, recording
+            which matching tier decided the result.
 
     Returns:
         tuple: (matched_alias, score) or (None, 0).
+        If return_method is True, (matched_alias, score, method) instead.
     """
     from rapidfuzz import fuzz, process
 
     if not title_text or not gold_characters:
-        return None, 0
+        return (None, 0, None) if return_method else (None, 0)
 
     # Word-boundary substring: longest alias that appears as a whole word
     best = None
@@ -154,7 +158,7 @@ def match_character_name(title_text, gold_characters, threshold=80):
             best_len = len(alias)
     if best:
         print(f"Matched '{best}' in text '{title_text}' with score 100.0")
-        return best, 100.0
+        return (best, 100.0, "word_boundary") if return_method else (best, 100.0)
 
     # Fallback: fuzzy ratio (not partial_ratio) to avoid short-alias issues
     result = process.extractOne(
@@ -166,9 +170,9 @@ def match_character_name(title_text, gold_characters, threshold=80):
     if result:
         matched, score = result[0], result[1]
         print(f"Matched '{matched}' in text '{title_text}' with score {score}")
-        return matched, score
+        return (matched, score, "fuzzy") if return_method else (matched, score)
 
-    return None, 0
+    return (None, 0, "fuzzy") if return_method else (None, 0)
 
 
 def load_gold_characters(path):
@@ -235,7 +239,7 @@ def fetch_url_content(url):
     return None
 
 
-def validate_bullet_in_content(bullet_text, markdown_content, model, character_name="", book_title=""):
+def validate_bullet_in_content(bullet_text, markdown_content, model, character_name="", book_title="", return_method=False):
     """
     Check if a bullet point characteristic is supported by the source content.
 
@@ -249,12 +253,15 @@ def validate_bullet_in_content(bullet_text, markdown_content, model, character_n
         model: The LLM model to use for validation if fuzzy match fails.
         character_name (str): The character the bullet describes.
         book_title (str): The book the character is from.
+        return_method (bool): If True, return (bool, method) where method is
+            "fuzzy", "llm", or None, recording which tier made the final call.
 
     Returns:
         bool: True if the characteristic is supported by the source, False otherwise.
+        If return_method is True, (bool, method) instead.
     """
     if not bullet_text or not markdown_content:
-        return False
+        return (False, None) if return_method else False
 
     # Method 1: Fuzzy match with 70% threshold
     # This catches near-exact or closely paraphrased content
@@ -262,7 +269,7 @@ def validate_bullet_in_content(bullet_text, markdown_content, model, character_n
 
     if fuzzy_result[0]:
         print(f"Fuzzy match found for: {bullet_text[:50]}...")
-        return True
+        return (True, "fuzzy") if return_method else True
 
     # Method 2: LLM validation — check if the characteristic is supported
     # by the source content for this specific character
@@ -310,8 +317,8 @@ Answer No if the characteristic is not supported, contradicted, or describes a d
         else:
             print(f"Not supported by source: {bullet_text[:50]}...")
 
-        return result
+        return (result, "llm") if return_method else result
 
     except Exception as e:
         print(f"LLM validation error for '{bullet_text[:50]}...': {e}")
-        return False
+        return (False, "llm") if return_method else False

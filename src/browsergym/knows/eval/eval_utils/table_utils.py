@@ -808,6 +808,7 @@ def match_columns(
     parallel: bool = False,
     max_workers: int = 5,
     context: str = None,
+    return_methods: bool = False,
 ) -> Dict[str, str]:
     """Match required columns using keyword matching with optional LLM fallback.
 
@@ -829,10 +830,13 @@ def match_columns(
         max_workers: Maximum number of parallel LLM calls (only used if parallel=True).
         context: Optional task context passed to the LLM to improve matching accuracy
             (e.g., "an apartment listing spreadsheet with columns for property details").
+        return_methods: If True, also return a dict mapping col_name -> "keyword"|"llm"
+            recording which matching phase produced each hit.
 
     Returns:
         Dict mapping col_name -> matched_column_name for all matched columns.
         Columns that couldn't be matched are not included in the dict.
+        If return_methods is True, returns (matched, methods) instead.
     """
     from .text_utils import keywords_exact_match, keywords_llm_match
 
@@ -842,6 +846,7 @@ def match_columns(
     if not valid_columns:
         valid_columns = columns  # Fallback to all if everything is malformed
     matched = {}
+    methods = {}
     unmatched = []
 
     # Phase 1: Keyword matching (fast)
@@ -850,6 +855,7 @@ def match_columns(
         for col in valid_columns:
             if keywords_exact_match(col, keywords):
                 matched[col_name] = col
+                methods[col_name] = "keyword"
                 break
         else:
             unmatched.append((col_name, keywords))
@@ -874,6 +880,7 @@ def match_columns(
                         col_name, result = future.result()
                         if result:
                             matched[col_name] = result
+                            methods[col_name] = "llm"
                     except Exception as e:
                         print(f"Error in parallel LLM column matching: {e}")
         else:
@@ -882,7 +889,10 @@ def match_columns(
                 result = keywords_llm_match(valid_columns, keywords, model, description=f"column for '{col_name}'", context=context)
                 if result:
                     matched[col_name] = result
+                    methods[col_name] = "llm"
 
+    if return_methods:
+        return matched, methods
     return matched
 
 

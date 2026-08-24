@@ -6,6 +6,7 @@ import time
 
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.knows.eval.eval_utils.image_utils import binary_compare_images, binary_judge_image, match_image_tiered
+from src.browsergym.knows.eval.eval_utils.scoring import StepCategory
 from src.browsergym.knows.eval.eval_utils.slides_utils import download_slide_image, extract_slide_images, get_element_bbox
 from src.browsergym.knows.eval.eval_utils.web_utils import download_image_from_url, fetch_api_with_retry
 
@@ -128,7 +129,8 @@ def evaluate_single_client(client, wiki_url, client_slide_map, step_names, slide
     if match is None:
         for step_name in step_names:
             steps.append({"name": f"{client} - {step_name}", "success": False,
-                         "detail": f"No slide found with '{client}' in title", "execution_time": time.time() - step_start})
+                         "detail": f"No slide found with '{client}' in title", "execution_time": time.time() - step_start,
+                         "category": StepCategory.DEPENDENCY_NOT_EVALUATED})
         return steps
 
     slide_idx = match['slide_idx']
@@ -138,7 +140,8 @@ def evaluate_single_client(client, wiki_url, client_slide_map, step_names, slide
     # Step 1: Client name at top
     steps.append({"name": f"{client} - Name at Top", "success": name_on_top,
                  "detail": "Found the client's name in title position" if name_on_top else "Client name not found in title position",
-                 "execution_time": time.time() - step_start})
+                 "execution_time": time.time() - step_start,
+                 "category": StepCategory.SPATIAL})
 
     slide = slides[slide_idx]
     images = extract_slide_images(slide, presentation_id, SLIDES_SERVICE)
@@ -164,6 +167,7 @@ def evaluate_single_client(client, wiki_url, client_slide_map, step_names, slide
     step_start = time.time()
     wiki_image_match = False
     step_detail = "No image on left side"
+    wiki_step_category = StepCategory.DETERMINISTIC  # no left image: rejected without any comparison
     temp_wiki_dir = os.path.join(data_dir, f"temp_wiki_{client.replace(' ', '_')}")
     temp_example_dir = os.path.join(data_dir, f"temp_wiki_example_{client.replace(' ', '_')}")
     wiki_img_path = None
@@ -195,31 +199,41 @@ def evaluate_single_client(client, wiki_url, client_slide_map, step_names, slide
 
             # Compare the two images
             if slide_img_path and wiki_img_path:
-                wiki_image_match = match_image_tiered(slide_img_path, wiki_img_path, model, "Are these the same image?", 5)[0]
+                wiki_image_match, wiki_match_method = match_image_tiered(slide_img_path, wiki_img_path, model, "Are these the same image?", 5)
                 step_detail = "Slide image matches Wikipedia image" if wiki_image_match else "Slide image does not match Wikipedia image"
+                # On success, the tier that accepted decides the category; a
+                # "no_match" fail means the VLM (final tier) made the call.
+                wiki_step_category = (StepCategory.from_match_method(wiki_match_method) if wiki_image_match
+                                      else StepCategory.LLM_VLM_JUDGEMENT)
             elif not slide_img_path:
                 step_detail = "Could not download slide image"
+                wiki_step_category = StepCategory.EXECUTION_ERROR
             else:
                 step_detail = f"Could not fetch Wikipedia image from {wiki_img_url}"
+                wiki_step_category = StepCategory.EXECUTION_ERROR
     except Exception as e:
         step_detail = f"Error occurred while fetching Wikipedia image: {str(e)}"
+        wiki_step_category = StepCategory.EXECUTION_ERROR
     finally:
         if os.path.exists(temp_example_dir):
             shutil.rmtree(temp_example_dir)
 
     steps.append({"name": f"{client} - Wikipedia Image (Left)", "success": wiki_image_match,
-                 "detail": step_detail, "execution_time": time.time() - step_start})
+                 "detail": step_detail, "execution_time": time.time() - step_start,
+                 "category": wiki_step_category})
 
     # Step 3: Different image of the client on the right (must be a different photo of the same person)
     step_start = time.time()
     is_different_img = False
     right_detail = "No image on right side"
+    right_step_category = StepCategory.DETERMINISTIC  # no right image: rejected without any comparison
     temp_other_dir = os.path.join(data_dir, f"temp_diff_{client.replace(' ', '_')}")
     try:
         if right_image is not None:
             os.makedirs(temp_other_dir, exist_ok=True)
             other_img = download_slide_image(right_image.get('contentUrl', '')) if right_image.get('contentUrl') else None
             if other_img:
+                right_step_category = StepCategory.LLM_VLM_JUDGEMENT
                 ext = (other_img.format or "png").lower()
                 other_img_path = os.path.join(temp_other_dir, f"right_img.{ext}")
                 other_img.save(other_img_path)
@@ -237,6 +251,7 @@ def evaluate_single_client(client, wiki_url, client_slide_map, step_names, slide
                     right_detail = f"Right image is not a different photo of {client}"
             else:
                 right_detail = "Could not download right image"
+                right_step_category = StepCategory.EXECUTION_ERROR
     finally:
         if os.path.exists(temp_other_dir):
             shutil.rmtree(temp_other_dir)
@@ -244,13 +259,15 @@ def evaluate_single_client(client, wiki_url, client_slide_map, step_names, slide
             shutil.rmtree(temp_wiki_dir)
 
     steps.append({"name": f"{client} - Different Image (Right)", "success": is_different_img,
-                 "detail": right_detail, "execution_time": time.time() - step_start})
+                 "detail": right_detail, "execution_time": time.time() - step_start,
+                 "category": right_step_category})
 
     # Step 4: Symmetric vertical position
     step_start = time.time()
     if left_image is None or right_image is None:
         steps.append({"name": f"{client} - Symmetric Vertical Position", "success": False,
-                     "detail": "Cannot check symmetry without images on both sides", "execution_time": 0})
+                     "detail": "Cannot check symmetry without images on both sides", "execution_time": 0,
+                     "category": StepCategory.DEPENDENCY_NOT_EVALUATED})
         return steps
 
     left_bbox = get_element_bbox(left_image)
@@ -261,6 +278,7 @@ def evaluate_single_client(client, wiki_url, client_slide_map, step_names, slide
     sym_vert = vertical_diff <= 0.15
     steps.append({"name": f"{client} - Symmetric Vertical Position", "success": sym_vert,
                  "detail": f"Left center Y: {center_y1:.0f}, Right center Y: {center_y2:.0f}",
-                 "execution_time": time.time() - step_start})
+                 "execution_time": time.time() - step_start,
+                 "category": StepCategory.SPATIAL})
 
     return steps

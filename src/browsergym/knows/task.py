@@ -957,12 +957,16 @@ class KnowsWorkspaceTask(KnowsBenchTask):
                         "max_score": s.max_score,
                         "details": s.details,
                         "execution_time": s.execution_time,
+                        "category": getattr(s, "category", None),
                     }
                     for s in cp.steps
                 ],
             }
             for i, cp in enumerate(result.checkpoints)
         ]
+
+        if hasattr(result, "get_category_summary"):
+            info["eval.category_summary"] = result.get_category_summary()
 
         score_breakdown["eval.score_result"] = total_result
         score_breakdown["eval.score_total"] = total_max

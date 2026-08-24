@@ -17,7 +17,7 @@ else:
 sys.path.append(BASE_PATH)
 
 # Core evaluation imports
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory, calculate_percentage_score
 from src.browsergym.knows.eval.eval_utils.google_services_utils import (
     initialize_google_services,
     get_doc_content,
@@ -201,6 +201,7 @@ def grade_checkpoint_1():
         ]:
             checkpoint.add_step(
                 name, False, step_id, empty_reason, score=0, max_score=max_score,
+                category=StepCategory.EXECUTION_ERROR,
             )
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -230,7 +231,7 @@ def grade_checkpoint_1():
             checkpoint.add_step(
                 f"Topics Related to {SUBJECT}", True, 1,
                 f"All {num_topics} topics validated as {SUBJECT}-related: {', '.join(topic_texts)}",
-                score=4, max_score=4,
+                score=4, max_score=4, category=StepCategory.LLM_VLM_JUDGEMENT,
             )
         else:
             # Count per-topic-instance (not per-unique-name) so duplicate-named
@@ -248,13 +249,14 @@ def grade_checkpoint_1():
             checkpoint.add_step(
                 f"Topics Related to {SUBJECT}", False, 1,
                 details, score=score, max_score=4,
+                category=StepCategory.LLM_VLM_JUDGEMENT,
             )
     except Exception as e:
         traceback.print_exc()
         checkpoint.add_step(
             f"Topics Related to {SUBJECT}", False, 1,
             f"Subject-relevance check could not run: {e}",
-            score=0, max_score=4,
+            score=0, max_score=4, category=StepCategory.EXECUTION_ERROR,
         )
 
     # Step 2: count (3pt)
@@ -264,6 +266,7 @@ def grade_checkpoint_1():
         f"Found {num_topics} main-level topics"
         + ("" if count_valid else f" (expected {MIN_TOPICS}-{MAX_TOPICS})"),
         score=3 if count_valid else 0, max_score=3,
+        category=StepCategory.STRUCTURAL,
     )
 
     # Step 3: uniqueness (2pt)
@@ -272,14 +275,14 @@ def grade_checkpoint_1():
         checkpoint.add_step(
             "Topics Unique", True, 3,
             f"All {total_count} topic names are unique",
-            score=2, max_score=2,
+            score=2, max_score=2, category=StepCategory.DETERMINISTIC,
         )
     else:
         score = calculate_percentage_score(unique_count, total_count, 2)
         checkpoint.add_step(
             "Topics Unique", False, 3,
             f"{unique_count}/{total_count} unique topics; duplicates: {', '.join(dupes[:3])}",
-            score=score, max_score=2,
+            score=score, max_score=2, category=StepCategory.DETERMINISTIC,
         )
 
     # Step 4: audience appropriateness (3pt) — explicit standalone step.
@@ -306,7 +309,7 @@ def grade_checkpoint_1():
             checkpoint.add_step(
                 f"Topics Appropriate for {AUDIENCE_LEVEL}", True, 4,
                 f"All {num_topics} topics judged appropriate for {AUDIENCE_LEVEL}",
-                score=3, max_score=3,
+                score=3, max_score=3, category=StepCategory.LLM_VLM_JUDGEMENT,
             )
         else:
             score = calculate_percentage_score(audience_passed, num_topics, 3)
@@ -318,13 +321,14 @@ def grade_checkpoint_1():
             checkpoint.add_step(
                 f"Topics Appropriate for {AUDIENCE_LEVEL}", False, 4,
                 details, score=score, max_score=3,
+                category=StepCategory.LLM_VLM_JUDGEMENT,
             )
     except Exception as e:
         traceback.print_exc()
         checkpoint.add_step(
             f"Topics Appropriate for {AUDIENCE_LEVEL}", False, 4,
             f"Audience-appropriateness check could not run: {e}",
-            score=0, max_score=3,
+            score=0, max_score=3, category=StepCategory.EXECUTION_ERROR,
         )
 
     # Step 5: engagement / "fun" (3pt)
@@ -343,7 +347,7 @@ def grade_checkpoint_1():
             checkpoint.add_step(
                 "Topics Engaging", True, 5,
                 f"All {num_topics} topics judged engaging for {AUDIENCE_LEVEL} students",
-                score=3, max_score=3,
+                score=3, max_score=3, category=StepCategory.LLM_VLM_JUDGEMENT,
             )
         else:
             score = calculate_percentage_score(eng_passed, num_topics, 3)
@@ -355,13 +359,14 @@ def grade_checkpoint_1():
             checkpoint.add_step(
                 "Topics Engaging", False, 5,
                 details, score=score, max_score=3,
+                category=StepCategory.LLM_VLM_JUDGEMENT,
             )
     except Exception as e:
         traceback.print_exc()
         checkpoint.add_step(
             "Topics Engaging", False, 5,
             f"Engagement check could not run: {e}",
-            score=0, max_score=3,
+            score=0, max_score=3, category=StepCategory.EXECUTION_ERROR,
         )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -415,6 +420,7 @@ def grade_checkpoint_2():
                 name, False, step_id,
                 "No main topics found in document - cannot validate URLs",
                 score=0, max_score=max_score,
+                category=StepCategory.EXECUTION_ERROR,
             )
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -559,7 +565,7 @@ def grade_checkpoint_2():
         checkpoint.add_step(
             step_name_count, True, 1,
             "All topics have the correct amount of URLs",
-            score=10, max_score=10,
+            score=10, max_score=10, category=StepCategory.STRUCTURAL,
         )
     else:
         improper_link_score = calculate_percentage_score(valid_topics, topic_amount, 10)
@@ -568,6 +574,7 @@ def grade_checkpoint_2():
             f"Only {valid_topics} out of {topic_amount} topics have "
             f"{MIN_WEBSITES_PER_TOPIC}+ links",
             score=improper_link_score, max_score=10,
+            category=StepCategory.STRUCTURAL,
         )
 
     # New Step: URL Uniqueness Within Topic (5pt)
@@ -575,7 +582,7 @@ def grade_checkpoint_2():
         checkpoint.add_step(
             "URLs Unique Within Topic", True, 2,
             "All topics have unique URLs within their 4 websites",
-            score=5, max_score=5,
+            score=5, max_score=5, category=StepCategory.DETERMINISTIC,
         )
     else:
         unique_score = calculate_percentage_score(topics_with_unique_urls, topic_amount, 5)
@@ -584,6 +591,7 @@ def grade_checkpoint_2():
             f"{topics_with_unique_urls}/{topic_amount} topics have unique URLs. "
             f"{'; '.join(url_dup_examples[:MAX_FAILURE_EXAMPLES])}",
             score=unique_score, max_score=5,
+            category=StepCategory.DETERMINISTIC,
         )
 
     # Part 2 Check: Website Validity (per-website, not per-topic).
@@ -596,10 +604,12 @@ def grade_checkpoint_2():
     ]
     valid_websites = total_websites - len(failed_websites_flat)
 
+    validity_category = StepCategory.DETERMINISTIC
     if total_websites == 0:
         validity_score = 0
         validity_passed = False
         validity_msg = "No websites found to validate"
+        validity_category = StepCategory.EXECUTION_ERROR
     elif valid_websites == total_websites:
         validity_score = 10
         validity_passed = True
@@ -618,14 +628,17 @@ def grade_checkpoint_2():
     checkpoint.add_step(
         "Website Validity", validity_passed, 3,
         validity_msg, score=validity_score, max_score=10,
+        category=validity_category,
     )
 
     # Part 3 Check: Agent Visited Websites (Global Score)
     # Score = (Total Visited / Total Found) * 10
+    visited_category = StepCategory.WEB_VISIT
     if total_urls_found == 0:
         # Edge case: No URLs found at all
         visited_score = 0
         visited_msg = "No URLs found to check visitation."
+        visited_category = StepCategory.EXECUTION_ERROR
     else:
         visited_score = calculate_percentage_score(total_urls_visited, total_urls_found, 10)
         visited_msg = f"Agent visited {total_urls_visited} out of {total_urls_found} total URLs found."
@@ -636,19 +649,23 @@ def grade_checkpoint_2():
         4,
         visited_msg,
         score = visited_score,
-        max_score = 10
+        max_score = 10,
+        category=visited_category,
     )
 
     # Part 4 Check: URL Relevance (Global Score)
     # Score = (Total Relevant / Total Checked) * 10
+    relevance_category = StepCategory.LLM_VLM_JUDGEMENT
     if relevance_call_failed:
         relevance_score = 0
         relevance_msg = "URL relevance check could not run: LLM call failed."
         passed = False
+        relevance_category = StepCategory.EXECUTION_ERROR
     elif total_relevance_checked == 0:
         relevance_score = 0
         relevance_msg = "No accessible URLs to check for relevance."
         passed = False
+        relevance_category = StepCategory.EXECUTION_ERROR
     else:
         relevance_score = calculate_percentage_score(total_relevance_passed, total_relevance_checked, 10)
         if total_relevance_passed == total_relevance_checked:
@@ -668,7 +685,8 @@ def grade_checkpoint_2():
         5,
         relevance_msg,
         score = relevance_score,
-        max_score = 10
+        max_score = 10,
+        category=relevance_category,
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -707,6 +725,7 @@ def grade_checkpoint_3():
                 name, False, step_id,
                 "No main topics found - cannot validate facts",
                 score=0, max_score=max_score,
+                category=StepCategory.EXECUTION_ERROR,
             )
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -852,10 +871,12 @@ def grade_checkpoint_3():
 
     # Step 1: Fact Count
     fact_count_step_name = f"Websites have {MIN_FACTS_PER_WEBSITE}+ facts"
+    fact_count_category = StepCategory.STRUCTURAL
     if total_websites == 0:
         fact_count_score = 0
         fact_count_msg = "No websites found to check fact counts."
         fact_count_passed = False
+        fact_count_category = StepCategory.EXECUTION_ERROR
     else:
         fact_count_score = calculate_percentage_score(websites_with_5plus_facts, total_websites, 15)
         fact_count_passed = (websites_with_5plus_facts == total_websites)
@@ -865,6 +886,7 @@ def grade_checkpoint_3():
     checkpoint.add_step(
         fact_count_step_name, fact_count_passed, 1,
         fact_count_msg, score=fact_count_score, max_score=15,
+        category=fact_count_category,
     )
 
     # Step 2: Fact uniqueness within each website (5pt)
@@ -872,13 +894,13 @@ def grade_checkpoint_3():
         checkpoint.add_step(
             "Facts Unique Within Website", False, 2,
             "No websites found to check fact uniqueness.",
-            score=0, max_score=5,
+            score=0, max_score=5, category=StepCategory.EXECUTION_ERROR,
         )
     elif websites_with_unique_facts == total_websites:
         checkpoint.add_step(
             "Facts Unique Within Website", True, 2,
             f"All {total_websites} websites have unique facts",
-            score=5, max_score=5,
+            score=5, max_score=5, category=StepCategory.FUZZY_MATCH,
         )
     else:
         unique_score = calculate_percentage_score(websites_with_unique_facts, total_websites, 5)
@@ -887,17 +909,21 @@ def grade_checkpoint_3():
             f"{websites_with_unique_facts}/{total_websites} websites have unique facts. "
             f"{'; '.join(fact_dup_examples[:MAX_FAILURE_EXAMPLES])}",
             score=unique_score, max_score=5,
+            category=StepCategory.FUZZY_MATCH,
         )
 
     # Step 3: Fact Verification
+    fact_verification_category = StepCategory.LLM_VLM_JUDGEMENT
     if llm_call_failed:
         fact_verification_score = 0
         fact_msg = "Fact verification could not run: LLM call failed."
         fact_passed = False
+        fact_verification_category = StepCategory.EXECUTION_ERROR
     elif total_facts_checked == 0:
         fact_verification_score = 0
         fact_msg = "No facts found to verify on websites."
         fact_passed = False
+        fact_verification_category = StepCategory.EXECUTION_ERROR
     else:
         fact_verification_score = calculate_percentage_score(facts_verified_on_website, total_facts_checked, 15)
         if facts_verified_on_website == total_facts_checked:
@@ -925,7 +951,8 @@ def grade_checkpoint_3():
         3,
         fact_msg,
         score=fact_verification_score,
-        max_score=15
+        max_score=15,
+        category=fact_verification_category,
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -957,6 +984,7 @@ def grade_checkpoint_4():
                 name, False, step_id,
                 "No main topics found - cannot validate summary facts",
                 score=0, max_score=max_score,
+                category=StepCategory.EXECUTION_ERROR,
             )
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -992,22 +1020,22 @@ def grade_checkpoint_4():
         checkpoint.add_step(
             "Facts Copied Correctly", False, 1,
             "No facts found in summary section. Summary section may be missing.",
-            score=0, max_score=8,
+            score=0, max_score=8, category=StepCategory.EXECUTION_ERROR,
         )
         checkpoint.add_step(
             "Facts Formatted as Bullet Points", False, 2,
             "No fact-like paragraphs found in summary",
-            score=0, max_score=4,
+            score=0, max_score=4, category=StepCategory.EXECUTION_ERROR,
         )
         checkpoint.add_step(
             "Color Consistency by Topic", False, 3,
             "No summary facts found to validate color consistency.",
-            score=0, max_score=4,
+            score=0, max_score=4, category=StepCategory.EXECUTION_ERROR,
         )
         checkpoint.add_step(
             "Topic Colors Distinct", False, 4,
             "No summary facts found to validate color distinctness.",
-            score=0, max_score=4,
+            score=0, max_score=4, category=StepCategory.EXECUTION_ERROR,
         )
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -1023,8 +1051,10 @@ def grade_checkpoint_4():
         # Steps 3/4 are handled by the no-colored-facts early-exit below.
         msg = ("No topic-wise fact summary paragraphs found "
                "(summary section contains only headings or a narrative lesson summary).")
-        checkpoint.add_step("Facts Copied Correctly", False, 1, msg, score=0, max_score=8)
-        checkpoint.add_step("Facts Formatted as Bullet Points", False, 2, msg, score=0, max_score=4)
+        checkpoint.add_step("Facts Copied Correctly", False, 1, msg, score=0, max_score=8,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Facts Formatted as Bullet Points", False, 2, msg, score=0, max_score=4,
+                            category=StepCategory.EXECUTION_ERROR)
     else:
         step1_start = time.time()
         # Step 1 wrapped so a match failure can't take Steps 2/3/4 with it.
@@ -1079,6 +1109,7 @@ def grade_checkpoint_4():
                 "Facts Copied Correctly", accuracy_passed, 1,
                 accuracy_msg, score=accuracy_score, max_score=8,
                 execution_time=time.time() - step1_start,
+                category=StepCategory.FUZZY_MATCH,
             )
         except Exception as e:
             traceback.print_exc()
@@ -1087,6 +1118,7 @@ def grade_checkpoint_4():
                 f"Fact-accuracy check could not run: {e}",
                 score=0, max_score=8,
                 execution_time=time.time() - step1_start,
+                category=StepCategory.EXECUTION_ERROR,
             )
 
         # Step 2: among the LLM-identified fact paragraphs, what fraction are
@@ -1109,6 +1141,7 @@ def grade_checkpoint_4():
                 "Facts Formatted as Bullet Points", bullet_passed, 2,
                 bullet_msg, score=bullet_score, max_score=4,
                 execution_time=time.time() - step2_start,
+                category=StepCategory.STRUCTURAL,
             )
         except Exception as e:
             traceback.print_exc()
@@ -1117,6 +1150,7 @@ def grade_checkpoint_4():
                 f"Bullet-format check could not run: {e}",
                 score=0, max_score=4,
                 execution_time=time.time() - step2_start,
+                category=StepCategory.EXECUTION_ERROR,
             )
 
     step34_start = time.time()
@@ -1126,8 +1160,10 @@ def grade_checkpoint_4():
     if not summary_facts_with_colors:
         msg = (f"No color-coded facts found in summary section "
                f"({len(all_summary_facts)} facts exist but none have color metadata).")
-        checkpoint.add_step("Color Consistency by Topic", False, 3, msg, score=0, max_score=4)
-        checkpoint.add_step("Topic Colors Distinct", False, 4, msg, score=0, max_score=4)
+        checkpoint.add_step("Color Consistency by Topic", False, 3, msg, score=0, max_score=4,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Topic Colors Distinct", False, 4, msg, score=0, max_score=4,
+                            category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -1180,6 +1216,7 @@ def grade_checkpoint_4():
             "Color Consistency by Topic", consistency_passed, 3,
             consistency_msg, score=consistency_score, max_score=4,
             execution_time=time.time() - step34_start,
+            category=StepCategory.DETERMINISTIC,
         )
 
         # Step 4: no color shared between topics (collisions across topic indices).
@@ -1229,18 +1266,19 @@ def grade_checkpoint_4():
         checkpoint.add_step(
             "Topic Colors Distinct", distinctness_passed, 4,
             distinctness_msg, score=distinctness_score, max_score=4,
+            category=StepCategory.DETERMINISTIC,
         )
     except Exception as e:
         traceback.print_exc()
         checkpoint.add_step(
             "Color Consistency by Topic", False, 3,
             f"Color consistency check could not run: {e}",
-            score=0, max_score=4,
+            score=0, max_score=4, category=StepCategory.EXECUTION_ERROR,
         )
         checkpoint.add_step(
             "Topic Colors Distinct", False, 4,
             f"Color distinctness check could not run: {e}",
-            score=0, max_score=4,
+            score=0, max_score=4, category=StepCategory.EXECUTION_ERROR,
         )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -1272,7 +1310,7 @@ def grade_checkpoint_5():
             checkpoint.add_step(
                 name, False, step_id,
                 "No main topics found - cannot validate images",
-                score=0, max_score=5,
+                score=0, max_score=5, category=StepCategory.EXECUTION_ERROR,
             )
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -1361,18 +1399,21 @@ def grade_checkpoint_5():
             "Each Topic has a Uniquely Matched Image", False, 1,
             "Image extraction from document failed; cannot run matching.",
             score=0, max_score=5, execution_time=time.time() - step1_start,
+            category=StepCategory.EXECUTION_ERROR,
         )
     elif not downloaded_images:
         checkpoint.add_step(
             "Each Topic has a Uniquely Matched Image", False, 1,
             "No images embedded in the document.",
             score=0, max_score=5, execution_time=time.time() - step1_start,
+            category=StepCategory.EXECUTION_ERROR,
         )
     elif vlm_failed:
         checkpoint.add_step(
             "Each Topic has a Uniquely Matched Image", False, 1,
             "Concept-level VLM call failed; cannot run one-to-one matching.",
             score=0, max_score=5, execution_time=time.time() - step1_start,
+            category=StepCategory.EXECUTION_ERROR,
         )
     else:
         # Greedy DFS bipartite matching over Yes-edges. Indexed by topic
@@ -1431,6 +1472,7 @@ def grade_checkpoint_5():
             "Each Topic has a Uniquely Matched Image", match_passed, 1,
             match_msg, score=match_score, max_score=5,
             execution_time=time.time() - step1_start,
+            category=StepCategory.LLM_VLM_JUDGEMENT,
         )
 
     # Step 2: page-format-agnostic lower-region check, proportional credit.
@@ -1438,10 +1480,12 @@ def grade_checkpoint_5():
     lower_y = int(page_height_px * LOWER_REGION_PAGE_FRACTION)
     lower_height = page_height_px - lower_y
 
+    bottom_category = StepCategory.SPATIAL
     if not image_locations:
         bottom_passed = False
         bottom_score = 0
         bottom_msg = "No image locations found for position validation"
+        bottom_category = StepCategory.EXECUTION_ERROR
     else:
         pages = sorted({loc.page_number for loc in image_locations})
         if len(pages) > 1:
@@ -1465,6 +1509,7 @@ def grade_checkpoint_5():
     checkpoint.add_step(
         "Images at Bottom of Last Page", bottom_passed, 2,
         bottom_msg, score=bottom_score, max_score=5,
+        category=bottom_category,
     )
 
     # Step 3: side-by-side. Independent of Step 2 — first check doc structure
@@ -1472,28 +1517,36 @@ def grade_checkpoint_5():
     if images_in_single_table_row(doc_content):
         side_by_side_passed = True
         side_by_side_msg = "All images are arranged side by side in a single table row"
+        side_by_side_category = StepCategory.STRUCTURAL
     elif alignment_result is not None and alignment_result.get('aligned'):
         side_by_side_passed = True
         side_by_side_msg = alignment_result['details']
+        side_by_side_category = StepCategory.SPATIAL
     elif extraction_failed:
         side_by_side_passed = False
         side_by_side_msg = "Image extraction failed; cannot run alignment check"
+        side_by_side_category = StepCategory.EXECUTION_ERROR
     elif not downloaded_images:
         side_by_side_passed = False
         side_by_side_msg = "No images embedded in the document"
+        side_by_side_category = StepCategory.EXECUTION_ERROR
     elif alignment_result is not None:
         side_by_side_passed = False
         side_by_side_msg = alignment_result['details']
+        side_by_side_category = StepCategory.SPATIAL
     elif not page_image_files:
         side_by_side_passed = False
         side_by_side_msg = "PDF rasterization produced no page images; cannot run alignment check"
+        side_by_side_category = StepCategory.EXECUTION_ERROR
     else:
         side_by_side_passed = False
         side_by_side_msg = "Alignment check did not run (unknown error)"
+        side_by_side_category = StepCategory.EXECUTION_ERROR
 
     checkpoint.add_step(
         "Images Arranged Side by Side", side_by_side_passed, 3,
         side_by_side_msg, score=5 if side_by_side_passed else 0, max_score=5,
+        category=side_by_side_category,
     )
 
     # Step 4: per-image concept quality. Thematic = VLM said Yes for any topic.
@@ -1503,18 +1556,21 @@ def grade_checkpoint_5():
             "Images Depict Topic Concept", False, 4,
             "Image extraction failed; cannot run concept check.",
             score=0, max_score=5, execution_time=time.time() - step4_start,
+            category=StepCategory.EXECUTION_ERROR,
         )
     elif not downloaded_images:
         checkpoint.add_step(
             "Images Depict Topic Concept", False, 4,
             "No images embedded in the document.",
             score=0, max_score=5, execution_time=time.time() - step4_start,
+            category=StepCategory.EXECUTION_ERROR,
         )
     elif vlm_failed:
         checkpoint.add_step(
             "Images Depict Topic Concept", False, 4,
             "Concept-level VLM call failed; cannot evaluate image concept depiction.",
             score=0, max_score=5, execution_time=time.time() - step4_start,
+            category=StepCategory.EXECUTION_ERROR,
         )
     else:
         thematic_images = sum(
@@ -1540,6 +1596,7 @@ def grade_checkpoint_5():
             "Images Depict Topic Concept", concept_passed, 4,
             concept_msg, score=concept_score, max_score=5,
             execution_time=time.time() - step4_start,
+            category=StepCategory.LLM_VLM_JUDGEMENT,
         )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -1564,7 +1621,8 @@ def grade_checkpoint_6():
         ]:
             checkpoint.add_step(name, False, step_id,
                 "No main topics found - cannot validate lesson summary",
-                score=0, max_score=max_score)
+                score=0, max_score=max_score,
+                category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -1625,18 +1683,21 @@ def grade_checkpoint_6():
             checkpoint.add_step("Lesson Summary Present", True, 1,
                 f"Lesson summary detected ({len(lesson_summary_text)} chars)",
                 score=3, max_score=3,
-                execution_time=time.time() - step1_start)
+                execution_time=time.time() - step1_start,
+                category=StepCategory.LLM_VLM_JUDGEMENT)
         else:
             checkpoint.add_step("Lesson Summary Present", False, 1,
                 "No lesson summary paragraph found in the summary section",
                 score=0, max_score=3,
-                execution_time=time.time() - step1_start)
+                execution_time=time.time() - step1_start,
+                category=StepCategory.LLM_VLM_JUDGEMENT)
     except Exception as e:
         traceback.print_exc()
         checkpoint.add_step("Lesson Summary Present", False, 1,
             f"Lesson-summary detection could not run: {e}",
             score=0, max_score=3,
-            execution_time=time.time() - step1_start)
+            execution_time=time.time() - step1_start,
+            category=StepCategory.EXECUTION_ERROR)
 
     # Step 2: single LLM Yes/No — is the lesson summary derived from the
     # source facts? Source = topic-wise fact paragraphs if present, else the
@@ -1668,12 +1729,14 @@ def grade_checkpoint_6():
             checkpoint.add_step("Lesson Summary Uses Facts", False, 2,
                 "Lesson summary not detected; cannot verify it uses the facts",
                 score=0, max_score=7,
-                execution_time=time.time() - step2_start)
+                execution_time=time.time() - step2_start,
+                category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         elif not source_text.strip():
             checkpoint.add_step("Lesson Summary Uses Facts", False, 2,
                 "No source facts found (no fact paragraphs and no bullet-hierarchy facts)",
                 score=0, max_score=7,
-                execution_time=time.time() - step2_start)
+                execution_time=time.time() - step2_start,
+                category=StepCategory.EXECUTION_ERROR)
         elif model is None:
             raise RuntimeError("Model not loaded for uses-facts check")
         else:
@@ -1708,13 +1771,15 @@ def grade_checkpoint_6():
                    f"Lesson summary does NOT appear to be derived from the {source_label}")
             checkpoint.add_step("Lesson Summary Uses Facts", uses_facts, 2,
                 msg, score=score, max_score=7,
-                execution_time=time.time() - step2_start)
+                execution_time=time.time() - step2_start,
+                category=StepCategory.LLM_VLM_JUDGEMENT)
     except Exception as e:
         traceback.print_exc()
         checkpoint.add_step("Lesson Summary Uses Facts", False, 2,
             f"Uses-facts check could not run: {e}",
             score=0, max_score=7,
-            execution_time=time.time() - step2_start)
+            execution_time=time.time() - step2_start,
+            category=StepCategory.EXECUTION_ERROR)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -1765,6 +1830,7 @@ def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history_lis
                     "evaluator setup failed", False, 1,
                     f"Could not set up document evaluation: {setup_error}",
                     score=0, max_score=total,
+                    category=StepCategory.EXECUTION_ERROR,
                 )
                 failed_checkpoints.append(cp)
             return Result(failed_checkpoints,
@@ -1795,7 +1861,8 @@ def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history_lis
                 traceback.print_exc()
                 cp = Checkpoint(total=total, result=0, name=name)
                 cp.add_step("evaluator crashed", False, 1,
-                            f"Uncaught exception: {e}", score=0, max_score=total)
+                            f"Uncaught exception: {e}", score=0, max_score=total,
+                            category=StepCategory.EXECUTION_ERROR)
                 return cp
 
         checkpoints: List[Checkpoint] = [
