@@ -48,7 +48,7 @@ from src.browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_conte
 from src.browsergym.knows.eval.tasks.slides_51_event_announcement_poster.utils import (
     find_header_box,
     find_subheader_box,
-    find_body_box,
+    select_summary_body_box,
     classify_citation_group,
     is_color_close,
     COLORS,
@@ -532,24 +532,27 @@ def grade_checkpoint_3():
         return checkpoint
     text_boxes = extract_text_boxes_from_slide(slide)
 
-    global body_text
-    body_box = find_body_box(text_boxes, slide_w, slide_h)
-    body_text = body_box['text'].strip() if body_box else ""
+    global body_text, model
+    if model is None:
+        model = load_model(model_id)
 
     step_start = time.time()
+    body_box, body_is_summary, step1_detail = select_summary_body_box(
+        text_boxes, slide_w, slide_h, model)
+    body_text = body_box['text'].strip() if body_box else ""
+
     if body_box is None:
-        step1_success = False
-        step1_detail = "No substantial text box found in central area"
+        step1_category = StepCategory.SPATIAL
+    elif body_is_summary is None:
+        step1_category = StepCategory.EXECUTION_ERROR
     else:
-        has_content = len(body_text) >= 50
-        step1_success = has_content
-        step1_detail = f"Body box found, content length: {len(body_text)} chars"
+        step1_category = StepCategory.LLM_VLM_JUDGEMENT
 
     checkpoint.add_step(
-        "Body Summary in Central Area", step1_success, 1,
+        "Body Summary in Central Area", bool(body_is_summary), 1,
         step1_detail, max_score = 5,
         execution_time = time.time() - step_start,
-        category = StepCategory.SPATIAL
+        category = step1_category
     )
 
     step_start = time.time()
@@ -588,9 +591,6 @@ def grade_checkpoint_3():
         step4_details.append("No body text")
         step5_details.append("No body text")
     else:
-        global model
-        if model is None:
-            model = load_model(model_id)
 
         msg_topic = [
             {"role": "system", "content": [{"type": "text", "text":
