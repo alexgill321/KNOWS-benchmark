@@ -63,6 +63,7 @@ from src.browsergym.knows.eval.tasks.slides_26_basic_educational_slide_deck.util
     score_credit_match,
     cluster_images_by_phash,
     to_deck_positions,
+    EMU_PER_INCH,
     llm_extract_source_url,
     CREDIT_KEYWORDS,
 )
@@ -87,7 +88,8 @@ CP1_STEPS = [
 CP2_STEPS = [
     ("Slide Count", 5), ("Topic Relevance", 10), ("Source in Lower-Left", 10),
     ("Info From Source", 10), ("Unique Headings", 10), ("Heading Bold Italic", 10),
-    ("Bullet Points and No Overflow", 10), ("Content Paraphrased", 10), ("Content Left Side", 10),
+    ("Bullet Points", 5), ("No Text Overflow", 5),
+    ("Content Paraphrased", 10), ("Content Left Side", 10),
 ]
 CP3_STEPS = [("Covers All Concepts", 4), ("Original Text", 3), ("Engagement Prompt", 3)]
 CP4_STEPS = [
@@ -982,58 +984,90 @@ def grade_checkpoint_2():
         checkpoint.add_step("Heading Bold Italic", success, 6, details, score=step_score, max_score=10,
                             execution_time=time.time() - step_start, category=step6_category)
 
-        # ---- Step 7 (10 pt): Bullet points + no text box overflows the slide ----
+        # ---- Step 7 (5 pt): Information is presented in bullet points ----
         step_start = time.time()
         success, step_score, details = False, 0, ""
-        step7_category = StepCategory.STRUCTURAL  # bullet-count check dominates by default
+        step7_category = StepCategory.STRUCTURAL  # bullet-count check
         try:
-            bullet_ok_count = 0
+            bullets_count = 0
             extraction_failed_count = 0
             no_bullets_slides = []
-            overflow_slides = []
             for i, sd in enumerate(slide_data):
-                # Skip stubs — empty text_boxes would false-positive as "no overflow".
+                # Skip stubs — no extracted text to find bullets in.
                 if sd.get('extraction_failed'):
                     extraction_failed_count += 1
                     continue
                 # Accept 2+ bullets — task says "short list" without a specific count.
                 has_bullets, _ = validate_bullet_points(content_slides[i], min_count=2)
-                if not has_bullets:
+                if has_bullets:
+                    bullets_count += 1
+                else:
                     no_bullets_slides.append(i)
+            success = bullets_count == actual_count
+            step_score = calculate_percentage_score(bullets_count, actual_count, max_points=5)
+            details = f"{bullets_count}/{actual_count} slides present information in bullet points" + join_extras(
+                f"{extraction_failed_count} slide(s) extraction failed" if extraction_failed_count else None,
+                f"no bullets: slide(s) {to_deck_positions(no_bullets_slides)}" if no_bullets_slides else None,
+            )
+        except Exception as e:
+            details = f"Error during bullet point check: {e}"
+            step7_category = StepCategory.EXECUTION_ERROR
+        checkpoint.add_step("Bullet Points", success, 7, details, score=step_score, max_score=5,
+                            execution_time=time.time() - step_start, category=step7_category)
+
+        # ---- Step 8 (5 pt): No text box overflows the slide ----
+        step_start = time.time()
+        success, step_score, details = False, 0, ""
+        step8_category = StepCategory.SPATIAL  # box geometry against slide bounds
+        try:
+            no_overflow_count = 0
+            extraction_failed_count = 0
+            overflow_slides = []
+            worst = None  # (EMUs past the edge, edge name, slide index, text snippet)
+            for i, sd in enumerate(slide_data):
+                # Skip stubs — empty text_boxes would false-positive as "no overflow".
+                if sd.get('extraction_failed'):
+                    extraction_failed_count += 1
                     continue
                 overflow = False
                 for tb in sd['text_boxes']:
                     bbox = tb['bbox']
-                    if (bbox.get('x', 0) + bbox.get('width', 0) > slide_w * 1.05 or
-                            bbox.get('y', 0) + bbox.get('height', 0) > slide_h * 1.05):
-                        overflow = True
-                        break
-                if not overflow:
-                    bullet_ok_count += 1
-                else:
+                    exceeded = []
+                    over_right = bbox.get('x', 0) + bbox.get('width', 0) - slide_w
+                    over_bottom = bbox.get('y', 0) + bbox.get('height', 0) - slide_h
+                    if over_right > slide_w * 0.05:
+                        exceeded.append(('right', over_right))
+                    if over_bottom > slide_h * 0.05:
+                        exceeded.append(('bottom', over_bottom))
+                    if not exceeded:
+                        continue
+                    overflow = True
+                    edge, over = max(exceeded, key=lambda pair: pair[1])
+                    if worst is None or over > worst[0]:
+                        snippet = (tb.get('text') or '').strip().replace('\n', ' ')[:40]
+                        worst = (over, edge, i, snippet)
+                if overflow:
                     overflow_slides.append(i)
-            failed_slides = sorted(set(no_bullets_slides) | set(overflow_slides))
-            success = bullet_ok_count == actual_count
-            # Overflow (geometric) failures dominating bullet-count failures make
-            # the step's decider spatial; ties and successes stay structural.
-            if len(overflow_slides) > len(no_bullets_slides):
-                step7_category = StepCategory.SPATIAL
-            step_score = calculate_percentage_score(bullet_ok_count, actual_count)
-            details = f"{bullet_ok_count}/{actual_count} slides have bullets and no text-box overflow" + join_extras(
+                else:
+                    no_overflow_count += 1
+            success = no_overflow_count == actual_count
+            step_score = calculate_percentage_score(no_overflow_count, actual_count, max_points=5)
+            details = f"{no_overflow_count}/{actual_count} slides keep every text box within the slide" + join_extras(
                 f"{extraction_failed_count} slide(s) extraction failed" if extraction_failed_count else None,
-                f"no bullets: slide(s) {to_deck_positions(no_bullets_slides)}" if no_bullets_slides else None,
-                f"text box overflows slide: slide(s) {to_deck_positions(overflow_slides)}" if overflow_slides else None,
+                f"overflows: slide(s) {to_deck_positions(overflow_slides)}" if overflow_slides else None,
+                (f"worst {worst[0] / EMU_PER_INCH:.2f}in past the {worst[1]} edge on slide "
+                 f"{to_deck_positions([worst[2]])[0]} ({worst[3]!r})") if worst else None,
             )
         except Exception as e:
-            details = f"Error during bullet overflow check: {e}"
-            step7_category = StepCategory.EXECUTION_ERROR
-        checkpoint.add_step("Bullet Points and No Overflow", success, 7, details, score=step_score, max_score=10,
-                            execution_time=time.time() - step_start, category=step7_category)
+            details = f"Error during text box overflow check: {e}"
+            step8_category = StepCategory.EXECUTION_ERROR
+        checkpoint.add_step("No Text Overflow", success, 8, details, score=step_score, max_score=5,
+                            execution_time=time.time() - step_start, category=step8_category)
 
-        # ---- Step 8 (10 pt): Content is paraphrased, not verbatim copied ----
+        # ---- Step 9 (10 pt): Content is paraphrased, not verbatim copied ----
         step_start = time.time()
         success, step_score, details = False, 0, ""
-        step8_category = StepCategory.FUZZY_MATCH  # fuzzy verbatim scan is the first-line check
+        step9_category = StepCategory.FUZZY_MATCH  # fuzzy verbatim scan is the first-line check
         try:
             paraphrased_count = 0
             partial_credit_count = 0
@@ -1042,12 +1076,12 @@ def grade_checkpoint_2():
             no_bullets_count = 0
             extraction_failed_count = 0
             failed_slides = []
-            step8_items = []  # (category, success) per slide for StepCategory.aggregate()
+            step9_items = []  # (category, success) per slide for StepCategory.aggregate()
             for i, sd in enumerate(slide_data):
                 if sd.get('extraction_failed'):
                     extraction_failed_count += 1
                     failed_slides.append(i)
-                    step8_items.append((StepCategory.EXECUTION_ERROR, False))
+                    step9_items.append((StepCategory.EXECUTION_ERROR, False))
                     continue
                 if not sd['source_content']:
                     no_source_count += 1
@@ -1057,12 +1091,12 @@ def grade_checkpoint_2():
                         partial_credit_count += 1
                         score_sum += 0.5
                     failed_slides.append(i)
-                    step8_items.append((StepCategory.EXECUTION_ERROR, False))
+                    step9_items.append((StepCategory.EXECUTION_ERROR, False))
                     continue
                 if not sd['bullets']:
                     no_bullets_count += 1
                     failed_slides.append(i)
-                    step8_items.append((StepCategory.EXECUTION_ERROR, False))
+                    step9_items.append((StepCategory.EXECUTION_ERROR, False))
                     continue
                 # Capture matched substring so the LLM second-pass sees the relevant excerpt.
                 verbatim_match = None
@@ -1077,7 +1111,7 @@ def grade_checkpoint_2():
                     model = ensure_model(model_id)
                     if model is None:
                         failed_slides.append(i)
-                        step8_items.append((StepCategory.EXECUTION_ERROR, False))
+                        step9_items.append((StepCategory.EXECUTION_ERROR, False))
                         continue  # Can't verify; conservatively don't award.
                     # Center a 1000-char window on the fuzzy-flagged substring.
                     src = sd['source_content']
@@ -1101,24 +1135,24 @@ def grade_checkpoint_2():
                     if is_copy is False:
                         paraphrased_count += 1
                         score_sum += 1.0
-                        step8_items.append((StepCategory.LLM_VLM_JUDGEMENT, True))
+                        step9_items.append((StepCategory.LLM_VLM_JUDGEMENT, True))
                     else:
                         failed_slides.append(i)
                         # None = LLM crashed; True = LLM confirmed the copy.
-                        step8_items.append((StepCategory.EXECUTION_ERROR, False) if is_copy is None
+                        step9_items.append((StepCategory.EXECUTION_ERROR, False) if is_copy is None
                                            else (StepCategory.LLM_VLM_JUDGEMENT, False))
                 elif sd.get('traceable') is True:
                     # No verbatim overlap + step 4 confirmed traceable = genuine paraphrase.
                     paraphrased_count += 1
                     score_sum += 1.0
-                    step8_items.append((StepCategory.FUZZY_MATCH, True))
+                    step9_items.append((StepCategory.FUZZY_MATCH, True))
                 else:
                     # No overlap but not traceable either — likely off-source, not paraphrased.
                     failed_slides.append(i)
-                    step8_items.append((StepCategory.LLM_VLM_JUDGEMENT, False))
+                    step9_items.append((StepCategory.LLM_VLM_JUDGEMENT, False))
             success = paraphrased_count == actual_count
             step_score = calculate_percentage_score(score_sum, actual_count)
-            step8_category = StepCategory.aggregate(step8_items)
+            step9_category = StepCategory.aggregate(step9_items)
             # `no_source_count` includes the partial-credit subset; subtract for clean display.
             no_source_no_bullets = no_source_count - partial_credit_count
             details = f"{paraphrased_count}/{actual_count} slides fully paraphrased" + join_extras(
@@ -1130,14 +1164,14 @@ def grade_checkpoint_2():
             )
         except Exception as e:
             details = f"Error during paraphrase check: {e}"
-            step8_category = StepCategory.EXECUTION_ERROR
-        checkpoint.add_step("Content Paraphrased", success, 8, details, score=step_score, max_score=10,
-                            execution_time=time.time() - step_start, category=step8_category)
+            step9_category = StepCategory.EXECUTION_ERROR
+        checkpoint.add_step("Content Paraphrased", success, 9, details, score=step_score, max_score=10,
+                            execution_time=time.time() - step_start, category=step9_category)
 
-        # ---- Step 9 (10 pt): Content placed on the left side ----
+        # ---- Step 10 (10 pt): Content placed on the left side ----
         step_start = time.time()
         success, step_score, details = False, 0, ""
-        step9_category = StepCategory.SPATIAL  # box-center x-threshold check
+        step10_category = StepCategory.SPATIAL  # box-center x-threshold check
         try:
             left_count = 0
             no_content_count = 0
@@ -1187,9 +1221,9 @@ def grade_checkpoint_2():
             )
         except Exception as e:
             details = f"Error during content-left-side check: {e}"
-            step9_category = StepCategory.EXECUTION_ERROR
-        checkpoint.add_step("Content Left Side", success, 9, details, score=step_score, max_score=10,
-                            execution_time=time.time() - step_start, category=step9_category)
+            step10_category = StepCategory.EXECUTION_ERROR
+        checkpoint.add_step("Content Left Side", success, 10, details, score=step_score, max_score=10,
+                            execution_time=time.time() - step_start, category=step10_category)
 
     except Exception as e:
         print(f"Error in checkpoint 2: {e}")

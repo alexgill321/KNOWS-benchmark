@@ -76,8 +76,14 @@
     },
     {
       "checkpoint": "Checkpoint 2",
-      "step_name": "Bullet Points and No Overflow",
+      "step_name": "Bullet Points",
       "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "No Text Overflow",
+      "category": "formatting_check",
       "llm_vlm_primary": false
     },
     {

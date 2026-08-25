@@ -13,8 +13,8 @@ Verify that the title slide contains the presentation topic in bold dark orange 
 - Image source URL is accessible and points to the same image or a page containing the image (3 pt)
 
 
-## Checkpoint 2 (85 pt, 9 steps): Content Slides
-Verify that each content slide covers a distinct subsection of the topic with a properly formatted heading, sourced bullet-point content, and correct layout. Steps 2-9 award partial credit proportional to the number of passing slides out of the actual content slide count.
+## Checkpoint 2 (85 pt, 10 steps): Content Slides
+Verify that each content slide covers a distinct subsection of the topic with a properly formatted heading, sourced bullet-point content, and correct layout. Steps 2-10 award partial credit proportional to the number of passing slides out of the actual content slide count.
 
 ### Outcome Evaluation:
 - Exactly N content slides (parsed from task.md) (5 pt)
@@ -23,7 +23,8 @@ Verify that each content slide covers a distinct subsection of the topic with a 
 - The information in the slide is actually coming from the cited source (10 pt)
 - Each slide has a unique, clear heading related to its subsection (10 pt)
 - Heading is bold and italic (10 pt)
-- Information is presented in bullet points, and no text box on the slide overflows (10 pt)
+- Information is presented in bullet points (5 pt)
+- No text box on the slide overflows the slide bounds (5 pt)
 - Content is paraphrased/summarized rather than verbatim copied from the source (10 pt)
 - The content is placed on the left side of the slide (10 pt)
 

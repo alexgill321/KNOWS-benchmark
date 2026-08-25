@@ -253,6 +253,9 @@ def match_source_image(
     return False, f"Found {len(links)} URL(s) but none point to the slide image"
 
 
+EMU_PER_INCH = 914400  # Google Slides API unit; used to report overflow in inches
+
+
 def to_deck_positions(content_slide_indices):
     """Convert 0-based content-slide indices to 1-based deck positions (+2: title is slide 1).
     Non-int entries (e.g. unparsed task ids) pass through unchanged.
