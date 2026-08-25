@@ -25,6 +25,12 @@ INSTANCE_CONFIG = {
 }
 
 
+# Maximum centre-to-centre vertical offset between the left and right images,
+# as a fraction of slide height, for them to count as symmetric. 0.05 is ~0.28in
+# on a standard 5.63in-tall slide.
+SYMMETRY_TOLERANCE = 0.05
+
+
 def download_image_with_retry(url, temp_dir, timeout=15, max_retries=3, delay=2):
     """Download an image with retry logic for flaky sources like Wikimedia.
 
@@ -227,12 +233,21 @@ def evaluate_single_client(client, wiki_url, client_slide_map, step_names, slide
     is_different_img = False
     right_detail = "No image on right side"
     right_step_category = StepCategory.DETERMINISTIC  # no right image: rejected without any comparison
+    # Tiered exact -> perceptual-hash -> VLM verdict on whether the right image is
+    # the very same photo as the left. Stays None when it could not be established.
+    same_img = None
+    same_img_method = None
     temp_other_dir = os.path.join(data_dir, f"temp_diff_{client.replace(' ', '_')}")
     try:
         if right_image is not None:
             os.makedirs(temp_other_dir, exist_ok=True)
             other_img = download_slide_image(right_image.get('contentUrl', '')) if right_image.get('contentUrl') else None
-            if other_img:
+            if other_img and not slide_img_path:
+                # Without the left image there is nothing to compare against; the
+                # tiered matcher would raise on a None path.
+                right_detail = "Could not download left image to compare against"
+                right_step_category = StepCategory.EXECUTION_ERROR
+            elif other_img:
                 right_step_category = StepCategory.LLM_VLM_JUDGEMENT
                 ext = (other_img.format or "png").lower()
                 other_img_path = os.path.join(temp_other_dir, f"right_img.{ext}")
@@ -241,9 +256,9 @@ def evaluate_single_client(client, wiki_url, client_slide_map, step_names, slide
                     model, temp_other_dir,
                     f"Is this a photo of {client}?", temp_wiki_dir
                 )
-                same_img = match_image_tiered(
+                same_img, same_img_method = match_image_tiered(
                     other_img_path, slide_img_path, model, f"Is this the exact same photo?", 10
-                )[0]
+                )
                 if same_person and not same_img:
                     is_different_img = True
                     right_detail = f"Right image is a different photo of {client}"
@@ -270,14 +285,26 @@ def evaluate_single_client(client, wiki_url, client_slide_map, step_names, slide
                      "category": StepCategory.DEPENDENCY_NOT_EVALUATED})
         return steps
 
+    if same_img:
+        # The right image is the very same photo as the left, so there is no
+        # distinct internet image for the Wikipedia image to be symmetric with.
+        # Measuring the offset between an image and its own copy proves nothing.
+        steps.append({"name": f"{client} - Symmetric Vertical Position", "success": False,
+                     "detail": f"Right image is the same photo as the left (matched by "
+                               f"{same_img_method}); no distinct internet image to be symmetric with",
+                     "execution_time": time.time() - step_start,
+                     "category": StepCategory.DEPENDENCY_NOT_EVALUATED})
+        return steps
+
     left_bbox = get_element_bbox(left_image)
     right_bbox = get_element_bbox(right_image)
     center_y1 = left_bbox['y'] + left_bbox['height'] / 2
     center_y2 = right_bbox['y'] + right_bbox['height'] / 2
     vertical_diff = abs(center_y1 - center_y2) / slide_height_emu if slide_height_emu > 0 else 1.0
-    sym_vert = vertical_diff <= 0.15
+    sym_vert = vertical_diff <= SYMMETRY_TOLERANCE
     steps.append({"name": f"{client} - Symmetric Vertical Position", "success": sym_vert,
-                 "detail": f"Left center Y: {center_y1:.0f}, Right center Y: {center_y2:.0f}",
+                 "detail": f"Left center Y: {center_y1:.0f}, Right center Y: {center_y2:.0f} "
+                           f"(offset {vertical_diff:.3f} of slide height, tolerance {SYMMETRY_TOLERANCE})",
                  "execution_time": time.time() - step_start,
                  "category": StepCategory.SPATIAL})
 
