@@ -1,0 +1,127 @@
+{
+  "task_name": "slides_29_buy_car_pres",
+  "instance": "instance_3",
+  "eval_steps": [
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Title Match",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Title Font Size at least 30pt",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Article Visit",
+      "category": "web_visit_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "At Least 5 Car Slides",
+      "category": "structural_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "KBB Visit in History (x5 cars)",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Make and Model Listed as Title (x5 cars)",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Correct Model Picture (x5 cars)",
+      "category": "visual_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Picture >= 50% of Slide (x5 cars)",
+      "category": "spatial_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Picture Does Not Overlap Text (x5 cars)",
+      "category": "spatial_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Sticker Price Matches KBB (x5 cars)",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Fuel Efficiency Matches KBB (x5 cars)",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Horsepower Matches KBB (x5 cars)",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Review URL Provided (x5 cars)",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Review URL in History (x5 cars)",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Rating Matches Review Platform (x5 cars)",
+      "category": "information_retrieval",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Title Denotes Best Car Stats",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Lowest Price Car",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Highest MPG Car",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Highest Horsepower Car",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Most Highly Rated Car",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    }
+  ],
+  "flagged_steps": []
+}

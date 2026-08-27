@@ -483,7 +483,7 @@ def get_gold_lectures(gold_data):
     return lectures
 
 
-def match_valid_category(category_text, valid_categories, model=None):
+def match_valid_category(category_text, valid_categories, model=None, return_method=False):
     """Check if a category title matches one of the valid reference categories.
 
     Uses keywords_match_robust for exact match first, then LLM semantic fallback.
@@ -494,15 +494,19 @@ def match_valid_category(category_text, valid_categories, model=None):
         category_text (str): The category title from the document.
         valid_categories (set|list): The instance's valid category names.
         model: Optional LLM model callable for fallback matching.
+        return_method (bool): If True, return (match, method) where method is
+            "exact"|"llm"|None, recording which phase decided the match.
 
     Returns:
         str|None: The matched canonical category name, or None if no match.
+        If return_method is True, returns (match, method) instead.
     """
     return keywords_match_robust(
         category_text,
         list(valid_categories),
         model=model,
         description="reference list category type",
+        return_method=return_method,
     )
 
 
@@ -718,7 +722,7 @@ def extract_inactive_links_section(document):
     return found, urls
 
 
-def check_link_name_relevance(anchor_text, url, model, page_title=None):
+def check_link_name_relevance(anchor_text, url, model, page_title=None, return_method=False):
     """Check if a link's anchor text is relevant to the webpage it opens.
 
     First tries fuzzy matching between anchor text and a pre-fetched page title.
@@ -730,15 +734,18 @@ def check_link_name_relevance(anchor_text, url, model, page_title=None):
         url (str): The URL the link points to.
         model: LLM model callable for semantic fallback.
         page_title (str|None): Pre-fetched page title, or None.
+        return_method (bool): If True, return (relevant, method) where method
+            is "fuzzy"|"llm"|"error", recording which phase decided the verdict.
 
     Returns:
         bool: True if the anchor text is relevant to the source.
+        If return_method is True, returns (relevant, method) instead.
     """
     # Phase 1: Fuzzy match anchor text against page title
     if page_title:
         is_match, _ = fuzzy_match_text(anchor_text, page_title, threshold=50)
         if is_match:
-            return True
+            return (True, "fuzzy") if return_method else True
 
     # Phase 2: LLM semantic judgment
     messages = [
@@ -763,9 +770,10 @@ def check_link_name_relevance(anchor_text, url, model, page_title=None):
     ]
     try:
         response = model(messages)
-        return "yes" in response.strip().lower()
+        verdict = "yes" in response.strip().lower()
+        return (verdict, "llm") if return_method else verdict
     except Exception:
-        return False
+        return (False, "error") if return_method else False
 
 
 def is_raw_url(text):

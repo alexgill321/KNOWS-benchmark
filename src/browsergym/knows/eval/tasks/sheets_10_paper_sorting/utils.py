@@ -75,8 +75,6 @@ def _arxiv_request_with_retry(url: str, max_retries: int = 3, timeout: int = 30,
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 

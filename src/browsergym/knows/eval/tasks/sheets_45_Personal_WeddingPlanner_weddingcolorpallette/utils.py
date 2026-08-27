@@ -36,7 +36,7 @@ from src.browsergym.knows.eval.eval_utils.llm_utils import (
     extract_json_with_llm,
 )
 from src.browsergym.knows.eval.eval_utils.models import load_model
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, StepCategory
 
 
 # ---------------------------------------------------------------------------
@@ -121,6 +121,8 @@ def fail_all_steps(
     step_names: List[str],
     reason: str,
     start_time: Optional[float] = None,
+    category: str = StepCategory.EXECUTION_ERROR,
+    categories: Optional[List[str]] = None,
 ) -> Checkpoint:
     """Mark every declared step of a checkpoint as failed with one reason.
 
@@ -132,12 +134,20 @@ def fail_all_steps(
         step_names: Ordered step names mirroring checkpoints.md.
         reason: Failure detail applied to every step.
         start_time: Optional checkpoint start time for execution_time.
+        category: StepCategory applied to every step (defaults to
+            EXECUTION_ERROR: a prerequisite failure prevented the checks).
+        categories: Optional per-step StepCategory list overriding
+            ``category`` positionally (e.g. the first step failed a real
+            structural check and the rest are dependency cascades).
 
     Returns:
         The same checkpoint, populated.
     """
     for idx, name in enumerate(step_names, start=1):
-        checkpoint.add_step(name, False, idx, reason)
+        step_category = category
+        if categories is not None and idx - 1 < len(categories):
+            step_category = categories[idx - 1]
+        checkpoint.add_step(name, False, idx, reason, category=step_category)
     if start_time is not None:
         checkpoint.execution_time = time.time() - start_time
     return checkpoint
@@ -1056,6 +1066,7 @@ def url_matches_topic(
     model: Any = None,
     topic_description: Optional[str] = None,
     color_name: Optional[str] = None,
+    return_method: bool = False,
 ) -> Optional[bool]:
     """Generic check: does a URL / page relate to a given topic?
 
@@ -1066,11 +1077,20 @@ def url_matches_topic(
     skipped — only the LLM tier can confirm the page is for that specific
     colour, since keyword/domain checks don't know about the colour.
 
+    Args:
+        return_method: If True, return ``(verdict, method)`` where method is
+            "keyword" when the domain/keyword tier made the final call, "llm"
+            when the LLM tier decided, and None when no verdict was reached.
+
     Returns:
         True / False — keyword/domain or LLM verdict on relevance.
         None — LLM fallback could not produce a verdict (every call raised).
         Callers should treat None as "unjudged" rather than "irrelevant".
+        If ``return_method`` is True, returns ``(verdict, method)`` instead.
     """
+    def _result(verdict, method):
+        return (verdict, method) if return_method else verdict
+
     combined = f"{url} {page_text or ''}".lower()
     domains = domains or ()
     exclude_keywords = exclude_keywords or ()
@@ -1080,9 +1100,9 @@ def url_matches_topic(
     # Shortcut tiers only apply when no per-colour gate is requested.
     if color_name is None and not has_exclude:
         if any(d.lower() in combined for d in domains):
-            return True
+            return _result(True, "keyword")
         if any(k.lower() in combined for k in topic_keywords):
-            return True
+            return _result(True, "keyword")
 
     if model is not None:
         desc = topic_description or "the requested topic"
@@ -1112,10 +1132,10 @@ def url_matches_topic(
             except Exception as e:
                 print(f"  LLM error in url_matches_topic: {e}")
         if not votes:
-            return None  # total API failure — caller treats as unjudged
-        return any(votes)
+            return _result(None, None)  # total API failure — caller treats as unjudged
+        return _result(any(votes), "llm")
 
-    return False
+    return _result(False, "keyword")
 
 
 def make_topic_matcher(
@@ -1133,16 +1153,19 @@ def make_topic_matcher(
         topic_description: Human-readable topic for the LLM prompt.
 
     Returns:
-        Callable ``(url, page_text, model=None, color_name=None) -> Optional[bool]``.
-        Returns None when the LLM fallback couldn't reach a verdict.
+        Callable ``(url, page_text, model=None, color_name=None,
+        return_method=False) -> Optional[bool]``.
+        Returns None when the LLM fallback couldn't reach a verdict; with
+        ``return_method=True`` returns ``(verdict, method)`` instead.
     """
     def _matcher(url: str, page_text: str, model: Any = None,
-                 color_name: Optional[str] = None) -> Optional[bool]:
+                 color_name: Optional[str] = None,
+                 return_method: bool = False) -> Optional[bool]:
         return url_matches_topic(
             url, page_text, topic_keywords,
             domains=domains, exclude_keywords=exclude_keywords,
             model=model, topic_description=topic_description,
-            color_name=color_name,
+            color_name=color_name, return_method=return_method,
         )
     return _matcher
 
@@ -1156,6 +1179,7 @@ def validate_and_match_urls(
     relevance_fn: Any,
     model: Any = None,
     precomputed_urls: Optional[List[str]] = None,
+    category_items: Optional[List[Tuple[str, bool]]] = None,
 ) -> Tuple[List[str], int, int, List[str]]:
     """Validate a column of URLs: liveness and per-row content relevance.
 
@@ -1174,6 +1198,12 @@ def validate_and_match_urls(
         model: Optional LLM model passed to *relevance_fn*.
         precomputed_urls: If provided, used directly instead of re-scanning the
             column (avoids a redundant second scan by the caller).
+        category_items: Optional list filled in place with one
+            ``(StepCategory, success)`` tuple per URL-bearing row, for
+            ``StepCategory.aggregate``: dead URLs are deterministic failures,
+            unjudged rows (relevance_fn returned None) are execution errors,
+            judged rows carry the LLM verdict (the per-colour gate routes
+            every judged row through the LLM tier).
 
     Returns:
         Tuple of:
@@ -1264,6 +1294,15 @@ def validate_and_match_urls(
     # reachable-but-unjudged (relevance_fn returned None on API failure).
     failed_colours: List[str] = []
     for i, url in enumerate(urls_found):
+        if category_items is not None:
+            if url not in content_by_url:
+                category_items.append((StepCategory.DETERMINISTIC, False))
+            else:
+                v = relevance_results.get(f"row_{i}")
+                if v is None:
+                    category_items.append((StepCategory.EXECUTION_ERROR, False))
+                else:
+                    category_items.append((StepCategory.LLM_VLM_JUDGEMENT, bool(v)))
         if i >= len(color_names):
             continue
         if url not in content_by_url:
@@ -1317,7 +1356,8 @@ def grade_url_column(
 
     if sheet_tab is None or color_region is None:
         return fail_all_steps(
-            checkpoint, step_names, "No colour region available.", start
+            checkpoint, step_names, "No colour region available.", start,
+            category=StepCategory.DEPENDENCY_NOT_EVALUATED,
         )
 
     col_idx = color_region["col"] + col_offset
@@ -1341,9 +1381,17 @@ def grade_url_column(
                 non_url_rows.append((nm, text))
 
     # Empty column: nothing to grade. Fails all downstream steps too.
+    # Per-step categories: link presence (step 2) is a real deterministic
+    # failure; the column-type/liveness/relevance steps are cascades.
     if not urls_found:
         return fail_all_steps(
-            checkpoint, step_names, f"No URLs found in col {col_idx}.", start
+            checkpoint, step_names, f"No URLs found in col {col_idx}.", start,
+            categories=[
+                StepCategory.DEPENDENCY_NOT_EVALUATED,
+                StepCategory.DETERMINISTIC,
+                StepCategory.DEPENDENCY_NOT_EVALUATED,
+                StepCategory.DEPENDENCY_NOT_EVALUATED,
+            ],
         )
 
     # Step 1: URL Column Type — every populated cell must be a URL, not free text.
@@ -1351,6 +1399,7 @@ def grade_url_column(
         checkpoint.add_step(
             step_names[0], True, 1,
             f"All {len(urls_found)} populated cells in col {col_idx} contain URLs.",
+            category=StepCategory.DETERMINISTIC,
         )
     else:
         sample = [f"{nm}: {txt[:40]!r}" for nm, txt in non_url_rows[:3]]
@@ -1358,21 +1407,25 @@ def grade_url_column(
             step_names[0], False, 1,
             f"{len(non_url_rows)} cell(s) in col {col_idx} contain free text "
             f"instead of URLs: {sample}",
+            category=StepCategory.DETERMINISTIC,
         )
 
     # Step 2: per-row link presence.
     if not missing_rows:
         checkpoint.add_step(
             step_names[1], True, 2, f"All {len(names)} colours have a link.",
+            category=StepCategory.DETERMINISTIC,
         )
     else:
         checkpoint.add_step(
             step_names[1], False, 2,
             f"{len(missing_rows)}/{len(names)} colours missing links: "
             f"{missing_rows[:5]}",
+            category=StepCategory.DETERMINISTIC,
         )
 
     # Steps 3 & 4: liveness + per-row relevance.
+    relevance_category_items: List[Tuple[str, bool]] = []
     liveness_failures, rel_matched, rel_total, failed_colours = validate_and_match_urls(
         sheet_tab=sheet_tab,
         color_names=names,
@@ -1382,6 +1435,7 @@ def grade_url_column(
         relevance_fn=relevance_fn,
         model=model,
         precomputed_urls=urls_found,
+        category_items=relevance_category_items,
     )
 
     # Step 3: Links Functional (binary, 1 pt).
@@ -1389,9 +1443,11 @@ def grade_url_column(
         checkpoint.add_step(
             step_names[2], True, 3,
             f"All {len(urls_found)} URLs are reachable.",
+            category=StepCategory.DETERMINISTIC,
         )
     else:
-        checkpoint.add_step(step_names[2], False, 3, "; ".join(liveness_failures))
+        checkpoint.add_step(step_names[2], False, 3, "; ".join(liveness_failures),
+                            category=StepCategory.DETERMINISTIC)
 
     # Step 4: Content Relevance (10 pts, proportional to rel_matched / rel_total).
     if rel_total == 0:
@@ -1399,6 +1455,7 @@ def grade_url_column(
             step_names[3], False, 4,
             "No reachable URLs to judge relevance.",
             max_score=10,
+            category=StepCategory.EXECUTION_ERROR,
         )
     else:
         rel_score = round(rel_matched * 10 / rel_total)
@@ -1408,6 +1465,7 @@ def grade_url_column(
                 f"All {rel_matched}/{rel_total} links lead to relevant "
                 f"content ({rel_score}/10 pts).",
                 score=rel_score, max_score=10,
+                category=StepCategory.aggregate(relevance_category_items),
             )
         else:
             # Cap below max so a failing step never claims full credit.
@@ -1417,6 +1475,7 @@ def grade_url_column(
                 f"Only {rel_matched}/{rel_total} links lead to relevant content "
                 f"({rel_score}/10 pts). Irrelevant for: {failed_colours[:5]}",
                 score=rel_score, max_score=10,
+                category=StepCategory.aggregate(relevance_category_items),
             )
 
     checkpoint.execution_time = time.time() - start

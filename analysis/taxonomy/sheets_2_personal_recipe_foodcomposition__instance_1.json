@@ -1,0 +1,373 @@
+{
+  "task_name": "sheets_2_personal_recipe_foodcomposition",
+  "instance": "instance_1",
+  "eval_steps": [
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Ingredients Column First",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Link Column Second",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Carbohydrates Column Present",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Fat Column Present",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Fiber Column Present",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Protein Column Present",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Sugar Column Present",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Calcium Column Present",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Iron Column Present",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Potassium Column Present",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Sodium Column Present",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Vitamin A Column Present",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Vitamin C Column Present",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Macros Alphabetical Order",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Minerals Alphabetical Order",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Vitamins Alphabetical Order",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Macros Merged Header Exists",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Minerals Merged Header Exists",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Vitamins Merged Header Exists",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Group Headers Centered and Italicized",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Column Titles Bolded",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Horizontal Line Under Column Titles",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Macro Columns Same Background Color",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Mineral Columns Same Background Color",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Vitamin Columns Same Background Color",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Three Groups Distinct Colors",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Raw Cashews Row Present",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Water Row Present",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Garlic Row Present",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Sea Salt Row Present",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Nutritional Yeast Row Present",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Lemon Juice Row Present",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Onion Powder Row Present",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Black Pepper Row NOT Present",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Raw Cashews Link Valid",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Water Link Valid",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Garlic Link Valid",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Sea Salt Link Valid",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Nutritional Yeast Link Valid",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Lemon Juice Link Valid",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Onion Powder Link Valid",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "Carbohydrates Values Match Gold",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "Fat Values Match Gold",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "Fiber Values Match Gold",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "Protein Values Match Gold",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "Sugar Values Match Gold",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "Calcium Values Match Gold",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "Iron Values Match Gold",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "Potassium Values Match Gold",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "Sodium Values Match Gold",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "Vitamin A Values Match Gold",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "Vitamin C Values Match Gold",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 7",
+      "step_name": "Values Exceeding 10% DV Bolded",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 8",
+      "step_name": "Recipe URL Visited",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 8",
+      "step_name": "USDA URL Visited for Raw Cashews",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 8",
+      "step_name": "USDA URL Visited for Water",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 8",
+      "step_name": "USDA URL Visited for Garlic",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 8",
+      "step_name": "USDA URL Visited for Sea Salt",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 8",
+      "step_name": "USDA URL Visited for Nutritional Yeast",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 8",
+      "step_name": "USDA URL Visited for Lemon Juice",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 8",
+      "step_name": "USDA URL Visited for Onion Powder",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    }
+  ],
+  "flagged_steps": []
+}

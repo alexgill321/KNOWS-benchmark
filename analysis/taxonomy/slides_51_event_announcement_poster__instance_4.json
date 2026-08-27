@@ -1,0 +1,235 @@
+{
+  "task_name": "slides_51_event_announcement_poster",
+  "instance": "instance_4",
+  "eval_steps": [
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Event name at top of page",
+      "category": "spatial_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Event name centered on slide",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Event name has bold font",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Event name font size >= 20",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Event name text color is Navy Blue",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Event name reads correct text",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Subheader exists below main header",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Subheader is left aligned",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Subheader is italic font smaller than header",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Subheader contains date (09/14/2026)",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Subheader contains location",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Subheader contains host",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Visual contrast between header and subheader",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Logo is MIT Sloan School of Management logo",
+      "category": "visual_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Logo in top right of slide",
+      "category": "spatial_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Logo appropriately scaled",
+      "category": "spatial_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Logo does not overlap header/subheader",
+      "category": "spatial_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Background summary in central body",
+      "category": "spatial_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Summary is 1-2 paragraphs",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Summary covers supply chain resilience",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Summary tied to Yossi Sheffi's work",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Summary is engaging",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "At least 2 reputable stable sources used",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Shaded right-hand sidebar in Charcoal Grey exists",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Right sidebar contains text",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Speaker affiliation correct",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Speaker educational background accurate",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "3 distinct verifiable professional achievements",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Sidebar includes connection to supply chain resilience",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Footer at bottom right",
+      "category": "spatial_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Footer contains org contact info",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Footer contains Yossi Sheffi webpage URL",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "Color scheme uses Navy Blue header and Charcoal Grey sidebar",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "No text or images overlapping",
+      "category": "spatial_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "No text or images off the slide",
+      "category": "spatial_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 7",
+      "step_name": "Citations present in speaker notes",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 7",
+      "step_name": "Sources correspond to topic summary claims",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 7",
+      "step_name": "Sources correspond to speaker bio claims",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    }
+  ],
+  "flagged_steps": []
+}

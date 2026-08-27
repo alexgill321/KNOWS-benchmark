@@ -18,15 +18,13 @@ from typing import List, Optional
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
 BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
 from src.browsergym.knows.eval.eval_utils.google_services_utils import (
     initialize_google_services,
     get_image_dimensions_from_doc,
@@ -170,7 +168,7 @@ def grade_checkpoint_1():
                       "Image from Original", "Image Properly Cropped",
                       "Image Shows Recipe Text", "Info Modified from Defaults"]
         for step_id, name in enumerate(step_names, 1):
-            checkpoint.add_step(name, False, step_id, "No recipes found in document", execution_time=0)
+            checkpoint.add_step(name, False, step_id, "No recipes found in document", execution_time=0, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -183,9 +181,9 @@ def grade_checkpoint_1():
     step_time = time.time() - step_start
 
     if title_found:
-        checkpoint.add_step("Title Match", True, 1, f"Title '{title}' matches '{GOLD_TITLE}'", execution_time=step_time)
+        checkpoint.add_step("Title Match", True, 1, f"Title '{title}' matches '{GOLD_TITLE}'", execution_time=step_time, category=StepCategory.DETERMINISTIC)
     else:
-        checkpoint.add_step("Title Match", False, 1, f"Title '{title}' does not match '{GOLD_TITLE}'", execution_time=step_time)
+        checkpoint.add_step("Title Match", False, 1, f"Title '{title}' does not match '{GOLD_TITLE}'", execution_time=step_time, category=StepCategory.DETERMINISTIC)
 
     # =========================================================================
     # Step 1.2: Ingredients Match (BUG-002/003 FIX: bidirectional, 1:1, no substring)
@@ -197,21 +195,23 @@ def grade_checkpoint_1():
 
     if not doc_ingredients:
         step_time = time.time() - step_start
-        checkpoint.add_step("Ingredients Match", False, 2, "No ingredients found in first recipe Ingredients section", execution_time=step_time)
+        checkpoint.add_step("Ingredients Match", False, 2, "No ingredients found in first recipe Ingredients section", execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
     else:
         # Strict 1:1 fuzzy matching first
         ingredients_match, ingredients_details = compare_ingredient_lists(doc_ingredients, gold_ingredients)
+        ingredients_category = StepCategory.FUZZY_MATCH
 
         # LLM fallback if fuzzy matching fails
         if not ingredients_match:
             if model is None:
                 model = load_model(model_id)
             ingredients_match, llm_explanation = compare_lists_with_llm(model, doc_ingredients, gold_ingredients, "ingredients")
+            ingredients_category = StepCategory.LLM_VLM_JUDGEMENT
 
         step_time = time.time() - step_start
 
         if ingredients_match:
-            checkpoint.add_step("Ingredients Match", True, 2, f"All {len(gold_ingredients)} ingredients matched", execution_time=step_time)
+            checkpoint.add_step("Ingredients Match", True, 2, f"All {len(gold_ingredients)} ingredients matched", execution_time=step_time, category=ingredients_category)
         else:
             missing = [d['gold'] for d in ingredients_details if not d['matched'] and d['gold'] != '[Extra ingredients check]']
             extra_check = next((d for d in ingredients_details if d['gold'] == '[Extra ingredients check]'), None)
@@ -222,7 +222,7 @@ def grade_checkpoint_1():
             if extra_check and not extra_check['matched']:
                 failure_parts.append(f"Extra ingredients found: {extra_check.get('found', [])}")
 
-            checkpoint.add_step("Ingredients Match", False, 2, '; '.join(failure_parts) if failure_parts else "Ingredient matching failed", execution_time=step_time)
+            checkpoint.add_step("Ingredients Match", False, 2, '; '.join(failure_parts) if failure_parts else "Ingredient matching failed", execution_time=step_time, category=ingredients_category)
 
     # =========================================================================
     # Step 1.3: Preparation Steps Match (BUG-004 FIX: validates numbers and verbs exactly)
@@ -234,7 +234,7 @@ def grade_checkpoint_1():
 
     if not doc_steps:
         step_time = time.time() - step_start
-        checkpoint.add_step("Preparation Steps Match", False, 3, "No preparation steps found in first recipe Preparation section", execution_time=step_time)
+        checkpoint.add_step("Preparation Steps Match", False, 3, "No preparation steps found in first recipe Preparation section", execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
     else:
         # compare_preparation_steps now validates numbers and cooking verbs exactly
         if model is None:
@@ -243,7 +243,7 @@ def grade_checkpoint_1():
         step_time = time.time() - step_start
 
         if steps_match:
-            checkpoint.add_step("Preparation Steps Match", True, 3, f"All {len(gold_prepsteps)} steps matched (text, numbers, verbs)", execution_time=step_time)
+            checkpoint.add_step("Preparation Steps Match", True, 3, f"All {len(gold_prepsteps)} steps matched (text, numbers, verbs)", execution_time=step_time, category=StepCategory.LLM_VLM_JUDGEMENT)
         else:
             # Build detailed failure message with reasons
             unmatched = []
@@ -251,7 +251,7 @@ def grade_checkpoint_1():
                 if not d['matched']:
                     reason = d.get('failure_reason', f"score: {d['score']}")
                     unmatched.append(f"Step {d['step']} ({reason})")
-            checkpoint.add_step("Preparation Steps Match", False, 3, f"Unmatched: {'; '.join(unmatched)}", execution_time=step_time)
+            checkpoint.add_step("Preparation Steps Match", False, 3, f"Unmatched: {'; '.join(unmatched)}", execution_time=step_time, category=StepCategory.LLM_VLM_JUDGEMENT)
 
     # =========================================================================
     # Step 1.4: Tips Relevance Check
@@ -324,12 +324,12 @@ Answer 'No' only if it's completely generic advice unrelated to pizza or healthy
     step_time = time.time() - step_start
 
     if tips_relevant and len(tips_relevance_details) > 0:
-        checkpoint.add_step("Tips Relevance", True, 4, f"All {len(tips_relevance_details)} tips are relevant to healthy pizza", execution_time=step_time)
+        checkpoint.add_step("Tips Relevance", True, 4, f"All {len(tips_relevance_details)} tips are relevant to healthy pizza", execution_time=step_time, category=StepCategory.LLM_VLM_JUDGEMENT)
     elif len(tips_relevance_details) == 0:
-        checkpoint.add_step("Tips Relevance", False, 4, "No tips found in Tips section", execution_time=step_time)
+        checkpoint.add_step("Tips Relevance", False, 4, "No tips found in Tips section", execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
     else:
         irrelevant = [t['tip'][:30] for t in tips_relevance_details if not t['relevant']]
-        checkpoint.add_step("Tips Relevance", False, 4, f"Generic tips found (not pizza-relevant): {irrelevant[:2]}", execution_time=step_time)
+        checkpoint.add_step("Tips Relevance", False, 4, f"Generic tips found (not pizza-relevant): {irrelevant[:2]}", execution_time=step_time, category=StepCategory.LLM_VLM_JUDGEMENT)
 
     # =========================================================================
     # Step 1.5: Tips URLs Valid — each tip should have a source URL
@@ -344,12 +344,12 @@ Answer 'No' only if it's completely generic advice unrelated to pizza or healthy
         step_time = time.time() - step_start
         checkpoint.add_step("Tips URLs Valid", False, 5,
                             "No tips found in Tips section",
-                            execution_time=step_time)
+                            execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
     elif not tips_urls:
         step_time = time.time() - step_start
         checkpoint.add_step("Tips URLs Valid", False, 5,
                             "No source URLs found paired with tips",
-                            execution_time=step_time)
+                            execution_time=step_time, category=StepCategory.DETERMINISTIC)
     else:
         urls_valid = True
         for url in tips_urls:
@@ -365,11 +365,11 @@ Answer 'No' only if it's completely generic advice unrelated to pizza or healthy
         if urls_valid:
             checkpoint.add_step("Tips URLs Valid", True, 5,
                                 f"All {len(tips_urls)} tip source URLs are accessible",
-                                execution_time=step_time)
+                                execution_time=step_time, category=StepCategory.DETERMINISTIC)
         else:
             checkpoint.add_step("Tips URLs Valid", False, 5,
                                 f"{len(invalid_urls)} tip URLs not accessible: {invalid_urls[:2]}",
-                                execution_time=step_time)
+                                execution_time=step_time, category=StepCategory.DETERMINISTIC)
 
     # =========================================================================
     # Step 1.6: Tips are Direct Quotes
@@ -378,15 +378,16 @@ Answer 'No' only if it's completely generic advice unrelated to pizza or healthy
 
     if not tips_list:
         step_time = time.time() - step_start
-        checkpoint.add_step("Tips Are Direct Quotes", False, 6, "No tips found to verify", execution_time=step_time)
+        checkpoint.add_step("Tips Are Direct Quotes", False, 6, "No tips found to verify", execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
     elif not valid_urls:
         step_time = time.time() - step_start
         checkpoint.add_step("Tips Are Direct Quotes", False, 6,
                             "No valid source URLs available to verify quotes against (step 1.5 prerequisite)",
-                            execution_time=step_time)
+                            execution_time=step_time, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
     else:
         tips_are_quotes = True
         quote_details = []
+        quote_items = []  # (category, success) per tip for StepCategory.aggregate
 
         # Pre-fetch webpage content for valid URLs
         url_content_cache = {}
@@ -409,20 +410,23 @@ Answer 'No' only if it's completely generic advice unrelated to pizza or healthy
             tip_url = pair['url']
 
             tip_found_in_source = False
+            tip_category = StepCategory.FUZZY_MATCH  # last mechanism that ran for this tip
 
             # First check the tip's own paired source URL via fuzzy text match
             if tip_url and tip_url in url_content_cache:
-                is_quote, _ = verify_tip_is_quote(tip, url_content_cache[tip_url])
+                is_quote, quote_score = verify_tip_is_quote(tip, url_content_cache[tip_url])
                 if is_quote:
                     tip_found_in_source = True
+                    tip_category = StepCategory.DETERMINISTIC if quote_score == 100 else StepCategory.FUZZY_MATCH
                     quote_details.append({'tip': tip[:30], 'source': tip_url})
 
             # Fallback: check all scrapable URLs
             if not tip_found_in_source:
                 for url, webpage_content in url_content_cache.items():
-                    is_quote, _ = verify_tip_is_quote(tip, webpage_content)
+                    is_quote, quote_score = verify_tip_is_quote(tip, webpage_content)
                     if is_quote:
                         tip_found_in_source = True
+                        tip_category = StepCategory.DETERMINISTIC if quote_score == 100 else StepCategory.FUZZY_MATCH
                         quote_details.append({'tip': tip[:30], 'source': url})
                         break
 
@@ -457,23 +461,26 @@ Answer 'No' only if it's completely generic advice unrelated to pizza or healthy
                 ]
                 try:
                     response = model(messages).strip()
+                    tip_category = StepCategory.LLM_VLM_JUDGEMENT
                     if response.lower().startswith('yes'):
                         tip_found_in_source = True
                         quote_details.append({'tip': tip[:30], 'source': tip_url, 'method': 'llm_fallback'})
                 except Exception as e:
                     print(f"Warning: LLM quote fallback failed: {e}")
 
+            quote_items.append((tip_category, tip_found_in_source))
             if not tip_found_in_source:
                 tips_are_quotes = False
                 quote_details.append({'tip': tip[:30], 'source': None, 'score': 0})
 
         step_time = time.time() - step_start
 
+        quotes_category = StepCategory.aggregate(quote_items)
         if tips_are_quotes and len(quote_details) > 0:
-            checkpoint.add_step("Tips Are Direct Quotes", True, 6, "All tips verified as quotes from sources", execution_time=step_time)
+            checkpoint.add_step("Tips Are Direct Quotes", True, 6, "All tips verified as quotes from sources", execution_time=step_time, category=quotes_category)
         else:
             not_found = [d['tip'] for d in quote_details if d['source'] is None]
-            checkpoint.add_step("Tips Are Direct Quotes", False, 6, f"Tips not found in sources: {not_found[:2]}", execution_time=step_time)
+            checkpoint.add_step("Tips Are Direct Quotes", False, 6, f"Tips not found in sources: {not_found[:2]}", execution_time=step_time, category=quotes_category)
 
     # =========================================================================
     # Step 1.7: Image from Original
@@ -500,6 +507,7 @@ Answer 'No' only if it's completely generic advice unrelated to pizza or healthy
 
     image_match = False
     image_match_details = "No images found in first recipe"
+    image_category = StepCategory.EXECUTION_ERROR  # default: images/gold unavailable
 
     if doc_images and os.path.exists(GOLD_IMAGE_ORIGINAL):
         for doc_img in doc_images:
@@ -508,17 +516,19 @@ Answer 'No' only if it's completely generic advice unrelated to pizza or healthy
                 if match_result:
                     image_match = True
                     image_match_details = f"Image matched via {match_method}"
+                    image_category = StepCategory.from_match_method(match_method)
                     break
             except Exception as e:
                 print(f"Warning: Image matching failed for {os.path.basename(doc_img)}: {e}")
 
         if not image_match:
             image_match_details = "First recipe image does not match original recipe image"
+            image_category = StepCategory.LLM_VLM_JUDGEMENT  # VLM tier made the final rejection
     elif not first_recipe_image_ids:
         image_match_details = "No image elements found in first recipe structure"
 
     step_time = time.time() - step_start
-    checkpoint.add_step("Image from Original", image_match, 7, image_match_details, execution_time=step_time)
+    checkpoint.add_step("Image from Original", image_match, 7, image_match_details, execution_time=step_time, category=image_category)
 
     # =========================================================================
     # Step 1.8: Image Properly Cropped — dimensions match template slot
@@ -526,6 +536,7 @@ Answer 'No' only if it's completely generic advice unrelated to pizza or healthy
     step_start = time.time()
     image_cropped = False
     crop_details = "No image elements found in first recipe"
+    crop_category = StepCategory.EXECUTION_ERROR  # default: no image/dimensions available
 
     if first_recipe_image_ids:
         image_id = first_recipe_image_ids[0]
@@ -536,6 +547,7 @@ Answer 'No' only if it's completely generic advice unrelated to pizza or healthy
             doc_image_dims = None
 
         if doc_image_dims:
+            crop_category = StepCategory.FUZZY_MATCH  # tolerance-based dimension comparison
             doc_w = doc_image_dims.get('width', {}).get('magnitude', 0)
             doc_h = doc_image_dims.get('height', {}).get('magnitude', 0)
 
@@ -555,7 +567,7 @@ Answer 'No' only if it's completely generic advice unrelated to pizza or healthy
             crop_details = f"Could not retrieve dimensions for image {image_id}"
 
     step_time = time.time() - step_start
-    checkpoint.add_step("Image Properly Cropped", image_cropped, 8, crop_details, execution_time=step_time)
+    checkpoint.add_step("Image Properly Cropped", image_cropped, 8, crop_details, execution_time=step_time, category=crop_category)
 
     # =========================================================================
     # Step 1.9: Image Shows Recipe Text — VLM confirms recipe content is visible
@@ -563,6 +575,7 @@ Answer 'No' only if it's completely generic advice unrelated to pizza or healthy
     step_start = time.time()
     shows_text = False
     text_details = "No image elements found in first recipe"
+    text_category = StepCategory.EXECUTION_ERROR  # default: guards / VLM failure
 
     if first_recipe_image_ids:
         doc_images_cropped = [
@@ -578,6 +591,7 @@ Answer 'No' only if it's completely generic advice unrelated to pizza or healthy
                     "The recipe name, ingredients, and preparation text should be clearly visible and readable. "
                     "Answer Yes if the recipe text content is clearly shown, No if it's missing, cut off, or unreadable."
                 )
+                text_category = StepCategory.LLM_VLM_JUDGEMENT
                 if shows_text:
                     text_details = "Recipe text clearly visible in image (VLM confirmed)"
                 else:
@@ -591,7 +605,7 @@ Answer 'No' only if it's completely generic advice unrelated to pizza or healthy
             text_details = "Gold reference image not available"
 
     step_time = time.time() - step_start
-    checkpoint.add_step("Image Shows Recipe Text", shows_text, 9, text_details, execution_time=step_time)
+    checkpoint.add_step("Image Shows Recipe Text", shows_text, 9, text_details, execution_time=step_time, category=text_category)
 
     # =========================================================================
     # Step 1.10: Info Modified from Defaults
@@ -643,7 +657,7 @@ Answer 'No' only if it's completely generic advice unrelated to pizza or healthy
         info_parts.append("Calories: not specified")
 
     step_time = time.time() - step_start
-    checkpoint.add_step("Info Modified from Defaults", info_pass, 10, '; '.join(info_parts), execution_time=step_time)
+    checkpoint.add_step("Info Modified from Defaults", info_pass, 10, '; '.join(info_parts), execution_time=step_time, category=StepCategory.DETERMINISTIC)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -695,7 +709,7 @@ def grade_checkpoint_2():
                 checkpoint.add_step(
                     f"Recipe {recipe_num} - {step_name}",
                     False, step_id, f"Recipe {recipe_num} not found in document",
-                    execution_time=0
+                    execution_time=0, category=StepCategory.EXECUTION_ERROR
                 )
 
     # Get PDF page images for visual distinction check
@@ -720,6 +734,7 @@ def grade_checkpoint_2():
             theme_keywords=['pizza', 'pita', 'flatbread', 'dough'],
             theme_description="pizza"
         )
+        theme_category = StepCategory.DETERMINISTIC  # keyword check decided
 
         # If keyword check fails, use LLM as fallback
         if not has_theme and title:
@@ -743,6 +758,7 @@ Answer 'No' if the title is completely unrelated (e.g., "Pumpkin Soup", "Grilled
                     }
                 ]
                 response = model(messages)
+                theme_category = StepCategory.LLM_VLM_JUDGEMENT
                 has_theme = response.strip().lower().startswith('yes')
                 if has_theme:
                     theme_details = f"LLM confirmed thematic: '{title}'"
@@ -750,12 +766,13 @@ Answer 'No' if the title is completely unrelated (e.g., "Pumpkin Soup", "Grilled
                     theme_details = f"LLM rejected: '{title}' not related to pizza themes"
             except Exception as e:
                 theme_details = f"LLM theme check failed: {str(e)[:50]}"
+                theme_category = StepCategory.EXECUTION_ERROR
 
         step_time = time.time() - step_start
         checkpoint.add_step(
             f"Recipe {recipe_num} - Title Theme",
             has_theme, base_step_id + 1, theme_details,
-            execution_time=step_time
+            execution_time=step_time, category=theme_category
         )
 
         # =====================================================================
@@ -806,7 +823,7 @@ Answer 'No' if the title is completely unrelated (e.g., "Pumpkin Soup", "Grilled
         checkpoint.add_step(
             f"Recipe {recipe_num} - Source URL",
             has_valid_url, base_step_id + 2, url_details,
-            execution_time=step_time
+            execution_time=step_time, category=StepCategory.DETERMINISTIC
         )
 
         # =====================================================================
@@ -815,6 +832,7 @@ Answer 'No' if the title is completely unrelated (e.g., "Pumpkin Soup", "Grilled
         step_start = time.time()
         has_format = False
         format_details = "Unable to verify format"
+        format_category = StepCategory.STRUCTURAL  # section/image fallback decides unless VLM confirms
 
         # The recipe structure was already validated by discover_recipes to have
         # all required sections. Check that recipe.sections_found covers the format.
@@ -840,6 +858,7 @@ Answer 'No' if the title is completely unrelated (e.g., "Pumpkin Soup", "Grilled
             if vlm_confirmed:
                 has_format = True
                 format_details = f"Format matches template layout; sections: {found_sections}, has_image: {has_image}"
+                format_category = StepCategory.LLM_VLM_JUDGEMENT
             else:
                 # Fallback: structural check — has all sections + an image
                 if len(found_sections) >= 3 and has_image:
@@ -859,7 +878,7 @@ Answer 'No' if the title is completely unrelated (e.g., "Pumpkin Soup", "Grilled
         checkpoint.add_step(
             f"Recipe {recipe_num} - Format Match",
             has_format, base_step_id + 3, format_details,
-            execution_time=step_time
+            execution_time=step_time, category=format_category
         )
 
         # =====================================================================
@@ -873,7 +892,7 @@ Answer 'No' if the title is completely unrelated (e.g., "Pumpkin Soup", "Grilled
         checkpoint.add_step(
             f"Recipe {recipe_num} - Ingredients Modified",
             ing_modified, base_step_id + 4, ing_details,
-            execution_time=step_time
+            execution_time=step_time, category=StepCategory.FUZZY_MATCH
         )
 
         # =====================================================================
@@ -887,7 +906,7 @@ Answer 'No' if the title is completely unrelated (e.g., "Pumpkin Soup", "Grilled
         checkpoint.add_step(
             f"Recipe {recipe_num} - Preparation Modified",
             prep_modified, base_step_id + 5, prep_details,
-            execution_time=step_time
+            execution_time=step_time, category=StepCategory.FUZZY_MATCH
         )
 
         # =====================================================================
@@ -901,7 +920,7 @@ Answer 'No' if the title is completely unrelated (e.g., "Pumpkin Soup", "Grilled
         checkpoint.add_step(
             f"Recipe {recipe_num} - Tips Modified",
             tips_modified, base_step_id + 6, tips_details,
-            execution_time=step_time
+            execution_time=step_time, category=StepCategory.FUZZY_MATCH
         )
 
         # =====================================================================
@@ -915,7 +934,7 @@ Answer 'No' if the title is completely unrelated (e.g., "Pumpkin Soup", "Grilled
         checkpoint.add_step(
             f"Recipe {recipe_num} - Info Modified",
             info_modified, base_step_id + 7, info_details,
-            execution_time=step_time
+            execution_time=step_time, category=StepCategory.DETERMINISTIC
         )
 
         # =====================================================================
@@ -924,6 +943,7 @@ Answer 'No' if the title is completely unrelated (e.g., "Pumpkin Soup", "Grilled
         step_start = time.time()
         is_distinct = False
         visual_details = "Unable to verify visual distinction"
+        visual_category = StepCategory.EXECUTION_ERROR  # default: comparison data unavailable
 
         if recipe.pdf_pages and recipe.pdf_pages[0] < len(pdf_images):
             page_image = pdf_images[recipe.pdf_pages[0]]
@@ -942,6 +962,7 @@ Answer 'No' if the title is completely unrelated (e.g., "Pumpkin Soup", "Grilled
             else:
                 similar_to = []
                 distinct_from = []
+                visual_items = []  # (category, distinct) per comparison for StepCategory.aggregate
                 for other_num, other_recipe_obj, other_image in other_pages:
                     same_page = (recipe.pdf_pages and other_recipe_obj.pdf_pages
                                  and recipe.pdf_pages[0] == other_recipe_obj.pdf_pages[0])
@@ -964,6 +985,7 @@ Answer 'No' if the title is completely unrelated (e.g., "Pumpkin Soup", "Grilled
                     )
                     try:
                         looks_same = binary_compare_images(model, page_image, other_image, mode=styling_prompt)
+                        visual_items.append((StepCategory.LLM_VLM_JUDGEMENT, not looks_same))
                         if looks_same:
                             similar_to.append(other_num)
                         else:
@@ -971,7 +993,9 @@ Answer 'No' if the title is completely unrelated (e.g., "Pumpkin Soup", "Grilled
                     except Exception as e:
                         print(f"Warning: VLM comparison failed for recipe {recipe_num} vs {other_num}: {e}")
                         distinct_from.append(other_num)  # Assume distinct on error
+                        visual_items.append((StepCategory.VACUOUS_PASS, True))  # silent pass: no check ran
 
+                visual_category = StepCategory.aggregate(visual_items)
                 if not similar_to:
                     is_distinct = True
                     visual_details = f"Visually distinct from all other recipes ({[f'R{n}' for n in distinct_from]})"
@@ -984,7 +1008,7 @@ Answer 'No' if the title is completely unrelated (e.g., "Pumpkin Soup", "Grilled
         checkpoint.add_step(
             f"Recipe {recipe_num} - Visual Distinction",
             is_distinct, base_step_id + 8, visual_details,
-            execution_time=step_time
+            execution_time=step_time, category=visual_category
         )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -1031,7 +1055,7 @@ def grade_checkpoint_3():
                 checkpoint.add_step(
                     f"Recipe {recipe_num} - {step_name}",
                     False, step_id, f"Recipe {recipe_num} not found in document",
-                    execution_time=0
+                    execution_time=0, category=StepCategory.EXECUTION_ERROR
                 )
 
     # Cache for webpage content to avoid redundant fetches
@@ -1087,7 +1111,7 @@ def grade_checkpoint_3():
                 checkpoint.add_step(
                     f"Recipe {recipe_num} - {step_name}",
                     False, base_step_id + step_idx + 1, url_failure_reason,
-                    execution_time=0
+                    execution_time=0, category=StepCategory.EXECUTION_ERROR
                 )
             continue
 
@@ -1103,6 +1127,7 @@ def grade_checkpoint_3():
         step_start = time.time()
         photo_valid = False
         photo_details = "No image found for recipe"
+        photo_category = StepCategory.EXECUTION_ERROR  # default: image data unavailable
 
         # Get this recipe's image IDs from its structure
         recipe_image_ids = [
@@ -1140,6 +1165,7 @@ def grade_checkpoint_3():
                         if match_result:
                             photo_valid = True
                             photo_details = f"Recipe image matches source via {match_method}"
+                            photo_category = StepCategory.from_match_method(match_method)
                             break
                     except Exception as e:
                         print(f"Warning: Image match failed for {os.path.basename(doc_img)}: {e}")
@@ -1150,11 +1176,13 @@ def grade_checkpoint_3():
                     photo_valid, photo_details = validate_image_matches_recipe(
                         model, recipe_doc_images[0], recipe_title
                     )
+                    photo_category = StepCategory.LLM_VLM_JUDGEMENT
                     if photo_valid:
                         photo_details = f"Photo appears to show {recipe_title} (VLM validated)"
                 except Exception as e:
                     print(f"Warning: VLM photo validation failed for recipe {recipe_num}: {e}")
                     photo_details = f"VLM photo validation failed: {str(e)[:50]}"
+                    photo_category = StepCategory.EXECUTION_ERROR
 
             # Clean up downloaded source image
             if source_image_path and os.path.exists(source_image_path):
@@ -1169,7 +1197,7 @@ def grade_checkpoint_3():
         checkpoint.add_step(
             f"Recipe {recipe_num} - Photo from Source",
             photo_valid, base_step_id + 1, photo_details,
-            execution_time=step_time
+            execution_time=step_time, category=photo_category
         )
 
         # =====================================================================
@@ -1178,6 +1206,7 @@ def grade_checkpoint_3():
         step_start = time.time()
         ingredients_match = False
         ingredients_details = "Unable to verify ingredients"
+        ing_category = StepCategory.EXECUTION_ERROR  # default: source data unavailable
 
         doc_ingredients_text = extract_section_content(recipe_structure, "Ingredients")
         doc_ingredients = extract_list_items(doc_ingredients_text)
@@ -1199,6 +1228,7 @@ def grade_checkpoint_3():
                         }
                     ]
                     response = model(messages)
+                    ing_category = StepCategory.LLM_VLM_JUDGEMENT
                     if response.strip().lower().startswith('yes'):
                         ingredients_match = True
                         ingredients_details = f"Ingredients reasonable for '{recipe_title}' (LLM verified, source content not fetchable)"
@@ -1224,6 +1254,7 @@ def grade_checkpoint_3():
                     ingredients_details = "Could not extract ingredients from source webpage for comparison"
                 else:
                     strict_match, strict_details = compare_ingredient_lists(doc_ingredients, source_ingredients, fuzzy_threshold=90)
+                    ing_category = StepCategory.FUZZY_MATCH
 
                     if strict_match:
                         ingredients_match = True
@@ -1233,6 +1264,7 @@ def grade_checkpoint_3():
                         for attempt in range(2):
                             try:
                                 llm_match, _ = compare_lists_with_llm(model, doc_ingredients, source_ingredients, "ingredients")
+                                ing_category = StepCategory.LLM_VLM_JUDGEMENT
                                 break
                             except Exception as e:
                                 if attempt == 0:
@@ -1250,7 +1282,7 @@ def grade_checkpoint_3():
         checkpoint.add_step(
             f"Recipe {recipe_num} - Ingredients Match",
             ingredients_match, base_step_id + 2, ingredients_details,
-            execution_time=step_time
+            execution_time=step_time, category=ing_category
         )
 
         # =====================================================================
@@ -1259,6 +1291,7 @@ def grade_checkpoint_3():
         step_start = time.time()
         prep_match = False
         prep_details = "Unable to verify preparation steps"
+        prep_category = StepCategory.EXECUTION_ERROR  # default: source data unavailable
 
         doc_prep_text = extract_section_content(recipe_structure, "Preparation")
         doc_steps = extract_list_items(doc_prep_text)
@@ -1280,6 +1313,7 @@ def grade_checkpoint_3():
                         }
                     ]
                     response = model(messages)
+                    prep_category = StepCategory.LLM_VLM_JUDGEMENT
                     if response.strip().lower().startswith('yes'):
                         prep_match = True
                         prep_details = f"Preparation reasonable for '{recipe_title}' (LLM verified, source content not fetchable)"
@@ -1306,6 +1340,7 @@ def grade_checkpoint_3():
                 else:
                     try:
                         prep_match, llm_explanation = compare_lists_with_llm(model, doc_steps, source_steps, "preparation steps")
+                        prep_category = StepCategory.LLM_VLM_JUDGEMENT
                     except Exception as e:
                         print(f"Warning: LLM preparation comparison failed: {e}")
                         prep_match = False
@@ -1320,7 +1355,7 @@ def grade_checkpoint_3():
         checkpoint.add_step(
             f"Recipe {recipe_num} - Preparation Match",
             prep_match, base_step_id + 3, prep_details,
-            execution_time=step_time
+            execution_time=step_time, category=prep_category
         )
 
         # =====================================================================
@@ -1329,6 +1364,7 @@ def grade_checkpoint_3():
         step_start = time.time()
         tips_valid = False
         tips_details = "Unable to verify tips"
+        tips_category = StepCategory.EXECUTION_ERROR  # default: source data unavailable
 
         tip_pairs_additional = extract_tips_with_sources(recipe_structure)
         doc_tips = [p['tip'] for p in tip_pairs_additional]
@@ -1350,6 +1386,7 @@ def grade_checkpoint_3():
                         }
                     ]
                     response = model(messages)
+                    tips_category = StepCategory.LLM_VLM_JUDGEMENT
                     if response.strip().lower().startswith('yes'):
                         tips_valid = True
                         tips_details = f"Tips reasonable for '{recipe_title}' (LLM verified, source content not fetchable)"
@@ -1368,11 +1405,13 @@ def grade_checkpoint_3():
                 # then fall back to the recipe's main source page
                 tips_verified = []
                 tips_not_found = []
+                tip_items = []  # (category, success) per tip for StepCategory.aggregate
 
                 for pair in tip_pairs_additional:
                     tip = pair['tip']
                     tip_url = pair.get('url')
                     tip_found = False
+                    tip_category = StepCategory.FUZZY_MATCH  # last mechanism that ran for this tip
 
                     # Try the tip's own source URL if different from main source
                     if tip_url and tip_url != source_url:
@@ -1386,15 +1425,17 @@ def grade_checkpoint_3():
                             except Exception:
                                 pass
                         if tip_content:
-                            is_quote, _ = verify_tip_is_quote(tip, tip_content)
+                            is_quote, quote_score = verify_tip_is_quote(tip, tip_content)
                             if is_quote:
                                 tip_found = True
+                                tip_category = StepCategory.DETERMINISTIC if quote_score == 100 else StepCategory.FUZZY_MATCH
 
                     # Try the recipe's main source page
                     if not tip_found:
-                        is_quote, _ = verify_tip_is_quote(tip, webpage_content)
+                        is_quote, quote_score = verify_tip_is_quote(tip, webpage_content)
                         if is_quote:
                             tip_found = True
+                            tip_category = StepCategory.DETERMINISTIC if quote_score == 100 else StepCategory.FUZZY_MATCH
 
                     # LLM fallback for unscrapable tip source URLs
                     if not tip_found and tip_url:
@@ -1424,16 +1465,19 @@ def grade_checkpoint_3():
                         ]
                         try:
                             response = model(messages).strip()
+                            tip_category = StepCategory.LLM_VLM_JUDGEMENT
                             if response.lower().startswith('yes'):
                                 tip_found = True
                         except Exception as e:
                             print(f"Warning: LLM tip quote fallback failed: {e}")
 
+                    tip_items.append((tip_category, tip_found))
                     if tip_found:
                         tips_verified.append(tip[:30])
                     else:
                         tips_not_found.append(tip[:30])
 
+                tips_category = StepCategory.aggregate(tip_items)
                 if not tips_not_found:
                     tips_valid = True
                     tips_details = f"All {len(doc_tips)} tips verified as quotes from sources"
@@ -1444,7 +1488,7 @@ def grade_checkpoint_3():
         checkpoint.add_step(
             f"Recipe {recipe_num} - Tips Direct Quotes",
             tips_valid, base_step_id + 4, tips_details,
-            execution_time=step_time
+            execution_time=step_time, category=tips_category
         )
 
         # =====================================================================
@@ -1453,12 +1497,14 @@ def grade_checkpoint_3():
         step_start = time.time()
         info_relevant = False
         info_details = "Unable to verify metadata relevance"
+        info_category = StepCategory.EXECUTION_ERROR  # default: source data unavailable
 
         doc_metadata = extract_recipe_metadata(recipe_text)
         is_modified, _ = check_metadata_modified(doc_metadata, TEMPLATE_DEFAULTS)
 
         if not is_modified:
             info_details = "Metadata unchanged from template defaults"
+            info_category = StepCategory.DETERMINISTIC
         elif not webpage_content and source_url:
             # URL accessible but content blocked — LLM reasonableness check
             try:
@@ -1474,6 +1520,7 @@ def grade_checkpoint_3():
                     }
                 ]
                 response = model(messages)
+                info_category = StepCategory.LLM_VLM_JUDGEMENT
                 if response.strip().lower().startswith('yes'):
                     info_relevant = True
                     info_details = f"Metadata reasonable for '{recipe_title}' (LLM verified, source content not fetchable): {meta_str}"
@@ -1497,12 +1544,13 @@ def grade_checkpoint_3():
                 info_relevant, info_details = compare_metadata_relevance(
                     doc_metadata, source_metadata, TEMPLATE_DEFAULTS
                 )
+                info_category = StepCategory.FUZZY_MATCH  # +/-50% range comparison
 
         step_time = time.time() - step_start
         checkpoint.add_step(
             f"Recipe {recipe_num} - Info Relevant",
             info_relevant, base_step_id + 5, info_details,
-            execution_time=step_time
+            execution_time=step_time, category=info_category
         )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -1524,8 +1572,8 @@ def grade_checkpoint_4(browsing_history: Optional[list] = None):
     checkpoint = Checkpoint(total=4, result=0, name="Websites Visited Check")
 
     if not browsing_history:
-        checkpoint.add_step("Tips Source Visited", False, 1, "No browsing history provided", execution_time=0)
-        checkpoint.add_step("Additional Recipe Sources Visited", False, 2, "No browsing history provided", execution_time=0)
+        checkpoint.add_step("Tips Source Visited", False, 1, "No browsing history provided", execution_time=0, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Additional Recipe Sources Visited", False, 2, "No browsing history provided", execution_time=0, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -1543,6 +1591,7 @@ def grade_checkpoint_4(browsing_history: Optional[list] = None):
     step_start = time.time()
     tips_visited = False
     tips_visit_details = "No tip source URLs found in first recipe"
+    tips_visit_category = StepCategory.EXECUTION_ERROR  # default: no URLs available to check
 
     if recipes:
         first_recipe = recipes[0]
@@ -1560,6 +1609,7 @@ def grade_checkpoint_4(browsing_history: Optional[list] = None):
         ]
 
         if tip_source_urls:
+            tips_visit_category = StepCategory.WEB_VISIT
             not_visited = [url for url in tip_source_urls
                            if normalize_url_for_comparison(url) not in normalized_history]
 
@@ -1570,7 +1620,7 @@ def grade_checkpoint_4(browsing_history: Optional[list] = None):
                 tips_visit_details = f"Tip source URLs not in history: {[u[:50] for u in not_visited]}"
 
     step_time = time.time() - step_start
-    checkpoint.add_step("Tips Source Visited", tips_visited, 1, tips_visit_details, execution_time=step_time)
+    checkpoint.add_step("Tips Source Visited", tips_visited, 1, tips_visit_details, execution_time=step_time, category=tips_visit_category)
 
     # =========================================================================
     # Step 4.2: Additional recipe source URLs visited (3 pts — 1 per recipe)
@@ -1615,15 +1665,20 @@ def grade_checkpoint_4(browsing_history: Optional[list] = None):
         recipes_visited >= 3, 2,
         f"{recipes_visited}/3 recipe sources visited. {'; '.join(visit_details_parts)}",
         score=recipes_visited, max_score=3,
-        execution_time=step_time
+        execution_time=step_time, category=StepCategory.WEB_VISIT
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
 
-def _all_zero_result(reason: str) -> Result:
-    """Create a Result with all checkpoints scored at 0, with a failure reason."""
+def _all_zero_result(reason: str, category: str = StepCategory.EXECUTION_ERROR) -> Result:
+    """Create a Result with all checkpoints scored at 0, with a failure reason.
+
+    Args:
+        reason (str): Failure reason recorded on every step.
+        category (str): StepCategory for every step (evaluation could not run).
+    """
     checkpoints = []
 
     cp1 = Checkpoint(total=10, result=0, name="Original Recipe Page")
@@ -1631,7 +1686,7 @@ def _all_zero_result(reason: str) -> Result:
                                      "Tips Relevance", "Tips URLs Valid", "Tips Are Direct Quotes",
                                      "Image from Original", "Image Properly Cropped",
                                      "Image Shows Recipe Text", "Info Modified from Defaults"], 1):
-        cp1.add_step(name, False, step_id, reason, execution_time=0)
+        cp1.add_step(name, False, step_id, reason, execution_time=0, category=category)
     checkpoints.append(cp1)
 
     cp2 = Checkpoint(total=24, result=0, name="Additional Recipe Pages Formatting")
@@ -1639,7 +1694,7 @@ def _all_zero_result(reason: str) -> Result:
                     "Preparation Modified", "Tips Modified", "Info Modified", "Visual Distinction"]
     for i in range(3):
         for step_idx, name in enumerate(step_names_2):
-            cp2.add_step(f"Recipe {i+2} - {name}", False, i * 8 + step_idx + 1, reason, execution_time=0)
+            cp2.add_step(f"Recipe {i+2} - {name}", False, i * 8 + step_idx + 1, reason, execution_time=0, category=category)
     checkpoints.append(cp2)
 
     cp3 = Checkpoint(total=15, result=0, name="Additional Recipe Pages Content")
@@ -1647,12 +1702,12 @@ def _all_zero_result(reason: str) -> Result:
                     "Tips Direct Quotes", "Info Relevant"]
     for i in range(3):
         for step_idx, name in enumerate(step_names_3):
-            cp3.add_step(f"Recipe {i+2} - {name}", False, i * 5 + step_idx + 1, reason, execution_time=0)
+            cp3.add_step(f"Recipe {i+2} - {name}", False, i * 5 + step_idx + 1, reason, execution_time=0, category=category)
     checkpoints.append(cp3)
 
     cp4 = Checkpoint(total=4, result=0, name="Websites Visited Check")
-    cp4.add_step("Tips Source Visited", False, 1, reason, execution_time=0)
-    cp4.add_step("Additional Recipe Sources Visited", False, 2, reason, score=0, max_score=3, execution_time=0)
+    cp4.add_step("Tips Source Visited", False, 1, reason, execution_time=0, category=category)
+    cp4.add_step("Additional Recipe Sources Visited", False, 2, reason, score=0, max_score=3, execution_time=0, category=category)
     checkpoints.append(cp4)
 
     return Result(checkpoints)

@@ -106,7 +106,7 @@ def download_image_from_url(url: str, temp_dir: str, timeout: int = 15, headers:
         default_headers = {
             'User-Agent': (
                 'BrowserGym-Knows-Eval/1.0 '
-                '(https://github.com/anonymous/KNOWS-benchmark; eval-bot) '
+                '(https://github.com/alexgill321/KNOWS-benchmark; eval-bot) '
                 'requests/python'
             )
         }
@@ -235,7 +235,7 @@ def fetch_api_with_retry(
                 default_headers = {
                     'User-Agent': (
                         'BrowserGym-Knows-Eval/1.0 '
-                        '(https://github.com/anonymous/KNOWS-benchmark; eval-bot) '
+                        '(https://github.com/alexgill321/KNOWS-benchmark; eval-bot) '
                         'requests/python'
                     )
                 }

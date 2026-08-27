@@ -14,8 +14,6 @@ import argparse
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
@@ -23,7 +21,7 @@ BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 # Imports from eval_utils
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.knows.eval.eval_utils.google_sheets_utils import (
     extract_tables_from_sheet,
@@ -219,7 +217,8 @@ def grade_checkpoint_1():
     if df is None or df.empty:
         checkpoint.add_step("Data Extraction", False, 1,
                           "No data found in spreadsheet",
-                          execution_time=time.time() - checkpoint_start)
+                          execution_time=time.time() - checkpoint_start,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -234,7 +233,7 @@ def grade_checkpoint_1():
 
     print(f"  [PARALLEL] Matching {len(required_columns)} columns with keyword + LLM fallback...")
     match_start = time.time()
-    all_matches = match_columns(df, required_columns, model=model, strict=True, parallel=True, max_workers=5)
+    all_matches, col_methods = match_columns(df, required_columns, model=model, strict=True, parallel=True, max_workers=5, return_methods=True)
     print(f"  [PARALLEL] Column matching completed in {time.time() - match_start:.2f}s")
 
     # Log matches for debugging
@@ -254,11 +253,13 @@ def grade_checkpoint_1():
         matched_columns["Ingredients"] = ingredients_col
         checkpoint.add_step("Ingredients Column First", True, step_num,
                           f"Found '{ingredients_col}' as first column",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start,
+                          category=StepCategory.DETERMINISTIC if col_methods.get("Ingredients") == "keyword" else StepCategory.LLM_VLM_JUDGEMENT)
     else:
         checkpoint.add_step("Ingredients Column First", False, step_num,
                           f"Ingredients column not found or not first. First column: '{columns[0] if columns else 'N/A'}'",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start,
+                          category=StepCategory.DETERMINISTIC if col_methods.get("Ingredients") == "keyword" else StepCategory.LLM_VLM_JUDGEMENT)
 
     # Step 2: Link column exists and is second
     step_num += 1
@@ -269,11 +270,13 @@ def grade_checkpoint_1():
         matched_columns["Link"] = link_col
         checkpoint.add_step("Link Column Second", True, step_num,
                           f"Found '{link_col}' as second column",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start,
+                          category=StepCategory.DETERMINISTIC if col_methods.get("Link") == "keyword" else StepCategory.LLM_VLM_JUDGEMENT)
     else:
         checkpoint.add_step("Link Column Second", False, step_num,
                           f"Link column not found or not second. Second column: '{columns[1] if len(columns) > 1 else 'N/A'}'",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start,
+                          category=StepCategory.DETERMINISTIC if col_methods.get("Link") == "keyword" else StepCategory.LLM_VLM_JUDGEMENT)
 
     # Steps 3-13: All nutrient columns present (Macros, Minerals, Vitamins)
     for nutrient in ALL_NUTRIENTS:
@@ -286,12 +289,14 @@ def grade_checkpoint_1():
             matched_columns[nutrient] = nutrient_col
             checkpoint.add_step(f"{nutrient} Column Present", True, step_num,
                               f"Found column '{nutrient_col}'",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.DETERMINISTIC if col_methods.get(nutrient) == "keyword" else StepCategory.LLM_VLM_JUDGEMENT)
         else:
             print(f"  [DEBUG] {nutrient} column NOT FOUND")
             checkpoint.add_step(f"{nutrient} Column Present", False, step_num,
                               f"No column found for {nutrient}",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.DETERMINISTIC if col_methods.get(nutrient) == "keyword" else StepCategory.LLM_VLM_JUDGEMENT)
 
     # Step 14: Macros columns are in alphabetical order
     step_num += 1
@@ -302,11 +307,13 @@ def grade_checkpoint_1():
     if len(macro_indices) == len(MACRO_NUTRIENTS) and macro_indices == sorted(macro_indices):
         checkpoint.add_step("Macros Alphabetical Order", True, step_num,
                           "Macro nutrient columns are in alphabetical order",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start,
+                          category=StepCategory.STRUCTURAL)
     else:
         checkpoint.add_step("Macros Alphabetical Order", False, step_num,
                           f"Macro columns not in alphabetical order or missing ({len(macro_indices)}/{len(MACRO_NUTRIENTS)} found)",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start,
+                          category=StepCategory.STRUCTURAL)
 
     # Step 15: Minerals columns are in alphabetical order
     step_num += 1
@@ -317,11 +324,13 @@ def grade_checkpoint_1():
     if len(mineral_indices) == len(MINERAL_NUTRIENTS) and mineral_indices == sorted(mineral_indices):
         checkpoint.add_step("Minerals Alphabetical Order", True, step_num,
                           "Mineral nutrient columns are in alphabetical order",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start,
+                          category=StepCategory.STRUCTURAL)
     else:
         checkpoint.add_step("Minerals Alphabetical Order", False, step_num,
                           f"Mineral columns not in alphabetical order or missing ({len(mineral_indices)}/{len(MINERAL_NUTRIENTS)} found)",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start,
+                          category=StepCategory.STRUCTURAL)
 
     # Step 16: Vitamins columns are in alphabetical order
     step_num += 1
@@ -332,11 +341,13 @@ def grade_checkpoint_1():
     if len(vitamin_indices) == len(VITAMIN_NUTRIENTS) and vitamin_indices == sorted(vitamin_indices):
         checkpoint.add_step("Vitamins Alphabetical Order", True, step_num,
                           "Vitamin nutrient columns are in alphabetical order",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start,
+                          category=StepCategory.STRUCTURAL)
     else:
         checkpoint.add_step("Vitamins Alphabetical Order", False, step_num,
                           f"Vitamin columns not in alphabetical order or missing ({len(vitamin_indices)}/{len(VITAMIN_NUTRIENTS)} found)",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start,
+                          category=StepCategory.STRUCTURAL)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -362,7 +373,8 @@ def grade_checkpoint_2():
     if not sheet_raw:
         checkpoint.add_step("Sheet Data", False, 1,
                           "Could not access raw sheet data",
-                          execution_time=time.time() - checkpoint_start)
+                          execution_time=time.time() - checkpoint_start,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -370,7 +382,8 @@ def grade_checkpoint_2():
         sheets = sheet_raw.get('sheets', [])
         if not sheets:
             for i in range(1, 7):
-                checkpoint.add_step(f"Check {i}", False, i, "No sheets found")
+                checkpoint.add_step(f"Check {i}", False, i, "No sheets found",
+                                  category=StepCategory.EXECUTION_ERROR)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -403,11 +416,13 @@ def grade_checkpoint_2():
                 span = get_merge_column_span(merge)
                 checkpoint.add_step(step_name, True, step_num,
                                   f"Found '{display_name}' header spanning {span} columns",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start,
+                                  category=StepCategory.DETERMINISTIC)
             else:
                 checkpoint.add_step(step_name, False, step_num,
                                   f"No merged header found containing '{display_name}'",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start,
+                                  category=StepCategory.DETERMINISTIC)
 
         # Step 4: Group headers are centered and italicized
         step_num += 1
@@ -430,11 +445,13 @@ def grade_checkpoint_2():
         if headers_formatted:
             checkpoint.add_step("Headers Centered and Italicized", True, step_num,
                               "All group headers are centered and italicized",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.DETERMINISTIC)
         else:
             checkpoint.add_step("Headers Centered and Italicized", False, step_num,
                               f"Headers not properly formatted: {'; '.join(format_details)}",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.DETERMINISTIC)
 
         # Step 5: Column titles are bolded (excluding group headers)
         step_num += 1
@@ -447,15 +464,18 @@ def grade_checkpoint_2():
             if bold_count == total_titles and total_titles > 0:
                 checkpoint.add_step("Column Titles Bolded", True, step_num,
                                   f"All {total_titles} column titles are bolded",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start,
+                                  category=StepCategory.DETERMINISTIC)
             else:
                 checkpoint.add_step("Column Titles Bolded", False, step_num,
                                   f"Only {bold_count}/{total_titles} column titles are bolded",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start,
+                                  category=StepCategory.DETERMINISTIC)
         else:
             checkpoint.add_step("Column Titles Bolded", False, step_num,
                               "Could not find column title row",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.EXECUTION_ERROR)
 
         # Step 6: Horizontal line under column titles
         step_num += 1
@@ -482,19 +502,23 @@ def grade_checkpoint_2():
                     line_type = "frozen row boundary"
                 checkpoint.add_step("Horizontal Line Under Titles", True, step_num,
                                   f"Found horizontal line ({line_type}) under column titles",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start,
+                                  category=StepCategory.DETERMINISTIC)
             else:
                 checkpoint.add_step("Horizontal Line Under Titles", False, step_num,
                                   "No horizontal line found under column titles",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start,
+                                  category=StepCategory.DETERMINISTIC)
         else:
             checkpoint.add_step("Horizontal Line Under Titles", False, step_num,
                               "Could not find column title row",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.EXECUTION_ERROR)
 
     except Exception as e:
         for i in range(1, 7):
-            checkpoint.add_step(f"Format Check {i}", False, i, f"Error: {str(e)[:50]}")
+            checkpoint.add_step(f"Format Check {i}", False, i, f"Error: {str(e)[:50]}",
+                              category=StepCategory.EXECUTION_ERROR)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -517,7 +541,8 @@ def grade_checkpoint_3():
 
     if not sheet_raw or df is None:
         for i in range(1, 5):
-            checkpoint.add_step(f"Color Check {i}", False, i, "No sheet data available")
+            checkpoint.add_step(f"Color Check {i}", False, i, "No sheet data available",
+                              category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -525,7 +550,8 @@ def grade_checkpoint_3():
         sheets = sheet_raw.get('sheets', [])
         if not sheets:
             for i in range(1, 5):
-                checkpoint.add_step(f"Color Check {i}", False, i, "No sheets found")
+                checkpoint.add_step(f"Color Check {i}", False, i, "No sheets found",
+                                  category=StepCategory.EXECUTION_ERROR)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -576,11 +602,13 @@ def grade_checkpoint_3():
         if macro_same:
             checkpoint.add_step("Macros Same Color", True, step_num,
                               f"All {len(macro_colors)} macro columns share the same background color",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.FUZZY_MATCH)
         else:
             checkpoint.add_step("Macros Same Color", False, step_num,
                               f"Macro columns have inconsistent or no background colors ({len(macro_colors)} found)",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.FUZZY_MATCH)
 
         # Step 2: Mineral columns share same background color
         step_num += 1
@@ -591,11 +619,13 @@ def grade_checkpoint_3():
         if mineral_same:
             checkpoint.add_step("Minerals Same Color", True, step_num,
                               f"All {len(mineral_colors)} mineral columns share the same background color",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.FUZZY_MATCH)
         else:
             checkpoint.add_step("Minerals Same Color", False, step_num,
                               f"Mineral columns have inconsistent or no background colors ({len(mineral_colors)} found)",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.FUZZY_MATCH)
 
         # Step 3: Vitamin columns share same background color
         step_num += 1
@@ -606,11 +636,13 @@ def grade_checkpoint_3():
         if vitamin_same:
             checkpoint.add_step("Vitamins Same Color", True, step_num,
                               f"All {len(vitamin_colors)} vitamin columns share the same background color",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.FUZZY_MATCH)
         else:
             checkpoint.add_step("Vitamins Same Color", False, step_num,
                               f"Vitamin columns have inconsistent or no background colors ({len(vitamin_colors)} found)",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.FUZZY_MATCH)
 
         # Step 4: Three groups have distinct colors
         step_num += 1
@@ -627,15 +659,18 @@ def grade_checkpoint_3():
         if len(group_colors) == 3 and colors_are_distinct(group_colors):
             checkpoint.add_step("Distinct Group Colors", True, step_num,
                               "All three nutrient groups have distinct background colors",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.FUZZY_MATCH)
         else:
             checkpoint.add_step("Distinct Group Colors", False, step_num,
                               f"Nutrient groups do not have distinct colors ({len(group_colors)} groups found)",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.FUZZY_MATCH)
 
     except Exception as e:
         for i in range(1, 5):
-            checkpoint.add_step(f"Color Check {i}", False, i, f"Error: {str(e)[:50]}")
+            checkpoint.add_step(f"Color Check {i}", False, i, f"Error: {str(e)[:50]}",
+                              category=StepCategory.EXECUTION_ERROR)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -660,7 +695,8 @@ def grade_checkpoint_4():
 
     if df is None or df.empty:
         for i, ingredient in enumerate(EXPECTED_INGREDIENTS + ([EXCLUDED_INGREDIENT] if EXCLUDED_INGREDIENT else []), 1):
-            checkpoint.add_step(f"{ingredient}", False, i, "No data found")
+            checkpoint.add_step(f"{ingredient}", False, i, "No data found",
+                              category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -669,7 +705,8 @@ def grade_checkpoint_4():
 
     if not ingredient_col:
         for i, ingredient in enumerate(EXPECTED_INGREDIENTS + ([EXCLUDED_INGREDIENT] if EXCLUDED_INGREDIENT else []), 1):
-            checkpoint.add_step(f"{ingredient}", False, i, "No ingredient column found")
+            checkpoint.add_step(f"{ingredient}", False, i, "No ingredient column found",
+                              category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -754,18 +791,21 @@ def grade_checkpoint_4():
             matched_ingredients[ingredient] = row_idx
             checkpoint.add_step(f"{ingredient} Present", True, step_num,
                               f"Found '{ingredient}' in spreadsheet",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.DETERMINISTIC)
         elif ingredient in llm_matches:
             row_idx = llm_matches[ingredient]
             matched_ingredients[ingredient] = row_idx
             checkpoint.add_step(f"{ingredient} Present", True, step_num,
                               f"Found '{ingredient}' in spreadsheet (LLM match)",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.LLM_VLM_JUDGEMENT)
         else:
             print(f"  [DEBUG] Ingredient '{ingredient}' NOT FOUND")
             checkpoint.add_step(f"{ingredient} Present", False, step_num,
                               f"'{ingredient}' not found in spreadsheet",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.LLM_VLM_JUDGEMENT)
 
     # Check that excluded ingredient is NOT present (if any)
     if EXCLUDED_INGREDIENT:
@@ -784,12 +824,14 @@ def grade_checkpoint_4():
             print(f"  [DEBUG] Excluded ingredient '{EXCLUDED_INGREDIENT}' correctly NOT found")
             checkpoint.add_step(f"{EXCLUDED_INGREDIENT} Not Present", True, step_num,
                               f"'{EXCLUDED_INGREDIENT}' correctly excluded (no specified amount)",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.DETERMINISTIC)
         else:
             print(f"  [DEBUG] Excluded ingredient '{EXCLUDED_INGREDIENT}' FOUND (should not be present)")
             checkpoint.add_step(f"{EXCLUDED_INGREDIENT} Not Present", False, step_num,
                               f"'{EXCLUDED_INGREDIENT}' should not be present (no specified amount in recipe)",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.DETERMINISTIC)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -811,7 +853,8 @@ def grade_checkpoint_5():
 
     if df is None or df.empty:
         for i, ingredient in enumerate(EXPECTED_INGREDIENTS, 1):
-            checkpoint.add_step(f"{ingredient} Link", False, i, "No data found")
+            checkpoint.add_step(f"{ingredient} Link", False, i, "No data found",
+                              category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -821,7 +864,8 @@ def grade_checkpoint_5():
 
     if not ingredient_col or not link_col:
         for i, ingredient in enumerate(EXPECTED_INGREDIENTS, 1):
-            checkpoint.add_step(f"{ingredient} Link", False, i, "Missing ingredient or link column")
+            checkpoint.add_step(f"{ingredient} Link", False, i, "Missing ingredient or link column",
+                              category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -899,32 +943,38 @@ def grade_checkpoint_5():
         if ingredient in invalid_ingredients:
             checkpoint.add_step(f"{ingredient} Link Valid", False, step_num,
                               invalid_ingredients[ingredient],
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.DEPENDENCY_NOT_EVALUATED if ingredient not in matched_ingredients else StepCategory.DETERMINISTIC)
         elif ingredient in keyword_matches:
             page_title = fetch_results.get(ingredient)
             if page_title:
                 checkpoint.add_step(f"{ingredient} Link Valid", True, step_num,
                                   f"USDA link verified for '{ingredient}'",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start,
+                                  category=StepCategory.DETERMINISTIC)
             else:
                 checkpoint.add_step(f"{ingredient} Link Valid", True, step_num,
                                   f"Valid USDA URL format (could not verify page content)",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start,
+                                  category=StepCategory.VACUOUS_PASS)
         elif ingredient in llm_results:
             if llm_results[ingredient]:
                 print(f"  [DEBUG] USDA page matched '{ingredient}' via LLM")
                 checkpoint.add_step(f"{ingredient} Link Valid", True, step_num,
                                   f"USDA link verified for '{ingredient}'",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start,
+                                  category=StepCategory.LLM_VLM_JUDGEMENT)
             else:
                 page_title = llm_needed.get(ingredient, "unknown")
                 checkpoint.add_step(f"{ingredient} Link Valid", False, step_num,
                                   f"USDA page '{page_title[:30]}...' does not match '{ingredient}'",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start,
+                                  category=StepCategory.LLM_VLM_JUDGEMENT)
         else:
             checkpoint.add_step(f"{ingredient} Link Valid", False, step_num,
                               f"Could not validate link for '{ingredient}'",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.EXECUTION_ERROR)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -948,7 +998,8 @@ def grade_checkpoint_6():
     if df is None or df.empty or gold_data is None:
         for i, nutrient in enumerate(ALL_NUTRIENTS, 1):
             checkpoint.add_step(f"{nutrient} Values", False, i,
-                              "No data or gold labels available", max_score=num_ingredients)
+                              "No data or gold labels available", max_score=num_ingredients,
+                              category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -958,7 +1009,8 @@ def grade_checkpoint_6():
     if not ingredient_col:
         for i, nutrient in enumerate(ALL_NUTRIENTS, 1):
             checkpoint.add_step(f"{nutrient} Values", False, i,
-                              "No ingredient column found", max_score=num_ingredients)
+                              "No ingredient column found", max_score=num_ingredients,
+                              category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -1034,7 +1086,8 @@ def grade_checkpoint_6():
         sheet_col = matched_columns.get(nutrient)
         if not sheet_col:
             checkpoint.add_step(f"{nutrient} Values", False, step_num,
-                              f"No column found for {nutrient}", max_score=num_ingredients)
+                              f"No column found for {nutrient}", max_score=num_ingredients,
+                              category=StepCategory.EXECUTION_ERROR)
             continue
 
         gold_col = None
@@ -1045,7 +1098,8 @@ def grade_checkpoint_6():
 
         if not gold_col:
             checkpoint.add_step(f"{nutrient} Values", False, step_num,
-                              f"No gold data column for {nutrient}", max_score=num_ingredients)
+                              f"No gold data column for {nutrient}", max_score=num_ingredients,
+                              category=StepCategory.EXECUTION_ERROR)
             continue
 
         matches = 0
@@ -1110,7 +1164,8 @@ def grade_checkpoint_6():
             checkpoint.add_step(f"{nutrient} Values", True, step_num,
                               f"All {matches}/{len(EXPECTED_INGREDIENTS)} values match within {tolerance_percent}% tolerance",
                               score=matches, max_score=num_ingredients,
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.FUZZY_MATCH)
         else:
             print(f"  [DEBUG] {nutrient}: {matches}/{len(EXPECTED_INGREDIENTS)} values match. Mismatches: {mismatches}")
             detail = f"{matches}/{len(EXPECTED_INGREDIENTS)} match"
@@ -1118,7 +1173,8 @@ def grade_checkpoint_6():
                 detail += f". Mismatches: {'; '.join(mismatches[:2])}"
             checkpoint.add_step(f"{nutrient} Values", False, step_num,
                               detail, score=matches, max_score=num_ingredients,
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.FUZZY_MATCH)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -1139,14 +1195,16 @@ def grade_checkpoint_7():
     if not sheet_raw or df is None or gold_data is None:
         checkpoint.add_step("Bold Formatting", False, 1,
                           "No sheet data available",
-                          execution_time=time.time() - checkpoint_start)
+                          execution_time=time.time() - checkpoint_start,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     try:
         sheets = sheet_raw.get('sheets', [])
         if not sheets:
-            checkpoint.add_step("Bold Formatting", False, 1, "No sheets found")
+            checkpoint.add_step("Bold Formatting", False, 1, "No sheets found",
+                              category=StepCategory.EXECUTION_ERROR)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -1157,7 +1215,8 @@ def grade_checkpoint_7():
 
         # Use global header_row_idx detected in setup()
         if header_row_idx is None:
-            checkpoint.add_step("Bold Formatting", False, 1, "Header row not detected")
+            checkpoint.add_step("Bold Formatting", False, 1, "Header row not detected",
+                              category=StepCategory.EXECUTION_ERROR)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -1208,18 +1267,22 @@ def grade_checkpoint_7():
             if success:
                 checkpoint.add_step("Bold Formatting", True, 1,
                                   f"All {total_checks} cells correctly formatted",
-                                  execution_time=time.time() - checkpoint_start)
+                                  execution_time=time.time() - checkpoint_start,
+                                  category=StepCategory.DETERMINISTIC)
             else:
                 checkpoint.add_step("Bold Formatting", False, 1,
                                   f"Only {correct_bold}/{total_checks} cells correctly formatted",
-                                  execution_time=time.time() - checkpoint_start)
+                                  execution_time=time.time() - checkpoint_start,
+                                  category=StepCategory.DETERMINISTIC)
         else:
             checkpoint.add_step("Bold Formatting", False, 1,
                               "No nutrient cells found to check",
-                              execution_time=time.time() - checkpoint_start)
+                              execution_time=time.time() - checkpoint_start,
+                              category=StepCategory.EXECUTION_ERROR)
 
     except Exception as e:
-        checkpoint.add_step("Bold Formatting", False, 1, f"Error: {str(e)[:50]}")
+        checkpoint.add_step("Bold Formatting", False, 1, f"Error: {str(e)[:50]}",
+                          category=StepCategory.EXECUTION_ERROR)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -1240,10 +1303,12 @@ def grade_checkpoint_8(browsing_history: Optional[List[str]] = None):
 
     if not browsing_history:
         checkpoint.add_step("Recipe URL Visited", False, 1,
-                          "No browsing history provided")
+                          "No browsing history provided",
+                          category=StepCategory.EXECUTION_ERROR)
         for i, ingredient in enumerate(EXPECTED_INGREDIENTS, 2):
             checkpoint.add_step(f"USDA URL for {ingredient}", False, i,
-                              "No browsing history provided")
+                              "No browsing history provided",
+                              category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -1259,11 +1324,13 @@ def grade_checkpoint_8(browsing_history: Optional[List[str]] = None):
     if recipe_visited:
         checkpoint.add_step("Recipe URL Visited", True, step_num,
                           f"Found visit to {RECIPE_DOMAIN}",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start,
+                          category=StepCategory.WEB_VISIT)
     else:
         checkpoint.add_step("Recipe URL Visited", False, step_num,
                           f"No visit to {RECIPE_DOMAIN} found",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start,
+                          category=StepCategory.WEB_VISIT)
 
     # Steps 2+: USDA URL visited for each ingredient
     usda_visited = any('fdc.nal.usda.gov' in url for url in browsing_lower)
@@ -1275,11 +1342,13 @@ def grade_checkpoint_8(browsing_history: Optional[List[str]] = None):
         if usda_visited:
             checkpoint.add_step(f"USDA URL for {ingredient}", True, step_num,
                               f"USDA database was visited",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.WEB_VISIT)
         else:
             checkpoint.add_step(f"USDA URL for {ingredient}", False, step_num,
                               f"No USDA database visit found",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.WEB_VISIT)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -1325,7 +1394,8 @@ def grade_checkpoints(workspace_doc_id: str = None, browsing_history: List[str] 
 
         # Return a failed result
         failed_checkpoint = Checkpoint(total=1, result=0, name="Evaluation Error")
-        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0)
+        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0,
+                                 category=StepCategory.EXECUTION_ERROR)
         return Result([failed_checkpoint], total_execution_time=time.time() - total_start_time)
 
 

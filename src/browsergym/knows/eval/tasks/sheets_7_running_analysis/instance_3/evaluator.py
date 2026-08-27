@@ -9,8 +9,6 @@ import argparse
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
@@ -18,7 +16,7 @@ BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 # Imports
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.knows.eval.eval_utils.google_sheets_utils import (
     extract_charts_from_sheet,
@@ -153,10 +151,14 @@ def grade_checkpoint_1():
     # Check if data was extracted
     if df is None or df.empty:
         # No table found - fail all steps
-        checkpoint.add_step("Activity Date Column", False, 1, "No table found in spreadsheet", execution_time=0)
-        checkpoint.add_step("Distance (Miles) Column", False, 2, "No table found in spreadsheet", execution_time=0)
-        checkpoint.add_step("Average Running Speed (min/mile) Column", False, 3, "No table found in spreadsheet", execution_time=0)
-        checkpoint.add_step("Content Visibility", False, 4, "No table found in spreadsheet", execution_time=0)
+        checkpoint.add_step("Activity Date Column", False, 1, "No table found in spreadsheet", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Distance (Miles) Column", False, 2, "No table found in spreadsheet", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Average Running Speed (min/mile) Column", False, 3, "No table found in spreadsheet", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Content Visibility", False, 4, "No table found in spreadsheet", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -169,7 +171,8 @@ def grade_checkpoint_1():
 
     # Match columns using keyword + LLM fallback (this is the main work for steps 1-3)
     column_match_start = time.time()
-    matched = match_columns(df, required_columns, model=model, parallel=True)
+    matched, match_methods = match_columns(df, required_columns, model=model, parallel=True,
+                                           return_methods=True)
     column_match_time = time.time() - column_match_start
 
     # Store globally for use in Checkpoint 2
@@ -180,32 +183,47 @@ def grade_checkpoint_1():
 
     # Step 1: Activity Date column
     date_col = matched.get("Activity Date")
+    date_col_category = (StepCategory.LLM_VLM_JUDGEMENT
+                         if (match_methods.get("Activity Date") == "llm"
+                             or (date_col is None and model is not None))
+                         else StepCategory.DETERMINISTIC)
     checkpoint.add_step(
         "Activity Date Column",
         date_col is not None,
         1,
         f"Found column: '{date_col}'" if date_col else "No activity date column found",
-        execution_time=per_column_time
+        execution_time=per_column_time,
+        category=date_col_category
     )
 
     # Step 2: Distance column
     dist_col = matched.get("Distance")
+    dist_col_category = (StepCategory.LLM_VLM_JUDGEMENT
+                         if (match_methods.get("Distance") == "llm"
+                             or (dist_col is None and model is not None))
+                         else StepCategory.DETERMINISTIC)
     checkpoint.add_step(
         "Distance Column",
         dist_col is not None,
         2,
         f"Found column: '{dist_col}'" if dist_col else "No distance column found",
-        execution_time=per_column_time
+        execution_time=per_column_time,
+        category=dist_col_category
     )
 
     # Step 3: Average Running Speed column
     speed_col = matched.get("Average Running Speed")
+    speed_col_category = (StepCategory.LLM_VLM_JUDGEMENT
+                          if (match_methods.get("Average Running Speed") == "llm"
+                              or (speed_col is None and model is not None))
+                          else StepCategory.DETERMINISTIC)
     checkpoint.add_step(
         "Average Running Speed Column",
         speed_col is not None,
         3,
         f"Found column: '{speed_col}'" if speed_col else "No average speed/pace column found",
-        execution_time=per_column_time
+        execution_time=per_column_time,
+        category=speed_col_category
     )
 
     # Step 4: Content visibility
@@ -220,7 +238,8 @@ def grade_checkpoint_1():
         all_visible,
         4,
         visibility_details,
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.SPATIAL
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -246,9 +265,12 @@ def grade_checkpoint_2():
     df = table_data.df if table_data else None
 
     if df is None or df.empty:
-        checkpoint.add_step("Date Match", False, 1, "No table data available", execution_time=0)
-        checkpoint.add_step("Distance Match", False, 2, "No table data available", execution_time=0)
-        checkpoint.add_step("Speed Match", False, 3, "No table data available", execution_time=0)
+        checkpoint.add_step("Date Match", False, 1, "No table data available", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Distance Match", False, 2, "No table data available", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Speed Match", False, 3, "No table data available", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -257,16 +279,22 @@ def grade_checkpoint_2():
     try:
         gold_runs = load_gold_run_activities(gold_csv_path, activity_type='Nordic Ski')
     except Exception as e:
-        checkpoint.add_step("Date Match", False, 1, f"Error loading gold data: {str(e)}", execution_time=0)
-        checkpoint.add_step("Distance Match", False, 2, "Gold data error", execution_time=0)
-        checkpoint.add_step("Speed Match", False, 3, "Gold data error", execution_time=0)
+        checkpoint.add_step("Date Match", False, 1, f"Error loading gold data: {str(e)}", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Distance Match", False, 2, "Gold data error", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Speed Match", False, 3, "Gold data error", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     if len(gold_runs) != 34:
-        checkpoint.add_step("Date Match", False, 1, f"Expected 34 Nordic Ski activities, found {len(gold_runs)}", execution_time=0)
-        checkpoint.add_step("Distance Match", False, 2, "Gold data error", execution_time=0)
-        checkpoint.add_step("Speed Match", False, 3, "Gold data error", execution_time=0)
+        checkpoint.add_step("Date Match", False, 1, f"Expected 34 Nordic Ski activities, found {len(gold_runs)}", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Distance Match", False, 2, "Gold data error", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Speed Match", False, 3, "Gold data error", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -379,10 +407,12 @@ def grade_checkpoint_2():
             f"{date_matches}/34 dates match ({date_matches/34:.0%}), {date_score}/10 pts",
             score=date_score,
             max_score=10,
-            execution_time=per_step_time
+            execution_time=per_step_time,
+            category=StepCategory.DETERMINISTIC
         )
     else:
-        checkpoint.add_step("Date Match", False, 1, "Date column not found", score=0, max_score=10, execution_time=per_step_time)
+        checkpoint.add_step("Date Match", False, 1, "Date column not found", score=0, max_score=10, execution_time=per_step_time,
+                            category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     # Step 2: Distance matching (row-level, proportional, out of 10)
     if dist_col:
@@ -403,10 +433,12 @@ def grade_checkpoint_2():
             f"{distance_matches}/34 distances match ({distance_matches/34:.0%}){unit_str}, {dist_score}/10 pts",
             score=dist_score,
             max_score=10,
-            execution_time=per_step_time
+            execution_time=per_step_time,
+            category=StepCategory.FUZZY_MATCH
         )
     else:
-        checkpoint.add_step("Distance Match", False, 2, "No distance column with miles unit found (column header must contain 'miles')", score=0, max_score=10, execution_time=per_step_time)
+        checkpoint.add_step("Distance Match", False, 2, "No distance column with miles unit found (column header must contain 'miles')", score=0, max_score=10, execution_time=per_step_time,
+                            category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     # Step 3: Speed matching (row-level, proportional, out of 10)
     if speed_col:
@@ -420,10 +452,12 @@ def grade_checkpoint_2():
             f"{speed_matches}/34 speeds match ({speed_matches/34:.0%}){unit_str}, {speed_score}/10 pts",
             score=speed_score,
             max_score=10,
-            execution_time=per_step_time
+            execution_time=per_step_time,
+            category=StepCategory.FUZZY_MATCH
         )
     else:
-        checkpoint.add_step("Speed Match", False, 3, "No speed column with min/mile unit found (column header must contain 'min/mile')", score=0, max_score=10, execution_time=per_step_time)
+        checkpoint.add_step("Speed Match", False, 3, "No speed column with min/mile unit found (column header must contain 'min/mile')", score=0, max_score=10, execution_time=per_step_time,
+                            category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -453,7 +487,8 @@ def grade_checkpoint_3():
     if not chart_data:
         error_msg = "No charts found in spreadsheet"
         for i in range(1, 12):
-            checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0)
+            checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0,
+                                category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -465,7 +500,8 @@ def grade_checkpoint_3():
     if not speed_chart:
         error_msg = "Could not identify pace chart by title, axis labels, or series data"
         for i in range(1, 12):
-            checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0)
+            checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0,
+                                category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -578,7 +614,8 @@ def grade_checkpoint_3():
         has_date_label,
         1,
         f"X-axis label: '{x_label}'" if has_date_label else f"X-axis label '{x_label or 'None'}' does not match date keywords",
-        execution_time=keyword_time / max(len(vlm_tasks), 1)
+        execution_time=keyword_time / max(len(vlm_tasks), 1),
+        category=StepCategory.LLM_VLM_JUDGEMENT
     )
 
     # Step 2: Y-axis label indicates speed
@@ -592,7 +629,8 @@ def grade_checkpoint_3():
         has_speed_label,
         2,
         f"Y-axis label: '{y_label}'" if has_speed_label else f"Y-axis label '{y_label or 'None'}' does not match speed keywords",
-        execution_time=keyword_time / max(len(vlm_tasks), 1)
+        execution_time=keyword_time / max(len(vlm_tasks), 1),
+        category=StepCategory.LLM_VLM_JUDGEMENT
     )
 
     # Step 3: Chart title indicates speed over time
@@ -607,7 +645,8 @@ def grade_checkpoint_3():
         has_good_title,
         3,
         f"Chart title: '{chart_title}'" if has_good_title else f"Chart title '{chart_title or 'None'}' does not match speed/time keywords",
-        execution_time=keyword_time / max(len(vlm_tasks), 1)
+        execution_time=keyword_time / max(len(vlm_tasks), 1),
+        category=StepCategory.LLM_VLM_JUDGEMENT
     )
 
     # Step 4: Chart not placed over other charts/tables
@@ -634,7 +673,8 @@ def grade_checkpoint_3():
         not has_overlap,
         4,
         overlap_details if has_overlap else "Chart does not overlap with table or other charts",
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.SPATIAL
     )
 
     # Step 5: Main data series from speed column
@@ -696,7 +736,10 @@ def grade_checkpoint_3():
         main_series_valid,
         5,
         series_details,
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=(StepCategory.DETERMINISTIC
+                  if (series_list and main_idx is not None)
+                  else StepCategory.DEPENDENCY_NOT_EVALUATED)
     )
 
     # Step 6: Circular points in chart
@@ -707,7 +750,8 @@ def grade_checkpoint_3():
         has_points,
         6,
         point_details,
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.DETERMINISTIC
     )
 
     # Step 7: Klæbo baseline display check (legend label + line style)
@@ -748,7 +792,10 @@ def grade_checkpoint_3():
         klaebo_display_valid,
         7,
         klaebo_display_details,
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=(StepCategory.DETERMINISTIC
+                  if (klaebo_candidate_idx is not None and rows is not None)
+                  else StepCategory.DEPENDENCY_NOT_EVALUATED)
     )
 
     # Step 8: Klæbo baseline data validation (constant value in range)
@@ -756,10 +803,12 @@ def grade_checkpoint_3():
     global sheet_klaebo_pace
     klaebo_data_valid = False
     klaebo_data_details = "Could not identify Klæbo baseline series"
+    klaebo_data_category = StepCategory.DEPENDENCY_NOT_EVALUATED
 
     if klaebo_candidate_idx is not None and rows is not None:
         klaebo_values = get_series_column_values(speed_chart, klaebo_candidate_idx, rows)
         if klaebo_values:
+            klaebo_data_category = StepCategory.FUZZY_MATCH
             klaebo_data_valid, _, klaebo_data_details = validate_constant_series(
                 klaebo_values, KLAEBO_PACE_RANGE, tolerance=0.01
             )
@@ -767,8 +816,10 @@ def grade_checkpoint_3():
             if klaebo_values:
                 sheet_klaebo_pace = klaebo_values[0]  # Constant series, all values same
         else:
+            klaebo_data_category = StepCategory.EXECUTION_ERROR
             klaebo_data_details = f"Could not extract values from baseline series (index {klaebo_candidate_idx})"
     elif klaebo_candidate_idx is not None:
+        klaebo_data_category = StepCategory.EXECUTION_ERROR
         klaebo_data_details = "Sheet rows unavailable from setup() — cannot extract baseline values"
 
     checkpoint.add_step(
@@ -776,7 +827,8 @@ def grade_checkpoint_3():
         klaebo_data_valid,
         8,
         klaebo_data_details,
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=klaebo_data_category
     )
 
     # Step 9: Klæbo baseline visually distinguishable from main data
@@ -811,7 +863,10 @@ def grade_checkpoint_3():
         baseline_distinguishable,
         9,
         distinguishable_details,
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=(StepCategory.FUZZY_MATCH
+                  if (main_idx is not None and klaebo_candidate_idx is not None)
+                  else StepCategory.DEPENDENCY_NOT_EVALUATED)
     )
 
     # Step 10: Source URLs valid and accessible below chart
@@ -856,7 +911,8 @@ def grade_checkpoint_3():
         urls_valid,
         10,
         url_details,
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.DETERMINISTIC if rows else StepCategory.EXECUTION_ERROR
     )
 
     # Step 11: Chart is on the same sheet tab as the data table
@@ -882,7 +938,8 @@ def grade_checkpoint_3():
         chart_on_same_tab,
         11,
         same_tab_details,
-        execution_time=0
+        execution_time=0,
+        category=StepCategory.STRUCTURAL
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -909,7 +966,8 @@ def grade_checkpoint_4():
     if not chart_data:
         error_msg = "No charts found in spreadsheet"
         for i in range(1, 8):
-            checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0)
+            checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0,
+                                category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -921,7 +979,8 @@ def grade_checkpoint_4():
     if not cumulative_chart:
         error_msg = "Could not identify cumulative distance chart by title or axis labels"
         for i in range(1, 8):
-            checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0)
+            checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0,
+                                category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -995,7 +1054,8 @@ def grade_checkpoint_4():
         has_date_label,
         1,
         f"X-axis label: '{x_label}'" if has_date_label else f"X-axis label '{x_label or 'None'}' does not match date keywords",
-        execution_time=keyword_time / max(len(vlm_tasks_cp4), 1)
+        execution_time=keyword_time / max(len(vlm_tasks_cp4), 1),
+        category=StepCategory.LLM_VLM_JUDGEMENT
     )
 
     # Step 2: Y-axis label indicates cumulative distance
@@ -1009,7 +1069,8 @@ def grade_checkpoint_4():
         has_distance_label,
         2,
         f"Y-axis label: '{y_label}'" if has_distance_label else f"Y-axis label '{y_label or 'None'}' does not match cumulative distance keywords",
-        execution_time=keyword_time / max(len(vlm_tasks_cp4), 1)
+        execution_time=keyword_time / max(len(vlm_tasks_cp4), 1),
+        category=StepCategory.LLM_VLM_JUDGEMENT
     )
 
     # Step 3: Chart title indicates cumulative distance over time
@@ -1024,7 +1085,8 @@ def grade_checkpoint_4():
         has_good_title,
         3,
         f"Chart title: '{chart_title}'" if has_good_title else f"Chart title '{chart_title or 'None'}' does not match cumulative/time keywords",
-        execution_time=keyword_time / max(len(vlm_tasks_cp4), 1)
+        execution_time=keyword_time / max(len(vlm_tasks_cp4), 1),
+        category=StepCategory.LLM_VLM_JUDGEMENT
     )
 
     # Step 4: Chart not placed over other charts/tables
@@ -1052,13 +1114,15 @@ def grade_checkpoint_4():
         not has_overlap,
         4,
         overlap_details if has_overlap else "Chart does not overlap with table or other charts",
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.SPATIAL
     )
 
     # Step 5: Data shows cumulative/running total (validate against sheet data)
     step_start = time.time()
     cumulative_valid = False
     cumulative_details = "Could not extract chart values"
+    cumulative_category = StepCategory.EXECUTION_ERROR
 
     # Get first series values from the chart
     if rows is None:
@@ -1068,6 +1132,7 @@ def grade_checkpoint_4():
     else:
         chart_values = get_series_column_values(cumulative_chart, 0, rows)
         if chart_values:
+            cumulative_category = StepCategory.FUZZY_MATCH
             cumulative_valid, cumulative_details = validate_cumulative_against_sheet(
                 chart_values, df, matched_columns, tolerance_percent=1.0
             )
@@ -1079,7 +1144,8 @@ def grade_checkpoint_4():
         cumulative_valid,
         5,
         cumulative_details,
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=cumulative_category
     )
 
     # Step 6: Cumulative values present as line plot
@@ -1096,7 +1162,8 @@ def grade_checkpoint_4():
         is_line,
         6,
         line_details,
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.DETERMINISTIC
     )
 
     # Step 7: Chart is on the same sheet tab as the data table
@@ -1120,7 +1187,8 @@ def grade_checkpoint_4():
         chart_on_same_tab,
         7,
         same_tab_details,
-        execution_time=0
+        execution_time=0,
+        category=StepCategory.STRUCTURAL
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -1141,8 +1209,10 @@ def grade_checkpoint_5(browsing_history=None):
     checkpoint = Checkpoint(total=2, result=0, name="Website Visit Validation")
 
     if not browsing_history:
-        checkpoint.add_step("Klæbo URL Visited", False, 1, "No browsing history provided", execution_time=0)
-        checkpoint.add_step("Klæbo Content Valid", False, 2, "No browsing history provided", execution_time=0)
+        checkpoint.add_step("Klæbo URL Visited", False, 1, "No browsing history provided", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Klæbo Content Valid", False, 2, "No browsing history provided", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -1187,7 +1257,9 @@ def grade_checkpoint_5(browsing_history=None):
         klaebo_visited,
         1,
         f"Found {len(klaebo_urls)} relevant URL(s){klaebo_judge_details}" if klaebo_visited else "No Klæbo URL found in browsing history (keyword + LLM judge)",
-        execution_time=judge_time
+        execution_time=judge_time,
+        category=(StepCategory.LLM_VLM_JUDGEMENT if klaebo_judge_details
+                  else StepCategory.WEB_VISIT)
     )
 
     # Step 2: Klæbo URL content validation
@@ -1212,12 +1284,15 @@ def grade_checkpoint_5(browsing_history=None):
     klaebo_content_valid = False
     klaebo_content_details = "No Klæbo URLs to check"
     klaebo_extraction_failed_for_all = False
+    klaebo_content_category = StepCategory.DEPENDENCY_NOT_EVALUATED
 
     if not sheet_klaebo_pace or sheet_klaebo_pace <= 0:
         klaebo_content_details = "No Klæbo baseline value found in sheet (checkpoint 3 may have failed)"
     elif not model:
         klaebo_content_details = "Model not available for content validation"
+        klaebo_content_category = StepCategory.EXECUTION_ERROR
     elif klaebo_urls:
+        klaebo_content_category = StepCategory.FUZZY_MATCH
         klaebo_extraction_failed_for_all = True
         for url in klaebo_urls[:3]:
             result = url_results.get(f'klaebo|{url}')
@@ -1240,6 +1315,7 @@ def grade_checkpoint_5(browsing_history=None):
             and klaebo_extraction_failed_for_all
             and sheet_klaebo_pace and sheet_klaebo_pace > 0
             and model and klaebo_urls):
+        klaebo_content_category = StepCategory.LLM_VLM_JUDGEMENT
         for url in klaebo_urls[:3]:
             judged, judge_details = judge_url_pace_match(url, 'klaebo', sheet_klaebo_pace, model)
             if judged:
@@ -1254,7 +1330,8 @@ def grade_checkpoint_5(browsing_history=None):
         klaebo_content_valid,
         2,
         klaebo_content_details,
-        execution_time=url_time
+        execution_time=url_time,
+        category=klaebo_content_category
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -1321,7 +1398,8 @@ def grade_checkpoints(workspace_doc_id=None, browsing_history=None):
 
         # Return a failed result
         failed_checkpoint = Checkpoint(total=1, result=0, name="Evaluation Error")
-        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0)
+        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0,
+                                   category=StepCategory.EXECUTION_ERROR)
         return Result([failed_checkpoint], total_execution_time=time.time() - total_start_time)
 
 

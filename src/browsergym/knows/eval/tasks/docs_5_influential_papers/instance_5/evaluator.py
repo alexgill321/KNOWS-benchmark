@@ -8,8 +8,6 @@ import argparse
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
@@ -17,7 +15,7 @@ BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 # Imports
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, EvaluationStep
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, EvaluationStep, StepCategory
 from src.browsergym.knows.eval.eval_utils.google_services_utils import *
 from src.browsergym.knows.eval.eval_utils.text_utils import text_fuzzy_match_contained_short, text_fuzzy_match_contained_long
 from src.browsergym.knows.eval.eval_utils.models import load_model
@@ -160,11 +158,11 @@ def grade_checkpoint_1(browsing_history):
     if unique_papers_visited >= NUM_PAPERS:
         checkpoint.add_step("Paper Website Access", True, 1,
                         f"Accessed {unique_papers_visited} different paper websites",
-                        execution_time=step_time)
+                        execution_time=step_time, category=StepCategory.WEB_VISIT)
     else:
         checkpoint.add_step("Paper Website Access", False, 1,
                         f"Only accessed {unique_papers_visited} paper websites, need {NUM_PAPERS}",
-                        execution_time=step_time)
+                        execution_time=step_time, category=StepCategory.WEB_VISIT)
 
     # Step 2: Check if links in document match visited pages
     step_start = time.time()
@@ -176,13 +174,13 @@ def grade_checkpoint_1(browsing_history):
     if links_match:
         checkpoint.add_step("Document Links Match", True, 2,
                         f"Document links match browsing history: {matched_count} papers matched out of {len(doc_ids)} in document",
-                        execution_time=step_time)
+                        execution_time=step_time, category=StepCategory.WEB_VISIT)
     else:
         detail_msg = f"Links don't match: {matched_count} papers matched out of {len(doc_ids)} in document. "
         detail_msg += f"Document has {len(doc_ids)} paper links, visited {len(visited_ids)} unique papers"
         checkpoint.add_step("Document Links Match", False, 2,
                         detail_msg,
-                        execution_time=step_time)
+                        execution_time=step_time, category=StepCategory.WEB_VISIT)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -205,8 +203,8 @@ def grade_checkpoint_2():
             f"({', '.join(PAPER_DOMAINS)}) found in the document."
         )
         for i in range(NUM_PAPERS):
-            checkpoint.add_step(f"Citation Check {i+1}", False, 1, detail, execution_time=0)
-            checkpoint.add_step(f"Recency Check {i+1}", False, 1, detail, execution_time=0)
+            checkpoint.add_step(f"Citation Check {i+1}", False, 1, detail, execution_time=0, category=StepCategory.EXECUTION_ERROR)
+            checkpoint.add_step(f"Recency Check {i+1}", False, 1, detail, execution_time=0, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -220,33 +218,33 @@ def grade_checkpoint_2():
             if total_citations >= MIN_CITATIONS:
                 checkpoint.add_step(f"Citation Check {i+1}", True, 1,
                                 f"Paper '{title}' has {total_citations} citations (>= {MIN_CITATIONS})",
-                                execution_time=time.time() - paper_step_start)
+                                execution_time=time.time() - paper_step_start, category=StepCategory.DETERMINISTIC)
             else:
                 checkpoint.add_step(f"Citation Check {i+1}", False, 1,
                                 f"Paper '{title}' has only {total_citations} citations, need {MIN_CITATIONS}",
-                                execution_time=time.time() - paper_step_start)
+                                execution_time=time.time() - paper_step_start, category=StepCategory.DETERMINISTIC)
 
             if is_within_x_years(publication_date, RECENCY_YEARS):
                 checkpoint.add_step(f"Recency Check {i+1}", True, 1,
                                 f"Paper '{title}' published on {publication_date} is within {RECENCY_YEARS} years",
-                                execution_time=time.time() - paper_step_start)
+                                execution_time=time.time() - paper_step_start, category=StepCategory.DETERMINISTIC)
             else:
                 checkpoint.add_step(f"Recency Check {i+1}", False, 1,
                                 f"Paper '{title}' published on {publication_date} is older than {RECENCY_YEARS} years",
-                                execution_time=time.time() - paper_step_start)
+                                execution_time=time.time() - paper_step_start, category=StepCategory.DETERMINISTIC)
         else:
             checkpoint.add_step(f"Citation Check {i+1}", False, 1,
                             f"Paper {i+1} not found in Semantic Scholar",
-                            execution_time=time.time() - paper_step_start)
+                            execution_time=time.time() - paper_step_start, category=StepCategory.EXECUTION_ERROR)
             checkpoint.add_step(f"Recency Check {i+1}", False, 1,
                             f"Paper {i+1} not found in Semantic Scholar",
-                            execution_time=time.time() - paper_step_start)
+                            execution_time=time.time() - paper_step_start, category=StepCategory.EXECUTION_ERROR)
 
     papers_found = len([p for p in cached_papers_info if p and isinstance(p, dict)])
     if papers_found < NUM_PAPERS:
         for j in range(papers_found, NUM_PAPERS):
-            checkpoint.add_step(f"Citation Check {j+1}", False, 1, f"Missing paper (fewer than {NUM_PAPERS} found)", execution_time=0)
-            checkpoint.add_step(f"Recency Check {j+1}", False, 1, f"Missing paper (fewer than {NUM_PAPERS} found)", execution_time=0)
+            checkpoint.add_step(f"Citation Check {j+1}", False, 1, f"Missing paper (fewer than {NUM_PAPERS} found)", execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+            checkpoint.add_step(f"Recency Check {j+1}", False, 1, f"Missing paper (fewer than {NUM_PAPERS} found)", execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -274,10 +272,10 @@ def grade_checkpoint_3():
             f"({', '.join(PAPER_DOMAINS)}) found in the document."
         )
         for i in range(NUM_PAPERS):
-            checkpoint.add_step(f"Abstract Inclusion {i+1}", False, (i*5)+1, detail, execution_time=0)
-            checkpoint.add_step(f"Title Inclusion {i+1}", False, (i*5)+2, detail, execution_time=0)
-            checkpoint.add_step(f"Link Inclusion {i+1}", False, (i*5)+3, detail, execution_time=0)
-            checkpoint.add_step(f"Structure Check {i+1}", False, (i*5)+4, detail, execution_time=0)
+            checkpoint.add_step(f"Abstract Inclusion {i+1}", False, (i*5)+1, detail, execution_time=0, category=StepCategory.EXECUTION_ERROR)
+            checkpoint.add_step(f"Title Inclusion {i+1}", False, (i*5)+2, detail, execution_time=0, category=StepCategory.EXECUTION_ERROR)
+            checkpoint.add_step(f"Link Inclusion {i+1}", False, (i*5)+3, detail, execution_time=0, category=StepCategory.EXECUTION_ERROR)
+            checkpoint.add_step(f"Structure Check {i+1}", False, (i*5)+4, detail, execution_time=0, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -292,10 +290,10 @@ def grade_checkpoint_3():
     for i, paper in enumerate(cached_papers_info):
         if paper is None or not isinstance(paper, dict):
             detail = f"Paper {i+1} not found in Semantic Scholar"
-            checkpoint.add_step(f"Abstract Inclusion {i+1}", False, (i*5)+1, detail, execution_time=0)
-            checkpoint.add_step(f"Title Inclusion {i+1}", False, (i*5)+2, detail, execution_time=0)
-            checkpoint.add_step(f"Link Inclusion {i+1}", False, (i*5)+3, detail, execution_time=0)
-            checkpoint.add_step(f"Structure Check {i+1}", False, (i*5)+4, detail, execution_time=0)
+            checkpoint.add_step(f"Abstract Inclusion {i+1}", False, (i*5)+1, detail, execution_time=0, category=StepCategory.EXECUTION_ERROR)
+            checkpoint.add_step(f"Title Inclusion {i+1}", False, (i*5)+2, detail, execution_time=0, category=StepCategory.EXECUTION_ERROR)
+            checkpoint.add_step(f"Link Inclusion {i+1}", False, (i*5)+3, detail, execution_time=0, category=StepCategory.EXECUTION_ERROR)
+            checkpoint.add_step(f"Structure Check {i+1}", False, (i*5)+4, detail, execution_time=0, category=StepCategory.EXECUTION_ERROR)
             continue
 
         title = paper.get('title', '')
@@ -308,26 +306,26 @@ def grade_checkpoint_3():
             if abstract_match:
                 checkpoint.add_step(f"Abstract Inclusion {i+1}", True, (i*5)+1,
                                 f"Abstract for paper '{title}' found in document",
-                                execution_time=time.time() - step_start)
+                                execution_time=time.time() - step_start, category=StepCategory.FUZZY_MATCH)
             else:
                 checkpoint.add_step(f"Abstract Inclusion {i+1}", False, (i*5)+1,
                                 f"Abstract for paper '{title}' not found, best score: {abstract_score}",
-                                execution_time=time.time() - step_start)
+                                execution_time=time.time() - step_start, category=StepCategory.FUZZY_MATCH)
         else:
             checkpoint.add_step(f"Abstract Inclusion {i+1}", False, (i*5)+1,
                             f"No abstract available for paper '{title}'",
-                            execution_time=time.time() - step_start)
+                            execution_time=time.time() - step_start, category=StepCategory.EXECUTION_ERROR)
 
         # Title check
         title_match = text_fuzzy_match_contained_short(title, gold_text) if title else None
         if title_match:
             checkpoint.add_step(f"Title Inclusion {i+1}", True, (i*5)+2,
                             f"Title for paper '{title}' found in document",
-                            execution_time=time.time() - step_start)
+                            execution_time=time.time() - step_start, category=StepCategory.FUZZY_MATCH)
         else:
             checkpoint.add_step(f"Title Inclusion {i+1}", False, (i*5)+2,
                             f"Title for paper '{title}' not found in document",
-                            execution_time=time.time() - step_start)
+                            execution_time=time.time() - step_start, category=StepCategory.FUZZY_MATCH)
 
         # Link check - verify the paper's link actually appears in the document
         paper_external_ids = paper.get('externalIds', {}) or {}
@@ -345,17 +343,17 @@ def grade_checkpoint_3():
         if link_found:
             checkpoint.add_step(f"Link Inclusion {i+1}", True, (i*5)+3,
                             f"Link for paper '{title}' found in document",
-                            execution_time=time.time() - step_start)
+                            execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
         else:
             checkpoint.add_step(f"Link Inclusion {i+1}", False, (i*5)+3,
                             f"Link for paper '{title}' not found in document",
-                            execution_time=time.time() - step_start)
+                            execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
 
         # Structure check: Title -> Link -> Abstract
         if title_match and link_found and abstract and abstract_match:
             checkpoint.add_step(f"Structure Check {i+1}", True, (i*5)+4,
                                 f"Structure validated for paper '{title}'",
-                                execution_time=time.time() - step_start)
+                                execution_time=time.time() - step_start, category=StepCategory.STRUCTURAL)
         else:
             missing = []
             if not title_match:
@@ -366,7 +364,7 @@ def grade_checkpoint_3():
                 missing.append("Abstract")
             checkpoint.add_step(f"Structure Check {i+1}", False, (i*5)+4,
                                 f"Cannot verify structure for '{title}' due to missing: {', '.join(missing)}",
-                                execution_time=time.time() - step_start)
+                                execution_time=time.time() - step_start, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     papers_processed = len(cached_papers_info)
     if papers_processed < NUM_PAPERS:
@@ -375,10 +373,10 @@ def grade_checkpoint_3():
             f"domains ({', '.join(PAPER_DOMAINS)}) found in the document)."
         )
         for i in range(papers_processed, NUM_PAPERS):
-            checkpoint.add_step(f"Abstract Inclusion {i+1}", False, (i*5)+1, detail, execution_time=0)
-            checkpoint.add_step(f"Title Inclusion {i+1}", False, (i*5)+2, detail, execution_time=0)
-            checkpoint.add_step(f"Link Inclusion {i+1}", False, (i*5)+3, detail, execution_time=0)
-            checkpoint.add_step(f"Structure Check {i+1}", False, (i*5)+4, detail, execution_time=0)
+            checkpoint.add_step(f"Abstract Inclusion {i+1}", False, (i*5)+1, detail, execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+            checkpoint.add_step(f"Title Inclusion {i+1}", False, (i*5)+2, detail, execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+            checkpoint.add_step(f"Link Inclusion {i+1}", False, (i*5)+3, detail, execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+            checkpoint.add_step(f"Structure Check {i+1}", False, (i*5)+4, detail, execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -408,7 +406,7 @@ def grade_checkpoint_4():
             f"({', '.join(PAPER_DOMAINS)}) found in the document."
         )
         for i in range(NUM_PAPERS):
-            checkpoint.add_step(f"Relevance Check {i+1}", False, i+1, detail, execution_time=0)
+            checkpoint.add_step(f"Relevance Check {i+1}", False, i+1, detail, execution_time=0, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -452,18 +450,18 @@ def grade_checkpoint_4():
             if is_relevant:
                 checkpoint.add_step(f"Relevance Check {idx+1}", True, idx+1,
                                 f"Paper '{title}' is relevant.",
-                                execution_time=0)
+                                execution_time=0, category=StepCategory.LLM_VLM_JUDGEMENT)
             else:
                 checkpoint.add_step(f"Relevance Check {idx+1}", False, idx+1,
                                 f"Paper '{title}' judged NOT relevant.",
-                                execution_time=0)
+                                execution_time=0, category=StepCategory.LLM_VLM_JUDGEMENT)
 
     papers_checked = len(valid_papers)
     if papers_checked < NUM_PAPERS:
         for j in range(papers_checked, NUM_PAPERS):
             checkpoint.add_step(f"Relevance Check {j+1}", False, j+1,
                             "Missing paper or abstract not available.",
-                            execution_time=0)
+                            execution_time=0, category=StepCategory.EXECUTION_ERROR)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint

@@ -4,6 +4,7 @@ This module contains utilities that are reusable across all instances of this ta
 Instance-specific constants (like ingredient lists) should be defined in each instance's evaluator.py.
 """
 
+import os
 import re
 from typing import Any, Optional, List
 

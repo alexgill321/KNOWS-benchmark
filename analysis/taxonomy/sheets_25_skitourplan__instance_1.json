@@ -1,0 +1,199 @@
+{
+  "task_name": "sheets_25_skitourplan",
+  "instance": "instance_1",
+  "eval_steps": [
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Run Name Column",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Run Link Column",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Starting Location Column",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "GPS Coordinates Column",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Typical Vertical Column",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Slope Aspect Column",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Slope Angle Column",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Forecast Date Column",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Forecast Link Column",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Danger Rose Screenshot Column",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Run Count",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Slope Angle Compliance (Run 1)",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Slope Angle Compliance (Run 2)",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Slope Angle Compliance (Run 3)",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Run Name Valid (x3 runs)",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Run Link Valid (x3 runs)",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Starting Location Correct (x3 runs)",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "GPS Coordinates Correct (x3 runs)",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Typical Vertical Correct (x3 runs)",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Slope Aspect Correct (x3 runs)",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Slope Angle Correct (x3 runs)",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Wasatch Guide Visited",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Utah Avalanche Center Visited",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Run Links Visited",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Forecast Page Visited",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Forecast Date Correct",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Forecast Link Valid",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Merged Cells",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Danger Rose Screenshot Present",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Danger Rose Image Valid",
+      "category": "visual_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "Danger Rating Determined (x3 runs)",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 6",
+      "step_name": "Cell Color Applied (x3 runs)",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    }
+  ],
+  "flagged_steps": []
+}

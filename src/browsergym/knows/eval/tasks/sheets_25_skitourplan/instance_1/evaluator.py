@@ -18,8 +18,6 @@ from typing import List
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
@@ -27,7 +25,7 @@ BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 # Imports
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.knows.eval.eval_utils.google_sheets_utils import (
     extract_tables_from_sheet,
@@ -212,7 +210,7 @@ def grade_checkpoint_1():
         if df is None or df.empty:
             reason = "No table data found in spreadsheet"
             for i, step_name in enumerate(expected_steps, start=1):
-                checkpoint.add_step(step_name, False, i, reason, execution_time=0)
+                checkpoint.add_step(step_name, False, i, reason, execution_time=0, category=StepCategory.EXECUTION_ERROR)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -223,8 +221,9 @@ def grade_checkpoint_1():
         # Use standardized match_columns() - keyword matching first, then LLM fallback
         if model is None:
             model = load_model(model_id)
-        name_matches = match_columns(df, required_columns, model=model, parallel=True,
-                                      context="a ski tour planning spreadsheet with columns for run names, links to Wasatch Backcountry Ski Guide, starting locations, GPS coordinates, elevation, typical vertical, slope aspect, slope angle, avalanche forecast date, and forecast link")
+        name_matches, col_methods = match_columns(df, required_columns, model=model, parallel=True,
+                                      context="a ski tour planning spreadsheet with columns for run names, links to Wasatch Backcountry Ski Guide, starting locations, GPS coordinates, elevation, typical vertical, slope aspect, slope angle, avalanche forecast date, and forecast link",
+                                      return_methods=True)
 
         # Convert column names to indices (this evaluator uses indices for .iloc access)
         for col_name, matched_col_name in name_matches.items():
@@ -242,11 +241,11 @@ def grade_checkpoint_1():
                 matched_column = original_columns[idx]
                 checkpoint.add_step(f"{col_name} Column", True, step_num,
                                   f"Found column: '{matched_column}'",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC if col_methods.get(col_name) == "keyword" else StepCategory.LLM_VLM_JUDGEMENT)
             else:
                 checkpoint.add_step(f"{col_name} Column", False, step_num,
                                   f"No column found for '{col_name}'. Available: {', '.join(original_columns[:5])}...",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start, category=StepCategory.LLM_VLM_JUDGEMENT)
 
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -255,7 +254,7 @@ def grade_checkpoint_1():
         failed = Checkpoint(total=9, result=0, name="Spreadsheet Structure")
         reason = f"Checkpoint raised: {str(e)[:100]}"
         for i, step_name in enumerate(expected_steps, start=1):
-            failed.add_step(step_name, False, i, reason, execution_time=0)
+            failed.add_step(step_name, False, i, reason, execution_time=0, category=StepCategory.EXECUTION_ERROR)
         failed.execution_time = time.time() - checkpoint_start
         return failed
 
@@ -277,7 +276,7 @@ def grade_checkpoint_2():
         if df is None or df.empty:
             reason = "No data in user's spreadsheet"
             for i, step_name in enumerate(expected_steps, start=1):
-                checkpoint.add_step(step_name, False, i, reason, execution_time=0)
+                checkpoint.add_step(step_name, False, i, reason, execution_time=0, category=StepCategory.EXECUTION_ERROR)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -286,7 +285,7 @@ def grade_checkpoint_2():
         run_count_valid = run_count == 3
         checkpoint.add_step("Run Count", run_count_valid, 1,
                           f"Found {run_count} runs (expected 3)",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start, category=StepCategory.STRUCTURAL)
 
         angle_col_idx = matched_columns.get('Slope Angle')
 
@@ -296,7 +295,7 @@ def grade_checkpoint_2():
             if i >= len(df):
                 checkpoint.add_step(f"Slope Angle Run {i+1}", False, i + 2,
                                   f"Run {i+1} not found",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
                 continue
 
             row = df.iloc[i]
@@ -308,19 +307,19 @@ def grade_checkpoint_2():
                 if angle is not None and angle <= 26:
                     checkpoint.add_step(f"Slope Angle Run {i+1}", True, i + 2,
                                       f"Angle: {angle}° (max 26°)",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
                 elif angle is not None:
                     checkpoint.add_step(f"Slope Angle Run {i+1}", False, i + 2,
                                       f"Angle: {angle}° exceeds 26° limit",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
                 else:
                     checkpoint.add_step(f"Slope Angle Run {i+1}", False, i + 2,
                                       f"Could not parse angle: '{angle_str}'",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.EXECUTION_ERROR)
             else:
                 checkpoint.add_step(f"Slope Angle Run {i+1}", False, i + 2,
                                   "Slope Angle column not found",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -329,7 +328,7 @@ def grade_checkpoint_2():
         failed = Checkpoint(total=4, result=0, name="Run Selection Criteria")
         reason = f"Checkpoint raised: {str(e)[:100]}"
         for i, step_name in enumerate(expected_steps, start=1):
-            failed.add_step(step_name, False, i, reason, execution_time=0)
+            failed.add_step(step_name, False, i, reason, execution_time=0, category=StepCategory.EXECUTION_ERROR)
         failed.execution_time = time.time() - checkpoint_start
         return failed
 
@@ -359,7 +358,7 @@ def grade_checkpoint_3():
         if df is None or df.empty or not gold_data:
             reason = "No data available for validation"
             for i, step_name in enumerate(expected_steps, start=1):
-                checkpoint.add_step(step_name, False, i, reason, execution_time=0)
+                checkpoint.add_step(step_name, False, i, reason, execution_time=0, category=StepCategory.EXECUTION_ERROR)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -381,7 +380,7 @@ def grade_checkpoint_3():
                 for f in sub_fields:
                     checkpoint.add_step(f"Run {run_num} - {f}", False, step_num,
                                       f"Run {run_num} not present in spreadsheet",
-                                      execution_time=0)
+                                      execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
                     step_num += 1
                 continue
 
@@ -399,11 +398,11 @@ def grade_checkpoint_3():
             if gold_run:
                 checkpoint.add_step(f"Run {run_num} - Name Valid", True, step_num,
                                   f"'{user_name}' found in gold data",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
             else:
                 checkpoint.add_step(f"Run {run_num} - Name Valid", False, step_num,
                                   f"'{user_name}' not found in gold data",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
             step_num += 1
 
             # Step 2: Run Link Valid
@@ -412,11 +411,11 @@ def grade_checkpoint_3():
             if link_valid:
                 checkpoint.add_step(f"Run {run_num} - Link Valid", True, step_num,
                                   f"Valid WBSGuide URL: {user_link}",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
             else:
                 checkpoint.add_step(f"Run {run_num} - Link Valid", False, step_num,
                                   f"Invalid URL: {user_link}",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
             step_num += 1
 
             # Step 3: Starting Location Correct
@@ -428,7 +427,7 @@ def grade_checkpoint_3():
                 if gold_start is None:
                     checkpoint.add_step(f"Run {run_num} - Starting Location", True, step_num,
                                       f"No gold starting_location to validate against (benefit of the doubt)",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.VACUOUS_PASS)
                 else:
                     user_norm = user_start.lower().strip().replace("'", "").replace("'", "")
                     gold_norm = gold_start.lower().strip().replace("'", "").replace("'", "")
@@ -436,15 +435,15 @@ def grade_checkpoint_3():
                     if user_norm == gold_norm or user_norm in gold_norm or gold_norm in user_norm:
                         checkpoint.add_step(f"Run {run_num} - Starting Location", True, step_num,
                                           f"'{user_start}' matches gold '{gold_start}'",
-                                          execution_time=time.time() - step_start)
+                                          execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
                     else:
                         checkpoint.add_step(f"Run {run_num} - Starting Location", False, step_num,
                                           f"'{user_start}' != '{gold_start}'",
-                                          execution_time=time.time() - step_start)
+                                          execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
             else:
                 checkpoint.add_step(f"Run {run_num} - Starting Location", False, step_num,
                                   "Column not found or no gold data",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
             step_num += 1
 
             # Step 4: GPS Coordinates Correct
@@ -460,19 +459,19 @@ def grade_checkpoint_3():
                     match_result, detail = gps_coordinates_match_with_fallback(
                         user_coords, gold_lat, gold_lon, run_url=run_url, tolerance=0.01)
                     checkpoint.add_step(f"Run {run_num} - GPS Coordinates", match_result, step_num,
-                                      detail, execution_time=time.time() - step_start)
+                                      detail, execution_time=time.time() - step_start, category=StepCategory.FUZZY_MATCH)
                 elif user_coords:
                     checkpoint.add_step(f"Run {run_num} - GPS Coordinates", True, step_num,
                                       f"User coords: {user_coords} (no gold GPS to validate against, benefit of the doubt)",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.VACUOUS_PASS)
                 else:
                     checkpoint.add_step(f"Run {run_num} - GPS Coordinates", False, step_num,
                                       f"Could not parse: '{user_gps_str}'",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.EXECUTION_ERROR)
             else:
                 checkpoint.add_step(f"Run {run_num} - GPS Coordinates", False, step_num,
                                   "Column not found or no gold data",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
             step_num += 1
 
             # Step 5: Typical Vertical Correct
@@ -492,32 +491,32 @@ def grade_checkpoint_3():
                         if gold_vert_min != gold_vert_max:
                             checkpoint.add_step(f"Run {run_num} - Typical Vertical", True, step_num,
                                               f"{user_vert} ft (gold range: {gold_vert_min}-{gold_vert_max} ft)",
-                                              execution_time=time.time() - step_start)
+                                              execution_time=time.time() - step_start, category=StepCategory.FUZZY_MATCH)
                         else:
                             checkpoint.add_step(f"Run {run_num} - Typical Vertical", True, step_num,
                                               f"{user_vert} ft (gold: {gold_vert_max} ft)",
-                                              execution_time=time.time() - step_start)
+                                              execution_time=time.time() - step_start, category=StepCategory.FUZZY_MATCH)
                     else:
                         if gold_vert_min != gold_vert_max:
                             checkpoint.add_step(f"Run {run_num} - Typical Vertical", False, step_num,
                                               f"{user_vert} ft not in range {gold_vert_min}-{gold_vert_max} ft",
-                                              execution_time=time.time() - step_start)
+                                              execution_time=time.time() - step_start, category=StepCategory.FUZZY_MATCH)
                         else:
                             checkpoint.add_step(f"Run {run_num} - Typical Vertical", False, step_num,
                                               f"{user_vert} ft != {gold_vert_max} ft",
-                                              execution_time=time.time() - step_start)
+                                              execution_time=time.time() - step_start, category=StepCategory.FUZZY_MATCH)
                 elif user_vert:
                     checkpoint.add_step(f"Run {run_num} - Typical Vertical", True, step_num,
                                       f"{user_vert} ft (no gold typical_vertical to validate against, benefit of the doubt)",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.VACUOUS_PASS)
                 else:
                     checkpoint.add_step(f"Run {run_num} - Typical Vertical", False, step_num,
                                       f"Could not parse: '{user_vert_str}'",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.EXECUTION_ERROR)
             else:
                 checkpoint.add_step(f"Run {run_num} - Typical Vertical", False, step_num,
                                   "Column not found or no gold data",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
             step_num += 1
 
             # Step 6: Slope Aspect Correct
@@ -530,19 +529,19 @@ def grade_checkpoint_3():
                 if user_aspect and gold_aspect and user_aspect == gold_aspect:
                     checkpoint.add_step(f"Run {run_num} - Slope Aspect", True, step_num,
                                       f"Aspect: {user_aspect}",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
                 elif user_aspect:
                     checkpoint.add_step(f"Run {run_num} - Slope Aspect", False, step_num,
                                       f"User: {user_aspect}, Gold: {gold_aspect}",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
                 else:
                     checkpoint.add_step(f"Run {run_num} - Slope Aspect", False, step_num,
                                       f"Could not parse: '{user_aspect_str}'",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.EXECUTION_ERROR)
             else:
                 checkpoint.add_step(f"Run {run_num} - Slope Aspect", False, step_num,
                                   "Column not found or no gold data",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
             step_num += 1
 
             # Step 7: Slope Angle Correct
@@ -555,23 +554,23 @@ def grade_checkpoint_3():
                 if user_angle and gold_angle and user_angle == gold_angle and user_angle <= 26:
                     checkpoint.add_step(f"Run {run_num} - Slope Angle", True, step_num,
                                       f"Angle: {user_angle}° (valid <= 26°)",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
                 elif user_angle and user_angle <= 26:
                     checkpoint.add_step(f"Run {run_num} - Slope Angle", False, step_num,
                                       f"User: {user_angle}°, Gold: {gold_angle}°",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
                 elif user_angle:
                     checkpoint.add_step(f"Run {run_num} - Slope Angle", False, step_num,
                                       f"Angle {user_angle}° exceeds 26° limit",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
                 else:
                     checkpoint.add_step(f"Run {run_num} - Slope Angle", False, step_num,
                                       f"Could not parse: '{user_angle_str}'",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.EXECUTION_ERROR)
             else:
                 checkpoint.add_step(f"Run {run_num} - Slope Angle", False, step_num,
                                   "Column not found or no gold data",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
             step_num += 1
 
         checkpoint.execution_time = time.time() - checkpoint_start
@@ -581,7 +580,7 @@ def grade_checkpoint_3():
         failed = Checkpoint(total=21, result=0, name="Run Data Accuracy")
         reason = f"Checkpoint raised: {str(e)[:100]}"
         for i, step_name in enumerate(expected_steps, start=1):
-            failed.add_step(step_name, False, i, reason, execution_time=0)
+            failed.add_step(step_name, False, i, reason, execution_time=0, category=StepCategory.EXECUTION_ERROR)
         failed.execution_time = time.time() - checkpoint_start
         return failed
 
@@ -607,7 +606,7 @@ def grade_checkpoint_4():
             for i, name in enumerate(expected_steps, start=1):
                 checkpoint.add_step(name, False, i,
                                   "No browsing history provided",
-                                  execution_time=0)
+                                  execution_time=0, category=StepCategory.EXECUTION_ERROR)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -617,13 +616,13 @@ def grade_checkpoint_4():
         wbs_visited = any('wbsguide.com' in url for url in history_lower)
         checkpoint.add_step("Wasatch Guide Visited", wbs_visited, 1,
                           f"wbsguide.com {'found' if wbs_visited else 'not found'} in history",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start, category=StepCategory.WEB_VISIT)
 
         step_start = time.time()
         uac_visited = any('utahavalanchecenter.org' in url for url in history_lower)
         checkpoint.add_step("Utah Avalanche Center Visited", uac_visited, 2,
                           f"utahavalanchecenter.org {'found' if uac_visited else 'not found'} in history",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start, category=StepCategory.WEB_VISIT)
 
         step_start = time.time()
         link_col = matched_columns.get('Run Link')
@@ -644,7 +643,7 @@ def grade_checkpoint_4():
 
         checkpoint.add_step("Run Links Visited", run_link_visited, 3,
                           f"Run link {'found' if run_link_visited else 'not found'} in history",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start, category=StepCategory.WEB_VISIT)
 
         # Require the FORECAST_DATE in the URL path so visiting any other date
         # does not credit this step. UAC URLs use /salt-lake/<m>/<d>/<yyyy>.
@@ -658,7 +657,7 @@ def grade_checkpoint_4():
         )
         checkpoint.add_step("Forecast Page Visited", forecast_visited, 4,
                           f"Forecast page for {FORECAST_DATE} {'found' if forecast_visited else 'not found'} in history",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start, category=StepCategory.WEB_VISIT)
 
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -667,7 +666,7 @@ def grade_checkpoint_4():
         failed = Checkpoint(total=4, result=0, name="Website Visit Validation")
         reason = f"Checkpoint raised: {str(e)[:100]}"
         for i, step_name in enumerate(expected_steps, start=1):
-            failed.add_step(step_name, False, i, reason, execution_time=0)
+            failed.add_step(step_name, False, i, reason, execution_time=0, category=StepCategory.EXECUTION_ERROR)
         failed.execution_time = time.time() - checkpoint_start
         return failed
 
@@ -702,11 +701,11 @@ def grade_checkpoint_5():
             date_valid = "02/05/2025" in forecast_date or "2/5/2025" in forecast_date
             checkpoint.add_step("Forecast Date Correct", date_valid, 1,
                               f"Date: '{forecast_date}' (expected 02/05/2025)",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
         else:
             checkpoint.add_step("Forecast Date Correct", False, 1,
                               "Forecast Date column not found",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
         # Step 2: Forecast Link Valid
         step_start = time.time()
@@ -715,11 +714,11 @@ def grade_checkpoint_5():
             link_valid = is_valid_uac_forecast_url(forecast_link)
             checkpoint.add_step("Forecast Link Valid", link_valid, 2,
                               f"Link: '{forecast_link[:50]}...'",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
         else:
             checkpoint.add_step("Forecast Link Valid", False, 2,
                               "Forecast Link column not found",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
         # Step 3: Merged Cells
         step_start = time.time()
@@ -734,15 +733,15 @@ def grade_checkpoint_5():
                 merged = check_merged_cells(sheet_raw, cols_to_check, FIRST_DATA_ROW, FIRST_DATA_ROW + 2)
                 checkpoint.add_step("Merged Cells", merged, 3,
                                   f"Columns {cols_to_check} {'are' if merged else 'are not'} merged vertically",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start, category=StepCategory.STRUCTURAL)
             except Exception as e:
                 checkpoint.add_step("Merged Cells", False, 3,
                                   f"Merge check failed: {str(e)[:50]}",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start, category=StepCategory.EXECUTION_ERROR)
         else:
             checkpoint.add_step("Merged Cells", False, 3,
                               "Required columns not found for merge check",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
         # Step 4: Danger Rose Screenshot Present
         step_start = time.time()
@@ -775,7 +774,7 @@ def grade_checkpoint_5():
         else:
             detail = "not found"
         checkpoint.add_step("Danger Rose Present", image_present, 4,
-                          detail, execution_time=time.time() - step_start)
+                          detail, execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
 
         # Step 5: Danger Rose Image Valid (tiered image comparison)
         step_start = time.time()
@@ -789,7 +788,7 @@ def grade_checkpoint_5():
                 if not gold_image_url:
                     checkpoint.add_step("Danger Rose Valid", False, 5,
                                       "Gold danger rose image URL not configured",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.EXECUTION_ERROR)
                 else:
                     response = requests.get(image_url, timeout=30)
                     response.raise_for_status()
@@ -816,11 +815,11 @@ def grade_checkpoint_5():
 
                     checkpoint.add_step("Danger Rose Valid", match_result, 5,
                                       f"Match: {match_result} (method: {match_method})",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.from_match_method(match_method) if match_result else StepCategory.LLM_VLM_JUDGEMENT)
             except Exception as e:
                 checkpoint.add_step("Danger Rose Valid", False, 5,
                                   f"Image comparison failed: {str(e)[:50]}",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start, category=StepCategory.EXECUTION_ERROR)
             finally:
                 for path in [user_image_path, gold_image_path]:
                     if path and os.path.exists(path):
@@ -831,7 +830,7 @@ def grade_checkpoint_5():
         else:
             checkpoint.add_step("Danger Rose Valid", False, 5,
                               "No image to validate or missing gold data",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -840,7 +839,7 @@ def grade_checkpoint_5():
         failed = Checkpoint(total=5, result=0, name="Avalanche Forecast Data")
         reason = f"Checkpoint raised: {str(e)[:100]}"
         for i, step_name in enumerate(expected_steps, start=1):
-            failed.add_step(step_name, False, i, reason, execution_time=0)
+            failed.add_step(step_name, False, i, reason, execution_time=0, category=StepCategory.EXECUTION_ERROR)
         failed.execution_time = time.time() - checkpoint_start
         return failed
 
@@ -861,7 +860,7 @@ def grade_checkpoint_6():
         if df is None or df.empty or not gold_data:
             reason = "No data available for validation"
             for i, step_name in enumerate(expected_steps, start=1):
-                checkpoint.add_step(step_name, False, i, reason, execution_time=0)
+                checkpoint.add_step(step_name, False, i, reason, execution_time=0, category=StepCategory.EXECUTION_ERROR)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -877,7 +876,7 @@ def grade_checkpoint_6():
             if run_idx >= len(df):
                 checkpoint.add_step(f"Run {run_num} - Cell Colored", False, step_num,
                                   f"Run {run_num} not present in spreadsheet",
-                                  execution_time=0)
+                                  execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
                 continue
 
             row = df.iloc[run_idx]
@@ -902,16 +901,16 @@ def grade_checkpoint_6():
                     color_matches = actual_color == expected_rating
                     checkpoint.add_step(f"Run {run_num} - Cell Colored", color_matches, step_num,
                                       f"Cell color: {actual_color}, Expected: {expected_rating}",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.FUZZY_MATCH)
                 else:
                     is_colored = actual_color in ['green', 'yellow', 'orange', 'red', 'black']
                     checkpoint.add_step(f"Run {run_num} - Cell Colored", is_colored, step_num,
                                       f"Cell color: {actual_color}",
-                                      execution_time=time.time() - step_start)
+                                      execution_time=time.time() - step_start, category=StepCategory.FUZZY_MATCH)
             else:
                 checkpoint.add_step(f"Run {run_num} - Cell Colored", False, step_num,
                                   "Run Name column not found",
-                                  execution_time=time.time() - step_start)
+                                  execution_time=time.time() - step_start, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -920,7 +919,7 @@ def grade_checkpoint_6():
         failed = Checkpoint(total=3, result=0, name="Danger Rating Cell Coloring")
         reason = f"Checkpoint raised: {str(e)[:100]}"
         for i, step_name in enumerate(expected_steps, start=1):
-            failed.add_step(step_name, False, i, reason, execution_time=0)
+            failed.add_step(step_name, False, i, reason, execution_time=0, category=StepCategory.EXECUTION_ERROR)
         failed.execution_time = time.time() - checkpoint_start
         return failed
 
@@ -969,7 +968,7 @@ def grade_checkpoints(workspace_doc_id: str = None,
 
         # Return a failed result
         failed_checkpoint = Checkpoint(total=1, result=0, name="Evaluation Error")
-        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0)
+        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0, category=StepCategory.EXECUTION_ERROR)
         return Result([failed_checkpoint], total_execution_time=time.time() - total_start_time)
 
 

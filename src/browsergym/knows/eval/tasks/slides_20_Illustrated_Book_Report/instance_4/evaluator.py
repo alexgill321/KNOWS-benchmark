@@ -9,8 +9,6 @@ import shutil
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
@@ -18,7 +16,7 @@ BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 # Imports
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, EvaluationStep
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, EvaluationStep, StepCategory
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.knows.eval.eval_utils.text_utils import text_exact_match_contained, text_fuzzy_match_contained_short
 from src.browsergym.knows.eval.eval_utils.image_utils import binary_judge_image
@@ -155,7 +153,8 @@ def grade_checkpoint_1():
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
         checkpoint.add_step("Title Slide Exists", False, 1,
                           "No slides found in presentation",
-                          execution_time=time.time() - checkpoint_start)
+                          execution_time=time.time() - checkpoint_start,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -171,11 +170,13 @@ def grade_checkpoint_1():
     if name_found:
         checkpoint.add_step("Name Match", True, 1,
                           "Found 'Charlotte Currer Bell' in title slide",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.DETERMINISTIC)
     else:
         checkpoint.add_step("Name Match", False, 1,
                           "'Charlotte Currer Bell' not found in title slide",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.DETERMINISTIC)
 
     # Step 2: Check for book title "The Eyre Affair"
     step_start = time.time()
@@ -185,11 +186,13 @@ def grade_checkpoint_1():
     if title_found:
         checkpoint.add_step("Book Title Match", True, 2,
                           "Found 'The Eyre Affair' in title slide",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.FUZZY_MATCH)
     else:
         checkpoint.add_step("Book Title Match", False, 2,
                           "Book title 'The Eyre Affair' not found in title slide",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.FUZZY_MATCH)
 
     # Step 3: Check for book cover photo using LLM-as-judge
     step_start = time.time()
@@ -242,11 +245,13 @@ def grade_checkpoint_1():
     if book_cover_valid:
         checkpoint.add_step("Book Cover Photo", True, 3,
                           f"Found valid 'The Eyre Affair' book cover image in title slide",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.LLM_VLM_JUDGEMENT)
     else:
         checkpoint.add_step("Book Cover Photo", False, 3,
                           "No valid 'The Eyre Affair' book cover image found in title slide",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.LLM_VLM_JUDGEMENT)
 
     # Steps 4-6: Structural location checks using bounding box positions
     BOTTOM_25_THRESHOLD = slide_height * 0.75  # Y position > this means bottom 25%
@@ -274,16 +279,19 @@ def grade_checkpoint_1():
     if name_at_bottom:
         checkpoint.add_step("Name at Bottom", True, 4,
                           f"Name 'Charlotte Currer Bell' correctly positioned in bottom 25% at y={name_y_position}",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.SPATIAL)
     else:
         if name_y_position is not None:
             checkpoint.add_step("Name at Bottom", False, 4,
                               f"Name not in bottom 25% (y={name_y_position}, threshold={BOTTOM_25_THRESHOLD})",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.SPATIAL)
         else:
             checkpoint.add_step("Name at Bottom", False, 4,
                               "Cannot check location - name position not found",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     # Step 5: Check title is above name
     step_start = time.time()
@@ -314,11 +322,13 @@ def grade_checkpoint_1():
     if title_above_name:
         checkpoint.add_step("Title Above Name", True, 5,
                           f"Title correctly positioned above name (title_y={title_y_position}, name_y={name_y_position})",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.STRUCTURAL)
     else:
         checkpoint.add_step("Title Above Name", False, 5,
                           "Title not positioned above name" if name_y_position else "Cannot check - element positions not found",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.STRUCTURAL if (title_y_position is not None and name_y_position is not None) else StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     # Step 6: Check photo is above both title and name
     step_start = time.time()
@@ -339,11 +349,13 @@ def grade_checkpoint_1():
     if photo_above_both:
         checkpoint.add_step("Photo Above Both", True, 6,
                           f"Photo correctly positioned above title and name (photo_y={photo_y_position})",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.STRUCTURAL)
     else:
         checkpoint.add_step("Photo Above Both", False, 6,
                           "Photo not positioned above both title and name" if photo_y_position else "Cannot check - photo position not found",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.STRUCTURAL if (photo_y_position is not None and title_y_position is not None and name_y_position is not None) else StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -369,7 +381,8 @@ def grade_checkpoint_2(browsing_history=None):
     if not presentation_data or 'slides' not in presentation_data:
         checkpoint.add_step("Character Slides", False, 1,
                           "No slides found in presentation",
-                          execution_time=time.time() - checkpoint_start)
+                          execution_time=time.time() - checkpoint_start,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -390,7 +403,8 @@ def grade_checkpoint_2(browsing_history=None):
         title_text = extract_title_text(slide)
 
         # Use match_text_in_list to find the best matching character name
-        matched_char_name, match_score = match_character_name(title_text, gold_characters, threshold=80)
+        matched_char_name, match_score, match_method = match_character_name(title_text, gold_characters, threshold=80, return_method=True)
+        match_category = StepCategory.DETERMINISTIC if match_method == "word_boundary" else StepCategory.FUZZY_MATCH
 
         # Reject fuzzy matches that strip diacritics from the gold name
         # (e.g., title "Adele" must not pass as gold "Adèle").
@@ -429,6 +443,7 @@ def grade_checkpoint_2(browsing_history=None):
                     if (char_name.lower() in response.lower()
                             and contains_preserving_diacritics(char_name, title_text)):
                         matched_char_name = char_name
+                        match_category = StepCategory.LLM_VLM_JUDGEMENT
                         print(f"LLM matched character '{char_name}' in slide {idx}")
                         break
             except Exception as e:
@@ -444,14 +459,14 @@ def grade_checkpoint_2(browsing_history=None):
                 print(f"Skipping slide {idx}: duplicate character '{canonical}' (matched alias '{matched_char_name}')")
                 continue
             seen_canonicals.add(canonical)
-            character_slides.append((idx, slide, canonical))
+            character_slides.append((idx, slide, canonical, match_category))
 
     if len(character_slides) < 5:
         print(f"Warning: Only found {len(character_slides)} character slides, expected 5")
 
     # Collect background colors for comparison
     slide_colors = []
-    for idx, slide, char_name in character_slides:
+    for idx, slide, char_name, _match_category in character_slides:
         color = get_slide_background_color(slide)
         slide_colors.append(color)
 
@@ -459,7 +474,7 @@ def grade_checkpoint_2(browsing_history=None):
     # Fall back to plain text lines if no bullet formatting is found.
     slide_bullet_texts = {}
     slide_has_real_bullets = {}
-    for i, (slide_idx, slide, char_name) in enumerate(character_slides[:5]):
+    for i, (slide_idx, slide, char_name, _match_category) in enumerate(character_slides[:5]):
         bullets = extract_bullet_point_texts(slide)
         if bullets:
             slide_bullet_texts[i] = bullets
@@ -475,7 +490,7 @@ def grade_checkpoint_2(browsing_history=None):
         model = load_model(model_id)
 
     all_bullet_tasks = []
-    for slide_i, (slide_idx, slide, char_name) in enumerate(character_slides[:5]):
+    for slide_i, (slide_idx, slide, char_name, _match_category) in enumerate(character_slides[:5]):
         bullet_texts = slide_bullet_texts.get(slide_i, [])
         for bullet_j, bullet_text in enumerate(bullet_texts):
             if bullet_text:
@@ -516,7 +531,7 @@ def grade_checkpoint_2(browsing_history=None):
     all_url_fetch_tasks = []
     seen_urls = set()
 
-    for slide_i, (slide_idx, slide, char_name) in enumerate(character_slides[:5]):
+    for slide_i, (slide_idx, slide, char_name, _match_category) in enumerate(character_slides[:5]):
         slide_links = extract_slide_links(slide)
         all_slide_links[slide_i] = slide_links
         for link in slide_links:
@@ -539,13 +554,14 @@ def grade_checkpoint_2(browsing_history=None):
                 print(f"  Fetched {len(content)} chars from {url[:50]}...")
 
     # Grade each character slide
-    for i, (slide_idx, slide, char_name) in enumerate(character_slides[:5]):  # Limit to 5
+    for i, (slide_idx, slide, char_name, char_match_category) in enumerate(character_slides[:5]):  # Limit to 5
         step_num_base = i * 6  # Each character gets 6 steps
 
         # Step 1: Character in gold list AND name as title
         checkpoint.add_step(f"Character {i+1} - Valid Character and Name as Title", True, step_num_base + 1,
                           f"Character '{char_name}' is in gold list and slide title matches character",
-                          execution_time=0)
+                          execution_time=0,
+                          category=char_match_category)
 
         # Step 2: Different background color from other character slides
         step_start = time.time()
@@ -562,11 +578,13 @@ def grade_checkpoint_2(browsing_history=None):
         if has_unique_color:
             checkpoint.add_step(f"Character {i+1} - Unique Background", True, step_num_base + 2,
                               f"Slide has different background color from other character slides",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.FUZZY_MATCH)
         else:
             checkpoint.add_step(f"Character {i+1} - Unique Background", False, step_num_base + 2,
                               f"Slide background color matches another character slide",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.FUZZY_MATCH)
 
         # Step 3: At least 3 bullet points with text
         has_bullets, bullet_count = validate_bullet_points(slide, min_count=3)
@@ -575,7 +593,8 @@ def grade_checkpoint_2(browsing_history=None):
         checkpoint.add_step(f"Character {i+1} - Bullet Point Count",
                           has_bullets, step_num_base + 3,
                           f"Found {bullet_count} bullet points (>= 3 required)",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.STRUCTURAL)
 
         # Step 4: Bullet points describe characteristics (fractional)
         valid_characteristics_count = 0
@@ -594,7 +613,8 @@ def grade_checkpoint_2(browsing_history=None):
                           char_score > 0, step_num_base + 4,
                           f"{valid_characteristics_count}/{text_count} text items describe characteristics ({char_score}/10 pts)",
                           score=char_score, max_score=10,
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.LLM_VLM_JUDGEMENT)
 
         # Step 5: Source link at bottom of slide
         slide_links = all_slide_links.get(i, [])
@@ -603,29 +623,43 @@ def grade_checkpoint_2(browsing_history=None):
         all_links_at_bottom = False
         links_at_bottom_count = 0
 
+        link_position_items = []
         if has_source_links:
             for link in slide_links:
-                if is_text_at_bottom(slide, link, slide_height=slide_height) or is_source_link_at_bottom_of_content(slide, link):
+                # Geometric check first; the last-2-runs structural check only
+                # runs (and decides) if the geometric check fails.
+                if is_text_at_bottom(slide, link, slide_height=slide_height):
                     links_at_bottom_count += 1
+                    link_position_items.append((StepCategory.SPATIAL, True))
+                elif is_source_link_at_bottom_of_content(slide, link):
+                    links_at_bottom_count += 1
+                    link_position_items.append((StepCategory.STRUCTURAL, True))
+                else:
+                    link_position_items.append((StepCategory.STRUCTURAL, False))
 
             all_links_at_bottom = links_at_bottom_count == len(slide_links)
 
         if all_links_at_bottom:
             checkpoint.add_step(f"Character {i+1} - Source Link at Bottom", True, step_num_base + 5,
                               f"All {len(slide_links)} source link(s) correctly positioned at bottom of slide",
-                              execution_time=0)
+                              execution_time=0,
+                              category=StepCategory.aggregate(link_position_items))
         elif has_source_links:
             checkpoint.add_step(f"Character {i+1} - Source Link at Bottom", False, step_num_base + 5,
                               f"Only {links_at_bottom_count}/{len(slide_links)} source link(s) positioned at bottom of slide",
-                              execution_time=0)
+                              execution_time=0,
+                              category=StepCategory.aggregate(link_position_items))
         else:
             checkpoint.add_step(f"Character {i+1} - Source Link at Bottom", False, step_num_base + 5,
                               "No source links found on slide",
-                              execution_time=0)
+                              execution_time=0,
+                              category=StepCategory.DETERMINISTIC)
 
         # Step 6: Characteristics are supported by source links
         validation_details = []
         validated_bullets = []
+        method_categories = {"fuzzy": StepCategory.FUZZY_MATCH, "llm": StepCategory.LLM_VLM_JUDGEMENT}
+        source_items = []
 
         if has_source_links and bullet_texts:
             url_contents = {}
@@ -641,12 +675,15 @@ def grade_checkpoint_2(browsing_history=None):
                         continue
 
                     found_in_source = False
+                    deciding_method = None
                     for url, content in url_contents.items():
-                        if validate_bullet_in_content(bullet_text, content, model, character_name=char_name, book_title="The Eyre Affair"):
+                        validated, deciding_method = validate_bullet_in_content(bullet_text, content, model, character_name=char_name, book_title="The Eyre Affair", return_method=True)
+                        if validated:
                             found_in_source = True
                             validation_details.append(f"Found in {url[:50]}...")
                             break
 
+                    source_items.append((method_categories.get(deciding_method, StepCategory.LLM_VLM_JUDGEMENT), found_in_source))
                     if found_in_source:
                         validated_bullets.append(bullet_text)
                     else:
@@ -662,19 +699,24 @@ def grade_checkpoint_2(browsing_history=None):
 
         if not has_source_links:
             detail = "No source links to validate"
+            source_check_category = StepCategory.DEPENDENCY_NOT_EVALUATED
         elif not bullet_texts:
             detail = "No bullet points to validate"
+            source_check_category = StepCategory.DEPENDENCY_NOT_EVALUATED
         elif not url_contents:
             detail = f"Could not fetch source URL content. {'; '.join(validation_details)}"
+            source_check_category = StepCategory.EXECUTION_ERROR
         else:
             detail = f"{validated_count}/{total_bullets_to_check} characteristics supported by sources ({source_score}/10 pts). {'; '.join(validation_details[:3])}"
+            source_check_category = StepCategory.aggregate(source_items)
 
         checkpoint.add_step(
             f"Character {i+1} - Characteristics from Sources",
             source_score > 0, step_num_base + 6,
             detail,
             score=source_score, max_score=10,
-            execution_time=0
+            execution_time=0,
+            category=source_check_category
         )
 
     # Handle missing character slides
@@ -685,7 +727,8 @@ def grade_checkpoint_2(browsing_history=None):
             checkpoint.add_step(f"Character {i+1} - Step {j}", False, step_num_base + j,
                               "Character slide not found",
                               score=0, max_score=missing_max_scores[j],
-                              execution_time=0)
+                              execution_time=0,
+                              category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -707,7 +750,8 @@ def grade_checkpoint_3():
     if not presentation_data or 'slides' not in presentation_data:
         checkpoint.add_step("Author Slide", False, 1,
                           "No slides found in presentation",
-                          execution_time=time.time() - checkpoint_start)
+                          execution_time=time.time() - checkpoint_start,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -731,10 +775,12 @@ def grade_checkpoint_3():
     if author_slide is None:
         checkpoint.add_step("Author Name", False, 1,
                           "Could not find author slide",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.add_step("Author Photo", False, 2,
                           "Could not find author slide",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -748,11 +794,13 @@ def grade_checkpoint_3():
     if author_found:
         checkpoint.add_step("Author Name", True, 1,
                           "Found 'Jasper Fforde' in author slide",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.DETERMINISTIC)
     else:
         checkpoint.add_step("Author Name", False, 1,
                           "'Jasper Fforde' not found in author slide",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.DETERMINISTIC)
 
     # Step 2: Check for author photo using VLM validation
     step_start = time.time()
@@ -794,15 +842,18 @@ def grade_checkpoint_3():
     if author_photo_valid:
         checkpoint.add_step("Author Photo", True, 2,
                           "Found valid photo of Jasper Fforde in author slide",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.LLM_VLM_JUDGEMENT)
     elif len(images) > 0:
         checkpoint.add_step("Author Photo", False, 2,
                           f"Found {len(images)} image(s) but none verified as Jasper Fforde",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.LLM_VLM_JUDGEMENT)
     else:
         checkpoint.add_step("Author Photo", False, 2,
                           "No images found in author slide",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.DETERMINISTIC)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -823,7 +874,8 @@ def grade_checkpoint_4(browsing_history=None):
     if not presentation_data or 'slides' not in presentation_data:
         checkpoint.add_step("References Slide", False, 1,
                           "No slides found in presentation",
-                          execution_time=time.time() - checkpoint_start)
+                          execution_time=time.time() - checkpoint_start,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -848,10 +900,12 @@ def grade_checkpoint_4(browsing_history=None):
     if references_slide is None:
         checkpoint.add_step("Reference Links Count", False, 1,
                           "Could not find references slide",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.add_step("Links in Browsing History", False, 2,
                           "Could not find references slide",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -865,11 +919,13 @@ def grade_checkpoint_4(browsing_history=None):
     if has_enough_links:
         checkpoint.add_step("Reference Links Count", True, 1,
                           f"Found {len(unique_links)} unique reference links (>= 3 required)",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.STRUCTURAL)
     else:
         checkpoint.add_step("Reference Links Count", False, 1,
                           f"Only found {len(unique_links)} unique links, need 3",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.STRUCTURAL)
 
     # Step 2: Check if links are in browsing history
     step_start = time.time()
@@ -888,21 +944,25 @@ def grade_checkpoint_4(browsing_history=None):
         if all_links_valid:
             checkpoint.add_step("Links in Browsing History", True, 2,
                               f"All {len(unique_links)} reference links found in browsing history",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.WEB_VISIT)
         else:
             checkpoint.add_step("Links in Browsing History", False, 2,
                               f"Only {links_in_history}/{len(unique_links)} links found in browsing history",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.WEB_VISIT)
     elif not browsing_history:
         step_time = time.time() - step_start
         checkpoint.add_step("Links in Browsing History", False, 2,
                           "No browsing history provided to validate",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.EXECUTION_ERROR)
     else:
         step_time = time.time() - step_start
         checkpoint.add_step("Links in Browsing History", False, 2,
                           "No links found to validate",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -951,7 +1011,7 @@ def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history=Non
 
         # Return a failed result
         failed_checkpoint = Checkpoint(total=1, result=0, name="Evaluation Error")
-        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0)
+        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0, category=StepCategory.EXECUTION_ERROR)
         return Result([failed_checkpoint], total_execution_time=time.time() - total_start_time)
 
 

@@ -11,15 +11,13 @@ def get_base_path():
   if os.path.exists("/app/src"):
     return "/app"
   # Otherwise use current working directory
-  elif os.path.exists("/scratch"):
-    return "/path/to/KNOWS-benchmark/"
   else:
     return os.getcwd()
   
 BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result # type: ignore
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory # type: ignore
 from src.browsergym.knows.eval.eval_utils.google_services_utils import * # type: ignore
 from src.browsergym.knows.eval.eval_utils.text_utils import extract_text_from_pdf, keyword_exact_match, extract_text_location, get_smallest_x_position, find_gold_text_location, strip_label_prefix # type: ignore
 from src.browsergym.knows.eval.eval_utils.image_utils import * # type: ignore
@@ -175,10 +173,10 @@ def _check_field(field_name, search_text, gold_text, text_ocr, doc_structure, sm
     step_time = time.time() - step_start
 
     if found_text:
-        checkpoint.add_step(f"{field_name} Text Match", True, text_step, f"Found '{found_text}' in document", execution_time=step_time)
+        checkpoint.add_step(f"{field_name} Text Match", True, text_step, f"Found '{found_text}' in document", execution_time=step_time, category=StepCategory.DETERMINISTIC)
     else:
-        checkpoint.add_step(f"{field_name} Text Match", False, text_step, f"{field_name} not found in document", execution_time=step_time)
-        checkpoint.add_step(f"{field_name} Location", False, loc_step, f"Cannot check location - {field_name.lower()} not found")
+        checkpoint.add_step(f"{field_name} Text Match", False, text_step, f"{field_name} not found in document", execution_time=step_time, category=StepCategory.DETERMINISTIC)
+        checkpoint.add_step(f"{field_name} Location", False, loc_step, f"Cannot check location - {field_name.lower()} not found", category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         return
 
     # Location via OCR with fuzzy fallback
@@ -200,9 +198,9 @@ def _check_field(field_name, search_text, gold_text, text_ocr, doc_structure, sm
                 break
 
     if location and location.is_upper_left() and line_x is not None and int(line_x) < int(smallest_x) + 20:
-        checkpoint.add_step(f"{field_name} Location", True, loc_step, f"{field_name} correctly positioned in upper left ({location_desc})", execution_time=step_time)
+        checkpoint.add_step(f"{field_name} Location", True, loc_step, f"{field_name} correctly positioned in upper left ({location_desc})", execution_time=step_time, category=StepCategory.SPATIAL)
     else:
-        checkpoint.add_step(f"{field_name} Location", False, loc_step, f"{field_name} not in upper left ({location_desc})", execution_time=step_time)
+        checkpoint.add_step(f"{field_name} Location", False, loc_step, f"{field_name} not in upper left ({location_desc})", execution_time=step_time, category=StepCategory.SPATIAL)
 
 def grade_checkpoint_1(gold_text, text_ocr, doc_structure):
     print("----------------- CHECKPOINT 1 ----------------")
@@ -260,20 +258,21 @@ def grade_checkpoint_2():
 
     if logo_match_path:
         print(f"Logo match found via {logo_match_method}")
-        checkpoint.add_step("Logo Image Match", True, 9, f"Logo matched via {logo_match_method} at {os.path.basename(logo_match_path)}", execution_time=step_time)
+        checkpoint.add_step("Logo Image Match", True, 9, f"Logo matched via {logo_match_method} at {os.path.basename(logo_match_path)}", execution_time=step_time, category=StepCategory.from_match_method(logo_match_method))
 
         print("Checking Logo Location via VLM")
         step_start = time.time()
         logo_in_region = verify_image_in_region(model, PDF_IMAGES_DIR, logo_match_path, region="upper_left", dpi=PDF_DPI)
         step_time = time.time() - step_start
         if logo_in_region:
-            checkpoint.add_step("Logo Location", True, 10, "Logo verified in upper left region by VLM", execution_time=step_time)
+            checkpoint.add_step("Logo Location", True, 10, "Logo verified in upper left region by VLM", execution_time=step_time, category=StepCategory.LLM_VLM_JUDGEMENT)
         else:
-            checkpoint.add_step("Logo Location", False, 10, "Logo not found in upper left region by VLM", execution_time=step_time)
+            checkpoint.add_step("Logo Location", False, 10, "Logo not found in upper left region by VLM", execution_time=step_time, category=StepCategory.LLM_VLM_JUDGEMENT)
     else:
         print("No logo match found")
-        checkpoint.add_step("Logo Image Match", False, 9, "No logo found via exact, perceptual hash, or VLM matching", execution_time=step_time)
-        checkpoint.add_step("Logo Location", False, 10, "Cannot check location - logo not found")
+        # All tiers failed; the VLM tier is the final arbiter of tiered matching
+        checkpoint.add_step("Logo Image Match", False, 9, "No logo found via exact, perceptual hash, or VLM matching", execution_time=step_time, category=StepCategory.LLM_VLM_JUDGEMENT)
+        checkpoint.add_step("Logo Location", False, 10, "Cannot check location - logo not found", category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -296,7 +295,7 @@ def grade_checkpoint_3(doc_structure):
         signature_uri = signature_path.split("_")[-1].replace(".png", "")
         signature_size = get_image_dimensions_from_doc(doc_id, signature_uri, DOCS_SERVICE)
         print("Image match successful")
-        checkpoint.add_step("Signature Image Match", True, 11, f"Signature found at {signature_path}", execution_time=step_time)
+        checkpoint.add_step("Signature Image Match", True, 11, f"Signature found at {signature_path}", execution_time=step_time, category=StepCategory.DETERMINISTIC)
 
         print("Locating Signature Image")
         step_start = time.time()
@@ -305,6 +304,7 @@ def grade_checkpoint_3(doc_structure):
 
         location_success = False
         location_details = ""
+        location_category = StepCategory.SPATIAL
 
         # Scale is_lower() threshold for actual PDF DPI (default assumes 300 DPI)
         scale = PDF_DPI / 300
@@ -314,7 +314,8 @@ def grade_checkpoint_3(doc_structure):
             location_details = f"Signature correctly positioned in lower section ({location.describe(dpi=PDF_DPI)})"
         else:
             print("Signature location exact match failed")
-            # Try structural location as fallback
+            # Try structural location as fallback; the fallback makes the final call
+            location_category = StepCategory.STRUCTURAL
             image_id = image_id_from_path(cropped_signature_path)
             image_layout = layout(image_id, "image", doc_structure)
             if image_layout.at_end():
@@ -326,11 +327,11 @@ def grade_checkpoint_3(doc_structure):
                 location_details = f"Signature not in lower section ({location.describe(dpi=PDF_DPI) if location else 'not found'}) and not at end of document structure"
 
         step_time = time.time() - step_start
-        checkpoint.add_step("Signature Location", location_success, 12, location_details, execution_time=step_time)
+        checkpoint.add_step("Signature Location", location_success, 12, location_details, execution_time=step_time, category=location_category)
     else:
         print("Image match failed")
-        checkpoint.add_step("Signature Image Match", False, 11, "No signature image found", execution_time=step_time)
-        checkpoint.add_step("Signature Location", False, 12, "Cannot check location - signature not found")
+        checkpoint.add_step("Signature Image Match", False, 11, "No signature image found", execution_time=step_time, category=StepCategory.DETERMINISTIC)
+        checkpoint.add_step("Signature Location", False, 12, "Cannot check location - signature not found", category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint

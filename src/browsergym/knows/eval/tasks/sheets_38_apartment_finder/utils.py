@@ -144,7 +144,7 @@ def normalize_boolean_value(value: str) -> Optional[bool]:
         return None  # Unknown
 
 
-def compare_addresses(addr1: str, addr2: str, model=None) -> bool:
+def compare_addresses(addr1: str, addr2: str, model=None, return_method: bool = False):
     """
     Compare two addresses for approximate match.
 
@@ -154,12 +154,20 @@ def compare_addresses(addr1: str, addr2: str, model=None) -> bool:
         addr1: First address string.
         addr2: Second address string.
         model: Optional LLM model for semantic fallback.
+        return_method: If True, return (matched, method) where method is
+            "exact" when the normalized/containment tier made the final call,
+            "llm" when the LLM tier ran last (decided or errored), and None
+            when an input address was empty.
 
     Returns:
-        True if addresses are considered a match.
+        bool: True if addresses are considered a match. If return_method is
+            True, returns (bool, str or None) instead.
     """
+    def _result(matched, method):
+        return (matched, method) if return_method else matched
+
     if not addr1 or not addr2:
-        return False
+        return _result(False, None)
 
     # Normalize addresses
     def normalize(addr):
@@ -195,7 +203,7 @@ def compare_addresses(addr1: str, addr2: str, model=None) -> bool:
 
     # Check if one contains the other (for partial matches)
     if norm1 in norm2 or norm2 in norm1:
-        return True
+        return _result(True, "exact")
 
     # LLM fallback for semantic address comparison
     if model is not None:
@@ -218,11 +226,12 @@ Respond with ONLY "YES" or "NO"."""
 
             messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
             response = model(messages).strip().upper()
-            return response == "YES"
+            return _result(response == "YES", "llm")
         except Exception as e:
             print(f"Error in LLM address comparison: {e}")
+            return _result(False, "llm")
 
-    return False
+    return _result(False, "exact")
 
 
 def is_valid_zillow_url(url: str) -> bool:

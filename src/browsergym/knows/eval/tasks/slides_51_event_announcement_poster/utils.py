@@ -14,6 +14,7 @@ from src.browsergym.knows.eval.eval_utils.slides_utils import (
 )
 from src.browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_content
 from src.browsergym.knows.eval.eval_utils.utils import is_bbox_mostly_inside, bbox_overlap_ratio
+from src.browsergym.knows.eval.eval_utils.parallel_utils import parallel_execute
 
 PANCHEKHA_REFERENCE_URL = "https://browser.engineering/onepage.html"
 _REFERENCE_CACHE_PATH = os.path.join(
@@ -260,6 +261,26 @@ def find_body_box(text_boxes: List[Dict], slide_width: float, slide_height: floa
     Returns:
         dict: Body text box dict, or None.
     """
+    candidates = find_body_box_candidates(text_boxes, slide_width, slide_height)
+    return candidates[0] if candidates else None
+
+
+def find_body_box_candidates(text_boxes: List[Dict], slide_width: float,
+                             slide_height: float) -> List[Dict]:
+    """Rank the central-zone text boxes that could serve as the poster body.
+
+    Applies the same central-zone filter as `find_body_box` but returns every
+    qualifying candidate ordered best-first (highest central-zone overlap, with
+    text length as a tiebreaker) instead of only the top one.
+
+    Args:
+        text_boxes (list): Text boxes from extract_text_boxes_from_slide().
+        slide_width (float): Slide width in EMUs.
+        slide_height (float): Slide height in EMUs.
+
+    Returns:
+        list: Candidate text box dicts, best-first. Empty if none qualify.
+    """
     # Central zone: excludes top header strip, bottom footer strip, right sidebar
     central_zone = {
         'x': slide_width * 0.05,
@@ -267,8 +288,7 @@ def find_body_box(text_boxes: List[Dict], slide_width: float, slide_height: floa
         'width': slide_width * 0.60,
         'height': slide_height * 0.65,
     }
-    best_score = -1.0
-    body = None
+    scored = []
     for tb in text_boxes:
         text_len = len(tb['text'].strip())
         if text_len < 50:
@@ -277,8 +297,103 @@ def find_body_box(text_boxes: List[Dict], slide_width: float, slide_height: floa
             continue
         # Score: overlap ratio, text length as tiebreaker
         overlap = bbox_overlap_ratio(tb['bbox'], central_zone)
-        score = overlap + (text_len / 100000.0)
-        if score > best_score:
-            best_score = score
-            body = tb
-    return body
+        scored.append((overlap + (text_len / 100000.0), tb))
+    # Stable sort keeps slide order for exact score ties, matching find_body_box
+    scored.sort(key=lambda pair: pair[0], reverse=True)
+    return [tb for _, tb in scored]
+
+
+def is_topic_summary(model, text: str) -> Tuple[Optional[bool], str]:
+    """Ask an LLM whether text is a background summary rather than bare logistics.
+
+    Deliberately topic-agnostic: it only decides whether the text describes the
+    event's subject matter at all. Whether that description covers the *correct*
+    topic is judged by the downstream content-quality steps.
+
+    Args:
+        model (callable): Loaded model from load_model().
+        text (str): Candidate body text.
+
+    Returns:
+        tuple: (verdict, detail) where verdict is True/False, or None when the
+            model gave no usable response, and detail is a short reason string.
+    """
+    messages = [
+        {"role": "system", "content": [{"type": "text", "text":
+            "You evaluate event poster content. Answer only Yes or No, then give "
+            "a one-sentence reason."}]},
+        {"role": "user", "content": [{"type": "text", "text":
+            "Below is the text of one text box from the central body of an event "
+            "poster. Is this text a background summary that describes or explains "
+            "the event's subject matter?\n\n"
+            "Answer No if it contains only logistical or boilerplate information — "
+            "such as the date, time, location, host, contact details, registration "
+            "instructions, the event title, or the speaker's name and title — "
+            "without any substantive description of the topic itself.\n\n"
+            f"Text:\n{text[:2000]}"}]}
+    ]
+    response = model(messages)
+    if not response or not response.strip():
+        return None, "no response"
+    cleaned = response.strip()
+    # models.py returns an "Error: ..." sentinel string instead of raising when
+    # the backend is unreachable; that is a failed check, not a "No" verdict.
+    if cleaned.startswith("Error:"):
+        return None, cleaned[:150]
+    return cleaned.lower().startswith("yes"), cleaned[:150]
+
+
+def select_summary_body_box(text_boxes: List[Dict], slide_width: float, slide_height: float,
+                            model, max_candidates: int = 4) -> Tuple[Optional[Dict], Optional[bool], str]:
+    """Pick the central body text box that actually holds a background summary.
+
+    Ranks central-zone candidates structurally, then LLM-gates them in parallel
+    and returns the best-ranked candidate the gate accepts as a summary. When no
+    candidate is accepted, the top-ranked candidate is still returned (so the
+    downstream content-quality steps have text to judge) alongside a False
+    verdict.
+
+    Args:
+        text_boxes (list): Text boxes from extract_text_boxes_from_slide().
+        slide_width (float): Slide width in EMUs.
+        slide_height (float): Slide height in EMUs.
+        model (callable): Loaded model from load_model().
+        max_candidates (int): Cap on candidates sent to the LLM gate.
+
+    Returns:
+        tuple: (body_box, is_summary, detail). `body_box` is None when no
+            central-zone candidate exists. `is_summary` is True/False, or None
+            when the gate produced no usable response for any candidate.
+    """
+    candidates = find_body_box_candidates(text_boxes, slide_width, slide_height)
+    if not candidates:
+        return None, False, "No substantial text box found in central area"
+
+    candidates = candidates[:max_candidates]
+    tasks = [
+        {'id': f"cand_{i}", 'func': is_topic_summary, 'args': (model, tb['text'].strip())}
+        for i, tb in enumerate(candidates)
+    ]
+    results = parallel_execute(tasks, max_workers=min(len(tasks), 4))
+
+    first_detail = None
+    for i, tb in enumerate(candidates):
+        outcome = results.get(f"cand_{i}")
+        if not outcome:
+            continue
+        verdict, detail = outcome
+        if verdict is None:
+            continue
+        if first_detail is None:
+            first_detail = detail
+        if verdict:
+            text_len = len(tb['text'].strip())
+            return tb, True, (f"Body box found ({text_len} chars, candidate {i + 1} of "
+                              f"{len(candidates)}), LLM: {detail}")
+
+    if first_detail is None:
+        return candidates[0], None, (f"Summary check unavailable for all "
+                                     f"{len(candidates)} central candidate(s): no LLM response")
+
+    return candidates[0], False, (f"No central text box contains a topic summary "
+                                  f"({len(candidates)} candidate(s) checked), LLM: {first_detail}")

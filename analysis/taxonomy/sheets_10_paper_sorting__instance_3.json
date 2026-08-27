@@ -1,0 +1,169 @@
+{
+  "task_name": "sheets_10_paper_sorting",
+  "instance": "instance_3",
+  "eval_steps": [
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Title Column Header",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Authors Column Header",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Abstract Column Header",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "arXiv Link Column Header",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Drive Link Column Header",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Figure 1 Column Header",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "New Papers Column Header",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Original Papers Titles Match",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Original Papers Authors Match",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Original Papers Abstracts Match",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Original Papers arXiv Links Valid",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Original Papers Drive Links Valid",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Original Papers Figure 1 Images",
+      "category": "visual_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Original Papers Checkbox Unchecked",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Original Papers arXiv URLs Visited",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Author Coverage",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "New Papers Titles Match",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "New Papers Authors Match",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "New Papers Abstracts Match",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "New Papers arXiv Links Valid",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "New Papers Drive Links Valid",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "New Papers Figure 1 Images",
+      "category": "visual_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "New Papers Checkbox Checked",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "New Papers arXiv URLs Visited",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Yellow Highlighting",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Row Grouping",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 5",
+      "step_name": "Text Overflow",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    }
+  ],
+  "flagged_steps": []
+}

@@ -22,8 +22,6 @@ from typing import List, Dict, Any, Tuple
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
@@ -31,7 +29,7 @@ BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 # Imports
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score, StepCategory
 from src.browsergym.knows.eval.eval_utils.google_services_utils import (
     initialize_google_services,
     list_drive_folder_files,
@@ -245,7 +243,8 @@ def grade_checkpoint_1():
                 "No files found in Drive folder",
                 score=0,
                 max_score=10,
-                execution_time=time.time() - step_start
+                execution_time=time.time() - step_start,
+                category=StepCategory.DETERMINISTIC
             )
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
@@ -272,7 +271,8 @@ def grade_checkpoint_1():
                 checkpoint.add_step(
                     "All Images in Drive", False, 1,
                     "Could not extract OAuth token for parallel Drive downloads",
-                    score=0, max_score=10, execution_time=time.time() - step_start
+                    score=0, max_score=10, execution_time=time.time() - step_start,
+                    category=StepCategory.EXECUTION_ERROR
                 )
                 checkpoint.execution_time = time.time() - checkpoint_start
                 return checkpoint
@@ -304,7 +304,8 @@ def grade_checkpoint_1():
                 checkpoint.add_step(
                     "All Images in Drive", False, 1,
                     f"Gold images directory not found: {GOLD_IMAGES_DIR}",
-                    score=0, max_score=10, execution_time=time.time() - step_start
+                    score=0, max_score=10, execution_time=time.time() - step_start,
+                    category=StepCategory.EXECUTION_ERROR
                 )
                 checkpoint.execution_time = time.time() - checkpoint_start
                 return checkpoint
@@ -316,7 +317,8 @@ def grade_checkpoint_1():
                 checkpoint.add_step(
                     "All Images in Drive", False, 1,
                     "No gold images found to compare against",
-                    score=0, max_score=10, execution_time=time.time() - step_start
+                    score=0, max_score=10, execution_time=time.time() - step_start,
+                    category=StepCategory.EXECUTION_ERROR
                 )
                 checkpoint.execution_time = time.time() - checkpoint_start
                 return checkpoint
@@ -406,6 +408,14 @@ def grade_checkpoint_1():
         all_matched = matched_count == total_gold
 
         if all_matched:
+            # Category = deepest tier that had to run to match any gold image
+            match_methods = {method for method, _ in matched_gold.values()}
+            if "vlm" in match_methods:
+                match_category = StepCategory.LLM_VLM_JUDGEMENT
+            elif "perceptual_hash" in match_methods:
+                match_category = StepCategory.FUZZY_MATCH
+            else:
+                match_category = StepCategory.DETERMINISTIC
             checkpoint.add_step(
                 "All Images in Drive",
                 True,
@@ -413,7 +423,8 @@ def grade_checkpoint_1():
                 f"All {total_gold} gold images found in Drive folder",
                 score=10,
                 max_score=10,
-                execution_time=step_time
+                execution_time=step_time,
+                category=match_category
             )
         else:
             unmatched_list = list(unmatched_gold)
@@ -424,11 +435,13 @@ def grade_checkpoint_1():
                 f"Only {matched_count}/{total_gold} images found. Missing: {', '.join(unmatched_list[:5])}{'...' if len(unmatched_list) > 5 else ''}",
                 score=0,
                 max_score=10,
-                execution_time=step_time
+                execution_time=step_time,
+                category=StepCategory.LLM_VLM_JUDGEMENT
             )
     except Exception as e:
         checkpoint.add_step("Error", False, 1, f"Checkpoint failed: {e}",
-                            score=0, max_score=10, execution_time=time.time() - checkpoint_start)
+                            score=0, max_score=10, execution_time=time.time() - checkpoint_start,
+                            category=StepCategory.EXECUTION_ERROR)
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
@@ -468,7 +481,8 @@ def grade_checkpoint_2():
                     "Original image locations not available",
                     score=0,
                     max_score=10,
-                    execution_time=0
+                    execution_time=0,
+                    category=StepCategory.EXECUTION_ERROR
                 )
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
@@ -614,7 +628,8 @@ def grade_checkpoint_2():
             f"{images_removed_count}/{total_images} original image locations have no image",
             score=step1_score,
             max_score=10,
-            execution_time=0
+            execution_time=0,
+            category=StepCategory.FUZZY_MATCH
         )
 
         # Step 2: Text boxes at locations
@@ -626,7 +641,8 @@ def grade_checkpoint_2():
             f"{textbox_at_location_count}/{total_images} locations have text boxes (80% overlap required)",
             score=step2_score,
             max_score=10,
-            execution_time=0
+            execution_time=0,
+            category=StepCategory.SPATIAL
         )
 
         # Step 3: Text matches descriptions
@@ -638,7 +654,8 @@ def grade_checkpoint_2():
             f"{text_matches_count}/{total_images} text boxes match expected descriptions",
             score=step3_score,
             max_score=10,
-            execution_time=0
+            execution_time=0,
+            category=StepCategory.LLM_VLM_JUDGEMENT
         )
 
         # Step 4: Text style (red and big)
@@ -650,11 +667,13 @@ def grade_checkpoint_2():
             f"{text_style_correct_count}/{total_images} text boxes have red text >= 18pt",
             score=step4_score,
             max_score=10,
-            execution_time=time.time() - step_start
+            execution_time=time.time() - step_start,
+            category=StepCategory.FUZZY_MATCH
         )
     except Exception as e:
         checkpoint.add_step("Error", False, 1, f"Checkpoint failed: {e}",
-                            score=0, max_score=40, execution_time=time.time() - checkpoint_start)
+                            score=0, max_score=40, execution_time=time.time() - checkpoint_start,
+                            category=StepCategory.EXECUTION_ERROR)
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
@@ -696,7 +715,8 @@ def grade_checkpoint_3():
                     "Original image locations not available",
                     score=0,
                     max_score=10,
-                    execution_time=0
+                    execution_time=0,
+                    category=StepCategory.EXECUTION_ERROR
                 )
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
@@ -914,6 +934,7 @@ def grade_checkpoint_3():
             from concurrent.futures import ThreadPoolExecutor, as_completed
 
             def validate_url_image(task_data):
+                """Returns (is_valid, category) where category records the deciding mechanism."""
                 g_filename = task_data['gold_filename']
                 m_url = task_data['matched_url']
                 r_path = task_data['replacement_path']
@@ -921,7 +942,7 @@ def grade_checkpoint_3():
 
                 if is_unverifiable_url(m_url):
                     print(f"  URL validation: {g_filename} URL is from unverifiable domain, treating as valid")
-                    return True
+                    return True, StepCategory.VACUOUS_PASS
 
                 url_img_path = url_download_results.get(g_filename)
                 if url_img_path:
@@ -934,16 +955,16 @@ def grade_checkpoint_3():
                         )
                         if match_res:
                             print(f"  URL validation: {g_filename} URL matches replacement via {match_meth}")
-                            return True
+                            return True, StepCategory.from_match_method(match_meth)
                         else:
                             print(f"  URL validation: {g_filename} URL does not match replacement image")
-                            return False
+                            return False, StepCategory.LLM_VLM_JUDGEMENT
                     except Exception as ex:
                         print(f"  URL validation failed for {g_filename}: {ex}")
-                        return False
+                        return False, StepCategory.EXECUTION_ERROR
                 else:
                     print(f"  URL validation: Failed to download image from {m_url}")
-                    return False
+                    return False, StepCategory.EXECUTION_ERROR
 
             # Build tasks for parallel execution
             validation_tasks = []
@@ -958,16 +979,25 @@ def grade_checkpoint_3():
 
             print(f"  Validating {len(validation_tasks)} URLs in parallel...")
 
+            # Per-item (category, success) provenance for the URL validation step
+            url_validation_items = [
+                (StepCategory.DEPENDENCY_NOT_EVALUATED, False)
+                for _ in range(total_images - len(validation_tasks))
+            ]
+
             # Execute validation in parallel
             if validation_tasks:
                 with ThreadPoolExecutor(max_workers=8) as executor:
                     futures = [executor.submit(validate_url_image, t) for t in validation_tasks]
                     for future in as_completed(futures):
                         try:
-                            if future.result():
+                            is_valid, item_category = future.result()
+                            url_validation_items.append((item_category, is_valid))
+                            if is_valid:
                                 url_valid_count += 1
                         except Exception as e:
                             print(f"  URL validation future error: {e}")
+                            url_validation_items.append((StepCategory.EXECUTION_ERROR, False))
 
         # Calculate scores for each step (percentage-based, 10pt max each)
         step_start = time.time()
@@ -981,7 +1011,8 @@ def grade_checkpoint_3():
             f"{new_image_count}/{total_images} locations have new images (60% overlap required)",
             score=step1_score,
             max_score=10,
-            execution_time=0
+            execution_time=0,
+            category=StepCategory.SPATIAL
         )
 
         # Step 2: URL on slide
@@ -993,7 +1024,8 @@ def grade_checkpoint_3():
             f"{url_on_slide_count}/{total_images} images have URL credits in the right location",
             score=step2_score,
             max_score=10,
-            execution_time=0
+            execution_time=0,
+            category=StepCategory.SPATIAL
         )
 
         # Step 3: URL is valid link to image
@@ -1005,7 +1037,8 @@ def grade_checkpoint_3():
             f"{url_valid_count}/{total_images} URLs point to the correct replacement images as well in the correct locations.",
             score=step3_score,
             max_score=10,
-            execution_time=0
+            execution_time=0,
+            category=StepCategory.aggregate(url_validation_items)
         )
 
         # Step 4: VLM similarity check (compares original and replacement images directly)
@@ -1017,7 +1050,8 @@ def grade_checkpoint_3():
             f"{image_similar_count}/{total_images} replacement images are reasonable substitutes for originals as well in the correct locations.",
             score=step4_score,
             max_score=10,
-            execution_time=0
+            execution_time=0,
+            category=StepCategory.LLM_VLM_JUDGEMENT
         )
 
         # Step 5: Image covers text box
@@ -1029,11 +1063,13 @@ def grade_checkpoint_3():
             f"{image_covers_text_count}/{total_images} new images fully cover text placeholders (80% required)",
             score=step5_score,
             max_score=10,
-            execution_time=time.time() - step_start
+            execution_time=time.time() - step_start,
+            category=StepCategory.SPATIAL
         )
     except Exception as e:
         checkpoint.add_step("Error", False, 1, f"Checkpoint failed: {e}",
-                            score=0, max_score=50, execution_time=time.time() - checkpoint_start)
+                            score=0, max_score=50, execution_time=time.time() - checkpoint_start,
+                            category=StepCategory.EXECUTION_ERROR)
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
@@ -1056,9 +1092,11 @@ def grade_checkpoint_4():
     try:
         if not original_locations:
             checkpoint.add_step("Images Amount in Slides is Equal", False, 1,
-                                "Original image locations not available", score=0, max_score=10, execution_time=0)
+                                "Original image locations not available", score=0, max_score=10, execution_time=0,
+                                category=StepCategory.EXECUTION_ERROR)
             checkpoint.add_step("Extra textbox check", False, 2,
-                                "Original image locations not available", score=0, max_score=10, execution_time=0)
+                                "Original image locations not available", score=0, max_score=10, execution_time=0,
+                                category=StepCategory.EXECUTION_ERROR)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -1122,7 +1160,8 @@ def grade_checkpoint_4():
                 "No extra images were added",
                 score=10,
                 max_score=10,
-                execution_time=time.time() - step_start
+                execution_time=time.time() - step_start,
+                category=StepCategory.STRUCTURAL
             )
         else:
             step_1_percentage_score = int(max(0, ((total_slides - len(extra_img_slides)) / total_slides)) * 10)
@@ -1133,7 +1172,8 @@ def grade_checkpoint_4():
                 f"{len(extra_img_slides)}/{total_slides} slides have extra images (slides: {extra_img_slides})",
                 score=step_1_percentage_score,
                 max_score=10,
-                execution_time=time.time() - step_start
+                execution_time=time.time() - step_start,
+                category=StepCategory.STRUCTURAL
             )
 
         # Only penalize slides that have MORE textboxes than expected (extras)
@@ -1154,7 +1194,8 @@ def grade_checkpoint_4():
                 "No extra textboxes were added",
                 score=10,
                 max_score=10,
-                execution_time=time.time() - step_start
+                execution_time=time.time() - step_start,
+                category=StepCategory.STRUCTURAL
             )
         else:
             step_2_percentage_score = int(max(0, ((total_slides_tb - len(extra_textbox_slides)) / total_slides_tb)) * 10)
@@ -1165,11 +1206,13 @@ def grade_checkpoint_4():
                 f"{len(extra_textbox_slides)}/{total_slides_tb} slides have extra textboxes (slides: {extra_textbox_slides})",
                 score=step_2_percentage_score,
                 max_score=10,
-                execution_time=time.time() - step_start
+                execution_time=time.time() - step_start,
+                category=StepCategory.STRUCTURAL
             )
     except Exception as e:
         checkpoint.add_step("Error", False, 1, f"Checkpoint failed: {e}",
-                            score=0, max_score=20, execution_time=time.time() - checkpoint_start)
+                            score=0, max_score=20, execution_time=time.time() - checkpoint_start,
+                            category=StepCategory.EXECUTION_ERROR)
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
         
@@ -1242,7 +1285,7 @@ def grade_checkpoints(workspace_doc_id, cached_models=None):
 
         # Return a failed result
         failed_checkpoint = Checkpoint(total=1, result=0, name="Evaluation Error")
-        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0)
+        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0, category=StepCategory.EXECUTION_ERROR)
         return Result([failed_checkpoint], total_execution_time=time.time() - total_start_time)
 
 

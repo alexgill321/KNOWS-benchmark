@@ -15,8 +15,6 @@ import pandas as pd
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
@@ -24,7 +22,7 @@ BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 # Imports from eval_utils
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory, calculate_percentage_score
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.knows.eval.eval_utils.google_sheets_utils import (
     get_sheet_content,
@@ -136,11 +134,16 @@ def grade_checkpoint_1():
 
     if df is None or df.empty:
         detail = "No data found in spreadsheet"
-        checkpoint.add_step("Required Columns", False, 1, detail, execution_time=0)
-        checkpoint.add_step("Columns In Order", False, 2, detail, execution_time=0)
-        checkpoint.add_step("At Least 5 Movies", False, 3, detail, execution_time=0)
-        checkpoint.add_step("Unique Movies", False, 4, detail, execution_time=0)
-        checkpoint.add_step("No Blank Cells", False, 5, detail, execution_time=0)
+        checkpoint.add_step("Required Columns", False, 1, detail, execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Columns In Order", False, 2, detail, execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("At Least 5 Movies", False, 3, detail, execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Unique Movies", False, 4, detail, execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("No Blank Cells", False, 5, detail, execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -148,23 +151,37 @@ def grade_checkpoint_1():
     step_start = time.time()
     if model is None:
         model = load_model(model_id)
-    matched_columns = match_columns(df, REQUIRED_COLUMNS, model=model, parallel=True)
+    matched_columns, match_methods = match_columns(df, REQUIRED_COLUMNS, model=model, parallel=True,
+                                                   return_methods=True)
 
     all_found = len(matched_columns) == len(REQUIRED_COLUMNS)
     missing = [col for col, _ in REQUIRED_COLUMNS if col not in matched_columns]
     details = f"Found {len(matched_columns)}/{len(REQUIRED_COLUMNS)} columns"
     if missing:
         details += f". Missing: {', '.join(missing)}"
+    column_items = []
+    for col, _ in REQUIRED_COLUMNS:
+        if col in matched_columns:
+            column_items.append((StepCategory.LLM_VLM_JUDGEMENT
+                                 if match_methods.get(col) == "llm"
+                                 else StepCategory.DETERMINISTIC, True))
+        else:
+            # LLM fallback tier ran last when a model was provided
+            column_items.append((StepCategory.LLM_VLM_JUDGEMENT if model is not None
+                                 else StepCategory.DETERMINISTIC, False))
     checkpoint.add_step(
         "Required Columns", all_found, 1, details,
         execution_time=time.time() - step_start,
+        category=StepCategory.aggregate(column_items),
     )
 
     # Step 2: Columns appear in the required order.
     step_start = time.time()
+    order_category = StepCategory.STRUCTURAL
     if not matched_columns:
         ordered = False
         order_detail = "No matched columns to verify order"
+        order_category = StepCategory.DEPENDENCY_NOT_EVALUATED
     else:
         expected_names = [name for name, _ in REQUIRED_COLUMNS]
         actual_cols = list(df.columns)  # NOT matched_columns.keys()
@@ -177,6 +194,7 @@ def grade_checkpoint_1():
             if canonical_name not in matched_columns:
                 ordered = False
                 order_detail = f"Cannot verify order: missing column '{canonical_name}'"
+                order_category = StepCategory.DEPENDENCY_NOT_EVALUATED
                 break
             actual_match = matched_columns[canonical_name]
             try:
@@ -184,6 +202,7 @@ def grade_checkpoint_1():
             except ValueError:
                 ordered = False
                 order_detail = f"Matched column '{actual_match}' not found in sheet"
+                order_category = StepCategory.EXECUTION_ERROR
                 break
 
         if ordered and positions != sorted(positions):
@@ -195,6 +214,7 @@ def grade_checkpoint_1():
     checkpoint.add_step(
         "Columns In Order", ordered, 2, order_detail,
         execution_time=time.time() - step_start,
+        category=order_category,
     )
 
     # Step 3: At least 5 movies
@@ -204,6 +224,7 @@ def grade_checkpoint_1():
         "At Least 5 Movies", num_rows >= 5, 3,
         f"Found {num_rows} data rows",
         execution_time=time.time() - step_start,
+        category=StepCategory.STRUCTURAL,
     )
 
     # Step 4: Unique movies (no duplicates)
@@ -220,6 +241,9 @@ def grade_checkpoint_1():
     checkpoint.add_step(
         "Unique Movies", is_unique, 4, details,
         execution_time=time.time() - step_start,
+        category=(StepCategory.DETERMINISTIC
+                  if "Movie Title" in matched_columns
+                  else StepCategory.DEPENDENCY_NOT_EVALUATED),
     )
 
     # Step 5: No blank cells in required columns
@@ -238,6 +262,8 @@ def grade_checkpoint_1():
     checkpoint.add_step(
         "No Blank Cells", no_blanks, 5, details,
         execution_time=time.time() - step_start,
+        category=(StepCategory.DETERMINISTIC if matched_columns
+                  else StepCategory.DEPENDENCY_NOT_EVALUATED),
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -268,22 +294,32 @@ def grade_checkpoint_2(browsing_history: List[str] = None):
 
     if df is None or df.empty or not matched_columns:
         detail = "No data available"
-        checkpoint.add_step("IMDb Page Visited", False, 1, detail, score=0, max_score=10, execution_time=0)
-        checkpoint.add_step("Genre Verification", False, 2, detail, score=0, max_score=10, execution_time=0)
-        checkpoint.add_step("Oscar Verification", False, 3, detail, score=0, max_score=10, execution_time=0)
-        checkpoint.add_step("IMDb Score Verification", False, 4, detail, score=0, max_score=10, execution_time=0)
-        checkpoint.add_step("MPA Rating Verification", False, 5, detail, score=0, max_score=10, execution_time=0)
+        checkpoint.add_step("IMDb Page Visited", False, 1, detail, score=0, max_score=10, execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Genre Verification", False, 2, detail, score=0, max_score=10, execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Oscar Verification", False, 3, detail, score=0, max_score=10, execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("IMDb Score Verification", False, 4, detail, score=0, max_score=10, execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("MPA Rating Verification", False, 5, detail, score=0, max_score=10, execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     title_col = matched_columns.get("Movie Title")
     if not title_col:
         detail = "Movie Title column not found"
-        checkpoint.add_step("IMDb Page Visited", False, 1, detail, score=0, max_score=10, execution_time=0)
-        checkpoint.add_step("Genre Verification", False, 2, detail, score=0, max_score=10, execution_time=0)
-        checkpoint.add_step("Oscar Verification", False, 3, detail, score=0, max_score=10, execution_time=0)
-        checkpoint.add_step("IMDb Score Verification", False, 4, detail, score=0, max_score=10, execution_time=0)
-        checkpoint.add_step("MPA Rating Verification", False, 5, detail, score=0, max_score=10, execution_time=0)
+        checkpoint.add_step("IMDb Page Visited", False, 1, detail, score=0, max_score=10, execution_time=0,
+                            category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+        checkpoint.add_step("Genre Verification", False, 2, detail, score=0, max_score=10, execution_time=0,
+                            category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+        checkpoint.add_step("Oscar Verification", False, 3, detail, score=0, max_score=10, execution_time=0,
+                            category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+        checkpoint.add_step("IMDb Score Verification", False, 4, detail, score=0, max_score=10, execution_time=0,
+                            category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+        checkpoint.add_step("MPA Rating Verification", False, 5, detail, score=0, max_score=10, execution_time=0,
+                            category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -331,6 +367,7 @@ def grade_checkpoint_2(browsing_history: List[str] = None):
         "IMDb Page Visited", visit_pass == num_movies, 1, details,
         score=visit_score, max_score=10,
         execution_time=time.time() - step_start,
+        category=StepCategory.WEB_VISIT,
     )
 
     # Step 2: Genre verification (LLM — parallelizable)
@@ -366,10 +403,14 @@ def grade_checkpoint_2(browsing_history: List[str] = None):
         details += f". Could not retrieve IMDb data: {', '.join(genre_not_found)}"
     if genre_failures:
         details += f". Failed: {', '.join(genre_failures)}"
+    genre_items = [(StepCategory.EXECUTION_ERROR, False) if ok is None
+                   else (StepCategory.DETERMINISTIC, bool(ok))
+                   for ok in genre_results.values()]
     checkpoint.add_step(
         "Genre Verification", genre_pass == num_movies, 2, details,
         score=genre_score, max_score=10,
         execution_time=time.time() - step_start,
+        category=StepCategory.aggregate(genre_items),
     )
 
     # Step 3: Oscar verification — cell must list exactly the qualifying Oscars
@@ -443,10 +484,18 @@ def grade_checkpoint_2(browsing_history: List[str] = None):
         oscar_pass = 0
         oscar_score = 0
         details = "Oscar Awards Won column not found"
+    if oscar_col:
+        oscar_items = ([(StepCategory.EXECUTION_ERROR, False)] * len(oscar_not_found)
+                       + [(StepCategory.DETERMINISTIC, False)] * len(oscar_failures)
+                       + [(StepCategory.DETERMINISTIC, True)] * max(oscar_pass, 0))
+        oscar_category = StepCategory.aggregate(oscar_items)
+    else:
+        oscar_category = StepCategory.DEPENDENCY_NOT_EVALUATED
     checkpoint.add_step(
         "Oscar Verification", oscar_pass == num_movies, 3, details,
         score=oscar_score, max_score=10,
         execution_time=time.time() - step_start,
+        category=oscar_category,
     )
 
     # Step 4: IMDb Score verification (programmatic — no LLM)
@@ -490,6 +539,8 @@ def grade_checkpoint_2(browsing_history: List[str] = None):
         "IMDb Score Verification", score_pass == num_movies, 4, details,
         score=score_step, max_score=10,
         execution_time=time.time() - step_start,
+        category=(StepCategory.FUZZY_MATCH if score_col
+                  else StepCategory.DEPENDENCY_NOT_EVALUATED),
     )
 
     # Step 5: MPA Rating verification (programmatic — no LLM)
@@ -523,6 +574,8 @@ def grade_checkpoint_2(browsing_history: List[str] = None):
         "MPA Rating Verification", rating_pass == num_movies, 5, details,
         score=rating_score, max_score=10,
         execution_time=time.time() - step_start,
+        category=(StepCategory.DETERMINISTIC if rating_col
+                  else StepCategory.DEPENDENCY_NOT_EVALUATED),
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -542,14 +595,18 @@ def grade_checkpoint_3():
 
     if df is None or df.empty or not matched_columns or not sheet_raw:
         detail = "No data available"
-        checkpoint.add_step("Sorted by Duration", False, 1, detail, execution_time=0)
-        checkpoint.add_step("Highest Score Green + Bold", False, 2, detail, execution_time=0)
-        checkpoint.add_step("Lowest Score Red + Bold", False, 3, detail, execution_time=0)
+        checkpoint.add_step("Sorted by Duration", False, 1, detail, execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Highest Score Green + Bold", False, 2, detail, execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Lowest Score Red + Bold", False, 3, detail, execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     # Step 1: Sorted by Duration
     step_start = time.time()
+    sorted_category = StepCategory.STRUCTURAL
     duration_col = matched_columns.get("Duration")
     if duration_col:
         raw_durations = df[duration_col].astype(str).tolist()
@@ -563,12 +620,15 @@ def grade_checkpoint_3():
         else:
             sorted_ok = False
             details = f"Could not parse enough durations ({len(valid)} valid out of {len(parsed)})"
+            sorted_category = StepCategory.EXECUTION_ERROR
     else:
         sorted_ok = False
         details = "Duration column not found"
+        sorted_category = StepCategory.DEPENDENCY_NOT_EVALUATED
     checkpoint.add_step(
         "Sorted by Duration", sorted_ok, 1, details,
         execution_time=time.time() - step_start,
+        category=sorted_category,
     )
 
     # Steps 2 & 3: Conditional formatting on IMDb Score cells
@@ -611,9 +671,11 @@ def grade_checkpoint_3():
 
             # Step 2: Highest IMDb Score -> green fill + bold
             step_start = time.time()
+            highest_category = StepCategory.FUZZY_MATCH
             if structure_error:
                 highest_ok = False
                 details = structure_error
+                highest_category = StepCategory.EXECUTION_ERROR
             elif score_col_idx is not None:
                 highest_ok = True
                 highest_issues = []
@@ -628,6 +690,7 @@ def grade_checkpoint_3():
                         except Exception as e:
                             highest_ok = False
                             highest_issues.append(f"Row {row_i + 1}: cell read error ({e})")
+                            highest_category = StepCategory.EXECUTION_ERROR
                             continue
                         if not bold or color != "green":
                             highest_ok = False
@@ -646,16 +709,20 @@ def grade_checkpoint_3():
             else:
                 highest_ok = False
                 details = "Could not locate IMDb Score column in raw sheet"
+                highest_category = StepCategory.EXECUTION_ERROR
             checkpoint.add_step(
                 "Highest Score Green + Bold", highest_ok, 2, details,
                 execution_time=time.time() - step_start,
+                category=highest_category,
             )
 
             # Step 3: Lowest IMDb Score -> red fill + bold
             step_start = time.time()
+            lowest_category = StepCategory.FUZZY_MATCH
             if structure_error:
                 lowest_ok = False
                 details = structure_error
+                lowest_category = StepCategory.EXECUTION_ERROR
             elif score_col_idx is not None:
                 lowest_ok = True
                 lowest_issues = []
@@ -670,6 +737,7 @@ def grade_checkpoint_3():
                         except Exception as e:
                             lowest_ok = False
                             lowest_issues.append(f"Row {row_i + 1}: cell read error ({e})")
+                            lowest_category = StepCategory.EXECUTION_ERROR
                             continue
                         if not bold or color != "red":
                             lowest_ok = False
@@ -688,23 +756,29 @@ def grade_checkpoint_3():
             else:
                 lowest_ok = False
                 details = "Could not locate IMDb Score column in raw sheet"
+                lowest_category = StepCategory.EXECUTION_ERROR
             checkpoint.add_step(
                 "Lowest Score Red + Bold", lowest_ok, 3, details,
                 execution_time=time.time() - step_start,
+                category=lowest_category,
             )
         else:
             checkpoint.add_step(
-                "Highest Score Green + Bold", False, 2, "No valid IMDb scores found"
+                "Highest Score Green + Bold", False, 2, "No valid IMDb scores found",
+                category=StepCategory.DEPENDENCY_NOT_EVALUATED
             )
             checkpoint.add_step(
-                "Lowest Score Red + Bold", False, 3, "No valid IMDb scores found"
+                "Lowest Score Red + Bold", False, 3, "No valid IMDb scores found",
+                category=StepCategory.DEPENDENCY_NOT_EVALUATED
             )
     else:
         checkpoint.add_step(
-            "Highest Score Green + Bold", False, 2, "IMDb Score column not found"
+            "Highest Score Green + Bold", False, 2, "IMDb Score column not found",
+            category=StepCategory.DEPENDENCY_NOT_EVALUATED
         )
         checkpoint.add_step(
-            "Lowest Score Red + Bold", False, 3, "IMDb Score column not found"
+            "Lowest Score Red + Bold", False, 3, "IMDb Score column not found",
+            category=StepCategory.DEPENDENCY_NOT_EVALUATED
         )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -750,7 +824,8 @@ def grade_checkpoints(workspace_doc_id: str = None, cached_models: dict = None, 
 
         # Return a failed result
         failed_checkpoint = Checkpoint(total=1, result=0, name="Evaluation Error")
-        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0)
+        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0,
+                                   category=StepCategory.EXECUTION_ERROR)
         return Result([failed_checkpoint], total_execution_time=time.time() - total_start_time)
 
     finally:

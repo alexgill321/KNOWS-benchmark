@@ -12,8 +12,6 @@ import re
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
@@ -21,7 +19,7 @@ BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 # Imports
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.knows.eval.eval_utils.google_sheets_utils import (
     extract_tables_from_sheet,
@@ -68,6 +66,7 @@ table_data = None
 sheet_raw = None
 df = None
 matched_columns = {}
+matched_column_methods = {}
 
 
 def setup(workspace_doc_id: str):
@@ -149,7 +148,7 @@ def grade_checkpoint_1():
     - There is a column for dealbreakers.
     """
     print("----------------- CHECKPOINT 1 ----------------")
-    global model, matched_columns, df
+    global model, matched_columns, matched_column_methods, df
     checkpoint_start = time.time()
     checkpoint = Checkpoint(total=8, result=0, name="Spreadsheet Structure")
 
@@ -168,7 +167,7 @@ def grade_checkpoint_1():
         for step_num, col in enumerate(required_columns, start=1):
             checkpoint.add_step(f"{col[0]} Column", False, step_num,
                               "No table data found in spreadsheet",
-                              execution_time=0)
+                              execution_time=0, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -184,17 +183,18 @@ def grade_checkpoint_1():
                 f"Ensure model ID is correct and API keys are configured. Error: {e}"
             ) from e
     try:
-        matched_columns = match_columns(df, required_columns, model=model, parallel=True,
-                                        context="an apartment listing spreadsheet with columns for property details like address, price, bedrooms, bathrooms, square footage, amenities, and listing URLs from Craigslist")
+        matched_columns, matched_column_methods = match_columns(df, required_columns, model=model, parallel=True,
+                                        context="an apartment listing spreadsheet with columns for property details like address, price, bedrooms, bathrooms, square footage, amenities, and listing URLs from Craigslist", return_methods=True)
     except Exception as e:
         print(f"WARNING: match_columns failed: {e}. Setting matched_columns to None.")
         matched_columns = None
+        matched_column_methods = {}
 
     if matched_columns is None:
         for step_num, (col_name, keywords) in enumerate(required_columns, start=1):
             checkpoint.add_step(f"{col_name} Column", False, step_num,
                               "Column matching failed - unable to identify columns",
-                              execution_time=0)
+                              execution_time=0, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -205,11 +205,11 @@ def grade_checkpoint_1():
             matched_column = matched_columns[col_name]
             checkpoint.add_step(f"{col_name} Column", True, step_num,
                               f"Found column matching '{col_name}': '{matched_column}'",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC if matched_column_methods.get(col_name) == "keyword" else StepCategory.LLM_VLM_JUDGEMENT)
         else:
             checkpoint.add_step(f"{col_name} Column", False, step_num,
                               f"No column found for '{col_name}'. Available: {', '.join(original_columns[:5])}...",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start, category=StepCategory.LLM_VLM_JUDGEMENT)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -248,7 +248,7 @@ def grade_checkpoint_2():
             for step_name in step_names:
                 step_id += 1
                 checkpoint.add_step(f"Listing {listing_num} - {step_name}", False, step_id,
-                                  "No listing data found in spreadsheet", execution_time=0)
+                                  "No listing data found in spreadsheet", execution_time=0, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -267,7 +267,7 @@ def grade_checkpoint_2():
             for step_name in step_names:
                 step_id += 1
                 checkpoint.add_step(f"Listing {listing_num} - {step_name}", False, step_id,
-                                  "Column matching failed - cannot verify listings", execution_time=0)
+                                  "Column matching failed - cannot verify listings", execution_time=0, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -278,7 +278,7 @@ def grade_checkpoint_2():
             for step_name in step_names:
                 step_id += 1
                 checkpoint.add_step(f"Listing {listing_num} - {step_name}", False, step_id,
-                                  "No URL column identified in spreadsheet", execution_time=0)
+                                  "No URL column identified in spreadsheet", execution_time=0, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -411,12 +411,12 @@ Respond ONLY with this exact JSON format:
         if listing_idx in invalid_urls:
             checkpoint.add_step(f"Listing {listing_num} - URL Valid", False, step_num,
                               invalid_urls[listing_idx],
-                              execution_time=0)
+                              execution_time=0, category=StepCategory.DETERMINISTIC)
             for step_name in step_names[1:]:
                 step_num += 1
                 checkpoint.add_step(f"Listing {listing_num} - {step_name}", False, step_num,
                                   "Skipped due to invalid URL",
-                                  execution_time=0)
+                                  execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
             continue
 
         # Check if fetch failed
@@ -426,17 +426,17 @@ Respond ONLY with this exact JSON format:
         if not html_content:
             checkpoint.add_step(f"Listing {listing_num} - URL Valid", False, step_num,
                               f"Could not fetch page: {url[:50]}...",
-                              execution_time=0)
+                              execution_time=0, category=StepCategory.EXECUTION_ERROR)
             for step_name in step_names[1:]:
                 step_num += 1
                 checkpoint.add_step(f"Listing {listing_num} - {step_name}", False, step_num,
                                   "Skipped due to page fetch failure",
-                                  execution_time=0)
+                                  execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
             continue
 
         checkpoint.add_step(f"Listing {listing_num} - URL Valid", True, step_num,
                           f"Successfully fetched page: {url[:50]}...",
-                          execution_time=0)
+                          execution_time=0, category=StepCategory.DETERMINISTIC)
 
         # Check if extraction failed
         extracted_data = extracted_data_map.get(listing_idx)
@@ -445,7 +445,7 @@ Respond ONLY with this exact JSON format:
                 step_num += 1
                 checkpoint.add_step(f"Listing {listing_num} - {step_name}", False, step_num,
                                   "Could not extract data from Craigslist page",
-                                  execution_time=0)
+                                  execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
             continue
 
         # Step 2: Price matches
@@ -453,7 +453,7 @@ Respond ONLY with this exact JSON format:
         if not price_col:
             checkpoint.add_step(f"Listing {listing_num} - Price Match", False, step_num,
                               "No 'Price/Rent' column found in spreadsheet",
-                              execution_time=0)
+                              execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         else:
             try:
                 user_price = float(re.sub(r'[^\d.]', '', str(row.get(price_col, 0))))
@@ -464,50 +464,53 @@ Respond ONLY with this exact JSON format:
                     if is_match:
                         checkpoint.add_step(f"Listing {listing_num} - Price Match", True, step_num,
                                           f"Price ${user_price:.0f} matches Craigslist ${craigslist_price:.0f}",
-                                          execution_time=0)
+                                          execution_time=0, category=StepCategory.FUZZY_MATCH)
                     else:
                         checkpoint.add_step(f"Listing {listing_num} - Price Match", False, step_num,
                                           f"Price mismatch: user ${user_price:.0f} vs Craigslist ${craigslist_price:.0f} ({diff:.1f}% diff)",
-                                          execution_time=0)
+                                          execution_time=0, category=StepCategory.FUZZY_MATCH)
                 else:
                     checkpoint.add_step(f"Listing {listing_num} - Price Match", False, step_num,
                                       f"Missing price data (user: {user_price}, craigslist: {craigslist_price})",
-                                      execution_time=0)
+                                      execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
             except Exception as e:
                 checkpoint.add_step(f"Listing {listing_num} - Price Match", False, step_num,
                                   f"Error comparing prices: {str(e)[:50]}",
-                                  execution_time=0)
+                                  execution_time=0, category=StepCategory.EXECUTION_ERROR)
 
         # Step 3: Address matches
         step_num += 1
         if not addr_col:
             checkpoint.add_step(f"Listing {listing_num} - Address Match", False, step_num,
                               "No 'Address' column found in spreadsheet",
-                              execution_time=0)
+                              execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         else:
             try:
                 user_addr = str(row.get(addr_col, ""))
                 craigslist_addr = extracted_data.get("address", "")
 
-                if user_addr and craigslist_addr and compare_addresses(user_addr, craigslist_addr, model=model):
+                addr_match, addr_method = (False, None)
+                if user_addr and craigslist_addr:
+                    addr_match, addr_method = compare_addresses(user_addr, craigslist_addr, model=model, return_method=True)
+                if addr_match:
                     checkpoint.add_step(f"Listing {listing_num} - Address Match", True, step_num,
                                       f"Address matches: {user_addr[:40]}...",
-                                      execution_time=0)
+                                      execution_time=0, category=StepCategory.DETERMINISTIC if addr_method == "exact" else StepCategory.LLM_VLM_JUDGEMENT)
                 else:
                     checkpoint.add_step(f"Listing {listing_num} - Address Match", False, step_num,
                                       f"Address mismatch: '{user_addr[:30]}' vs '{str(craigslist_addr)[:30]}'",
-                                      execution_time=0)
+                                      execution_time=0, category=StepCategory.LLM_VLM_JUDGEMENT if addr_method == "llm" else StepCategory.DETERMINISTIC)
             except Exception as e:
                 checkpoint.add_step(f"Listing {listing_num} - Address Match", False, step_num,
                                   f"Error comparing addresses: {str(e)[:50]}",
-                                  execution_time=0)
+                                  execution_time=0, category=StepCategory.EXECUTION_ERROR)
 
         # Step 5: Fully furnished status matches
         step_num += 1
         if not furnished_col:
             checkpoint.add_step(f"Listing {listing_num} - Fully Furnished Match", False, step_num,
                               "No 'Fully Furnished' column found in spreadsheet",
-                              execution_time=0)
+                              execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         else:
             try:
                 user_furnished = normalize_boolean_value(str(row.get(furnished_col, "")))
@@ -519,28 +522,28 @@ Respond ONLY with this exact JSON format:
                     status = "Yes" if user_furnished else "No"
                     checkpoint.add_step(f"Listing {listing_num} - Fully Furnished Match", True, step_num,
                                       f"Fully furnished: {status}",
-                                      execution_time=0)
+                                      execution_time=0, category=StepCategory.DETERMINISTIC)
                 elif craigslist_furnished is None:
                     checkpoint.add_step(f"Listing {listing_num} - Fully Furnished Match", True, step_num,
                                       f"Craigslist furnished status unclear, skipping check",
-                                      execution_time=0)
+                                      execution_time=0, category=StepCategory.VACUOUS_PASS)
                 else:
                     user_status = "Yes" if user_furnished else "No"
                     cl_status = "Yes" if craigslist_furnished else "No"
                     checkpoint.add_step(f"Listing {listing_num} - Fully Furnished Match", False, step_num,
                                       f"Furnished mismatch: spreadsheet says {user_status}, Craigslist says {cl_status}",
-                                      execution_time=0)
+                                      execution_time=0, category=StepCategory.DETERMINISTIC)
             except Exception as e:
                 checkpoint.add_step(f"Listing {listing_num} - Fully Furnished Match", False, step_num,
                                   f"Error comparing furnished status: {str(e)[:50]}",
-                                  execution_time=0)
+                                  execution_time=0, category=StepCategory.EXECUTION_ERROR)
 
         # Step 6: On-site laundry status matches
         step_num += 1
         if not laundry_col:
             checkpoint.add_step(f"Listing {listing_num} - On-Site Laundry Match", False, step_num,
                               "No 'On-Site Laundry' column found in spreadsheet",
-                              execution_time=0)
+                              execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         else:
             try:
                 user_laundry = normalize_boolean_value(str(row.get(laundry_col, "")))
@@ -552,21 +555,21 @@ Respond ONLY with this exact JSON format:
                     status = "Yes" if user_laundry else "No"
                     checkpoint.add_step(f"Listing {listing_num} - On-Site Laundry Match", True, step_num,
                                       f"On-site laundry: {status}",
-                                      execution_time=0)
+                                      execution_time=0, category=StepCategory.DETERMINISTIC)
                 elif craigslist_laundry is None:
                     checkpoint.add_step(f"Listing {listing_num} - On-Site Laundry Match", True, step_num,
                                       f"Craigslist laundry status unclear, skipping check",
-                                      execution_time=0)
+                                      execution_time=0, category=StepCategory.VACUOUS_PASS)
                 else:
                     user_status = "Yes" if user_laundry else "No"
                     cl_status = "Yes" if craigslist_laundry else "No"
                     checkpoint.add_step(f"Listing {listing_num} - On-Site Laundry Match", False, step_num,
                                       f"Laundry mismatch: spreadsheet says {user_status}, Craigslist says {cl_status}",
-                                      execution_time=0)
+                                      execution_time=0, category=StepCategory.DETERMINISTIC)
             except Exception as e:
                 checkpoint.add_step(f"Listing {listing_num} - On-Site Laundry Match", False, step_num,
                                   f"Error comparing laundry status: {str(e)[:50]}",
-                                  execution_time=0)
+                                  execution_time=0, category=StepCategory.EXECUTION_ERROR)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -589,10 +592,10 @@ def grade_checkpoint_3(browsing_history: Optional[List[str]] = None):
     if not browsing_history:
         checkpoint.add_step("Craigslist Visited", False, 1,
                           "No browsing history provided",
-                          execution_time=time.time() - checkpoint_start)
+                          execution_time=time.time() - checkpoint_start, category=StepCategory.EXECUTION_ERROR)
         checkpoint.add_step("Listings in History", False, 2,
                           "No browsing history to check",
-                          execution_time=0)
+                          execution_time=0, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -604,11 +607,11 @@ def grade_checkpoint_3(browsing_history: Optional[List[str]] = None):
     if craigslist_visits:
         checkpoint.add_step("Craigslist Visited", True, 1,
                           f"Found {len(craigslist_visits)} Craigslist page visits",
-                          execution_time=step_time)
+                          execution_time=step_time, category=StepCategory.WEB_VISIT)
     else:
         checkpoint.add_step("Craigslist Visited", False, 1,
                           "No visits to craigslist.org found in browsing history",
-                          execution_time=step_time)
+                          execution_time=step_time, category=StepCategory.WEB_VISIT)
 
     # Step 2: Check if listing URLs appear in browsing history
     step_start = time.time()
@@ -617,7 +620,7 @@ def grade_checkpoint_3(browsing_history: Optional[List[str]] = None):
         step_time = time.time() - step_start
         checkpoint.add_step("Listings in History", False, 2,
                           "No listing data to compare",
-                          execution_time=step_time)
+                          execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -626,7 +629,7 @@ def grade_checkpoint_3(browsing_history: Optional[List[str]] = None):
         step_time = time.time() - step_start
         checkpoint.add_step("Listings in History", False, 2,
                           "No URL column identified",
-                          execution_time=step_time)
+                          execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -638,7 +641,7 @@ def grade_checkpoint_3(browsing_history: Optional[List[str]] = None):
         step_time = time.time() - step_start
         checkpoint.add_step("Listings in History", False, 2,
                           "No valid Craigslist URLs found in spreadsheet",
-                          execution_time=step_time)
+                          execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -662,11 +665,11 @@ def grade_checkpoint_3(browsing_history: Optional[List[str]] = None):
     if urls_found >= len(listing_urls):
         checkpoint.add_step("Listings in History", True, 2,
                           f"All {len(listing_urls)} listing URLs found in browsing history",
-                          execution_time=step_time)
+                          execution_time=step_time, category=StepCategory.WEB_VISIT)
     else:
         checkpoint.add_step("Listings in History", False, 2,
                           f"Only {urls_found}/{len(listing_urls)} listing URLs found in browsing history",
-                          execution_time=step_time)
+                          execution_time=step_time, category=StepCategory.WEB_VISIT)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -689,10 +692,10 @@ def grade_checkpoint_4():
     if not sheet_raw:
         checkpoint.add_step("Formatting Exists", False, 1,
                           "Could not access raw sheet data",
-                          execution_time=time.time() - checkpoint_start)
+                          execution_time=time.time() - checkpoint_start, category=StepCategory.EXECUTION_ERROR)
         checkpoint.add_step("Correct Color Scale", False, 2,
                           "Cannot check - no sheet data",
-                          execution_time=0)
+                          execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -704,10 +707,10 @@ def grade_checkpoint_4():
             step_time = time.time() - step_start
             checkpoint.add_step("Formatting Exists", False, 1,
                               "No sheets found in document",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
             checkpoint.add_step("Correct Color Scale", False, 2,
                               "Cannot check - no sheets",
-                              execution_time=0)
+                              execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -717,10 +720,10 @@ def grade_checkpoint_4():
         if not conditional_formats:
             checkpoint.add_step("Formatting Exists", False, 1,
                               "No conditional formatting rules found",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.DETERMINISTIC)
             checkpoint.add_step("Correct Color Scale", False, 2,
                               "Cannot check - no conditional formatting",
-                              execution_time=0)
+                              execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -733,14 +736,14 @@ def grade_checkpoint_4():
         if gradient_rules:
             checkpoint.add_step("Formatting Exists", True, 1,
                               f"Found {len(gradient_rules)} color scale/gradient formatting rules",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.DETERMINISTIC)
         else:
             checkpoint.add_step("Formatting Exists", False, 1,
                               f"Found {len(conditional_formats)} conditional formats but no color scales",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.DETERMINISTIC)
             checkpoint.add_step("Correct Color Scale", False, 2,
                               "No gradient/color scale rules to validate",
-                              execution_time=0)
+                              execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -748,10 +751,10 @@ def grade_checkpoint_4():
         step_time = time.time() - step_start
         checkpoint.add_step("Formatting Exists", False, 1,
                           f"Error checking conditional formats: {str(e)[:50]}",
-                          execution_time=step_time)
+                          execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
         checkpoint.add_step("Correct Color Scale", False, 2,
                           "Cannot check - error occurred",
-                          execution_time=0)
+                          execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -784,17 +787,17 @@ def grade_checkpoint_4():
         if valid_scales > 0:
             checkpoint.add_step("Correct Color Scale", True, 2,
                               f"Found {valid_scales} valid green-red color scales",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.DETERMINISTIC)
         else:
             checkpoint.add_step("Correct Color Scale", False, 2,
                               "Color scales found but don't use green-red format",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.DETERMINISTIC)
 
     except Exception as e:
         step_time = time.time() - step_start
         checkpoint.add_step("Correct Color Scale", False, 2,
                           f"Error validating color scales: {str(e)[:50]}",
-                          execution_time=step_time)
+                          execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -822,10 +825,10 @@ def grade_checkpoint_5():
     if not table_data:
         checkpoint.add_step("Summary Table Exists", False, 1,
                           "No tables found in spreadsheet",
-                          execution_time=time.time() - checkpoint_start)
+                          execution_time=time.time() - checkpoint_start, category=StepCategory.EXECUTION_ERROR)
         checkpoint.add_step("Contains Formulas", False, 2,
                           "Cannot check - no tables found",
-                          execution_time=0)
+                          execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -849,14 +852,14 @@ def grade_checkpoint_5():
         if summary_sheet_table is not None:
             checkpoint.add_step("Summary Table Exists", True, 1,
                               f"Found summary table at column {summary_sheet_table.col_letter} with {summary_sheet_table.num_cols} columns",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.STRUCTURAL)
         else:
             checkpoint.add_step("Summary Table Exists", False, 1,
                               f"No table found starting at column M or later (found {len(table_data)} table(s))",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.STRUCTURAL)
             checkpoint.add_step("Contains Formulas", False, 2,
                               "Cannot check - no summary table at column M+",
-                              execution_time=0)
+                              execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -864,10 +867,10 @@ def grade_checkpoint_5():
         step_time = time.time() - step_start
         checkpoint.add_step("Summary Table Exists", False, 1,
                           f"Error checking for summary table: {str(e)[:50]}",
-                          execution_time=step_time)
+                          execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
         checkpoint.add_step("Contains Formulas", False, 2,
                           "Cannot check - error occurred",
-                          execution_time=0)
+                          execution_time=0, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -878,7 +881,7 @@ def grade_checkpoint_5():
             step_time = time.time() - step_start
             checkpoint.add_step("Contains Formulas", False, 2,
                               "Cannot check formulas - no raw sheet data",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -887,7 +890,7 @@ def grade_checkpoint_5():
             step_time = time.time() - step_start
             checkpoint.add_step("Contains Formulas", False, 2,
                               "Cannot check formulas - no sheets found",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -916,21 +919,21 @@ def grade_checkpoint_5():
         if formula_cells and main_data_refs > 0:
             checkpoint.add_step("Contains Formulas", True, 2,
                               f"Found {len(formula_cells)} formulas, {main_data_refs} reference main data",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.DETERMINISTIC)
         elif formula_cells:
             checkpoint.add_step("Contains Formulas", False, 2,
                               f"Found {len(formula_cells)} formulas but none reference main data (columns A-L)",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.DETERMINISTIC)
         else:
             checkpoint.add_step("Contains Formulas", False, 2,
                               "No formulas found in summary table - appears to use hardcoded values",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.DETERMINISTIC)
 
     except Exception as e:
         step_time = time.time() - step_start
         checkpoint.add_step("Contains Formulas", False, 2,
                           f"Error checking formulas: {str(e)[:50]}",
-                          execution_time=step_time)
+                          execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -961,7 +964,7 @@ def grade_checkpoint_6():
         for i, step_name in enumerate(step_names, start=1):
             checkpoint.add_step(step_name, False, i,
                               "Could not access raw sheet data",
-                              execution_time=0)
+                              execution_time=0, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -971,7 +974,7 @@ def grade_checkpoint_6():
             for i, step_name in enumerate(step_names, start=1):
                 checkpoint.add_step(step_name, False, i,
                                   "No sheets found",
-                                  execution_time=0)
+                                  execution_time=0, category=StepCategory.EXECUTION_ERROR)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -986,7 +989,7 @@ def grade_checkpoint_6():
         for i, step_name in enumerate(step_names, start=1):
             checkpoint.add_step(step_name, False, i,
                               f"Error accessing sheet structure: {str(e)[:50]}",
-                              execution_time=0)
+                              execution_time=0, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -1021,21 +1024,21 @@ def grade_checkpoint_6():
             if not truncated_headers:
                 checkpoint.add_step("Headers Visible", True, 1,
                                   "All column headers are fully visible",
-                                  execution_time=step_time)
+                                  execution_time=step_time, category=StepCategory.SPATIAL)
             else:
                 checkpoint.add_step("Headers Visible", False, 1,
                                   f"Truncated headers: {', '.join(truncated_headers[:3])}...",
-                                  execution_time=step_time)
+                                  execution_time=step_time, category=StepCategory.SPATIAL)
         else:
             step_time = time.time() - step_start
             checkpoint.add_step("Headers Visible", False, 1,
                               "No header row found",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
     except Exception as e:
         step_time = time.time() - step_start
         checkpoint.add_step("Headers Visible", False, 1,
                           f"Error checking headers: {str(e)[:50]}",
-                          execution_time=step_time)
+                          execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
 
     # Step 2: Check data cells in main table (columns A-L)
     step_start = time.time()
@@ -1067,20 +1070,20 @@ def grade_checkpoint_6():
         if total_cells == 0:
             checkpoint.add_step("Data Cells Adequate", False, 2,
                               "No data cells found in main table",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
         elif hidden_cells == 0:
             checkpoint.add_step("Data Cells Adequate", True, 2,
                               f"All {total_cells} data cells are fully visible",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.SPATIAL)
         else:
             checkpoint.add_step("Data Cells Adequate", False, 2,
                               f"{hidden_cells}/{total_cells} cells have hidden/truncated text",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.SPATIAL)
     except Exception as e:
         step_time = time.time() - step_start
         checkpoint.add_step("Data Cells Adequate", False, 2,
                           f"Error checking data cells: {str(e)[:50]}",
-                          execution_time=step_time)
+                          execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
 
     # Step 3: Check summary table text (column M+, index 12+)
     step_start = time.time()
@@ -1112,20 +1115,20 @@ def grade_checkpoint_6():
         if summary_total == 0:
             checkpoint.add_step("Summary Text Visible", True, 3,
                               "No summary text to check (or no summary table)",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.VACUOUS_PASS)
         elif summary_hidden == 0:
             checkpoint.add_step("Summary Text Visible", True, 3,
                               f"All {summary_total} summary cells are fully visible",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.SPATIAL)
         else:
             checkpoint.add_step("Summary Text Visible", False, 3,
                               f"{summary_hidden}/{summary_total} summary cells have hidden text",
-                              execution_time=step_time)
+                              execution_time=step_time, category=StepCategory.SPATIAL)
     except Exception as e:
         step_time = time.time() - step_start
         checkpoint.add_step("Summary Text Visible", False, 3,
                           f"Error checking summary: {str(e)[:50]}",
-                          execution_time=step_time)
+                          execution_time=step_time, category=StepCategory.EXECUTION_ERROR)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -1178,7 +1181,7 @@ def grade_checkpoints(workspace_doc_id: str = None, browsing_history: List[str] 
             traceback.print_exc()
             failed = Checkpoint(total=1, result=0, name=f"{name} Error")
             failed.add_step("Execution", False, 1,
-                          f"Unexpected error: {str(e)[:100]}", execution_time=0)
+                          f"Unexpected error: {str(e)[:100]}", execution_time=0, category=StepCategory.EXECUTION_ERROR)
             checkpoints.append(failed)
 
     return Result(checkpoints, total_execution_time=time.time() - total_start_time)

@@ -278,7 +278,8 @@ def keywords_match_robust(texts: Union[str, List[str]],
                           model: Any = None,
                           description: str = None,
                           substring: bool = False,
-                          unlimited_texts: bool = False) -> Optional[str]:
+                          unlimited_texts: bool = False,
+                          return_method: bool = False) -> Optional[str]:
     """Robust matching: exact match first, then LLM fallback.
 
     This is the primary entry point for keyword-based text matching. It uses
@@ -296,8 +297,12 @@ def keywords_match_robust(texts: Union[str, List[str]],
                    Default False (exact match). Useful for legend labels where "Avg Male 25"
                    should match keyword "male".
 
+        return_method: If True, return (text, method) where method is
+            "exact"|"llm"|None, recording which phase decided the match.
+
     Returns:
         The matching text, or None if no match found.
+        If return_method is True, returns (text, method) instead.
 
     Examples:
         >>> keywords_match_robust(
@@ -315,7 +320,7 @@ def keywords_match_robust(texts: Union[str, List[str]],
         'Avg Male 25 Speed (min/mile)'
     """
     if not texts or not keywords:
-        return None
+        return (None, None) if return_method else None
 
     # Normalize inputs to lists
     if isinstance(texts, str):
@@ -327,13 +332,16 @@ def keywords_match_robust(texts: Union[str, List[str]],
     for text in texts:
         matched_keyword = keywords_exact_match(text, keywords, substring=substring)
         if matched_keyword:
-            return text
+            return (text, "exact") if return_method else text
 
     # Phase 2: LLM fallback (if model provided)
     if model is not None and (unlimited_texts or (len(texts) < 30 and len(keywords) < 30)):
-        return keywords_llm_match(texts, keywords, model, description)
+        result = keywords_llm_match(texts, keywords, model, description)
+        if return_method:
+            return (result, "llm" if result else None)
+        return result
 
-    return None
+    return (None, None) if return_method else None
 
 
 # =============================================================================

@@ -1,0 +1,121 @@
+{
+  "task_name": "slides_39_Personal_Lookbook_PaintColors",
+  "instance": "instance_2",
+  "eval_steps": [
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Title is Room/Project",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "One Image on Title Slide",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Image Coverage >= 70%",
+      "category": "spatial_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Browsing History Check",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Image Relevance (VLM)",
+      "category": "visual_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Color Slide Count (5-10)",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Color Name Titles",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Colors Distinct & Appropriate (LLM)",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Browsing History for Color Images",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Two Images Per Slide",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Image Positioning (BL + BR)",
+      "category": "spatial_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Image Relevance (VLM)",
+      "category": "visual_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "ALT Text Has Source URL",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Image Source Match (ALT URL)",
+      "category": "visual_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Two Images Are Unique",
+      "category": "visual_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Recommendation Slide Exists (Last)",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "{COLOR} is the best choice Text",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Color Matches Previous Option",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Large Font",
+      "category": "formatting_check",
+      "llm_vlm_primary": false
+    }
+  ],
+  "flagged_steps": []
+}

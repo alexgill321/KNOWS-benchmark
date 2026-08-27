@@ -17,8 +17,6 @@ import argparse
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
@@ -27,7 +25,7 @@ BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 # Imports from eval_utils
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.knows.eval.eval_utils.google_sheets_utils import get_sheet_content
 from src.browsergym.knows.eval.eval_utils.parallel_utils import (
@@ -227,6 +225,13 @@ def grade_checkpoint_1(
             return fail_all_steps(
                 checkpoint, steps,
                 "No contiguous colour-name block found in columns A or B.", start,
+                categories=[
+                    StepCategory.STRUCTURAL,
+                    StepCategory.DEPENDENCY_NOT_EVALUATED,
+                    StepCategory.DEPENDENCY_NOT_EVALUATED,
+                    StepCategory.DEPENDENCY_NOT_EVALUATED,
+                    StepCategory.DEPENDENCY_NOT_EVALUATED,
+                ],
             )
 
         names = region["names"]
@@ -240,37 +245,37 @@ def grade_checkpoint_1(
         checkpoint.add_step(
             steps[0], True, 1,
             f"Color list found in col {region['col']}, rows "
-            f"{region['start_row']}-{region['end_row'] - 1}.",
+            f"{region['start_row']}-{region['end_row'] - 1}.", category=StepCategory.STRUCTURAL
         )
 
         # Step 2: top-left placement
         if region["start_row"] < TOP_LEFT_MAX_ROW:
             checkpoint.add_step(
                 steps[1], True, 2,
-                f"Color list starts at row {region['start_row']}.",
+                f"Color list starts at row {region['start_row']}.", category=StepCategory.STRUCTURAL
             )
         else:
             checkpoint.add_step(
                 steps[1], False, 2,
                 f"Color list starts at row {region['start_row']} "
-                f"(expected < {TOP_LEFT_MAX_ROW}).",
+                f"(expected < {TOP_LEFT_MAX_ROW}).", category=StepCategory.STRUCTURAL
             )
 
         # Step 3: minimum unique colours
         if MIN_COLORS is None:
             checkpoint.add_step(
                 steps[2], False, 3,
-                "Could not determine the required colour count from task.md.",
+                "Could not determine the required colour count from task.md.", category=StepCategory.EXECUTION_ERROR
             )
         elif num_colors >= MIN_COLORS:
             checkpoint.add_step(
-                steps[2], True, 3, f"{num_colors} unique color names found.",
+                steps[2], True, 3, f"{num_colors} unique color names found.", category=StepCategory.STRUCTURAL
             )
         else:
             checkpoint.add_step(
                 steps[2], False, 3,
                 f"Only {num_colors} unique color names found "
-                f"(expected >= {MIN_COLORS}): {names}",
+                f"(expected >= {MIN_COLORS}): {names}", category=StepCategory.STRUCTURAL
             )
 
         model = get_model(model_id)
@@ -279,11 +284,12 @@ def grade_checkpoint_1(
         if MIN_ARTICLES is None:
             checkpoint.add_step(
                 steps[3], False, 4,
-                "Could not determine the required article count from task.md.",
+                "Could not determine the required article count from task.md.", category=StepCategory.EXECUTION_ERROR
             )
         else:
             history = browsing_history or []
             wedding_urls: List[str] = []
+            article_match_items: list = []
             if history:
                 title_tasks = [
                     {"id": url, "func": fetch_page_title, "args": (url,)}
@@ -292,31 +298,38 @@ def grade_checkpoint_1(
                 titles = parallel_execute(title_tasks, max_workers=10)
                 for url in history:
                     title = titles.get(url) or ""
-                    if ARTICLE_MATCHER(url, title, model=model):
+                    verdict, match_method = ARTICLE_MATCHER(
+                        url, title, model=model, return_method=True)
+                    article_match_items.append((
+                        StepCategory.EXECUTION_ERROR if verdict is None
+                        else StepCategory.DETERMINISTIC if match_method == "keyword"
+                        else StepCategory.LLM_VLM_JUDGEMENT,
+                        bool(verdict)))
+                    if verdict:
                         wedding_urls.append(url)
 
             if len(wedding_urls) >= MIN_ARTICLES:
                 checkpoint.add_step(
                     steps[3], True, 4,
                     f"{len(wedding_urls)} wedding-color articles found in "
-                    f"{len(history)} browsing-history entries.",
+                    f"{len(history)} browsing-history entries.", category=StepCategory.aggregate(article_match_items)
                 )
             else:
                 checkpoint.add_step(
                     steps[3], False, 4,
                     f"Only {len(wedding_urls)} wedding-color article(s) found in "
                     f"{len(history)} browsing-history entries "
-                    f"(expected >= {MIN_ARTICLES}).",
+                    f"(expected >= {MIN_ARTICLES}).", category=StepCategory.aggregate(article_match_items)
                 )
 
         # Step 5: colours belong to the configured categories
         if COLOR_CATEGORIES is None:
             checkpoint.add_step(
                 steps[4], False, 5,
-                "Could not determine the colour categories from task.md.",
+                "Could not determine the colour categories from task.md.", category=StepCategory.EXECUTION_ERROR
             )
         elif num_colors == 0:
-            checkpoint.add_step(steps[4], False, 5, "No colors found to categorise.")
+            checkpoint.add_step(steps[4], False, 5, "No colors found to categorise.", category=StepCategory.EXECUTION_ERROR)
         else:
             results = classify_colors_batch(names, COLOR_CATEGORIES, model=model)
             categorised = sum(1 for v in results.values() if v)
@@ -326,13 +339,13 @@ def grade_checkpoint_1(
                 checkpoint.add_step(
                     steps[4], True, 5,
                     f"{categorised}/{num_colors} colors classified into "
-                    f"{CATEGORY_LABEL} ({ratio:.0%}).",
+                    f"{CATEGORY_LABEL} ({ratio:.0%}).", category=StepCategory.LLM_VLM_JUDGEMENT
                 )
             else:
                 checkpoint.add_step(
                     steps[4], False, 5,
                     f"Only {categorised}/{num_colors} colors classified into "
-                    f"{CATEGORY_LABEL} ({ratio:.0%}). Unrecognised: {uncategorised[:5]}",
+                    f"{CATEGORY_LABEL} ({ratio:.0%}). Unrecognised: {uncategorised[:5]}", category=StepCategory.LLM_VLM_JUDGEMENT
                 )
 
         checkpoint.execution_time = time.time() - start
@@ -374,7 +387,8 @@ def grade_checkpoint_3(color_region: Optional[Dict] = None):
 
     try:
         if main_tab is None or color_region is None:
-            return fail_all_steps(checkpoint, steps, "No color region available.", start)
+            return fail_all_steps(checkpoint, steps, "No color region available.", start,
+                                  category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
         fill_col = color_region["col"] + 2
         sr, er = color_region["start_row"], color_region["end_row"]
@@ -399,6 +413,12 @@ def grade_checkpoint_3(color_region: Optional[Dict] = None):
         if not filled:
             return fail_all_steps(
                 checkpoint, steps, f"No background fills found in col {fill_col}.", start,
+                categories=[
+                    StepCategory.DETERMINISTIC,
+                    StepCategory.DEPENDENCY_NOT_EVALUATED,
+                    StepCategory.DEPENDENCY_NOT_EVALUATED,
+                    StepCategory.DETERMINISTIC,
+                ],
             )
 
         # Step 1: Fill Column Type — every populated cell in the fill column
@@ -407,14 +427,14 @@ def grade_checkpoint_3(color_region: Optional[Dict] = None):
             checkpoint.add_step(
                 steps[0], True, 1,
                 f"Fill column is a colour-fill column "
-                f"({len(filled)} fills, no text-only cells).",
+                f"({len(filled)} fills, no text-only cells).", category=StepCategory.DETERMINISTIC
             )
         else:
             sample = [f"{nm}: {txt[:40]!r}" for nm, txt in text_only_rows[:3]]
             checkpoint.add_step(
                 steps[0], False, 1,
                 f"{len(text_only_rows)} cell(s) in col {fill_col} contain text "
-                f"instead of a background fill: {sample}",
+                f"instead of a background fill: {sample}", category=StepCategory.DETERMINISTIC
             )
 
         model = get_model(model_id)
@@ -498,13 +518,13 @@ def grade_checkpoint_3(color_region: Optional[Dict] = None):
             checkpoint.add_step(
                 steps[1], False, 2,
                 "Model unavailable - could not verify visual colour match.",
-                max_score=5,
+                max_score=5, category=StepCategory.EXECUTION_ERROR
             )
         elif visual_total == 0:
             checkpoint.add_step(
                 steps[1], False, 2,
                 "No fills available to verify visual colour match.",
-                max_score=5,
+                max_score=5, category=StepCategory.EXECUTION_ERROR
             )
         else:
             visual_score = round(visual_passed * 5 / visual_total)
@@ -513,7 +533,7 @@ def grade_checkpoint_3(color_region: Optional[Dict] = None):
                     steps[1], True, 2,
                     f"{visual_passed}/{visual_total} fills visually match their "
                     f"named colours ({visual_score}/5 pts).",
-                    score=visual_score, max_score=5,
+                    score=visual_score, max_score=5, category=StepCategory.LLM_VLM_JUDGEMENT
                 )
             else:
                 visual_score = min(visual_score, 4)   # fail caps below max
@@ -528,7 +548,7 @@ def grade_checkpoint_3(color_region: Optional[Dict] = None):
                     f"Only {visual_passed}/{visual_total} fills visually match "
                     f"their named colours{rf_note} ({visual_score}/5 pts). "
                     f"Failed: {(vlm_no + render_failures)[:8]}",
-                    score=visual_score, max_score=5,
+                    score=visual_score, max_score=5, category=StepCategory.LLM_VLM_JUDGEMENT
                 )
 
         # Step 3: hex value matches colorhexa.com's colour for that hex
@@ -545,13 +565,13 @@ def grade_checkpoint_3(color_region: Optional[Dict] = None):
             checkpoint.add_step(
                 steps[2], False, 3,
                 "colorhexa unreachable - could not verify any hex value.",
-                max_score=5,
+                max_score=5, category=StepCategory.EXECUTION_ERROR
             )
         elif model is None:
             checkpoint.add_step(
                 steps[2], False, 3,
                 "Model unavailable - could not compare colorhexa names.",
-                max_score=5,
+                max_score=5, category=StepCategory.EXECUTION_ERROR
             )
         else:
             judge_tasks = []
@@ -577,7 +597,7 @@ def grade_checkpoint_3(color_region: Optional[Dict] = None):
                     steps[2], True, 3,
                     f"{matched}/{len(resolved)} hex values are consistent with "
                     f"colorhexa.com ({hex_score}/5 pts).",
-                    score=hex_score, max_score=5,
+                    score=hex_score, max_score=5, category=StepCategory.LLM_VLM_JUDGEMENT
                 )
             else:
                 hex_score = min(hex_score, 4)   # fail caps below max
@@ -587,19 +607,19 @@ def grade_checkpoint_3(color_region: Optional[Dict] = None):
                     f"Only {matched}/{len(resolved)} hex values are consistent "
                     f"with colorhexa.com ({hex_score}/5 pts). "
                     f"Failed: {failed_names[:8]}",
-                    score=hex_score, max_score=5,
+                    score=hex_score, max_score=5, category=StepCategory.LLM_VLM_JUDGEMENT
                 )
 
         # Step 4: each colour name has a corresponding colored cell
         if not missing:
             checkpoint.add_step(
                 steps[3], True, 4,
-                f"All {len(names)} colors have a corresponding fill.",
+                f"All {len(names)} colors have a corresponding fill.", category=StepCategory.DETERMINISTIC
             )
         else:
             checkpoint.add_step(
                 steps[3], False, 4,
-                f"{len(missing)}/{len(names)} colors missing fills: {missing[:5]}",
+                f"{len(missing)}/{len(names)} colors missing fills: {missing[:5]}", category=StepCategory.DETERMINISTIC
             )
 
         checkpoint.execution_time = time.time() - start
@@ -649,6 +669,7 @@ def grade_checkpoint_5(color_region: Optional[Dict] = None):
             return fail_all_steps(
                 checkpoint, steps,
                 "Could not find colour list - matrix search aborted.", start,
+                category=StepCategory.DEPENDENCY_NOT_EVALUATED,
             )
         color_names = region["names"]
 
@@ -660,6 +681,13 @@ def grade_checkpoint_5(color_region: Optional[Dict] = None):
             return fail_all_steps(
                 checkpoint, steps,
                 f"No decoration matrix found below row {search_start}.", start,
+                categories=[
+                    StepCategory.STRUCTURAL,
+                    StepCategory.DEPENDENCY_NOT_EVALUATED,
+                    StepCategory.DEPENDENCY_NOT_EVALUATED,
+                    StepCategory.DEPENDENCY_NOT_EVALUATED,
+                    StepCategory.DEPENDENCY_NOT_EVALUATED,
+                ],
             )
 
         model = get_model(model_id)
@@ -674,19 +702,19 @@ def grade_checkpoint_5(color_region: Optional[Dict] = None):
         if MIN_DECORATION_TYPES is None:
             checkpoint.add_step(
                 steps[0], False, 1,
-                "Could not determine the required decoration count from task.md.",
+                "Could not determine the required decoration count from task.md.", category=StepCategory.EXECUTION_ERROR
             )
         elif len(decoration_types) >= MIN_DECORATION_TYPES:
             checkpoint.add_step(
                 steps[0], True, 1,
                 f"{len(decoration_types)} decoration types found: "
-                f"{decoration_types[:5]}",
+                f"{decoration_types[:5]}", category=StepCategory.STRUCTURAL
             )
         else:
             checkpoint.add_step(
                 steps[0], False, 1,
                 f"Only {len(decoration_types)} decoration type(s) found "
-                f"(expected >= {MIN_DECORATION_TYPES}): {decoration_types}",
+                f"(expected >= {MIN_DECORATION_TYPES}): {decoration_types}", category=StepCategory.STRUCTURAL
             )
 
         # Step 2: header colour names match the extracted colour list
@@ -699,6 +727,7 @@ def grade_checkpoint_5(color_region: Optional[Dict] = None):
             else:
                 unmatched_headers.append(h)
 
+        header_llm_used = bool(unmatched_headers) and model is not None
         if unmatched_headers and model is not None:
             color_list_str = ", ".join(sorted(color_set))
             llm_tasks = []
@@ -728,27 +757,27 @@ def grade_checkpoint_5(color_region: Optional[Dict] = None):
         if matched_headers and not unmatched_headers:
             checkpoint.add_step(
                 steps[1], True, 2,
-                f"{len(matched_headers)} header colours match the original list.",
+                f"{len(matched_headers)} header colours match the original list.", category=StepCategory.LLM_VLM_JUDGEMENT if header_llm_used else StepCategory.DETERMINISTIC
             )
         elif unmatched_headers:
             checkpoint.add_step(
                 steps[1], False, 2,
-                f"Matrix headers not in colour list: {sorted(unmatched_headers)}",
+                f"Matrix headers not in colour list: {sorted(unmatched_headers)}", category=StepCategory.LLM_VLM_JUDGEMENT if header_llm_used else StepCategory.DETERMINISTIC
             )
         else:
             checkpoint.add_step(
-                steps[1], False, 2, "No header colour names found in matrix.",
+                steps[1], False, 2, "No header colour names found in matrix.", category=StepCategory.EXECUTION_ERROR
             )
 
         # Step 3: matrix columns appear in the same order as the colour list
         if not non_empty_headers:
             checkpoint.add_step(
                 steps[2], False, 3,
-                "No matrix column headers found to check ordering.",
+                "No matrix column headers found to check ordering.", category=StepCategory.EXECUTION_ERROR
             )
         else:
             order_ok, order_detail = headers_in_order(header_names, color_names)
-            checkpoint.add_step(steps[2], order_ok, 3, order_detail)
+            checkpoint.add_step(steps[2], order_ok, 3, order_detail, category=StepCategory.STRUCTURAL)
 
         # Step 4: at least half of grid cells contain images
         total_cells, image_cells = 0, 0
@@ -773,13 +802,13 @@ def grade_checkpoint_5(color_region: Optional[Dict] = None):
 
         if total_cells == 0:
             checkpoint.add_step(steps[3], False, 4, "Matrix body has 0 cells.",
-                                max_score=2)
+                                max_score=2, category=StepCategory.EXECUTION_ERROR)
         elif image_cells / total_cells >= IMAGE_COVERAGE_RATIO:
             checkpoint.add_step(
                 steps[3], True, 4,
                 f"{image_cells}/{total_cells} cells contain images "
                 f"({image_cells / total_cells:.0%}).",
-                max_score=2,
+                max_score=2, category=StepCategory.DETERMINISTIC
             )
         else:
             checkpoint.add_step(
@@ -787,18 +816,18 @@ def grade_checkpoint_5(color_region: Optional[Dict] = None):
                 f"Only {image_cells}/{total_cells} cells contain images "
                 f"({image_cells / total_cells:.0%}, expected >= "
                 f"{IMAGE_COVERAGE_RATIO:.0%}).",
-                max_score=2,
+                max_score=2, category=StepCategory.DETERMINISTIC
             )
 
         # Step 5: VLM judge - images show the decoration in the colour
         # (10 pts, awarded proportionally to the number of images that pass).
         if not image_info:
             checkpoint.add_step(steps[4], False, 5, "No images found to verify.",
-                                max_score=10)
+                                max_score=10, category=StepCategory.EXECUTION_ERROR)
         elif model is None:
             checkpoint.add_step(
                 steps[4], False, 5, "Model unavailable - could not verify images.",
-                max_score=10,
+                max_score=10, category=StepCategory.EXECUTION_ERROR
             )
         else:
             temp_dir = os.path.join(
@@ -879,7 +908,7 @@ def grade_checkpoint_5(color_region: Optional[Dict] = None):
                     checkpoint.add_step(
                         steps[4], False, 5,
                         "No images could be downloaded for VLM verification.",
-                        max_score=10,
+                        max_score=10, category=StepCategory.EXECUTION_ERROR
                     )
                 else:
                     vlm_score = round(vlm_passed * 10 / vlm_total)
@@ -889,7 +918,7 @@ def grade_checkpoint_5(color_region: Optional[Dict] = None):
                             f"{vlm_passed}/{vlm_total} sampled images are real photos "
                             f"of the correct decoration in the correct colour "
                             f"({vlm_score}/10 pts).",
-                            score=vlm_score, max_score=10,
+                            score=vlm_score, max_score=10, category=StepCategory.aggregate([(StepCategory.DETERMINISTIC, False)] * placeholder_count + [(StepCategory.EXECUTION_ERROR, False)] * download_failures + [(StepCategory.LLM_VLM_JUDGEMENT, bool(v)) for v in vlm_results.values()])
                         )
                     else:
                         vlm_score = min(vlm_score, 9)   # fail caps below max
@@ -904,7 +933,7 @@ def grade_checkpoint_5(color_region: Optional[Dict] = None):
                             f"Only {vlm_passed}/{vlm_total} sampled images are real "
                             f"photos of the correct decoration in the correct "
                             f"colour{breakdown} ({vlm_score}/10 pts).",
-                            score=vlm_score, max_score=10,
+                            score=vlm_score, max_score=10, category=StepCategory.aggregate([(StepCategory.DETERMINISTIC, False)] * placeholder_count + [(StepCategory.EXECUTION_ERROR, False)] * download_failures + [(StepCategory.LLM_VLM_JUDGEMENT, bool(v)) for v in vlm_results.values()])
                         )
             finally:
                 if os.path.exists(temp_dir):
@@ -940,11 +969,18 @@ def grade_checkpoint_6():
             return fail_all_steps(
                 checkpoint, steps,
                 f"No palette tab found. Tabs present: {tab_names}", start,
+                categories=[
+                    StepCategory.STRUCTURAL,
+                    StepCategory.DEPENDENCY_NOT_EVALUATED,
+                    StepCategory.DEPENDENCY_NOT_EVALUATED,
+                    StepCategory.DEPENDENCY_NOT_EVALUATED,
+                    StepCategory.DEPENDENCY_NOT_EVALUATED,
+                ],
             )
 
         # Step 1: a separate palette tab exists
         tab_title = palette_tab.get("properties", {}).get("title", "")
-        checkpoint.add_step(steps[0], True, 1, f"Palette tab found: '{tab_title}'.")
+        checkpoint.add_step(steps[0], True, 1, f"Palette tab found: '{tab_title}'.", category=StepCategory.STRUCTURAL)
 
         region = find_palette_region(palette_tab)
         print(f"  [DEBUG] {len(region)} palette row(s) detected")
@@ -953,28 +989,28 @@ def grade_checkpoint_6():
         if MIN_PALETTE_ROWS is None:
             checkpoint.add_step(
                 steps[1], False, 2,
-                "Could not determine the required palette-row count from task.md.",
+                "Could not determine the required palette-row count from task.md.", category=StepCategory.EXECUTION_ERROR
             )
         elif len(region) >= MIN_PALETTE_ROWS:
             checkpoint.add_step(
-                steps[1], True, 2, f"{len(region)} palette rows found.",
+                steps[1], True, 2, f"{len(region)} palette rows found.", category=StepCategory.STRUCTURAL
             )
         else:
             checkpoint.add_step(
                 steps[1], False, 2,
                 f"Only {len(region)} palette row(s) found "
-                f"(expected >= {MIN_PALETTE_ROWS}).",
+                f"(expected >= {MIN_PALETTE_ROWS}).", category=StepCategory.STRUCTURAL
             )
 
         # Step 3: each palette row has exactly PALETTE_CELLS_PER_ROW colour cells
         if PALETTE_CELLS_PER_ROW is None:
             checkpoint.add_step(
                 steps[2], False, 3,
-                "Could not determine the palette width from task.md.",
+                "Could not determine the palette width from task.md.", category=StepCategory.EXECUTION_ERROR
             )
         elif not region:
             checkpoint.add_step(
-                steps[2], False, 3, "No palette rows found to check width.",
+                steps[2], False, 3, "No palette rows found to check width.", category=StepCategory.DEPENDENCY_NOT_EVALUATED
             )
         else:
             bad_rows = [
@@ -986,7 +1022,7 @@ def grade_checkpoint_6():
                 checkpoint.add_step(
                     steps[2], True, 3,
                     f"All {len(region)} rows have exactly "
-                    f"{PALETTE_CELLS_PER_ROW} colour cells.",
+                    f"{PALETTE_CELLS_PER_ROW} colour cells.", category=StepCategory.STRUCTURAL
                 )
             else:
                 detail = ", ".join(f"row {r} has {n}" for r, n in bad_rows[:5])
@@ -995,7 +1031,7 @@ def grade_checkpoint_6():
                 checkpoint.add_step(
                     steps[2], False, 3,
                     f"{len(bad_rows)}/{len(region)} row(s) do not have exactly "
-                    f"{PALETTE_CELLS_PER_ROW} colour cells: {detail}",
+                    f"{PALETTE_CELLS_PER_ROW} colour cells: {detail}", category=StepCategory.STRUCTURAL
                 )
 
         # Step 4: colours are background fills, not just typed text
@@ -1003,7 +1039,7 @@ def grade_checkpoint_6():
         total_filled = sum(len(r["filled_cols"]) for r in region)
         if total_content == 0:
             checkpoint.add_step(
-                steps[3], False, 4, "No palette colour cells found.",
+                steps[3], False, 4, "No palette colour cells found.", category=StepCategory.DEPENDENCY_NOT_EVALUATED
             )
         else:
             fill_ratio = total_filled / total_content
@@ -1011,13 +1047,13 @@ def grade_checkpoint_6():
                 checkpoint.add_step(
                     steps[3], True, 4,
                     f"{total_filled}/{total_content} palette cells use background "
-                    f"fills ({fill_ratio:.0%}).",
+                    f"fills ({fill_ratio:.0%}).", category=StepCategory.DETERMINISTIC
                 )
             else:
                 checkpoint.add_step(
                     steps[3], False, 4,
                     f"Only {total_filled}/{total_content} palette cells use "
-                    f"background fills ({fill_ratio:.0%}); the rest are plain text.",
+                    f"background fills ({fill_ratio:.0%}); the rest are plain text.", category=StepCategory.DETERMINISTIC
                 )
 
         # Step 5: palette colours come from the original extracted list
@@ -1029,11 +1065,11 @@ def grade_checkpoint_6():
         all_hexes = [h for r in region for h in r["hex_list"]]
         if not ref_hexes:
             checkpoint.add_step(
-                steps[4], False, 5, "No reference colours available from main sheet.",
+                steps[4], False, 5, "No reference colours available from main sheet.", category=StepCategory.DEPENDENCY_NOT_EVALUATED
             )
         elif not all_hexes:
             checkpoint.add_step(
-                steps[4], False, 5, "No background-filled palette cells to verify.",
+                steps[4], False, 5, "No background-filled palette cells to verify.", category=StepCategory.DEPENDENCY_NOT_EVALUATED
             )
         else:
             matched = sum(1 for h in all_hexes if hex_matches_any(h, ref_hexes))
@@ -1042,13 +1078,13 @@ def grade_checkpoint_6():
                 checkpoint.add_step(
                     steps[4], True, 5,
                     f"{matched}/{len(all_hexes)} palette colours match the "
-                    f"original list ({ratio:.0%}).",
+                    f"original list ({ratio:.0%}).", category=StepCategory.FUZZY_MATCH
                 )
             else:
                 checkpoint.add_step(
                     steps[4], False, 5,
                     f"Only {matched}/{len(all_hexes)} palette colours match the "
-                    f"original list ({ratio:.0%}).",
+                    f"original list ({ratio:.0%}).", category=StepCategory.FUZZY_MATCH
                 )
 
         checkpoint.execution_time = time.time() - start
@@ -1080,7 +1116,7 @@ def grade_checkpoints(workspace_doc_id: str = None, cached_models: dict = None,
         print(f"Error during setup: {str(e)}")
         traceback.print_exc()
         failed = Checkpoint(total=1, result=0, name="Evaluation Error")
-        failed.add_step("Setup", False, 1, f"Fatal setup error: {str(e)}")
+        failed.add_step("Setup", False, 1, f"Fatal setup error: {str(e)}", category=StepCategory.EXECUTION_ERROR)
         return Result([failed], total_execution_time=time.time() - total_start_time)
 
     # Pre-load the model once (guarded; shared by all checkpoints).

@@ -13,8 +13,6 @@ from typing import List, Dict, Any
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
@@ -22,7 +20,7 @@ def get_base_path():
 BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory, calculate_percentage_score
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.knows.eval.eval_utils.slides_utils import (
     extract_slide_text,
@@ -48,7 +46,7 @@ from src.browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_conte
 from src.browsergym.knows.eval.tasks.slides_51_event_announcement_poster.utils import (
     find_header_box,
     find_subheader_box,
-    find_body_box,
+    select_summary_body_box,
     load_panchekha_reference,
     classify_citation_group,
 )
@@ -123,7 +121,8 @@ def grade_checkpoint_1():
             False,
             1,
             "No slides found in presentation",
-            max_score = 5
+            max_score = 5,
+            category = StepCategory.EXECUTION_ERROR
         )
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -137,7 +136,8 @@ def grade_checkpoint_1():
             "Subheader Below Header", "Subheader Left-Aligned", "Subheader Italic & Smaller Font",
             "Subheader Contains Date", "Subheader Contains Location", "Subheader Contains Host",
             "Visual Contrast"], start=1):
-            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5)
+            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5,
+                                category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
     text_boxes = extract_text_boxes_from_slide(slide)
@@ -170,7 +170,8 @@ def grade_checkpoint_1():
         at_top,
         1,
         f"y={bbox['y']:.0f}, threshold={slide_height_emu * 0.3:.0f}" if header_found else "Header not found",
-        max_score = 5
+        max_score = 5,
+        category = StepCategory.SPATIAL if header_found else StepCategory.DEPENDENCY_NOT_EVALUATED
     )
 
     # --- Step 2: Event name centered on slide ---
@@ -181,15 +182,21 @@ def grade_checkpoint_1():
             f"alignment={alignment or 'not set'}, "
             f"box_center_x={bbox['x'] + bbox['width'] / 2:.0f}, slide_center={slide_width_emu / 2:.0f}"
         )
+        # Explicit CENTER alignment decides deterministically; otherwise the
+        # bbox-position check made the call.
+        center_category = (StepCategory.DETERMINISTIC if alignment == 'CENTER'
+                           else StepCategory.SPATIAL)
     else:
         is_centered = False
         center_detail = "Header not found"
+        center_category = StepCategory.DEPENDENCY_NOT_EVALUATED
     checkpoint.add_step(
         "Event Name Centered",
         is_centered,
         2,
         center_detail,
-        max_score = 5
+        max_score = 5,
+        category = center_category
     )
 
     # --- Step 3: Event name has bold font ---
@@ -199,7 +206,8 @@ def grade_checkpoint_1():
         is_bold,
         3,
         f"Bold: {'yes' if is_bold else 'no'}" if header_found else "Header not found",
-        max_score = 5
+        max_score = 5,
+        category = StepCategory.DETERMINISTIC if header_found else StepCategory.DEPENDENCY_NOT_EVALUATED
     )
 
     # --- Step 4: Event name font size >= 20 ---
@@ -209,7 +217,8 @@ def grade_checkpoint_1():
         is_large,
         4,
         f"Font size: {header_font_size}pt" if header_found else "Header not found",
-        max_score = 5
+        max_score = 5,
+        category = StepCategory.DETERMINISTIC if header_found else StepCategory.DEPENDENCY_NOT_EVALUATED
     )
 
     # --- Step 5: Event name color is black ---
@@ -217,10 +226,14 @@ def grade_checkpoint_1():
     if not header_found:
         is_black = False
         black_detail = "Header not found"
+        black_category = StepCategory.DEPENDENCY_NOT_EVALUATED
     elif fg_color is None:
         is_black = True
         black_detail = "Default (black)"
+        # Passed by assuming the default color without inspecting an actual value
+        black_category = StepCategory.VACUOUS_PASS
     else:
+        black_category = StepCategory.DETERMINISTIC
         is_black = (fg_color.get('red', 0) <= 0.15 and
                     fg_color.get('green', 0) <= 0.15 and
                     fg_color.get('blue', 0) <= 0.15)
@@ -230,7 +243,8 @@ def grade_checkpoint_1():
         is_black,
         5,
         black_detail,
-        max_score = 5
+        max_score = 5,
+        category = black_category
     )
 
     # --- Step 6: Event name reads "Foundations of Web Browser Internals" ---
@@ -248,7 +262,8 @@ def grade_checkpoint_1():
         name_match,
         6,
         name_detail,
-        max_score = 5
+        max_score = 5,
+        category = StepCategory.DETERMINISTIC
     )
 
     # --- Step 7: Subheader below main header ---
@@ -265,7 +280,9 @@ def grade_checkpoint_1():
         is_below,
         7,
         below_detail,
-        max_score = 5
+        max_score = 5,
+        category = (StepCategory.STRUCTURAL if (sub_found and header_found)
+                    else StepCategory.DEPENDENCY_NOT_EVALUATED)
     )
 
     # --- Step 8: Subheader is left-aligned ---
@@ -278,15 +295,22 @@ def grade_checkpoint_1():
             f"alignment={alignment or 'not set'}, "
             f"x={subheader_box['bbox']['x']:.0f}, threshold={slide_width_emu * 0.25:.0f}"
         )
+        # Explicit paragraph alignment decides deterministically; otherwise the
+        # bbox-position fallback made the call.
+        left_category = (StepCategory.DETERMINISTIC
+                         if alignment in ('LEFT', 'START', 'CENTER', 'RIGHT', 'END', 'JUSTIFIED')
+                         else StepCategory.SPATIAL)
     else:
         is_left = False
         left_detail = "Subheader not found"
+        left_category = StepCategory.DEPENDENCY_NOT_EVALUATED
     checkpoint.add_step(
         "Subheader Left-Aligned",
         is_left,
         8,
         left_detail,
-        max_score = 5
+        max_score = 5,
+        category = left_category
     )
 
     # --- Step 9: Subheader is italic, smaller than header ---
@@ -298,7 +322,8 @@ def grade_checkpoint_1():
         italic_smaller,
         9,
         f"Italic: {'yes' if is_italic else 'no'}, font: {sub_font_size}pt < header {header_font_size}pt" if sub_found else "Subheader not found",
-        max_score = 5
+        max_score = 5,
+        category = StepCategory.DETERMINISTIC if sub_found else StepCategory.DEPENDENCY_NOT_EVALUATED
     )
 
     # --- Steps 10-12: Subheader content checks ---
@@ -311,7 +336,8 @@ def grade_checkpoint_1():
         has_date,
         10,
         f"07/27/2026: {'found' if has_date else 'missing'}",
-        max_score = 5
+        max_score = 5,
+        category = StepCategory.DETERMINISTIC
     )
 
     # Step 11: Location
@@ -322,7 +348,8 @@ def grade_checkpoint_1():
         has_location,
         11,
         f"Warnock...L101: {'found' if has_location else 'missing'}",
-        max_score = 5
+        max_score = 5,
+        category = StepCategory.DETERMINISTIC
     )
 
     # Step 12: Host
@@ -332,7 +359,8 @@ def grade_checkpoint_1():
         has_host,
         12,
         f"University of Utah: {'found' if has_host else 'missing'}",
-        max_score = 5
+        max_score = 5,
+        category = StepCategory.DETERMINISTIC
     )
 
     # --- Step 13: Visual contrast between header and subheader ---
@@ -351,7 +379,9 @@ def grade_checkpoint_1():
         contrast,
         13,
         contrast_detail,
-        max_score = 5
+        max_score = 5,
+        category = (StepCategory.DETERMINISTIC if (header_style and subheader_style)
+                    else StepCategory.DEPENDENCY_NOT_EVALUATED)
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -380,7 +410,8 @@ def grade_checkpoint_2():
                 False,
                 i,
                 "No slides found",
-                max_score = 5
+                max_score = 5,
+                category = StepCategory.EXECUTION_ERROR
             )
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -389,7 +420,8 @@ def grade_checkpoint_2():
     slide_w, slide_h = get_slide_dimensions(presentation_data)
     if slide_w is None or slide_h is None:
         for step_id, name in enumerate(["U of U Logo", "Logo Top Right", "Logo Scale", "Logo No Overlap with Header/Subheader"], start=1):
-            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5)
+            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5,
+                                category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -411,7 +443,8 @@ def grade_checkpoint_2():
                 False,
                 i,
                 "No images found on slide",
-                max_score = 5
+                max_score = 5,
+                category = StepCategory.DETERMINISTIC
             )
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -434,6 +467,7 @@ def grade_checkpoint_2():
     step_start = time.time()
     step1_success = False
     step1_details = []
+    step1_category = StepCategory.LLM_VLM_JUDGEMENT
 
     temp_dir = tempfile.mkdtemp()
     try:
@@ -456,8 +490,10 @@ def grade_checkpoint_2():
             step1_details.append(f"VLM match against example logos: {'yes' if step1_success else 'no'}")
         else:
             step1_details.append("Failed to download logo image")
+            step1_category = StepCategory.EXECUTION_ERROR
     except Exception as e:
         step1_details.append(f"Error during logo check: {e}")
+        step1_category = StepCategory.EXECUTION_ERROR
     finally:
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
@@ -468,7 +504,8 @@ def grade_checkpoint_2():
         1,
         " | ".join(step1_details),
         max_score = 5,
-        execution_time = time.time() - step_start
+        execution_time = time.time() - step_start,
+        category = step1_category
     )
 
     # --- Step 2: Logo is inserted in the top right of the slide ---
@@ -488,7 +525,8 @@ def grade_checkpoint_2():
         2,
         step2_detail,
         max_score = 5,
-        execution_time = time.time() - step_start
+        execution_time = time.time() - step_start,
+        category = StepCategory.SPATIAL
     )
 
     # --- Step 3: Logo appropriately scaled ---
@@ -503,7 +541,8 @@ def grade_checkpoint_2():
         3,
         f"Scale: {area_pct:.1f}% of slide ({'appropriate' if step3_success else 'inappropriate'})",
         max_score = 5,
-        execution_time = time.time() - step_start
+        execution_time = time.time() - step_start,
+        category = StepCategory.SPATIAL
     )
 
     # --- Step 4: Logo does not overlap or crowd header/subheader text ---
@@ -545,7 +584,8 @@ def grade_checkpoint_2():
         4,
         " | ".join(step4_details),
         max_score = 5,
-        execution_time = time.time() - step_start
+        execution_time = time.time() - step_start,
+        category = StepCategory.SPATIAL
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -577,7 +617,8 @@ def grade_checkpoint_3():
                 False,
                 i,
                 "No slides found",
-                max_score = 5
+                max_score = 5,
+                category = StepCategory.EXECUTION_ERROR
             )
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -589,33 +630,38 @@ def grade_checkpoint_3():
             "Body Summary in Central Area", "1-2 Paragraphs",
             "Covers How Web Browsers Work", "Tied to Pavel Panchekha's Work",
             "Engaging Content", "At Least 2 Relevant Cited Sources"], start=1):
-            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5)
+            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5,
+                                category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
     text_boxes = extract_text_boxes_from_slide(slide)
 
     # --- Find central body text box ---
-    global body_text
-    body_box = find_body_box(text_boxes, slide_w, slide_h)
+    global body_text, model
+    if model is None:
+        model = load_model(model_id)
+
+    step_start = time.time()
+    body_box, body_is_summary, step1_detail = select_summary_body_box(
+        text_boxes, slide_w, slide_h, model)
     body_text = body_box['text'].strip() if body_box else ""
 
     # --- Step 1: Background summary placed in central body ---
-    step_start = time.time()
     if body_box is None:
-        step1_success = False
-        step1_detail = "No substantial text box found in central area"
+        step1_category = StepCategory.SPATIAL
+    elif body_is_summary is None:
+        step1_category = StepCategory.EXECUTION_ERROR
     else:
-        has_content = len(body_text) >= 50
-        step1_success = has_content
-        step1_detail = f"Body box found, content length: {len(body_text)} chars"
+        step1_category = StepCategory.LLM_VLM_JUDGEMENT
 
     checkpoint.add_step(
         "Body Summary in Central Area",
-        step1_success,
+        bool(body_is_summary),
         1,
         step1_detail,
         max_score = 5,
-        execution_time = time.time() - step_start
+        execution_time = time.time() - step_start,
+        category = step1_category
     )
 
     # --- Step 2: Summary is 1-2 paragraphs ---
@@ -641,7 +687,9 @@ def grade_checkpoint_3():
         2,
         step2_detail,
         max_score = 5,
-        execution_time = time.time() - step_start
+        execution_time = time.time() - step_start,
+        category = (StepCategory.STRUCTURAL if body_text
+                    else StepCategory.DEPENDENCY_NOT_EVALUATED)
     )
 
     # --- Steps 3, 4, 5: LLM checks in parallel ---
@@ -651,15 +699,15 @@ def grade_checkpoint_3():
     step4_details = []
     step5_success = False
     step5_details = []
+    step3_category = StepCategory.DEPENDENCY_NOT_EVALUATED
+    step4_category = StepCategory.DEPENDENCY_NOT_EVALUATED
+    step5_category = StepCategory.DEPENDENCY_NOT_EVALUATED
 
     if not body_text:
         step3_details.append("No body text")
         step4_details.append("No body text")
         step5_details.append("No body text")
     else:
-        global model
-        if model is None:
-            model = load_model(model_id)
 
         # Load Panchekha reference for grounding Step 4
         panchekha_ref = load_panchekha_reference()
@@ -723,37 +771,43 @@ def grade_checkpoint_3():
         r3 = llm_results.get('covers_browsers')
         step3_success = r3 and r3.strip().lower().startswith("yes")
         step3_details.append(f"LLM: {r3.strip()[:150] if r3 else 'no response'}")
+        step3_category = StepCategory.LLM_VLM_JUDGEMENT if r3 else StepCategory.EXECUTION_ERROR
 
         r4 = llm_results.get('tied_to_panchekha')
         step4_success = r4 and r4.strip().lower().startswith("yes")
         step4_details.append(f"LLM: {r4.strip()[:150] if r4 else 'no response'}")
+        step4_category = StepCategory.LLM_VLM_JUDGEMENT if r4 else StepCategory.EXECUTION_ERROR
         if panchekha_ref_trimmed:
             step4_details.append(f"(grounded with {len(panchekha_ref_trimmed)} chars of reference)")
 
         r5 = llm_results.get('engaging')
         step5_success = r5 and r5.strip().lower().startswith("yes")
         step5_details.append(f"LLM: {r5.strip()[:150] if r5 else 'no response'}")
+        step5_category = StepCategory.LLM_VLM_JUDGEMENT if r5 else StepCategory.EXECUTION_ERROR
 
     checkpoint.add_step(
         "Covers How Web Browsers Work",
         step3_success,
         3,
         " | ".join(step3_details),
-        max_score = 5
+        max_score = 5,
+        category = step3_category
     )
     checkpoint.add_step(
         "Tied to Pavel Panchekha's Work",
         step4_success,
         4,
         " | ".join(step4_details),
-        max_score = 5
+        max_score = 5,
+        category = step4_category
     )
     checkpoint.add_step(
         "Engaging Content",
         step5_success,
         5,
         " | ".join(step5_details),
-        max_score = 5
+        max_score = 5,
+        category = step5_category
     )
 
     # --- Step 6: At least 2 reputable, stable sources cited for topic ---
@@ -761,10 +815,12 @@ def grade_checkpoint_3():
     step6_details = []
     step6_score = 0
     step6_success = False
+    step6_category = StepCategory.LLM_VLM_JUDGEMENT
     notes_text = extract_speaker_notes_text(slide)
 
     if not body_text or not notes_text:
         step6_details.append("Missing body text or speaker notes")
+        step6_category = StepCategory.DEPENDENCY_NOT_EVALUATED
     else:
         if model is None:
             model = load_model(model_id)
@@ -845,7 +901,8 @@ def grade_checkpoint_3():
         " | ".join(step6_details),
         score = step6_score,
         max_score = 5,
-        execution_time = time.time() - step_start
+        execution_time = time.time() - step_start,
+        category = step6_category
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -877,7 +934,8 @@ def grade_checkpoint_4():
                 False,
                 i,
                 "No slides found",
-                max_score = 5
+                max_score = 5,
+                category = StepCategory.EXECUTION_ERROR
             )
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -889,7 +947,8 @@ def grade_checkpoint_4():
             "Grey Sidebar Exists", "Sidebar Contains Text",
             "Speaker Affiliation Correct", "Educational Background Accurate",
             "3+ Professional Achievements", "Connection to Web Browsers"], start=1):
-            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5)
+            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5,
+                                category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
     text_boxes = extract_text_boxes_from_slide(slide)
@@ -961,7 +1020,8 @@ def grade_checkpoint_4():
         1,
         f"Grey-filled shapes on right: {len(grey_bg_shapes)} | Sidebar has grey fill: {sidebar_has_grey}",
         max_score = 5,
-        execution_time = time.time() - step_start
+        execution_time = time.time() - step_start,
+        category = StepCategory.FUZZY_MATCH
     )
 
     # --- Step 2: Right sidebar contains text ---
@@ -973,7 +1033,8 @@ def grade_checkpoint_4():
         2,
         f"Sidebar text length: {len(sidebar_text)} chars",
         max_score = 5,
-        execution_time = time.time() - step_start
+        execution_time = time.time() - step_start,
+        category = StepCategory.DETERMINISTIC
     )
 
     # --- Steps 3-6: text-based + LLM checks in parallel ---
@@ -986,6 +1047,10 @@ def grade_checkpoint_4():
     step5_score = 0
     step6_success = False
     step6_details = []
+    step3_category = StepCategory.DEPENDENCY_NOT_EVALUATED
+    step4_category = StepCategory.DEPENDENCY_NOT_EVALUATED
+    step5_category = StepCategory.DEPENDENCY_NOT_EVALUATED
+    step6_category = StepCategory.DEPENDENCY_NOT_EVALUATED
 
     if not sidebar_text:
         step3_details.append("No sidebar text")
@@ -1085,12 +1150,17 @@ def grade_checkpoint_4():
         llm_affil = r3 and r3.strip().lower().startswith("yes")
         step3_success = mentions_utah and llm_affil
         step3_details.append(f"LLM: {r3.strip()[:120] if r3 else 'no response'}")
+        # Keyword tier failing alone decides; otherwise the LLM is the final gate.
+        step3_category = (StepCategory.DETERMINISTIC if not mentions_utah
+                          else StepCategory.LLM_VLM_JUDGEMENT)
 
         # Step 4: text match + LLM
         r4 = llm_results.get('education')
         llm_edu = r4 and r4.strip().lower().startswith("yes")
         step4_success = mentions_education and llm_edu
         step4_details.append(f"LLM: {r4.strip()[:120] if r4 else 'no response'}")
+        step4_category = (StepCategory.DETERMINISTIC if not mentions_education
+                          else StepCategory.LLM_VLM_JUDGEMENT)
 
         # Step 5: Parse achievement count from LLM, score as percentage of 3
         r5 = llm_results.get('achievements')
@@ -1101,12 +1171,15 @@ def grade_checkpoint_4():
         step5_score = calculate_percentage_score(min(achievement_count, 3), 3, max_points=5)
         step5_success = step5_score == 5
         step5_details.append(f"Achievements found: {achievement_count}/3 ({min(achievement_count, 3) / 3:.0%})")
+        step5_category = StepCategory.LLM_VLM_JUDGEMENT
 
         # Step 6: text match + grounded LLM
         r6 = llm_results.get('browsers')
         llm_browser = r6 and r6.strip().lower().startswith("yes")
         step6_success = mentions_browser and llm_browser
         step6_details.append(f"LLM: {r6.strip()[:120] if r6 else 'no response'}")
+        step6_category = (StepCategory.DETERMINISTIC if not mentions_browser
+                          else StepCategory.LLM_VLM_JUDGEMENT)
         if panchekha_ref_excerpt:
             step6_details.append(f"(grounded with {len(panchekha_ref_excerpt)} chars of reference)")
 
@@ -1115,14 +1188,16 @@ def grade_checkpoint_4():
         step3_success,
         3,
         " | ".join(step3_details),
-        max_score = 5
+        max_score = 5,
+        category = step3_category
     )
     checkpoint.add_step(
         "Educational Background Accurate",
         step4_success,
         4,
         " | ".join(step4_details),
-        max_score = 5
+        max_score = 5,
+        category = step4_category
     )
     checkpoint.add_step(
         "3+ Professional Achievements",
@@ -1130,14 +1205,16 @@ def grade_checkpoint_4():
         5,
         " | ".join(step5_details),
         score = step5_score,
-        max_score = 5
+        max_score = 5,
+        category = step5_category
     )
     checkpoint.add_step(
         "Connection to Web Browsers",
         step6_success,
         6,
         " | ".join(step6_details),
-        max_score = 5
+        max_score = 5,
+        category = step6_category
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -1165,7 +1242,8 @@ def grade_checkpoint_5():
                 False,
                 i,
                 "No slides found",
-                max_score = 5
+                max_score = 5,
+                category = StepCategory.EXECUTION_ERROR
             )
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -1176,7 +1254,8 @@ def grade_checkpoint_5():
         for step_id, name in enumerate([
             "Footer at Bottom Right", "U of U Contact Info",
             "Pavel Panchekha's Webpage URL"], start=1):
-            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5)
+            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5,
+                                category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
     text_boxes = extract_text_boxes_from_slide(slide)
@@ -1244,7 +1323,9 @@ def grade_checkpoint_5():
         1,
         step1_detail,
         max_score = 5,
-        execution_time = time.time() - step_start
+        execution_time = time.time() - step_start,
+        category = (StepCategory.SPATIAL if footer_box is not None
+                    else StepCategory.DETERMINISTIC)
     )
 
     # --- Step 2: Contains University of Utah's contact info ---
@@ -1260,7 +1341,8 @@ def grade_checkpoint_5():
         2,
         f"Contact keyword matched: {matched_contact if matched_contact else 'none'}",
         max_score = 5,
-        execution_time = time.time() - step_start
+        execution_time = time.time() - step_start,
+        category = StepCategory.DETERMINISTIC
     )
 
     # --- Step 3: Contains Pavel Panchekha's webpage URL ---
@@ -1275,7 +1357,8 @@ def grade_checkpoint_5():
         3,
         f"Panchekha URL: {'found (' + matched_url + ')' if matched_url else 'not found'}",
         max_score = 5,
-        execution_time = time.time() - step_start
+        execution_time = time.time() - step_start,
+        category = StepCategory.DETERMINISTIC
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -1303,7 +1386,8 @@ def grade_checkpoint_6():
                 False,
                 i,
                 "No slides found",
-                max_score = 5
+                max_score = 5,
+                category = StepCategory.EXECUTION_ERROR
             )
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -1321,7 +1405,8 @@ def grade_checkpoint_6():
         1,
         f"Speaker notes: {len(notes_text)} chars | URLs in notes: {len(notes_urls)}",
         max_score = 5,
-        execution_time = time.time() - step_start
+        execution_time = time.time() - step_start,
+        category = StepCategory.DETERMINISTIC
     )
 
     # Short-circuit remaining steps if no URLs to evaluate
@@ -1332,7 +1417,8 @@ def grade_checkpoint_6():
                 False,
                 i,
                 "No URLs in speaker notes to evaluate",
-                max_score = 5
+                max_score = 5,
+                category = StepCategory.DEPENDENCY_NOT_EVALUATED
             )
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -1433,24 +1519,35 @@ def grade_checkpoint_6():
     step2_success, step2_detail = classify_citation_group(
         topic_urls, fetch_results, verify_results, 'topic'
     )
+    # A pass with every URL unfetchable is full credit without any check running.
+    topic_all_unfetchable = bool(topic_urls) and all(
+        not (fetch_results.get(u) and fetch_results.get(u)[0]) for u in topic_urls
+    )
     checkpoint.add_step(
         "Sources for Topic Summary",
         step2_success,
         2,
         step2_detail,
-        max_score = 5
+        max_score = 5,
+        category = (StepCategory.VACUOUS_PASS if (step2_success and topic_all_unfetchable)
+                    else StepCategory.LLM_VLM_JUDGEMENT)
     )
 
     # --- Step 3: Bio sources ---
     step3_success, step3_detail = classify_citation_group(
         bio_urls, fetch_results, verify_results, 'bio'
     )
+    bio_all_unfetchable = bool(bio_urls) and all(
+        not (fetch_results.get(u) and fetch_results.get(u)[0]) for u in bio_urls
+    )
     checkpoint.add_step(
         "Sources for Speaker Bio",
         step3_success,
         3,
         step3_detail,
-        max_score = 5
+        max_score = 5,
+        category = (StepCategory.VACUOUS_PASS if (step3_success and bio_all_unfetchable)
+                    else StepCategory.LLM_VLM_JUDGEMENT)
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -1476,14 +1573,16 @@ def grade_checkpoint_7():
             False,
             1,
             "No slides found",
-            max_score = 5
+            max_score = 5,
+            category = StepCategory.EXECUTION_ERROR
         )
         checkpoint.add_step(
             "All On Slide",
             False,
             2,
             "No slides found",
-            max_score = 5
+            max_score = 5,
+            category = StepCategory.EXECUTION_ERROR
         )
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -1492,7 +1591,8 @@ def grade_checkpoint_7():
     slide_w, slide_h = get_slide_dimensions(presentation_data)
     if slide_w is None or slide_h is None:
         for step_id, name in enumerate(["No Overlapping Elements", "All Elements On Slide"], start=1):
-            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5)
+            checkpoint.add_step(name, False, step_id, "Slide dimensions unavailable", max_score=5,
+                                category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -1543,7 +1643,8 @@ def grade_checkpoint_7():
         " | ".join(step1_details),
         score = step1_score,
         max_score = 5,
-        execution_time = time.time() - step1_start
+        execution_time = time.time() - step1_start,
+        category = StepCategory.SPATIAL
     )
 
     # --- Step 2: All elements on the slide ---
@@ -1579,7 +1680,8 @@ def grade_checkpoint_7():
         " | ".join(step2_details),
         score = step2_score,
         max_score = 5,
-        execution_time = time.time() - step2_start
+        execution_time = time.time() - step2_start,
+        category = StepCategory.SPATIAL
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -1610,7 +1712,8 @@ def grade_checkpoints(workspace_doc_id: str, cached_models: Dict[str, Any] = Non
     except Exception as e:
         print(f"Evaluation failed: {e}")
         failed = Checkpoint(total=1, result=0, name="Evaluation Error")
-        failed.add_step("Evaluation", False, 1, f"Fatal error: {e}", execution_time=0)
+        failed.add_step("Evaluation", False, 1, f"Fatal error: {e}", execution_time=0,
+                        category=StepCategory.EXECUTION_ERROR)
         return Result([failed], total_execution_time=time.time() - total_start)
 
 

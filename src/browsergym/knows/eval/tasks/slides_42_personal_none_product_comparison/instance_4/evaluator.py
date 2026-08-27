@@ -14,8 +14,6 @@ import shutil
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
@@ -23,7 +21,7 @@ BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 # imports from eval_utils
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.knows.eval.eval_utils.text_utils import (
     keywords_exact_match,
@@ -129,7 +127,7 @@ def grade_checkpoint_1():
 
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
         for i, name in enumerate(checkpoint_1_step_names, 1):
-            checkpoint.add_step(name, False, i, "No slides found in presentation", execution_time=time.time() - checkpoint_start)
+            checkpoint.add_step(name, False, i, "No slides found in presentation", execution_time=time.time() - checkpoint_start, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -143,9 +141,10 @@ def grade_checkpoint_1():
     # Step 1: Match on 'A Gift for Hiroshi!' (robust: exact then LLM fallback)
     step_start = time.time()
     title_text = extract_title_text(title_slide)
-    title_found = bool(keywords_match_robust(title_text, "A Gift for Hiroshi!", model=model))
+    title_found_text, title_match_method = keywords_match_robust(title_text, "A Gift for Hiroshi!", model=model, return_method=True)
+    title_found = bool(title_found_text)
 
-    checkpoint.add_step("Title Match", title_found, 1, "Found title 'A Gift for Hiroshi!'" if title_found else "Title does not match 'A Gift for Hiroshi!'", execution_time=time.time() - step_start)
+    checkpoint.add_step("Title Match", title_found, 1, "Found title 'A Gift for Hiroshi!'" if title_found else "Title does not match 'A Gift for Hiroshi!'", execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC if title_match_method == "exact" else StepCategory.LLM_VLM_JUDGEMENT)
 
     # Step 2: Title is bold (any run carrying the title text is bold)
     step_start = time.time()
@@ -171,19 +170,22 @@ def grade_checkpoint_1():
             # Keep the first matching box as a positional reference even when not bold.
             if title_text_box is None:
                 title_text_box = text_box
-    checkpoint.add_step("Title Is Bold", title_bold, 2, "Title text is bold" if title_bold else "Title text not bold or could not determine", execution_time=time.time() - step_start)
+    checkpoint.add_step("Title Is Bold", title_bold, 2, "Title text is bold" if title_bold else "Title text not bold or could not determine", execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
 
     # Step 3: Subtitle lists all 3 device options
     step_start = time.time()
     slide_text = extract_slide_text(title_slide)
     devices_matched = True
     unmatched = ""
+    device_match_items = []
     for device in gold_devices:
-        if not keywords_match_robust(slide_text, device, model=model, substring=True):
+        device_match_text, device_match_method = keywords_match_robust(slide_text, device, model=model, substring=True, return_method=True)
+        device_match_items.append((StepCategory.DETERMINISTIC if device_match_method == "exact" else StepCategory.LLM_VLM_JUDGEMENT, bool(device_match_text)))
+        if not device_match_text:
             devices_matched = False
             unmatched += device + "; "
 
-    checkpoint.add_step("Subtitle Includes All Ink Brands", devices_matched, 3, "Subtitle lists all 3 ink brands" if devices_matched else f"Subtitle missing ink brands: {unmatched}", execution_time=time.time() - step_start)
+    checkpoint.add_step("Subtitle Includes All Ink Brands", devices_matched, 3, "Subtitle lists all 3 ink brands" if devices_matched else f"Subtitle missing ink brands: {unmatched}", execution_time=time.time() - step_start, category=StepCategory.aggregate(device_match_items))
 
     # Steps 4 & 5: Image found and title-left-of-image. Both must record a step
     # regardless of any exceptions while downloading/judging images.
@@ -191,9 +193,11 @@ def grade_checkpoint_1():
     images = extract_slide_images(title_slide, presentation_id, SLIDES_SERVICE)
     uni_image_valid = False
     uni_image_detail = "No valid Portland tattoo scene image found"
+    uni_image_category = StepCategory.LLM_VLM_JUDGEMENT
     matching_image = None
     title_left_of_image = False
     title_left_detail = "Title is not to the left of the Portland tattoo scene image"
+    title_left_category = StepCategory.DEPENDENCY_NOT_EVALUATED
 
     temp_dir = os.path.join(DATA_DIR, "temp_images")
     try:
@@ -224,18 +228,21 @@ def grade_checkpoint_1():
                 print(f"Portland tattoo image LLM check failed: {e}")
                 matching_image = None
                 uni_image_detail = f"Portland tattoo image check failed: {e}"
+                uni_image_category = StepCategory.EXECUTION_ERROR
 
             if matching_image:
                 uni_image_valid = True
                 uni_image_detail = "Found an image representing Portland's tattoo art scene"
         else:
             uni_image_detail = "No images available on title slide"
+            uni_image_category = StepCategory.DETERMINISTIC
     except Exception as e:
         print(f"Unexpected error during image processing: {e}")
         uni_image_detail = f"Unexpected error during image processing: {e}"
+        uni_image_category = StepCategory.EXECUTION_ERROR
     finally:
         # Step 4 always recorded
-        checkpoint.add_step("Portland Tattoo Image Found", uni_image_valid, 4, uni_image_detail, execution_time=time.time() - step_start)
+        checkpoint.add_step("Portland Tattoo Image Found", uni_image_valid, 4, uni_image_detail, execution_time=time.time() - step_start, category=uni_image_category)
 
         # Step 5: Title-left-of-image (best-effort; always recorded)
         step5_start = time.time()
@@ -271,14 +278,18 @@ def grade_checkpoint_1():
                         "Title is to the left of the Portland tattoo image" if title_left_of_image
                         else "Title is not to the left of the Portland tattoo image"
                     )
+                    title_left_category = StepCategory.SPATIAL
                 else:
                     title_left_detail = "Could not determine title or image position"
+                    title_left_category = StepCategory.DEPENDENCY_NOT_EVALUATED
             else:
                 title_left_detail = "Skipping position check: no valid Portland tattoo image"
+                title_left_category = StepCategory.DEPENDENCY_NOT_EVALUATED
         except Exception as e:
             print(f"Title-left-of-image check failed: {e}")
             title_left_detail = f"Position check failed: {e}"
-        checkpoint.add_step("Title Left of Image", title_left_of_image, 5, title_left_detail, execution_time=time.time() - step5_start)
+            title_left_category = StepCategory.EXECUTION_ERROR
+        checkpoint.add_step("Title Left of Image", title_left_of_image, 5, title_left_detail, execution_time=time.time() - step5_start, category=title_left_category)
 
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir, ignore_errors=True)
@@ -293,6 +304,7 @@ def grade_checkpoint_1():
     step_start = time.time()
     color_valid = False
     color_detail_parts = []
+    color_category = StepCategory.FUZZY_MATCH
 
     def _color_close(rgb_dict, official, threshold=0.2):
         if not rgb_dict:
@@ -351,12 +363,13 @@ def grade_checkpoint_1():
     except Exception as e:
         print(f"Portland tattoo color check error: {e}")
         color_detail_parts.append(f"check error: {e}")
+        color_category = StepCategory.EXECUTION_ERROR
 
     color_detail = (
         "Portland tattoo aesthetic color found on slide (" + "; ".join(color_detail_parts) + ")"
         if color_valid else "No deep charcoal, muted gold, or crimson detected on background, title text, or shape fills"
     )
-    checkpoint.add_step("Charcoal/Gold/Crimson Colors", bool(color_valid), 6, color_detail, execution_time=time.time() - step_start)
+    checkpoint.add_step("Charcoal/Gold/Crimson Colors", bool(color_valid), 6, color_detail, execution_time=time.time() - step_start, category=color_category)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -376,16 +389,16 @@ def grade_checkpoint_2():
     checkpoint = Checkpoint(total=2, result=0, name="Challenge & Goal")
 
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
-        checkpoint.add_step("Explains Challenge", False, 1, "No slides found in presentation", execution_time=time.time() - checkpoint_start)
-        checkpoint.add_step("Explains Goal", False, 2, "No slides found in presentation", execution_time=time.time() - checkpoint_start)
+        checkpoint.add_step("Explains Challenge", False, 1, "No slides found in presentation", execution_time=time.time() - checkpoint_start, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Explains Goal", False, 2, "No slides found in presentation", execution_time=time.time() - checkpoint_start, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     # Slide 2 is index 1
     slides = presentation_data['slides']
     if len(slides) < 2:
-        checkpoint.add_step("Explains Challenge", False, 1, "Challenge slide not found or not in the correct order", execution_time=time.time() - checkpoint_start)
-        checkpoint.add_step("Explains Goal", False, 2, "Challenge slide not found or not in the correct order", execution_time=time.time() - checkpoint_start)
+        checkpoint.add_step("Explains Challenge", False, 1, "Challenge slide not found or not in the correct order", execution_time=time.time() - checkpoint_start, category=StepCategory.STRUCTURAL)
+        checkpoint.add_step("Explains Goal", False, 2, "Challenge slide not found or not in the correct order", execution_time=time.time() - checkpoint_start, category=StepCategory.STRUCTURAL)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -412,10 +425,10 @@ def grade_checkpoint_2():
         ]
         response = model(messages).strip().lower()
         challenge_ok = 'yes' in response
-        checkpoint.add_step("Explains Challenge", challenge_ok, 1, "Found challenge explanation" if challenge_ok else "No challenge explanation found", execution_time=time.time() - step_start)
+        checkpoint.add_step("Explains Challenge", challenge_ok, 1, "Found challenge explanation" if challenge_ok else "No challenge explanation found", execution_time=time.time() - step_start, category=StepCategory.LLM_VLM_JUDGEMENT)
     except Exception as e:
         print(f"LLM failed to evaluate challenge: {e}")
-        checkpoint.add_step("Explains Challenge", False, 1, f"LLM error while evaluating challenge: {e}", execution_time=time.time() - step_start)
+        checkpoint.add_step("Explains Challenge", False, 1, f"LLM error while evaluating challenge: {e}", execution_time=time.time() - step_start, category=StepCategory.EXECUTION_ERROR)
 
     # Step 2: Goal explanation (separate try/except).
     step_start = time.time()
@@ -432,10 +445,10 @@ def grade_checkpoint_2():
         ]
         response = model(messages).strip().lower()
         goal_ok = 'yes' in response
-        checkpoint.add_step("Explains Goal", goal_ok, 2, "Found goal explanation" if goal_ok else "No goal explanation found", execution_time=time.time() - step_start)
+        checkpoint.add_step("Explains Goal", goal_ok, 2, "Found goal explanation" if goal_ok else "No goal explanation found", execution_time=time.time() - step_start, category=StepCategory.LLM_VLM_JUDGEMENT)
     except Exception as e:
         print(f"LLM failed to evaluate goal: {e}")
-        checkpoint.add_step("Explains Goal", False, 2, f"LLM error while evaluating goal: {e}", execution_time=time.time() - step_start)
+        checkpoint.add_step("Explains Goal", False, 2, f"LLM error while evaluating goal: {e}", execution_time=time.time() - step_start, category=StepCategory.EXECUTION_ERROR)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -466,7 +479,7 @@ def grade_checkpoint_3():
     ]
     if not presentation_data or 'slides' not in presentation_data:
         for i, name in enumerate(categories, 1):
-            checkpoint.add_step(name, False, i, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
+            checkpoint.add_step(name, False, i, "No slides found in the presentation", execution_time=time.time() - checkpoint_start, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -474,7 +487,7 @@ def grade_checkpoint_3():
     slides = presentation_data['slides']
     if len(slides) < 3:
         for i, name in enumerate(categories, 1):
-            checkpoint.add_step(name, False, i, "Criteria slide not found or not in the correct order", execution_time=time.time() - checkpoint_start)
+            checkpoint.add_step(name, False, i, "Criteria slide not found or not in the correct order", execution_time=time.time() - checkpoint_start, category=StepCategory.STRUCTURAL)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -494,8 +507,8 @@ def grade_checkpoint_3():
         model = load_model(model_id)
     for i, category in enumerate(categories):
         step_start = time.time()
-        is_valid = keywords_match_robust(slide_text, category_keyword_list[i], model=model, substring=True)
-        checkpoint.add_step(category, bool(is_valid), i + 1, f"Found {category}" if bool(is_valid) else f"Missing {category}", execution_time=time.time() - step_start)
+        is_valid, criteria_match_method = keywords_match_robust(slide_text, category_keyword_list[i], model=model, substring=True, return_method=True)
+        checkpoint.add_step(category, bool(is_valid), i + 1, f"Found {category}" if bool(is_valid) else f"Missing {category}", execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC if criteria_match_method == "exact" else StepCategory.LLM_VLM_JUDGEMENT)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -537,7 +550,7 @@ def grade_checkpoint_4():
         for phase_steps in (phase_1_steps, phase_2_steps, phase_3_steps):
             for i in range(num_devices):
                 for name in phase_steps:
-                    checkpoint.add_step(f"Device {i+1} - {name}", False, step_id, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
+                    checkpoint.add_step(f"Device {i+1} - {name}", False, step_id, "No slides found in the presentation", execution_time=time.time() - checkpoint_start, category=StepCategory.EXECUTION_ERROR)
                     step_id += 1
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -548,7 +561,7 @@ def grade_checkpoint_4():
         for phase_steps in (phase_1_steps, phase_2_steps, phase_3_steps):
             for i in range(num_devices):
                 for name in phase_steps:
-                    checkpoint.add_step(f"Device {i+1} - {name}", False, step_id, "Device slides missing or not in the correct order", execution_time=time.time() - checkpoint_start)
+                    checkpoint.add_step(f"Device {i+1} - {name}", False, step_id, "Device slides missing or not in the correct order", execution_time=time.time() - checkpoint_start, category=StepCategory.STRUCTURAL)
                     step_id += 1
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
@@ -607,14 +620,16 @@ def grade_checkpoint_4():
         slide_title = extract_title_text(slide)
         print(f"        Checking that title is device name...")
         try:
-            title_match = keywords_match_robust(expected_titles, slide_title, model=model)
+            title_match, title_match_method = keywords_match_robust(expected_titles, slide_title, model=model, return_method=True)
+            title_match_category = StepCategory.DETERMINISTIC if title_match_method == "exact" else StepCategory.LLM_VLM_JUDGEMENT
         except Exception as e:
             print(f"        Title match failed: {e}")
             title_match = None
+            title_match_category = StepCategory.EXECUTION_ERROR
         if not title_match:
-            checkpoint.add_step(f"Device {i+1} - Device Name as Title", False, step_id, "The title is not the device name", execution_time=time.time() - step_start)
+            checkpoint.add_step(f"Device {i+1} - Device Name as Title", False, step_id, "The title is not the device name", execution_time=time.time() - step_start, category=title_match_category)
         else:
-            checkpoint.add_step(f"Device {i+1} - Device Name as Title", True, step_id, f"The title is the device name ({title_match})", execution_time=time.time() - step_start)
+            checkpoint.add_step(f"Device {i+1} - Device Name as Title", True, step_id, f"The title is the device name ({title_match})", execution_time=time.time() - step_start, category=title_match_category)
             # Guard against normalized forms that aren't literally in the list.
             if title_match in expected_titles:
                 expected_titles.remove(title_match)
@@ -629,7 +644,7 @@ def grade_checkpoint_4():
         except Exception as e:
             print(f"        Error extracting slide links: {e}")
             slide_links = []
-        checkpoint.add_step(f"Device {i+1} - Source Link(s) in Slide", len(slide_links) > 0, step_id, "The slide contains at least one source" if len(slide_links) > 0 else "No source is found in slide", execution_time=time.time() - step_start)
+        checkpoint.add_step(f"Device {i+1} - Source Link(s) in Slide", len(slide_links) > 0, step_id, "The slide contains at least one source" if len(slide_links) > 0 else "No source is found in slide", execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
         step_id += 1
 
         # 3 & 4. Validate product images and source-image match. Both steps are
@@ -647,8 +662,10 @@ def grade_checkpoint_4():
 
         valid_images = False
         valid_images_detail = "Product images are missing or not from different angles"
+        valid_images_category = None
         found_in_source = False
         found_in_source_detail = "No images in the slide was from the source"
+        found_in_source_category = StepCategory.LLM_VLM_JUDGEMENT
 
         try:
             try:
@@ -667,6 +684,7 @@ def grade_checkpoint_4():
 
             if len(images) == 0:
                 valid_images_detail = f"No images found on the slide"
+                valid_images_category = StepCategory.DETERMINISTIC
             else:
                 os.makedirs(temp_dir, exist_ok=True)
                 try:
@@ -750,6 +768,7 @@ def grade_checkpoint_4():
                                     shutil.rmtree(temp_example_dir, ignore_errors=True)
                     else:
                         valid_images_detail = "Could not download slide images or example folder is missing"
+                        valid_images_category = StepCategory.EXECUTION_ERROR
 
                     valid_images = valid_image_count >= 2 and bool(image_from_different_angle)
                     if valid_images:
@@ -761,8 +780,9 @@ def grade_checkpoint_4():
                 except Exception as e:
                     print(f"        Error evaluating images: {e}")
                     valid_images_detail = f"Error evaluating images: {e}"
+                    valid_images_category = StepCategory.EXECUTION_ERROR
 
-            checkpoint.add_step(f"Device {i+1} - Product Images", valid_images, step_id, valid_images_detail, execution_time=time.time() - step_start)
+            checkpoint.add_step(f"Device {i+1} - Product Images", valid_images, step_id, valid_images_detail, execution_time=time.time() - step_start, category=valid_images_category if valid_images_category else StepCategory.LLM_VLM_JUDGEMENT)
             step_id += 1
 
             # Source-image match check (must always record a step).
@@ -789,10 +809,13 @@ def grade_checkpoint_4():
 
                 if not slide_links:
                     found_in_source_detail = "No source links on slide; cannot verify"
+                    found_in_source_category = StepCategory.EXECUTION_ERROR
                 elif not url_temp_has_imgs:
                     found_in_source_detail = "Could not retrieve any images from the source links"
+                    found_in_source_category = StepCategory.EXECUTION_ERROR
                 elif not slide_temp_dir_has_imgs:
                     found_in_source_detail = "No slide images available to compare against source"
+                    found_in_source_category = StepCategory.EXECUTION_ERROR
                 else:
                     try:
                         matching_image = binary_judge_image(
@@ -805,14 +828,16 @@ def grade_checkpoint_4():
                         print(f"        Source-image LLM check failed: {e}")
                         matching_image = None
                         found_in_source_detail = f"Source-image check failed: {e}"
+                        found_in_source_category = StepCategory.EXECUTION_ERROR
                     if matching_image:
                         found_in_source = True
                         found_in_source_detail = "At least one image in the slide was found in the source"
             except Exception as e:
                 print(f"        Unexpected error in source-image flow: {e}")
                 found_in_source_detail = f"Unexpected error: {e}"
+                found_in_source_category = StepCategory.EXECUTION_ERROR
 
-            checkpoint.add_step(f"Device {i+1} - Product Images From Sources", found_in_source, step_id, found_in_source_detail, execution_time=time.time() - step_start_src)
+            checkpoint.add_step(f"Device {i+1} - Product Images From Sources", found_in_source, step_id, found_in_source_detail, execution_time=time.time() - step_start_src, category=found_in_source_category)
             step_id += 1
         finally:
             for d in (temp_dir, url_temp_dir):
@@ -870,21 +895,24 @@ Slide text:
         has_key_features = bool(section_content.get("key_features"))
         checkpoint.add_step(f"Device {i+1} - Key Features", has_key_features, step_id,
                             f"Key features found for device {i+1}" if has_key_features else f"Missing key features for device {i+1}",
-                            execution_time=time.time() - step_start)
+                            execution_time=time.time() - step_start,
+                            category=StepCategory.LLM_VLM_JUDGEMENT)
         step_id += 1
 
         step_start = time.time()
         has_pros = bool(section_content.get("pros"))
         checkpoint.add_step(f"Device {i+1} - Pros", has_pros, step_id,
                             f"Pros found for device {i+1}" if has_pros else f"Missing pros for device {i+1}",
-                            execution_time=time.time() - step_start)
+                            execution_time=time.time() - step_start,
+                            category=StepCategory.LLM_VLM_JUDGEMENT)
         step_id += 1
 
         step_start = time.time()
         has_cons = bool(section_content.get("cons"))
         checkpoint.add_step(f"Device {i+1} - Cons", has_cons, step_id,
                             f"Cons found for device {i+1}" if has_cons else f"Missing cons for device {i+1}",
-                            execution_time=time.time() - step_start)
+                            execution_time=time.time() - step_start,
+                            category=StepCategory.LLM_VLM_JUDGEMENT)
         step_id += 1
 
         slide["key_features"] = section_content.get("key_features", "")
@@ -956,6 +984,7 @@ Content:
                 step_id,
                 "No source content found",
                 execution_time=time.time() - step_start,
+                category=StepCategory.EXECUTION_ERROR,
             )
         else:
             match_percentage = _parse_percentage(raw_value)
@@ -966,6 +995,7 @@ Content:
                     step_id,
                     f"Could not parse LLM percentage response: {raw_value!r}",
                     execution_time=time.time() - step_start,
+                    category=StepCategory.EXECUTION_ERROR,
                 )
             else:
                 print(f"        Device {i+1}: {match_percentage:.2f}% of slide text found in sources.")
@@ -976,6 +1006,7 @@ Content:
                     step_id,
                     f"{match_percentage:.1f}% of listed features found in sources" if success else f"Only {match_percentage:.1f}% of listed features is from sources",
                     execution_time=time.time() - step_start,
+                    category=StepCategory.LLM_VLM_JUDGEMENT,
                 )
         step_id += 1
 
@@ -1032,14 +1063,14 @@ def grade_checkpoint_5():
 
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
         for i, name in enumerate(comparison_step_names, 1):
-            checkpoint.add_step(name, False, i, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
+            checkpoint.add_step(name, False, i, "No slides found in the presentation", execution_time=time.time() - checkpoint_start, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     slides = presentation_data.get('slides', [])
     if len(slides) < 7:
         for i, name in enumerate(comparison_step_names, 1):
-            checkpoint.add_step(name, False, i, "Comparison slide missing or not in the correct order", execution_time=time.time() - checkpoint_start)
+            checkpoint.add_step(name, False, i, "Comparison slide missing or not in the correct order", execution_time=time.time() - checkpoint_start, category=StepCategory.STRUCTURAL)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
     
@@ -1051,7 +1082,7 @@ def grade_checkpoint_5():
     
     if not table_data:
         for i, name in enumerate(comparison_step_names, 1):
-            checkpoint.add_step(name, False, i, "No table found in the slide", execution_time=time.time() - checkpoint_start)
+            checkpoint.add_step(name, False, i, "No table found in the slide", execution_time=time.time() - checkpoint_start, category=StepCategory.STRUCTURAL)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
     
@@ -1061,7 +1092,8 @@ def grade_checkpoint_5():
     has_3_columns = table_data['num_columns'] == 3
     checkpoint.add_step("Table Has 3 Columns", has_3_columns, step_id, 
                        "Table has exactly 3 columns" if has_3_columns else f"Table has {table_data['num_columns']} columns, expected 3",
-                       execution_time=time.time() - step_start)
+                       execution_time=time.time() - step_start,
+                       category=StepCategory.STRUCTURAL)
     step_id += 1
     
     # Step 2: Verify all ink brands are column headers
@@ -1076,7 +1108,8 @@ def grade_checkpoint_5():
     headers_valid = len(missing_devices) == 0
     checkpoint.add_step("All Ink Brands as Headers", headers_valid, step_id,
                        "All ink brands found as column headers" if headers_valid else f"Missing header(s) for the following ink brands: {missing_devices}",
-                       execution_time=time.time() - step_start)
+                       execution_time=time.time() - step_start,
+                       category=StepCategory.DETERMINISTIC)
     step_id += 1
     
     print(f"2. Validating category coverage based on the table content.")
@@ -1122,6 +1155,7 @@ Table Content:
 """
     print(f"    Sending table content to LLM for category extraction...")
     step_start = time.time()
+    category_extraction_failed = False
     try:
         category_map_raw = evaluate_device_info_with_llm(task_text, model, return_type="json")
     except Exception as e:
@@ -1129,6 +1163,7 @@ Table Content:
         category_map_raw = None
     if not isinstance(category_map_raw, dict):
         category_map_raw = {}
+        category_extraction_failed = True
     print(f"    LLM finished category extraction in {time.time() - step_start:.2f} seconds.")
 
     # Normalize category keys (lowercased, stripped) for robust matching against
@@ -1166,7 +1201,7 @@ Table Content:
 
         if cells_values:
             print(f"        Found category '{category}' in table content. Creating LLM ranking task for this category.")
-            checkpoint.add_step(f"Found {category} Row", True, step_id, f"The {category} category is covered in table", execution_time=time.time() - step_start)
+            checkpoint.add_step(f"Found {category} Row", True, step_id, f"The {category} category is covered in table", execution_time=time.time() - step_start, category=StepCategory.LLM_VLM_JUDGEMENT)
             comparison_content = "\n".join(cells_values)
             ranking_task_text = f"""Given the information for these devices {", ".join(headers)}, respectively, rank them numerically, based on the category {category}, from best to worst, where 1 is best and {len(headers)} is worst.
 IMPORTANT:
@@ -1192,7 +1227,7 @@ Values:
             })
         else:
             print(f"        No clear information about category '{category}' found in table content.")
-            checkpoint.add_step(f"Found {category} Row", False, step_id, f"No clear information about {category} found in table", execution_time=time.time() - step_start)
+            checkpoint.add_step(f"Found {category} Row", False, step_id, f"No clear information about {category} found in table", execution_time=time.time() - step_start, category=StepCategory.EXECUTION_ERROR if category_extraction_failed else StepCategory.LLM_VLM_JUDGEMENT)
         step_id += 1
 
     # Color coding extraction: locate each category's row in the table by header
@@ -1241,11 +1276,11 @@ Values:
     expected_colors = {'red', 'yellow', 'green'}
     distinct_colors = colors_used - {'unknown'}
     if 'unknown' in colors_used and not distinct_colors.issuperset(expected_colors):
-        checkpoint.add_step("Green, Yellow, and Red as Color Coding Scheme", False, step_id, f"Unknown colors found in table: {', '.join(sorted(colors_used))}", execution_time=time.time() - step_start)
+        checkpoint.add_step("Green, Yellow, and Red as Color Coding Scheme", False, step_id, f"Unknown colors found in table: {', '.join(sorted(colors_used))}", execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
     elif distinct_colors != expected_colors:
-        checkpoint.add_step("Green, Yellow, and Red as Color Coding Scheme", False, step_id, f"Color set does not match required scheme. Colors found: {', '.join(sorted(distinct_colors))}", execution_time=time.time() - step_start)
+        checkpoint.add_step("Green, Yellow, and Red as Color Coding Scheme", False, step_id, f"Color set does not match required scheme. Colors found: {', '.join(sorted(distinct_colors))}", execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
     else:
-        checkpoint.add_step("Green, Yellow, and Red as Color Coding Scheme", True, step_id, f"All required colors are used: {', '.join(sorted(distinct_colors))}", execution_time=time.time() - step_start)
+        checkpoint.add_step("Green, Yellow, and Red as Color Coding Scheme", True, step_id, f"All required colors are used: {', '.join(sorted(distinct_colors))}", execution_time=time.time() - step_start, category=StepCategory.DETERMINISTIC)
     step_id += 1
 
     start_time = time.time()
@@ -1264,9 +1299,9 @@ Values:
         llm_ranking = llm_ranking_results.get(category)
         table_ranking = ranking_from_table.get(category, {})
         if not isinstance(llm_ranking, dict) or not llm_ranking:
-            checkpoint.add_step(f"{category} - Correct Color Coding", False, step_id, f"LLM failed to rank devices for {category}", execution_time=time.time() - start_time)
+            checkpoint.add_step(f"{category} - Correct Color Coding", False, step_id, f"LLM failed to rank devices for {category}", execution_time=time.time() - start_time, category=StepCategory.EXECUTION_ERROR)
         elif not table_ranking:
-            checkpoint.add_step(f"{category} - Correct Color Coding", False, step_id, f"No table row located for {category}", execution_time=time.time() - start_time)
+            checkpoint.add_step(f"{category} - Correct Color Coding", False, step_id, f"No table row located for {category}", execution_time=time.time() - start_time, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         else:
             try:
                 ranking_consistent = validate_rankings(llm_ranking, table_ranking)
@@ -1279,6 +1314,7 @@ Values:
                 step_id,
                 f"Appropriate colors are used to rank values from best to worst for {category}" if ranking_consistent else f"Colors are not correctly assigned for {category}",
                 execution_time=time.time() - start_time,
+                category=StepCategory.LLM_VLM_JUDGEMENT,
             )
         step_id += 1
 
@@ -1307,14 +1343,14 @@ def grade_checkpoint_6():
 
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
         for i, name in enumerate(recommendation_step_names, 1):
-            checkpoint.add_step(name, False, i, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
+            checkpoint.add_step(name, False, i, "No slides found in the presentation", execution_time=time.time() - checkpoint_start, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     slides = presentation_data.get('slides', [])
     if len(slides) < 8:
         for i, name in enumerate(recommendation_step_names, 1):
-            checkpoint.add_step(name, False, i, "Recommendation slide missing or not in the correct order", execution_time=time.time() - checkpoint_start)
+            checkpoint.add_step(name, False, i, "Recommendation slide missing or not in the correct order", execution_time=time.time() - checkpoint_start, category=StepCategory.STRUCTURAL)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -1403,31 +1439,37 @@ Slide text:
         device_map[name]["recommendation"] = text
 
     missing_devices = ""
+    device_mention_items = []
     print(f"1. Validating devices:")
     for device in gold_devices:
         # Match the gold device against the LLM-extracted device names using
         # the full device string with substring matching (avoids false positives
         # from splitting into single tokens like 'M4' that span multiple devices).
         try:
-            match = keywords_match_robust(device_names, device, model=model, substring=True)
+            match, mention_method = keywords_match_robust(device_names, device, model=model, substring=True, return_method=True)
+            mention_category = StepCategory.DETERMINISTIC if mention_method == "exact" else StepCategory.LLM_VLM_JUDGEMENT
         except Exception as e:
             print(f"    Device match failed for {device}: {e}")
             match = None
+            mention_category = StepCategory.EXECUTION_ERROR
+        device_mention_items.append((mention_category, bool(match)))
         if not match:
             missing_devices += device + "; "
             print(f"    Missing device: {device}")
         else:
             print(f"    Found device: {device}")
 
-    checkpoint.add_step("All Ink Brands Mentioned", len(missing_devices) == 0, 1, "All three correct ink brands discussed in the slide" if len(missing_devices) == 0 else f"Missing information for: {missing_devices}", execution_time=time.time() - step_start)
+    checkpoint.add_step("All Ink Brands Mentioned", len(missing_devices) == 0, 1, "All three correct ink brands discussed in the slide" if len(missing_devices) == 0 else f"Missing information for: {missing_devices}", execution_time=time.time() - step_start, category=StepCategory.aggregate(device_mention_items))
 
     # Step 2 (Summaries) and Step 3 (Recommendations) - prepared inside their own
     # try/except so any failure still records a step.
     step_start = time.time()
     valid_summaries = False
     summaries_detail = "No summary tasks were executed"
+    summaries_category = StepCategory.LLM_VLM_JUDGEMENT
     valid_recommendations = False
     recommendations_detail = "No recommendation tasks were executed"
+    recommendations_category = StepCategory.LLM_VLM_JUDGEMENT
     summary_tasks = []
     recommendation_tasks = []
     missing_sum = 0
@@ -1499,8 +1541,9 @@ Slide text:
     except Exception as e:
         print(f"Unexpected error evaluating summaries: {e}")
         summaries_detail = f"Unexpected error evaluating summaries: {e}"
+        summaries_category = StepCategory.EXECUTION_ERROR
 
-    checkpoint.add_step("Summaries Align with Comparison Data", valid_summaries, 2, summaries_detail, execution_time=time.time() - step_start)
+    checkpoint.add_step("Summaries Align with Comparison Data", valid_summaries, 2, summaries_detail, execution_time=time.time() - step_start, category=summaries_category)
 
     step_start = time.time()
     try:
@@ -1526,8 +1569,9 @@ Slide text:
     except Exception as e:
         print(f"Unexpected error evaluating recommendations: {e}")
         recommendations_detail = f"Unexpected error evaluating recommendations: {e}"
+        recommendations_category = StepCategory.EXECUTION_ERROR
 
-    checkpoint.add_step("Recommendations Based on Artist Styles", valid_recommendations, 3, recommendations_detail, execution_time=time.time() - step_start)
+    checkpoint.add_step("Recommendations Based on Artist Styles", valid_recommendations, 3, recommendations_detail, execution_time=time.time() - step_start, category=recommendations_category)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -1557,7 +1601,7 @@ def grade_checkpoint_7():
 
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
         for i, name in enumerate(step_names, 1):
-            checkpoint.add_step(name, False, i, "No slides found in the presentation", execution_time=time.time() - checkpoint_start)
+            checkpoint.add_step(name, False, i, "No slides found in the presentation", execution_time=time.time() - checkpoint_start, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -1565,9 +1609,9 @@ def grade_checkpoint_7():
     slides = presentation_data.get('slides', [])
 
     if len(slides) < 8:
-        checkpoint.add_step("Exactly 8 Slides", False, 1, f"Found only {len(slides)}/8 slides", execution_time=time.time() - step_start)
+        checkpoint.add_step("Exactly 8 Slides", False, 1, f"Found only {len(slides)}/8 slides", execution_time=time.time() - step_start, category=StepCategory.STRUCTURAL)
     else:
-        checkpoint.add_step("Exactly 8 Slides", True, 1, "Found exactly 8 slides", execution_time=time.time() - step_start)
+        checkpoint.add_step("Exactly 8 Slides", True, 1, "Found exactly 8 slides", execution_time=time.time() - step_start, category=StepCategory.STRUCTURAL)
 
     expected_titles_keywords = [
         ["A Gift for Hiroshi!"],
@@ -1587,38 +1631,54 @@ def grade_checkpoint_7():
     # so device-title checks always contribute to the result.
     step_start = time.time()
     failures = []
+    title_check_items = []
     for i in chain(range(3), range(6, 8)):
+        item_category = None
         try:
             title_text = extract_title_text(slides[i])
         except Exception as e:
             print(f"    Failed to extract title from slide {i+1}: {e}")
             title_text = ""
+            item_category = StepCategory.EXECUTION_ERROR
         if not title_text:
             failures.append(f"slide {i+1}: missing title")
+            title_check_items.append((item_category if item_category else StepCategory.DETERMINISTIC, False))
             continue
         try:
-            title_match = keywords_match_robust(title_text, expected_titles_keywords[i], model=model, substring=True)
+            title_match, title_method = keywords_match_robust(title_text, expected_titles_keywords[i], model=model, substring=True, return_method=True)
+            item_category = StepCategory.DETERMINISTIC if title_method == "exact" else StepCategory.LLM_VLM_JUDGEMENT
         except Exception as e:
             print(f"    Title match failed for slide {i+1}: {e}")
             title_match = None
+            item_category = StepCategory.EXECUTION_ERROR
+        title_check_items.append((item_category, bool(title_match)))
         if not title_match:
             failures.append(f"slide {i+1}: title does not match expected keywords")
 
     expected_devices = gold_devices.copy()
     for i in range(3, 6):
+        item_category = None
         try:
             title_text = extract_title_text(slides[i])
         except Exception as e:
             print(f"    Failed to extract device-slide title {i+1}: {e}")
             title_text = ""
+            item_category = StepCategory.EXECUTION_ERROR
         if title_text:
             try:
-                device_match = keywords_match_robust(expected_devices, title_text, model=model, substring=True, description="The same brand of tatto ink")
+                device_match, device_method = keywords_match_robust(expected_devices, title_text, model=model, substring=True, description="The same brand of tatto ink", return_method=True)
+                item_category = StepCategory.DETERMINISTIC if device_method == "exact" else StepCategory.LLM_VLM_JUDGEMENT
             except Exception as e:
                 print(f"    Device title match failed for slide {i+1}: {e}")
                 device_match = None
+                item_category = StepCategory.EXECUTION_ERROR
             if device_match and device_match in expected_devices:
                 expected_devices.remove(device_match)
+                title_check_items.append((item_category, True))
+            else:
+                title_check_items.append((item_category, False))
+        else:
+            title_check_items.append((item_category if item_category else StepCategory.DETERMINISTIC, False))
     if expected_devices:
         failures.append(f"missing device titles: {', '.join(expected_devices)}")
 
@@ -1629,6 +1689,7 @@ def grade_checkpoint_7():
         2,
         "Slide titles and order are correct." if titles_ok else "; ".join(failures),
         execution_time=time.time() - step_start,
+        category=StepCategory.aggregate(title_check_items),
     )
 
     # Step 3: Tone (exciting/supportive/easy-to-understand) via LLM check on the full deck text.
@@ -1649,6 +1710,7 @@ def grade_checkpoint_7():
 
     tone_ok = False
     tone_detail = "Could not evaluate tone"
+    tone_category = StepCategory.EXECUTION_ERROR
     if deck_text:
         try:
             tone_messages = [
@@ -1664,17 +1726,19 @@ def grade_checkpoint_7():
             tone_response = model(tone_messages).strip().lower()
             tone_ok = 'yes' in tone_response
             tone_detail = "Tone is creative/respectful/easy to understand" if tone_ok else "Tone is not creative/respectful/easy to understand"
+            tone_category = StepCategory.LLM_VLM_JUDGEMENT
         except Exception as e:
             print(f"    Tone LLM check failed: {e}")
             tone_detail = f"Tone check failed: {e}"
     else:
         tone_detail = "No text found in the deck to evaluate tone"
-    checkpoint.add_step("Tone Is Creative and Respectful of the Craft", tone_ok, 3, tone_detail, execution_time=time.time() - step_start)
+    checkpoint.add_step("Tone Is Creative and Respectful of the Craft", tone_ok, 3, tone_detail, execution_time=time.time() - step_start, category=tone_category)
 
     # Step 4: Audience-tailoring (emerging professional tattoo artist; mentor decision-maker).
     step_start = time.time()
     audience_ok = False
     audience_detail = "Could not evaluate audience tailoring"
+    audience_category = StepCategory.EXECUTION_ERROR
     if deck_text:
         try:
             audience_messages = [
@@ -1690,12 +1754,13 @@ def grade_checkpoint_7():
             audience_response = model(audience_messages).strip().lower()
             audience_ok = 'yes' in audience_response
             audience_detail = "Content is tailored to the stated audience" if audience_ok else "Content does not adequately address the stated audience"
+            audience_category = StepCategory.LLM_VLM_JUDGEMENT
         except Exception as e:
             print(f"    Audience LLM check failed: {e}")
             audience_detail = f"Audience check failed: {e}"
     else:
         audience_detail = "No text found in the deck to evaluate audience tailoring"
-    checkpoint.add_step("Audience-Tailored Content", audience_ok, 4, audience_detail, execution_time=time.time() - step_start)
+    checkpoint.add_step("Audience-Tailored Content", audience_ok, 4, audience_detail, execution_time=time.time() - step_start, category=audience_category)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -1725,7 +1790,7 @@ def grade_checkpoints(workspace_doc_id: str, cached_models: Dict[str, Any] = Non
     except Exception as e:
         print(f"Evaluation failed: {e}")
         failed = Checkpoint(total=1, result=0, name="Evaluation Error")
-        failed.add_step("Evaluation", False, 1, f"Fatal error: {e}", execution_time=0)
+        failed.add_step("Evaluation", False, 1, f"Fatal error: {e}", execution_time=0, category=StepCategory.EXECUTION_ERROR)
         return Result([failed], total_execution_time=time.time() - total_start)
 
 

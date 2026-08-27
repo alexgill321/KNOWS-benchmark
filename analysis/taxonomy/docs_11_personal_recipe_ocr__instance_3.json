@@ -1,0 +1,157 @@
+{
+  "task_name": "docs_11_personal_recipe_ocr",
+  "instance": "instance_3",
+  "eval_steps": [
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Title Changed to Larry's Favorite Cookies",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Ingredients Match Picture",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Preparation Steps Blank or No Steps",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Tips Relevance",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Tips URLs Valid",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Tips Are Direct Quotes",
+      "category": "content_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Image from Original",
+      "category": "visual_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Image Cropped to Fit Template",
+      "category": "spatial_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Image Shows Recipe Text",
+      "category": "visual_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 1",
+      "step_name": "Info Under Photo Modified",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Additional Recipe Title Related to Cookies",
+      "category": "content_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Additional Recipe Has Valid Source URL",
+      "category": "structural_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Additional Recipe Format Matches First Page",
+      "category": "visual_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Additional Recipe Ingredients Modified",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Additional Recipe Preparation Modified",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Additional Recipe Tips Modified",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Additional Recipe Info Under Photo Modified",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 2",
+      "step_name": "Additional Recipe Visually Distinguishable",
+      "category": "visual_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Additional Recipe Photo from Source",
+      "category": "visual_check",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Additional Recipe Ingredients Match Source",
+      "category": "information_retrieval",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Additional Recipe Preparation Match Source",
+      "category": "information_retrieval",
+      "llm_vlm_primary": true
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Additional Recipe Tips from Source",
+      "category": "content_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 3",
+      "step_name": "Additional Recipe Info Relevant to Source",
+      "category": "information_retrieval",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "First Page Tips URLs in Browsing History",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    },
+    {
+      "checkpoint": "Checkpoint 4",
+      "step_name": "Additional Recipe Source URLs in Browsing History",
+      "category": "web_visit_check",
+      "llm_vlm_primary": false
+    }
+  ],
+  "flagged_steps": []
+}

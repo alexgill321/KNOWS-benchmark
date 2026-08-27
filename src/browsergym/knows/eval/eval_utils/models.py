@@ -16,7 +16,7 @@ import io
 #         return "/app"
 #     # Otherwise use current working directory
 #     elif os.path.exists("/scratch"):
-#         return "/path/to/KNOWS-benchmark/"
+#         return "."
 #     else:
 #         return os.getcwd()
 

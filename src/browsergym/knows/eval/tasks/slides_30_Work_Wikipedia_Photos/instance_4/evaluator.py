@@ -8,8 +8,6 @@ from typing import List, Dict, Any
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
@@ -17,7 +15,7 @@ BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 from src.browsergym.knows.eval.eval_utils.llm_utils import evaluate_with_llm
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services, extract_text_from_doc
 from src.browsergym.knows.eval.eval_utils.models import load_model
 from src.browsergym.knows.eval.eval_utils.slides_utils import (
@@ -144,20 +142,28 @@ def grade_checkpoint_1():
     image_step_name = f"{person} Wiki Image Present"
 
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
-        checkpoint.add_step("Title Text Match", False, 1, details="No slides found in presentation")
-        checkpoint.add_step(image_step_name, False, 2, details="No slides found in presentation")
-        checkpoint.add_step("Image Top Right Position", False, 3, details="No slides found in presentation")
-        checkpoint.add_step("Image Coverage", False, 4, details="No slides found in presentation")
+        checkpoint.add_step("Title Text Match", False, 1, details="No slides found in presentation",
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step(image_step_name, False, 2, details="No slides found in presentation",
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Image Top Right Position", False, 3, details="No slides found in presentation",
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Image Coverage", False, 4, details="No slides found in presentation",
+                            category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - start
         return checkpoint
 
     title_slide = presentation_data['slides'][0]
     slide_width_emu, slide_height_emu = get_slide_dimensions(presentation_data)
     if slide_width_emu is None or slide_height_emu is None:
-        checkpoint.add_step("Title Text Match", False, 1, details="Slide dimensions unavailable")
-        checkpoint.add_step(image_step_name, False, 2, details="Slide dimensions unavailable")
-        checkpoint.add_step("Image Top Right Position", False, 3, details="Slide dimensions unavailable")
-        checkpoint.add_step("Image Coverage", False, 4, details="Slide dimensions unavailable")
+        checkpoint.add_step("Title Text Match", False, 1, details="Slide dimensions unavailable",
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step(image_step_name, False, 2, details="Slide dimensions unavailable",
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Image Top Right Position", False, 3, details="Slide dimensions unavailable",
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Image Coverage", False, 4, details="Slide dimensions unavailable",
+                            category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - start
         return checkpoint
 
@@ -169,7 +175,8 @@ def grade_checkpoint_1():
     checkpoint.add_step(
         "Title Text Match", has_title, 1,
         details=f"Found exact match for '{TITLE_TEXT}'" if has_title else f"Title '{TITLE_TEXT}' not found",
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.DETERMINISTIC
     )
 
     # Step 2: Featured-person Wikipedia image present (VLM)
@@ -205,6 +212,10 @@ def grade_checkpoint_1():
     temp_dir = os.path.join(DATA_DIR, "temp_person_check")
     os.makedirs(temp_dir, exist_ok=True)
     image_step_detail = None
+    # No images on slide: rejected without any comparison. Overridden below by
+    # the tier that decided (from_match_method on match, VLM on no-match) or by
+    # execution_error when the Wikipedia reference image could not be fetched.
+    image_step_category = StepCategory.DETERMINISTIC
     try:
         if not wiki_img_path or not os.path.exists(wiki_img_path):
             if not featured_url:
@@ -213,6 +224,7 @@ def grade_checkpoint_1():
                 image_step_detail = f"Could not resolve Wikipedia image for {person}"
             else:
                 image_step_detail = f"Could not fetch {person} Wikipedia image from {wiki_img_url}"
+            image_step_category = StepCategory.EXECUTION_ERROR
         else:
             for idx, img_info in enumerate(images):
                 if not img_info.get('contentUrl'):
@@ -226,14 +238,18 @@ def grade_checkpoint_1():
                 temp_path = os.path.join(temp_dir, f"slide_img.png")
                 img.save(temp_path)
                 try:
-                    result = match_image_tiered(temp_path, wiki_img_path, model, "Are these the same image?", 5)[0]
+                    result, match_method = match_image_tiered(temp_path, wiki_img_path, model, "Are these the same image?", 5)
                 except Exception as exc:
                     print(f"{person} image match failed for slide image {idx}: {exc}")
-                    result = False
+                    result, match_method = False, "no_match"
                 if result:
                     featured_found = True
                     featured_img = img_info
                     best_featured_area = img_area
+                    image_step_category = StepCategory.from_match_method(match_method)
+                elif not featured_found:
+                    # A comparison ran and rejected: the VLM tier is the final gate.
+                    image_step_category = StepCategory.LLM_VLM_JUDGEMENT
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
     finally:
@@ -249,7 +265,8 @@ def grade_checkpoint_1():
     checkpoint.add_step(
         image_step_name, featured_found, 2,
         details=image_step_detail,
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=image_step_category
     )
 
     # Step 3: Image in top right
@@ -264,7 +281,9 @@ def grade_checkpoint_1():
     checkpoint.add_step(
         "Image Top Right Position", any_top_right, 3,
         details="Image positioned in top right" if any_top_right else "No image in top right area",
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=(StepCategory.SPATIAL if featured_img
+                  else StepCategory.DEPENDENCY_NOT_EVALUATED)
     )
 
     # Step 4: Image covers >50% of slide
@@ -276,7 +295,8 @@ def grade_checkpoint_1():
     checkpoint.add_step(
         "Image Coverage >50%", covers_majority, 4,
         details=f"Image covers {image_percentage:.1f}% of slide",
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.SPATIAL
     )
 
     checkpoint.execution_time = time.time() - start
@@ -305,7 +325,8 @@ def grade_checkpoint_2():
         for client in gold_clients:
             for step_name in step_names:
                 checkpoint.add_step(f"{client} - {step_name}", False, step_id,
-                                   details="No client slides found in presentation", execution_time=0)
+                                   details="No client slides found in presentation", execution_time=0,
+                                   category=StepCategory.EXECUTION_ERROR)
                 step_id += 1
         checkpoint.execution_time = time.time() - start
         return checkpoint
@@ -320,7 +341,8 @@ def grade_checkpoint_2():
         for client in gold_clients:
             for step_name in step_names:
                 checkpoint.add_step(f"{client} - {step_name}", False, step_id,
-                                   details="Slide dimensions unavailable", execution_time=0)
+                                   details="Slide dimensions unavailable", execution_time=0,
+                                   category=StepCategory.EXECUTION_ERROR)
                 step_id += 1
         checkpoint.execution_time = time.time() - start
         return checkpoint
@@ -379,12 +401,14 @@ def grade_checkpoint_2():
         if not client_steps:
             for name in step_names:
                 checkpoint.add_step(f"{client} - {name}", False, step_id,
-                                   details="Evaluation failed", execution_time=0)
+                                   details="Evaluation failed", execution_time=0,
+                                   category=StepCategory.EXECUTION_ERROR)
                 step_id += 1
         else:
             for step in client_steps:
                 checkpoint.add_step(step["name"], step["success"], step_id,
-                                   step["detail"], execution_time=step["execution_time"])
+                                   step["detail"], execution_time=step["execution_time"],
+                                   category=step.get("category"))
                 step_id += 1
 
     checkpoint.execution_time = time.time() - start
@@ -413,17 +437,20 @@ def grade_checkpoint_3():
         checkpoint.add_step(
             "Wikipedia URLs for clients", False, 1,
             details="Presentation does not have a URL slide",
-            score=0, max_score=num_clients, execution_time=0
+            score=0, max_score=num_clients, execution_time=0,
+            category=StepCategory.EXECUTION_ERROR
         )
         checkpoint.add_step(
             "Photographer URL Present", False, 2,
             details="Presentation does not have a URL slide",
-            execution_time=0
+            execution_time=0,
+            category=StepCategory.EXECUTION_ERROR
         )
         checkpoint.add_step(
             city_step_name, False, 3,
             details="Presentation does not have a URL slide",
-            execution_time=0
+            execution_time=0,
+            category=StepCategory.EXECUTION_ERROR
         )
         checkpoint.execution_time = time.time() - start
         return checkpoint
@@ -452,7 +479,8 @@ def grade_checkpoint_3():
         "Wikipedia URLs for clients", wiki_score == num_clients, 1,
         details=f"Found {wiki_score}/{num_clients} Wikipedia URLs. Missing: {wiki_url_misses}" if wiki_url_misses else f"All {num_clients} Wikipedia URLs found",
         score=wiki_score, max_score=num_clients,
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.DETERMINISTIC
     )
 
     # Identify non-Wikipedia URLs as potential photographer sites
@@ -488,12 +516,14 @@ For example: "Yes, No" means they are a photographer but not based in {city}.
     checkpoint.add_step(
         "Photographer URL Present", has_photographer, 2,
         details=f"Found {len(non_wiki_urls)} non-Wikipedia URL(s)" if has_photographer else "No non-Wikipedia URLs found",
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.LLM_VLM_JUDGEMENT
     )
     checkpoint.add_step(
         city_step_name, is_in_city, 3,
         details=f"Found {city}-based photographer at url {photographer_url}" if is_in_city else f"No {city} photographer identified",
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.LLM_VLM_JUDGEMENT
     )
 
     checkpoint.execution_time = time.time() - start
@@ -520,12 +550,15 @@ def grade_checkpoint_4(browsing_history=None):
     visited_featured = False
     if not browsing_history:
         checkpoint.add_step(featured_step_name, False, 1,
-                           details="No browsing history provided", execution_time=0)
+                           details="No browsing history provided", execution_time=0,
+                           category=StepCategory.EXECUTION_ERROR)
         checkpoint.add_step("Visited Client List Google Doc", False, 2,
-                           details="No browsing history provided", execution_time=0)
+                           details="No browsing history provided", execution_time=0,
+                           category=StepCategory.EXECUTION_ERROR)
         checkpoint.add_step("Visited client Wikipedia pages", False, 3,
                            details="No browsing history provided",
-                           score=0, max_score=num_clients, execution_time=0)
+                           score=0, max_score=num_clients, execution_time=0,
+                           category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - start
         return checkpoint
 
@@ -537,7 +570,8 @@ def grade_checkpoint_4(browsing_history=None):
     checkpoint.add_step(
         featured_step_name, visited_featured, 1,
         details=f"{person} Wikipedia page found in history" if visited_featured else f"No visit to {person} Wikipedia",
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.WEB_VISIT
     )
 
     step_start = time.time()
@@ -545,7 +579,8 @@ def grade_checkpoint_4(browsing_history=None):
     checkpoint.add_step(
         "Visited Client List Google Doc", visited_google_doc, 2,
         details="Google Doc visit found in history" if visited_google_doc else "No Google Doc visit found",
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.WEB_VISIT
     )
 
     # Step 3: Each client's Wikipedia page (1pt each, 9 pts total)
@@ -568,7 +603,8 @@ def grade_checkpoint_4(browsing_history=None):
         "Visited client Wikipedia pages", visit_score == num_clients, 3,
         details=f"Visited {visit_score}/{num_clients} client Wikipedia pages. Missing: {visited_misses}" if visited_misses else f"All {num_clients} client Wikipedia pages visited",
         score=visit_score, max_score=num_clients,
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.WEB_VISIT
     )
 
     checkpoint.execution_time = time.time() - start
@@ -607,7 +643,8 @@ def grade_checkpoints(workspace_doc_id: str, client_doc_id: str = None, cached_m
     except Exception as e:
         print(f"Evaluation failed: {e}")
         failed = Checkpoint(total=1, result=0, name="Evaluation Error")
-        failed.add_step("Evaluation", False, 1, f"Fatal error: {e}", execution_time=0)
+        failed.add_step("Evaluation", False, 1, f"Fatal error: {e}", execution_time=0,
+                        category=StepCategory.EXECUTION_ERROR)
         return Result([failed], total_execution_time=time.time() - total_start)
 
 

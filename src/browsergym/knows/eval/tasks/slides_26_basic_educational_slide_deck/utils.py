@@ -10,6 +10,7 @@ import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
+from src.browsergym.knows.eval.eval_utils.scoring import StepCategory
 from src.browsergym.knows.eval.eval_utils.slides_utils import (
     get_element_bbox,
     get_text_style_from_shape,
@@ -252,6 +253,9 @@ def match_source_image(
     return False, f"Found {len(links)} URL(s) but none point to the slide image"
 
 
+EMU_PER_INCH = 914400  # Google Slides API unit; used to report overflow in inches
+
+
 def to_deck_positions(content_slide_indices):
     """Convert 0-based content-slide indices to 1-based deck positions (+2: title is slide 1).
     Non-int entries (e.g. unparsed task ids) pass through unchanged.
@@ -418,15 +422,18 @@ def get_master_placeholder_font_pt(presentation_data: Dict, ph_type: str) -> Opt
     return None
 
 
-def fill_failure_steps(checkpoint, step_specs: List[Tuple[str, int]], reason: str, only_missing: bool = False):
+def fill_failure_steps(checkpoint, step_specs: List[Tuple[str, int]], reason: str, only_missing: bool = False,
+                       category: str = StepCategory.EXECUTION_ERROR):
     """Add zero-score steps to checkpoint for each (name, max_score) in step_specs.
 
     If only_missing=True, skip step_ids already present in checkpoint.steps.
+    All current call sites are guards/crash fillers, so the category defaults
+    to EXECUTION_ERROR; pass `category` to override.
     """
     existing = {s.step_id for s in checkpoint.steps} if only_missing else set()
     for step_id, (name, pts) in enumerate(step_specs, start=1):
         if step_id not in existing:
-            checkpoint.add_step(name, False, step_id, reason, max_score=pts, execution_time=0)
+            checkpoint.add_step(name, False, step_id, reason, max_score=pts, execution_time=0, category=category)
 
 
 def call_with_timeout(func: Callable, timeout_s: float, label: str, *args, **kwargs) -> Tuple[Any, bool]:

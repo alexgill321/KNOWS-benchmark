@@ -10,8 +10,6 @@ import argparse
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
@@ -19,7 +17,7 @@ BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 # Imports
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.knows.eval.eval_utils.google_sheets_utils import (
     extract_charts_from_sheet,
@@ -151,10 +149,14 @@ def grade_checkpoint_1():
         df = None
 
     if df is None or df.empty:
-        checkpoint.add_step("Activity Date Column", False, 1, "No table found in spreadsheet", execution_time=0)
-        checkpoint.add_step("Total Sets Column", False, 2, "No table found in spreadsheet", execution_time=0)
-        checkpoint.add_step("Total Reps Column", False, 3, "No table found in spreadsheet", execution_time=0)
-        checkpoint.add_step("Content Visibility", False, 4, "No table found in spreadsheet", execution_time=0)
+        checkpoint.add_step("Activity Date Column", False, 1, "No table found in spreadsheet", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Total Sets Column", False, 2, "No table found in spreadsheet", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Total Reps Column", False, 3, "No table found in spreadsheet", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Content Visibility", False, 4, "No table found in spreadsheet", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -165,37 +167,53 @@ def grade_checkpoint_1():
     ]
 
     column_match_start = time.time()
-    matched = match_columns(df, required_columns, model=model, parallel=True)
+    matched, match_methods = match_columns(df, required_columns, model=model, parallel=True,
+                                           return_methods=True)
     column_match_time = time.time() - column_match_start
 
     matched_columns = matched
     per_column_time = column_match_time / 3
 
     date_col = matched.get("Activity Date")
+    date_col_category = (StepCategory.LLM_VLM_JUDGEMENT
+                         if (match_methods.get("Activity Date") == "llm"
+                             or (date_col is None and model is not None))
+                         else StepCategory.DETERMINISTIC)
     checkpoint.add_step(
         "Activity Date Column",
         date_col is not None,
         1,
         f"Found column: '{date_col}'" if date_col else "No activity date column found",
-        execution_time=per_column_time
+        execution_time=per_column_time,
+        category=date_col_category
     )
 
     sets_col = matched.get("Total Sets")
+    sets_col_category = (StepCategory.LLM_VLM_JUDGEMENT
+                         if (match_methods.get("Total Sets") == "llm"
+                             or (sets_col is None and model is not None))
+                         else StepCategory.DETERMINISTIC)
     checkpoint.add_step(
         "Total Sets Column",
         sets_col is not None,
         2,
         f"Found column: '{sets_col}'" if sets_col else "No total sets column found",
-        execution_time=per_column_time
+        execution_time=per_column_time,
+        category=sets_col_category
     )
 
     reps_col = matched.get("Total Reps")
+    reps_col_category = (StepCategory.LLM_VLM_JUDGEMENT
+                         if (match_methods.get("Total Reps") == "llm"
+                             or (reps_col is None and model is not None))
+                         else StepCategory.DETERMINISTIC)
     checkpoint.add_step(
         "Total Reps Column",
         reps_col is not None,
         3,
         f"Found column: '{reps_col}'" if reps_col else "No total reps column found",
-        execution_time=per_column_time
+        execution_time=per_column_time,
+        category=reps_col_category
     )
 
     step_start = time.time()
@@ -208,7 +226,8 @@ def grade_checkpoint_1():
         all_visible,
         4,
         visibility_details,
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.SPATIAL
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -231,9 +250,12 @@ def grade_checkpoint_2():
     df = table_data.df if table_data else None
 
     if df is None or df.empty:
-        checkpoint.add_step("Date Match", False, 1, "No table data available", execution_time=0)
-        checkpoint.add_step("Total Sets Match", False, 2, "No table data available", execution_time=0)
-        checkpoint.add_step("Total Reps Match", False, 3, "No table data available", execution_time=0)
+        checkpoint.add_step("Date Match", False, 1, "No table data available", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Total Sets Match", False, 2, "No table data available", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Total Reps Match", False, 3, "No table data available", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -243,16 +265,22 @@ def grade_checkpoint_2():
         gold_df = pd.read_csv(gold_csv_path)
         gold_strength = gold_df[gold_df['Activity Type'] == 'Strength Training'].copy()
     except Exception as e:
-        checkpoint.add_step("Date Match", False, 1, f"Error loading gold data: {str(e)}", execution_time=0)
-        checkpoint.add_step("Total Sets Match", False, 2, "Gold data error", execution_time=0)
-        checkpoint.add_step("Total Reps Match", False, 3, "Gold data error", execution_time=0)
+        checkpoint.add_step("Date Match", False, 1, f"Error loading gold data: {str(e)}", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Total Sets Match", False, 2, "Gold data error", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Total Reps Match", False, 3, "Gold data error", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     if len(gold_strength) != EXPECTED_STRENGTH:
-        checkpoint.add_step("Date Match", False, 1, f"Expected {EXPECTED_STRENGTH} Strength Training activities, found {len(gold_strength)}", execution_time=0)
-        checkpoint.add_step("Total Sets Match", False, 2, "Gold data count mismatch", execution_time=0)
-        checkpoint.add_step("Total Reps Match", False, 3, "Gold data count mismatch", execution_time=0)
+        checkpoint.add_step("Date Match", False, 1, f"Expected {EXPECTED_STRENGTH} Strength Training activities, found {len(gold_strength)}", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Total Sets Match", False, 2, "Gold data count mismatch", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Total Reps Match", False, 3, "Gold data count mismatch", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -324,10 +352,12 @@ def grade_checkpoint_2():
             f"{date_matches}/{EXPECTED_STRENGTH} dates match ({date_matches/EXPECTED_STRENGTH:.0%}), {date_score}/10 pts",
             score=date_score,
             max_score=10,
-            execution_time=per_step_time
+            execution_time=per_step_time,
+            category=StepCategory.DETERMINISTIC
         )
     else:
-        checkpoint.add_step("Date Match", False, 1, "Date column not found", score=0, max_score=10, execution_time=per_step_time)
+        checkpoint.add_step("Date Match", False, 1, "Date column not found", score=0, max_score=10, execution_time=per_step_time,
+                            category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     if sets_col:
         sets_score = math.floor(sets_matches / EXPECTED_STRENGTH * 10)
@@ -338,10 +368,12 @@ def grade_checkpoint_2():
             f"{sets_matches}/{EXPECTED_STRENGTH} sets match ({sets_matches/EXPECTED_STRENGTH:.0%}), {sets_score}/10 pts",
             score=sets_score,
             max_score=10,
-            execution_time=per_step_time
+            execution_time=per_step_time,
+            category=StepCategory.DETERMINISTIC
         )
     else:
-        checkpoint.add_step("Total Sets Match", False, 2, "Total Sets column not found", score=0, max_score=10, execution_time=per_step_time)
+        checkpoint.add_step("Total Sets Match", False, 2, "Total Sets column not found", score=0, max_score=10, execution_time=per_step_time,
+                            category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     if reps_col:
         reps_score = math.floor(reps_matches / EXPECTED_STRENGTH * 10)
@@ -352,10 +384,12 @@ def grade_checkpoint_2():
             f"{reps_matches}/{EXPECTED_STRENGTH} reps match ({reps_matches/EXPECTED_STRENGTH:.0%}), {reps_score}/10 pts",
             score=reps_score,
             max_score=10,
-            execution_time=per_step_time
+            execution_time=per_step_time,
+            category=StepCategory.DETERMINISTIC
         )
     else:
-        checkpoint.add_step("Total Reps Match", False, 3, "Total Reps column not found", score=0, max_score=10, execution_time=per_step_time)
+        checkpoint.add_step("Total Reps Match", False, 3, "Total Reps column not found", score=0, max_score=10, execution_time=per_step_time,
+                            category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -386,7 +420,8 @@ def grade_checkpoint_3():
     if not chart_data:
         error_msg = "No charts found in spreadsheet"
         for i in range(1, 13):
-            checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0)
+            checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0,
+                                category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -398,7 +433,8 @@ def grade_checkpoint_3():
     if not sets_chart:
         error_msg = "Could not identify sets chart by title, axis labels, or series data"
         for i in range(1, 13):
-            checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0)
+            checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0,
+                                category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -522,7 +558,8 @@ def grade_checkpoint_3():
     has_date = bool(x_match) or bool(x_fallback)
     checkpoint.add_step("X-Axis Date Label", has_date, 1,
         f"X-axis label: '{x_label}'" if has_date else f"X-axis label '{x_label or 'None'}' does not match date keywords",
-        execution_time=keyword_time / max(len(vlm_tasks), 1))
+        execution_time=keyword_time / max(len(vlm_tasks), 1),
+        category=StepCategory.LLM_VLM_JUDGEMENT)
 
     # Step 2: Y-axis label
     y_match = keyword_results.get('y_axis', False) if y_label else False
@@ -530,7 +567,8 @@ def grade_checkpoint_3():
     has_sets = bool(y_match) or bool(y_fallback)
     checkpoint.add_step("Y-Axis Sets Label", has_sets, 2,
         f"Y-axis label: '{y_label}'" if has_sets else f"Y-axis label '{y_label or 'None'}' does not match sets keywords",
-        execution_time=keyword_time / max(len(vlm_tasks), 1))
+        execution_time=keyword_time / max(len(vlm_tasks), 1),
+        category=StepCategory.LLM_VLM_JUDGEMENT)
 
     # Step 3: Chart title
     title_sets = keyword_results.get('title_sets', False) if chart_title else False
@@ -539,7 +577,8 @@ def grade_checkpoint_3():
     has_title = bool(title_sets) or bool(title_time) or bool(title_fallback)
     checkpoint.add_step("Chart Title", has_title, 3,
         f"Chart title: '{chart_title}'" if has_title else f"Chart title '{chart_title or 'None'}' does not match sets/time keywords",
-        execution_time=keyword_time / max(len(vlm_tasks), 1))
+        execution_time=keyword_time / max(len(vlm_tasks), 1),
+        category=StepCategory.LLM_VLM_JUDGEMENT)
 
     # Step 4: No overlap
     step_start = time.time()
@@ -556,7 +595,8 @@ def grade_checkpoint_3():
         has_overlap, overlap_details = check_chart_overlap(sets_chart, table_start, table_end, safe_charts, table_start_col, table_end_col)
     checkpoint.add_step("No Chart Overlap", not has_overlap, 4,
         overlap_details if has_overlap else "Chart does not overlap with table or other charts",
-        execution_time=time.time() - step_start)
+        execution_time=time.time() - step_start,
+        category=StepCategory.SPATIAL)
 
     # Step 5: Main data series from Total Sets column
     step_start = time.time()
@@ -600,12 +640,16 @@ def grade_checkpoint_3():
                 series_details = f"Main series at index {main_idx} header '{header_label or 'unknown'}' does not match sets keywords; CP1 sets column unavailable"
     elif main_idx is None:
         series_details = "Could not identify main data series by content"
-    checkpoint.add_step("Sets Data Series", main_valid, 5, series_details, execution_time=time.time() - step_start)
+    checkpoint.add_step("Sets Data Series", main_valid, 5, series_details, execution_time=time.time() - step_start,
+        category=(StepCategory.DETERMINISTIC
+                  if (series_list and main_idx is not None)
+                  else StepCategory.DEPENDENCY_NOT_EVALUATED))
 
     # Step 6: Circular points
     step_start = time.time()
     has_points, point_details = check_point_shape(sets_chart, chart_type)
-    checkpoint.add_step("Circular Points", has_points, 6, point_details, execution_time=time.time() - step_start)
+    checkpoint.add_step("Circular Points", has_points, 6, point_details, execution_time=time.time() - step_start,
+        category=StepCategory.DETERMINISTIC)
 
     # Step 7: Avg Adult baseline display
     step_start = time.time()
@@ -626,23 +670,31 @@ def grade_checkpoint_3():
             adult_display_details = f"Line style {adult_line_style} OK, but label '{adult_label}' doesn't match keywords (series index {adult_sets_candidate_idx})"
         else:
             adult_display_details = f"Label: '{adult_label}', Style: {adult_line_style or 'SOLID'} - both need improvement (series index {adult_sets_candidate_idx})"
-    checkpoint.add_step("Avg Adult Display", adult_display_valid, 7, adult_display_details, execution_time=time.time() - step_start)
+    checkpoint.add_step("Avg Adult Display", adult_display_valid, 7, adult_display_details, execution_time=time.time() - step_start,
+        category=(StepCategory.DETERMINISTIC
+                  if (adult_sets_candidate_idx is not None and rows is not None)
+                  else StepCategory.DEPENDENCY_NOT_EVALUATED))
 
     # Step 8: Avg Adult baseline data
     step_start = time.time()
     adult_data_valid = False
     adult_data_details = "Could not identify avg adult sets baseline series"
+    adult_data_category = StepCategory.DEPENDENCY_NOT_EVALUATED
     if adult_sets_candidate_idx is not None and rows is not None:
         adult_values = get_series_column_values(sets_chart, adult_sets_candidate_idx, rows)
         if adult_values:
+            adult_data_category = StepCategory.FUZZY_MATCH
             adult_data_valid, _, adult_data_details = validate_constant_series(adult_values, ADULT_SETS_RANGE, tolerance=0.01)
             if adult_values:
                 sheet_adult_sets = adult_values[0]
         else:
+            adult_data_category = StepCategory.EXECUTION_ERROR
             adult_data_details = f"Could not extract values from baseline series (index {adult_sets_candidate_idx})"
     elif adult_sets_candidate_idx is not None:
+        adult_data_category = StepCategory.EXECUTION_ERROR
         adult_data_details = "Sheet rows unavailable from setup() - cannot extract baseline values"
-    checkpoint.add_step("Avg Adult Data", adult_data_valid, 8, adult_data_details, execution_time=time.time() - step_start)
+    checkpoint.add_step("Avg Adult Data", adult_data_valid, 8, adult_data_details, execution_time=time.time() - step_start,
+        category=adult_data_category)
 
     # Step 9: Jay Cutler baseline display (label only — task says "Compare this to")
     step_start = time.time()
@@ -658,23 +710,31 @@ def grade_checkpoint_3():
             cutler_display_details = f"Label: '{cutler_label}', Style: {cutler_line_style or 'SOLID'} (series index {cutler_idx})"
         else:
             cutler_display_details = f"Label '{cutler_label}' doesn't match Cutler keywords (series index {cutler_idx})"
-    checkpoint.add_step("Cutler Display", cutler_display_valid, 9, cutler_display_details, execution_time=time.time() - step_start)
+    checkpoint.add_step("Cutler Display", cutler_display_valid, 9, cutler_display_details, execution_time=time.time() - step_start,
+        category=(StepCategory.DETERMINISTIC
+                  if (cutler_idx is not None and rows is not None)
+                  else StepCategory.DEPENDENCY_NOT_EVALUATED))
 
     # Step 10: Jay Cutler baseline data
     step_start = time.time()
     cutler_data_valid = False
     cutler_data_details = "Could not identify Jay Cutler baseline series"
+    cutler_data_category = StepCategory.DEPENDENCY_NOT_EVALUATED
     if cutler_idx is not None and rows is not None:
         cutler_values = get_series_column_values(sets_chart, cutler_idx, rows)
         if cutler_values:
+            cutler_data_category = StepCategory.FUZZY_MATCH
             cutler_data_valid, _, cutler_data_details = validate_constant_series(cutler_values, CUTLER_SETS_RANGE, tolerance=0.01)
             if cutler_values:
                 sheet_cutler_sets = cutler_values[0]
         else:
+            cutler_data_category = StepCategory.EXECUTION_ERROR
             cutler_data_details = f"Could not extract values from baseline series (index {cutler_idx})"
     elif cutler_idx is not None:
+        cutler_data_category = StepCategory.EXECUTION_ERROR
         cutler_data_details = "Sheet rows unavailable from setup() - cannot extract baseline values"
-    checkpoint.add_step("Cutler Data", cutler_data_valid, 10, cutler_data_details, execution_time=time.time() - step_start)
+    checkpoint.add_step("Cutler Data", cutler_data_valid, 10, cutler_data_details, execution_time=time.time() - step_start,
+        category=cutler_data_category)
 
     # Step 11: Both baselines distinguishable
     step_start = time.time()
@@ -702,7 +762,10 @@ def grade_checkpoint_3():
             if not adult_diff:
                 issues.append("Adult not distinguishable from main data")
             dist_details = f"Issues: {'; '.join(issues)}"
-    checkpoint.add_step("Baselines Distinguishable", distinguishable, 11, dist_details, execution_time=time.time() - step_start)
+    checkpoint.add_step("Baselines Distinguishable", distinguishable, 11, dist_details, execution_time=time.time() - step_start,
+        category=(StepCategory.FUZZY_MATCH
+                  if (main_idx is not None and adult_sets_candidate_idx is not None and cutler_idx is not None)
+                  else StepCategory.DEPENDENCY_NOT_EVALUATED))
 
     # Step 12: Source URLs below chart
     step_start = time.time()
@@ -728,7 +791,8 @@ def grade_checkpoint_3():
                 url_details = f"Found {len(urls)} URLs but none accessible"
         else:
             url_details = f"No URLs found in rows {search_start_row}-{search_start_row + 50}"
-    checkpoint.add_step("Source URLs Valid", urls_valid, 12, url_details, execution_time=time.time() - step_start)
+    checkpoint.add_step("Source URLs Valid", urls_valid, 12, url_details, execution_time=time.time() - step_start,
+        category=StepCategory.DETERMINISTIC if rows else StepCategory.EXECUTION_ERROR)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -753,7 +817,8 @@ def grade_checkpoint_4():
     if not chart_data:
         error_msg = "No charts found in spreadsheet"
         for i in range(1, 7):
-            checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0)
+            checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0,
+                                category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -764,7 +829,8 @@ def grade_checkpoint_4():
     if not cumulative_chart:
         error_msg = "Could not identify cumulative reps chart by title or axis labels"
         for i in range(1, 7):
-            checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0)
+            checkpoint.add_step(f"Step {i}", False, i, error_msg, execution_time=0,
+                                category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -810,7 +876,8 @@ def grade_checkpoint_4():
     has_date = bool(x_match) or bool(x_fb)
     checkpoint.add_step("X-Axis Date Label", has_date, 1,
         f"X-axis label: '{x_label}'" if has_date else f"X-axis label '{x_label or 'None'}' does not match date keywords",
-        execution_time=keyword_time / max(len(vlm_tasks), 1))
+        execution_time=keyword_time / max(len(vlm_tasks), 1),
+        category=StepCategory.LLM_VLM_JUDGEMENT)
 
     # Step 2
     y_match = keyword_results.get('y_axis', False) if y_label else False
@@ -818,7 +885,8 @@ def grade_checkpoint_4():
     has_reps = bool(y_match) or bool(y_fb)
     checkpoint.add_step("Y-Axis Reps Label", has_reps, 2,
         f"Y-axis label: '{y_label}'" if has_reps else f"Y-axis label '{y_label or 'None'}' does not match reps keywords",
-        execution_time=keyword_time / max(len(vlm_tasks), 1))
+        execution_time=keyword_time / max(len(vlm_tasks), 1),
+        category=StepCategory.LLM_VLM_JUDGEMENT)
 
     # Step 3
     t_cum = keyword_results.get('title_cumulative', False) if chart_title else False
@@ -827,7 +895,8 @@ def grade_checkpoint_4():
     has_title = bool(t_cum) or bool(t_time) or bool(t_fb)
     checkpoint.add_step("Chart Title", has_title, 3,
         f"Chart title: '{chart_title}'" if has_title else f"Chart title '{chart_title or 'None'}' does not match cumulative/time keywords",
-        execution_time=keyword_time / max(len(vlm_tasks), 1))
+        execution_time=keyword_time / max(len(vlm_tasks), 1),
+        category=StepCategory.LLM_VLM_JUDGEMENT)
 
     # Step 4: No overlap
     step_start = time.time()
@@ -845,12 +914,14 @@ def grade_checkpoint_4():
         has_overlap, overlap_details = check_chart_overlap(cumulative_chart, table_start, table_end, safe_charts, table_start_col, table_end_col)
     checkpoint.add_step("No Chart Overlap", not has_overlap, 4,
         overlap_details if has_overlap else "Chart does not overlap with table or other charts",
-        execution_time=time.time() - step_start)
+        execution_time=time.time() - step_start,
+        category=StepCategory.SPATIAL)
 
     # Step 5: Cumulative data (validate against sheet's Cumulative Reps column)
     step_start = time.time()
     cumulative_valid = False
     cumulative_details = "Could not extract chart values"
+    cumulative_category = StepCategory.EXECUTION_ERROR
     if rows is None:
         cumulative_details = "Sheet rows unavailable from setup() - cannot extract chart values"
     elif df is None or df.empty:
@@ -860,6 +931,7 @@ def grade_checkpoint_4():
         if chart_values:
             non_increasing = sum(1 for i in range(1, len(chart_values)) if chart_values[i] < chart_values[i-1] - 0.01)
             if non_increasing > 0:
+                cumulative_category = StepCategory.STRUCTURAL
                 cumulative_details = f"Values not monotonically increasing ({non_increasing} decreases found)"
             else:
                 cum_col = None
@@ -868,6 +940,7 @@ def grade_checkpoint_4():
                         cum_col = col
                         break
                 if cum_col:
+                    cumulative_category = StepCategory.FUZZY_MATCH
                     expected = pd.to_numeric(df[cum_col], errors='coerce').dropna().values
                     comp = min(len(chart_values), len(expected))
                     matches = sum(1 for i in range(comp) if (expected[i] > 0 and abs(chart_values[i] - expected[i]) / expected[i] * 100 <= 1.0) or (expected[i] == 0 and chart_values[i] == 0))
@@ -878,18 +951,21 @@ def grade_checkpoint_4():
                     else:
                         cumulative_details = f"Only {matches}/{comp} values match ({rate:.0%}) against sheet cumulative column"
                 else:
+                    cumulative_category = StepCategory.STRUCTURAL
                     cumulative_valid = True
                     cumulative_details = f"Monotonically increasing data ({len(chart_values)} points), final value {chart_values[-1]:.0f} reps"
         else:
             cumulative_details = "No values extracted from chart series"
-    checkpoint.add_step("Cumulative Data", cumulative_valid, 5, cumulative_details, execution_time=time.time() - step_start)
+    checkpoint.add_step("Cumulative Data", cumulative_valid, 5, cumulative_details, execution_time=time.time() - step_start,
+        category=cumulative_category)
 
     # Step 6: Line plot
     step_start = time.time()
     is_line = chart_type in ['LINE', 'AREA']
     checkpoint.add_step("Line Plot", is_line, 6,
         f"Chart is a {chart_type} chart (line plot)" if is_line else f"Chart type is {chart_type}, expected LINE or AREA",
-        execution_time=time.time() - step_start)
+        execution_time=time.time() - step_start,
+        category=StepCategory.DETERMINISTIC)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -909,10 +985,14 @@ def grade_checkpoint_5(browsing_history=None):
     checkpoint = Checkpoint(total=4, result=0, name="Website Visit Validation")
 
     if not browsing_history:
-        checkpoint.add_step("Adult Sets URL Visited", False, 1, "No browsing history provided", execution_time=0)
-        checkpoint.add_step("Cutler URL Visited", False, 2, "No browsing history provided", execution_time=0)
-        checkpoint.add_step("Adult Sets Content Valid", False, 3, "No browsing history provided", execution_time=0)
-        checkpoint.add_step("Cutler Content Valid", False, 4, "No browsing history provided", execution_time=0)
+        checkpoint.add_step("Adult Sets URL Visited", False, 1, "No browsing history provided", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Cutler URL Visited", False, 2, "No browsing history provided", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Adult Sets Content Valid", False, 3, "No browsing history provided", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Cutler Content Valid", False, 4, "No browsing history provided", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -961,13 +1041,17 @@ def grade_checkpoint_5(browsing_history=None):
     adult_visited = len(adult_urls) > 0
     checkpoint.add_step("Adult Sets URL Visited", adult_visited, 1,
         f"Found {len(adult_urls)} relevant URL(s){adult_judge_details}" if adult_visited else "No adult sets URL found in browsing history",
-        execution_time=judge_time / 2)
+        execution_time=judge_time / 2,
+        category=(StepCategory.LLM_VLM_JUDGEMENT if adult_judge_details
+                  else StepCategory.WEB_VISIT))
 
     # Step 2: Cutler URL visited
     cutler_visited = len(cutler_urls) > 0
     checkpoint.add_step("Cutler URL Visited", cutler_visited, 2,
         f"Found {len(cutler_urls)} relevant URL(s){cutler_judge_details}" if cutler_visited else "No Jay Cutler URL found in browsing history",
-        execution_time=judge_time / 2)
+        execution_time=judge_time / 2,
+        category=(StepCategory.LLM_VLM_JUDGEMENT if cutler_judge_details
+                  else StepCategory.WEB_VISIT))
 
     # Steps 3-4: Content validation using raw extraction (sets, not pace)
     step_start = time.time()
@@ -986,12 +1070,15 @@ def grade_checkpoint_5(browsing_history=None):
     adult_content_valid = False
     adult_content_details = "No adult sets URLs to check"
     adult_extraction_failed = False
+    adult_content_category = StepCategory.DEPENDENCY_NOT_EVALUATED
 
     if not sheet_adult_sets or sheet_adult_sets <= 0:
         adult_content_details = "No adult sets baseline value found in sheet (checkpoint 3 may have failed)"
     elif not model:
         adult_content_details = "Model not available for content validation"
+        adult_content_category = StepCategory.EXECUTION_ERROR
     elif adult_urls:
+        adult_content_category = StepCategory.FUZZY_MATCH
         adult_extraction_failed = True
         for url in adult_urls[:3]:
             result = url_results.get(f'adult|{url}')
@@ -1010,6 +1097,7 @@ def grade_checkpoint_5(browsing_history=None):
                     adult_content_details = details
 
     if not adult_content_valid and adult_extraction_failed and sheet_adult_sets and model and adult_urls:
+        adult_content_category = StepCategory.LLM_VLM_JUDGEMENT
         for url in adult_urls[:3]:
             judged, jd = judge_url_pace_match(url, 'adult_sets', sheet_adult_sets, model)
             if judged:
@@ -1020,18 +1108,22 @@ def grade_checkpoint_5(browsing_history=None):
                 adult_content_details = f"LLM judge backup: {jd}"
 
     checkpoint.add_step("Adult Sets Content Valid", adult_content_valid, 3, adult_content_details,
-        execution_time=url_time / 2 if url_tasks else 0)
+        execution_time=url_time / 2 if url_tasks else 0,
+        category=adult_content_category)
 
     # Process Cutler results — range-based validation
     cutler_content_valid = False
     cutler_content_details = "No Cutler URLs to check"
     cutler_extraction_failed = False
+    cutler_content_category = StepCategory.DEPENDENCY_NOT_EVALUATED
 
     if not sheet_cutler_sets or sheet_cutler_sets <= 0:
         cutler_content_details = "No Cutler baseline value found in sheet (checkpoint 3 may have failed)"
     elif not model:
         cutler_content_details = "Model not available for content validation"
+        cutler_content_category = StepCategory.EXECUTION_ERROR
     elif cutler_urls:
+        cutler_content_category = StepCategory.FUZZY_MATCH
         cutler_extraction_failed = True
         for url in cutler_urls[:3]:
             result = url_results.get(f'cutler|{url}')
@@ -1050,6 +1142,7 @@ def grade_checkpoint_5(browsing_history=None):
                     cutler_content_details = details
 
     if not cutler_content_valid and cutler_extraction_failed and sheet_cutler_sets and model and cutler_urls:
+        cutler_content_category = StepCategory.LLM_VLM_JUDGEMENT
         for url in cutler_urls[:3]:
             judged, jd = judge_url_pace_match(url, 'cutler', sheet_cutler_sets, model)
             if judged:
@@ -1060,7 +1153,8 @@ def grade_checkpoint_5(browsing_history=None):
                 cutler_content_details = f"LLM judge backup: {jd}"
 
     checkpoint.add_step("Cutler Content Valid", cutler_content_valid, 4, cutler_content_details,
-        execution_time=url_time / 2 if url_tasks else 0)
+        execution_time=url_time / 2 if url_tasks else 0,
+        category=cutler_content_category)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -1118,7 +1212,8 @@ def grade_checkpoints(workspace_doc_id=None, browsing_history=None):
         traceback.print_exc()
 
         failed_checkpoint = Checkpoint(total=1, result=0, name="Evaluation Error")
-        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0)
+        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0,
+                                   category=StepCategory.EXECUTION_ERROR)
         return Result([failed_checkpoint], total_execution_time=time.time() - total_start_time)
 
 

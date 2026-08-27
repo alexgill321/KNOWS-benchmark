@@ -17,8 +17,6 @@ from typing import List, Dict, Optional, Any, Tuple
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
@@ -26,7 +24,7 @@ BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 # Imports
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
 from src.browsergym.knows.eval.eval_utils.google_services_utils import (
     initialize_google_services,
     extract_drive_file_id
@@ -487,7 +485,8 @@ def grade_checkpoint_1():
     if df is None or df.empty:
         checkpoint.add_step("Table Data Extraction", False, 1,
                           "No table data found in spreadsheet",
-                          execution_time=time.time() - checkpoint_start)
+                          execution_time=time.time() - checkpoint_start,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -507,20 +506,29 @@ def grade_checkpoint_1():
     # Use standardized match_columns() - keyword matching first, then LLM fallback
     if model is None:
         model = load_model(model_id)
-    matched_columns = match_columns(df, required_columns, model=model, parallel=True)
+    matched_columns, match_methods = match_columns(df, required_columns, model=model, parallel=True,
+                                                   return_methods=True)
 
     # Add checkpoint steps for each required column
     for step_num, (col_name, keywords) in enumerate(required_columns, start=1):
         step_start = time.time()
         if col_name in matched_columns:
             matched_column = matched_columns[col_name]
+            match_category = (StepCategory.LLM_VLM_JUDGEMENT
+                              if match_methods.get(col_name) == "llm"
+                              else StepCategory.DETERMINISTIC)
             checkpoint.add_step(f"{col_name} Column", True, step_num,
                               f"Found column: '{matched_column}'",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=match_category)
         else:
+            # LLM fallback tier ran last when a model was provided
+            match_category = (StepCategory.LLM_VLM_JUDGEMENT if model is not None
+                              else StepCategory.DETERMINISTIC)
             checkpoint.add_step(f"{col_name} Column", False, step_num,
                               f"No column found for '{col_name}'. Available: {', '.join(original_columns[:5])}...",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=match_category)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -554,14 +562,16 @@ def grade_checkpoint_2():
     if N == 0:
         checkpoint.add_step("Gold Data", False, 1,
                           "No gold papers data available",
-                          execution_time=time.time() - checkpoint_start)
+                          execution_time=time.time() - checkpoint_start,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
     if df is None or df.empty:
         checkpoint.add_step("User Data", False, 1,
                           "No data in user's spreadsheet",
-                          execution_time=time.time() - checkpoint_start)
+                          execution_time=time.time() - checkpoint_start,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -738,27 +748,32 @@ def grade_checkpoint_2():
     checkpoint.result += title_matches
     checkpoint.add_step("Titles Match", title_matches == N, 1,
                       f"{title_matches}/{N} titles match",
-                      execution_time=step_time)
+                      execution_time=step_time,
+                      category=StepCategory.FUZZY_MATCH)
 
     checkpoint.result += author_matches
     checkpoint.add_step("Authors Match", author_matches == N, 2,
                       f"{author_matches}/{N} author lists match",
-                      execution_time=0)
+                      execution_time=0,
+                      category=StepCategory.DETERMINISTIC)
 
     checkpoint.result += abstract_matches
     checkpoint.add_step("Abstracts Match", abstract_matches == N, 3,
                       f"{abstract_matches}/{N} abstracts match",
-                      execution_time=0)
+                      execution_time=0,
+                      category=StepCategory.FUZZY_MATCH)
 
     checkpoint.result += arxiv_valid
     checkpoint.add_step("arXiv Links Valid", arxiv_valid == N, 4,
                       f"{arxiv_valid}/{N} arXiv links valid",
-                      execution_time=0)
+                      execution_time=0,
+                      category=StepCategory.DETERMINISTIC)
 
     checkpoint.result += drive_valid
     checkpoint.add_step("Drive Links Valid", drive_valid == N, 5,
                       f"{drive_valid}/{N} Drive links valid",
-                      execution_time=0)
+                      execution_time=0,
+                      category=StepCategory.DETERMINISTIC)
 
     # Figure 1 step — proportional out of 10, only scored against evaluable papers
     evaluable_figures = len(figures_with_gold)
@@ -767,41 +782,49 @@ def grade_checkpoint_2():
         checkpoint.result += figure_score
         checkpoint.add_step("Figure 1 Images", figure_matches == evaluable_figures, 6,
                           f"{figure_matches}/{evaluable_figures} figures correct ({figure_score}/10)",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.LLM_VLM_JUDGEMENT)
     elif evaluable_figures == 0:
         checkpoint.add_step("Figure 1 Images", False, 6,
                           "No gold figure data to evaluate",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.EXECUTION_ERROR)
     elif not vlm_model:
         checkpoint.add_step("Figure 1 Images", False, 6,
                           "VLM model not available for figure comparison",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.EXECUTION_ERROR)
     else:
         checkpoint.add_step("Figure 1 Images", False, 6,
                           "Figure 1 column not found in spreadsheet",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     # Checkbox step
     if checkbox_col:
         checkpoint.result += unchecked_count
         checkpoint.add_step("Checkbox Unchecked", unchecked_count == N, 7,
                           f"{unchecked_count}/{N} original papers have unchecked checkbox",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.DETERMINISTIC)
     else:
         checkpoint.add_step("Checkbox Unchecked", False, 7,
                           "New Papers checkbox column not found",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     # Browsing history step
     if BROWSING_HISTORY:
         checkpoint.result += arxiv_urls_found
         checkpoint.add_step("arXiv URLs Visited", arxiv_urls_found == N, 8,
                           f"{arxiv_urls_found}/{N} arXiv URLs in browsing history",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.WEB_VISIT)
     else:
         checkpoint.add_step("arXiv URLs Visited", False, 8,
                           "No browsing history provided",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.EXECUTION_ERROR)
 
     # Log unmatched papers
     if unmatched_papers:
@@ -827,7 +850,8 @@ def grade_checkpoint_3():
         checkpoint = Checkpoint(total=1, result=0, name="New Papers Discovery")
         checkpoint.add_step("Paper Coverage", False, 1,
                           "No author lookup data available",
-                          execution_time=time.time() - checkpoint_start)
+                          execution_time=time.time() - checkpoint_start,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -843,7 +867,8 @@ def grade_checkpoint_3():
     if not authors_col or df is None:
         checkpoint.add_step("Paper Coverage", False, 1,
                           "Cannot check - no authors column or data",
-                          execution_time=time.time() - checkpoint_start)
+                          execution_time=time.time() - checkpoint_start,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -909,12 +934,14 @@ def grade_checkpoint_3():
     if papers_with_enough_new == N:
         checkpoint.add_step("Paper Coverage", True, 1,
                           f"All {N} original papers have ≥3 new papers from their first authors",
-                          score=0, execution_time=step_time)
+                          score=0, execution_time=step_time,
+                          category=StepCategory.FUZZY_MATCH)
     else:
         checkpoint.add_step("Paper Coverage", False, 1,
                           f"{papers_with_enough_new}/{N} original papers have enough new papers. "
                           f"Missing: {'; '.join(missing)}",
-                          score=0, execution_time=step_time)
+                          score=0, execution_time=step_time,
+                          category=StepCategory.FUZZY_MATCH)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -960,7 +987,8 @@ def grade_checkpoint_4():
         checkpoint = Checkpoint(total=6*MAX_NEW_PAPERS + 20, result=0, name="New Papers Validation")
         checkpoint.add_step("New Papers", False, 1,
                           "Cannot validate - no author lookup data or spreadsheet data",
-                          execution_time=time.time() - checkpoint_start)
+                          execution_time=time.time() - checkpoint_start,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -1027,7 +1055,8 @@ def grade_checkpoint_4():
                                    "Checkbox Checked", "arXiv URLs Visited"], start=1):
             checkpoint.add_step(name, False, i,
                               f"0/{MAX_NEW_PAPERS} - No new papers found in spreadsheet",
-                              execution_time=0)
+                              execution_time=0,
+                              category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -1206,27 +1235,32 @@ def grade_checkpoint_4():
     checkpoint.result += title_matches
     checkpoint.add_step("Titles Match", title_matches == MAX_NEW_PAPERS, 1,
                       f"{title_matches}/{MAX_NEW_PAPERS} new paper titles match",
-                      execution_time=step_time)
+                      execution_time=step_time,
+                      category=StepCategory.FUZZY_MATCH)
 
     checkpoint.result += author_matches
     checkpoint.add_step("Authors Match", author_matches == MAX_NEW_PAPERS, 2,
                       f"{author_matches}/{MAX_NEW_PAPERS} new paper authors match",
-                      execution_time=0)
+                      execution_time=0,
+                      category=StepCategory.DETERMINISTIC)
 
     checkpoint.result += abstract_matches
     checkpoint.add_step("Abstracts Match", abstract_matches == MAX_NEW_PAPERS, 3,
                       f"{abstract_matches}/{MAX_NEW_PAPERS} new paper abstracts match",
-                      execution_time=0)
+                      execution_time=0,
+                      category=StepCategory.FUZZY_MATCH)
 
     checkpoint.result += arxiv_valid
     checkpoint.add_step("arXiv Links Valid", arxiv_valid == MAX_NEW_PAPERS, 4,
                       f"{arxiv_valid}/{MAX_NEW_PAPERS} new paper arXiv links valid",
-                      execution_time=0)
+                      execution_time=0,
+                      category=StepCategory.DETERMINISTIC)
 
     checkpoint.result += drive_valid
     checkpoint.add_step("Drive Links Valid", drive_valid == MAX_NEW_PAPERS, 5,
                       f"{drive_valid}/{MAX_NEW_PAPERS} new papers have valid Drive links",
-                      execution_time=0)
+                      execution_time=0,
+                      category=StepCategory.DETERMINISTIC)
 
     # Figure 1 step — proportional out of 10, only scored against evaluable papers
     if papers_with_gold_figures > 0 and figure_col and vlm_model:
@@ -1234,19 +1268,23 @@ def grade_checkpoint_4():
         checkpoint.result += figure_score
         checkpoint.add_step("Figure 1 Images", figure_matches == papers_with_gold_figures, 6,
                           f"{figure_matches}/{papers_with_gold_figures} figures correct ({figure_score}/10)",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.LLM_VLM_JUDGEMENT)
     elif papers_with_gold_figures == 0:
         checkpoint.add_step("Figure 1 Images", False, 6,
                           "No gold figure data to evaluate",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.EXECUTION_ERROR)
     elif not vlm_model:
         checkpoint.add_step("Figure 1 Images", False, 6,
                           "VLM model not available for figure comparison",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.EXECUTION_ERROR)
     else:
         checkpoint.add_step("Figure 1 Images", False, 6,
                           "Figure 1 column not found in spreadsheet",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     # Checkbox step — checked against all non-original rows, proportional out of 10
     total_new_rows = len(user_new_papers_rows)
@@ -1255,26 +1293,31 @@ def grade_checkpoint_4():
         checkpoint.result += checkbox_score
         checkpoint.add_step("Checkbox Checked", checkbox_checked == total_new_rows, 7,
                           f"{checkbox_checked}/{total_new_rows} new papers have checked checkbox ({checkbox_score}/10)",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.DETERMINISTIC)
     elif checkbox_col:
         checkpoint.add_step("Checkbox Checked", True, 7,
                           "No new papers to check",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.VACUOUS_PASS)
     else:
         checkpoint.add_step("Checkbox Checked", False, 7,
                           "New Papers checkbox column not found",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     # Browsing history step
     if BROWSING_HISTORY:
         checkpoint.result += arxiv_urls_visited
         checkpoint.add_step("arXiv URLs Visited", arxiv_urls_visited == MAX_NEW_PAPERS, 8,
                           f"{arxiv_urls_visited}/{MAX_NEW_PAPERS} new paper arXiv URLs in browsing history",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.WEB_VISIT)
     else:
         checkpoint.add_step("arXiv URLs Visited", False, 8,
                           "No browsing history provided",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.EXECUTION_ERROR)
 
     # Log unmatched papers
     if unmatched_to_gold:
@@ -1299,7 +1342,8 @@ def grade_checkpoint_5():
         for i in range(1, 4):
             checkpoint.add_step(f"Formatting Check {i}", False, i,
                               "Could not access raw sheet data",
-                              execution_time=0)
+                              execution_time=0,
+                              category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -1309,7 +1353,8 @@ def grade_checkpoint_5():
             for i in range(1, 4):
                 checkpoint.add_step(f"Formatting Check {i}", False, i,
                                   "No sheets found",
-                                  execution_time=0)
+                                  execution_time=0,
+                                  category=StepCategory.EXECUTION_ERROR)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -1322,7 +1367,8 @@ def grade_checkpoint_5():
         for i in range(1, 4):
             checkpoint.add_step(f"Formatting Check {i}", False, i,
                               f"Error: {str(e)[:50]}",
-                              execution_time=0)
+                              execution_time=0,
+                              category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -1359,22 +1405,26 @@ def grade_checkpoint_5():
         if extra_yellow > 0:
             msg += f" — {extra_yellow} extra yellow rows"
         checkpoint.add_step("Yellow Highlighting", correctly_yellow == expected_yellow and extra_yellow == 0, 1,
-                          msg, execution_time=time.time() - step_start)
+                          msg, execution_time=time.time() - step_start,
+                          category=StepCategory.FUZZY_MATCH)
     elif len(evaluated_papers) > 0 and expected_yellow == 0:
         # No yellow expected — penalize if there are any yellow rows
         if yellow_count == 0:
             checkpoint.result += 1
             checkpoint.add_step("Yellow Highlighting", True, 1,
                               f"No keyword papers among {len(evaluated_papers)} evaluated papers, correctly no yellow rows",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.FUZZY_MATCH)
         else:
             checkpoint.add_step("Yellow Highlighting", False, 1,
                               f"No keyword papers expected but found {yellow_count} yellow rows",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.FUZZY_MATCH)
     else:
         checkpoint.add_step("Yellow Highlighting", False, 1,
                           f"0 papers evaluated for keyword detection",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start,
+                          category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     # Step 2: Check row grouping (yellow rows should be at top, not interleaved)
     step_start = time.time()
@@ -1389,7 +1439,8 @@ def grade_checkpoint_5():
 
     checkpoint.add_step("Row Grouping", is_grouped, 2,
                       grouping_msg,
-                      execution_time=time.time() - step_start)
+                      execution_time=time.time() - step_start,
+                      category=StepCategory.STRUCTURAL)
 
     # Step 3: Check text overflow/visibility
     step_start = time.time()
@@ -1425,19 +1476,23 @@ def grade_checkpoint_5():
         if hidden_cells == 0:
             checkpoint.add_step("Text Overflow", True, 3,
                               f"All {total_cells_checked} cells have visible text",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.SPATIAL)
         else:
             checkpoint.add_step("Text Overflow", False, 3,
                               f"{hidden_cells}/{total_cells_checked} cells have hidden/clipped text",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.SPATIAL)
     except ImportError:
         checkpoint.add_step("Text Overflow", False, 3,
                           "table_utils module not available",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start,
+                          category=StepCategory.EXECUTION_ERROR)
     except Exception as e:
         checkpoint.add_step("Text Overflow", False, 3,
                           f"Error checking text overflow: {str(e)[:50]}",
-                          execution_time=time.time() - step_start)
+                          execution_time=time.time() - step_start,
+                          category=StepCategory.EXECUTION_ERROR)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -1489,7 +1544,8 @@ def grade_checkpoints(workspace_doc_id: str = None,
 
         # Return a failed result
         failed_checkpoint = Checkpoint(total=1, result=0, name="Evaluation Error")
-        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0)
+        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0,
+                                   category=StepCategory.EXECUTION_ERROR)
         return Result([failed_checkpoint], total_execution_time=time.time() - total_start_time)
 
 

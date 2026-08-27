@@ -13,8 +13,6 @@ import json
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
@@ -23,7 +21,7 @@ sys.path.append(BASE_PATH)
 
 # Imports
 from src.browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_content
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, EvaluationStep
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, EvaluationStep, StepCategory
 from src.browsergym.knows.eval.eval_utils.google_services_utils import *
 from src.browsergym.knows.eval.eval_utils.table_utils import *
 from src.browsergym.knows.eval.eval_utils.models import load_model
@@ -183,11 +181,11 @@ def grade_checkpoint_1_and_2():
 
     if not table_data:
         for i, name in enumerate(cp1_step_names, 1):
-            checkpoint1.add_step(name, False, i, "No table data found in spreadsheet", execution_time=0)
+            checkpoint1.add_step(name, False, i, "No table data found in spreadsheet", execution_time=0, category=StepCategory.EXECUTION_ERROR)
         for i in range(1, NUM_STOCKS + 1):
-            checkpoint2.add_step(f"Stock Match: unknown", False, i, "No table data found in spreadsheet", execution_time=0)
+            checkpoint2.add_step(f"Stock Match: unknown", False, i, "No table data found in spreadsheet", execution_time=0, category=StepCategory.EXECUTION_ERROR)
         for i, name in enumerate(cp2_remaining_step_names, NUM_STOCKS + 1):
-            checkpoint2.add_step(name, False, i, "No table data found in spreadsheet", execution_time=0)
+            checkpoint2.add_step(name, False, i, "No table data found in spreadsheet", execution_time=0, category=StepCategory.EXECUTION_ERROR)
         checkpoint1.execution_time = time.time() - checkpoint_start
         checkpoint2.execution_time = 0
         return (checkpoint1, checkpoint2)
@@ -205,11 +203,11 @@ def grade_checkpoint_1_and_2():
 
     except Exception as e:
         for i, name in enumerate(cp1_step_names, 1):
-            checkpoint1.add_step(name, False, i, f"Failed to parse table data: {str(e)}", execution_time=0)
+            checkpoint1.add_step(name, False, i, f"Failed to parse table data: {str(e)}", execution_time=0, category=StepCategory.EXECUTION_ERROR)
         for i in range(1, NUM_STOCKS + 1):
-            checkpoint2.add_step(f"Stock Match: unknown", False, i, f"Failed to parse table data: {str(e)}", execution_time=0)
+            checkpoint2.add_step(f"Stock Match: unknown", False, i, f"Failed to parse table data: {str(e)}", execution_time=0, category=StepCategory.EXECUTION_ERROR)
         for i, name in enumerate(cp2_remaining_step_names, NUM_STOCKS + 1):
-            checkpoint2.add_step(name, False, i, f"Failed to parse table data: {str(e)}", execution_time=0)
+            checkpoint2.add_step(name, False, i, f"Failed to parse table data: {str(e)}", execution_time=0, category=StepCategory.EXECUTION_ERROR)
         checkpoint1.execution_time = time.time() - checkpoint_start
         checkpoint2.execution_time = 0
         return (checkpoint1, checkpoint2)
@@ -236,7 +234,7 @@ def grade_checkpoint_1_and_2():
     # Use standardized match_columns() - keyword matching first, then LLM fallback
     if model is None:
         model = load_model(model_id)
-    matched_columns = match_columns(df, required_columns, model=model, parallel=True)
+    matched_columns, col_methods = match_columns(df, required_columns, model=model, parallel=True, return_methods=True)
 
     # Relaxed check for "Number of shares owned": if no dedicated column was matched,
     # accept any column header that references the expected share count
@@ -245,6 +243,7 @@ def grade_checkpoint_1_and_2():
         for col in original_columns:
             if shares_str in col and "share" in col.lower():
                 matched_columns["Number of shares owned"] = col
+                col_methods["Number of shares owned"] = "keyword"
                 print(f"  Relaxed shares match: column '{col}' references {NUM_SHARES} shares")
                 break
 
@@ -255,11 +254,13 @@ def grade_checkpoint_1_and_2():
             matched_column = matched_columns[col_name]
             checkpoint1.add_step(f"{col_name.title()} Column", True, step_num,
                               f"Found column matching '{col_name}': '{matched_column}'",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.DETERMINISTIC if col_methods.get(col_name) == "keyword" else StepCategory.LLM_VLM_JUDGEMENT)
         else:
             checkpoint1.add_step(f"{col_name.title()} Column", False, step_num,
                               f"No column found for '{col_name}'. Available columns: {', '.join(original_columns)}",
-                              execution_time=time.time() - step_start)
+                              execution_time=time.time() - step_start,
+                              category=StepCategory.DETERMINISTIC if col_methods.get(col_name) == "keyword" else StepCategory.LLM_VLM_JUDGEMENT)
 
     # Now validate the stock names match the reference stocks
     # Create mapping from gold ticker to user ticker for price validation
@@ -345,11 +346,13 @@ def grade_checkpoint_1_and_2():
                 match_type = "exact" if ref_ticker == user_ticker else "LLM"
                 checkpoint2.add_step(f"Stock Match: {ref_ticker} ({ref_name})", True, step_idx,
                                   f"Matched to user ticker '{user_ticker}' ({match_type} match)",
-                                  execution_time=step_time if step_idx == 1 else 0)
+                                  execution_time=step_time if step_idx == 1 else 0,
+                                  category=StepCategory.DETERMINISTIC if match_type == "exact" else StepCategory.LLM_VLM_JUDGEMENT)
             else:
                 checkpoint2.add_step(f"Stock Match: {ref_ticker} ({ref_name})", False, step_idx,
                                   f"Gold stock {ref_ticker} ({ref_name}) not found in user spreadsheet. User tickers: {', '.join(user_tickers[:NUM_STOCKS])}",
-                                  execution_time=step_time if step_idx == 1 else 0)
+                                  execution_time=step_time if step_idx == 1 else 0,
+                                  category=StepCategory.LLM_VLM_JUDGEMENT)
     else:
         step_time = time.time() - step_start
         missing = []
@@ -360,7 +363,8 @@ def grade_checkpoint_1_and_2():
         for step_idx, (ref_name, ref_ticker) in enumerate(zip(reference_names, reference_tickers), start=1):
             checkpoint2.add_step(f"Stock Match: {ref_ticker} ({ref_name})", False, step_idx,
                               f"Cannot validate stocks - {' and '.join(missing)} column(s) not found",
-                              execution_time=step_time if step_idx == 1 else 0)
+                              execution_time=step_time if step_idx == 1 else 0,
+                              category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     # Past Price step (checkpoint2): Verify past prices are correct (5% tolerance)
     step_start = time.time()
@@ -447,20 +451,24 @@ def grade_checkpoint_1_and_2():
         if total_comparisons == 0:
             checkpoint2.add_step("Past Price Accuracy", False, NUM_STOCKS + 1,
                               "No past prices found to validate",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.EXECUTION_ERROR)
         elif match_count == total_comparisons:
             checkpoint2.add_step("Past Price Accuracy", True, NUM_STOCKS + 1,
                               f"All {match_count}/{total_comparisons} past prices match (gold or web-verified)",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.LLM_VLM_JUDGEMENT if (failed_stocks and cached_url_contents) else StepCategory.FUZZY_MATCH)
         else:
             checkpoint2.add_step("Past Price Accuracy", False, NUM_STOCKS + 1,
                               f"Only {match_count}/{total_comparisons} past prices match. Mismatches: {'; '.join(mismatches[:3])}{'...' if len(mismatches) > 3 else ''}",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.LLM_VLM_JUDGEMENT if (failed_stocks and cached_url_contents) else StepCategory.FUZZY_MATCH)
     else:
         step_time = time.time() - step_start
         checkpoint2.add_step("Past Price Accuracy", False, NUM_STOCKS + 1,
                           "Cannot validate past prices - required columns not found or no ticker mapping available",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     # Current Price step (checkpoint2): Verify current prices are correct (5% tolerance)
     step_start = time.time()
@@ -545,20 +553,24 @@ def grade_checkpoint_1_and_2():
         if total_comparisons == 0:
             checkpoint2.add_step("Current Price Accuracy", False, NUM_STOCKS + 2,
                               "No current prices found to validate",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.EXECUTION_ERROR)
         elif match_count == total_comparisons:
             checkpoint2.add_step("Current Price Accuracy", True, NUM_STOCKS + 2,
                               f"All {match_count}/{total_comparisons} current prices match (gold or web-verified)",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.LLM_VLM_JUDGEMENT if (failed_stocks and cached_url_contents) else StepCategory.FUZZY_MATCH)
         else:
             checkpoint2.add_step("Current Price Accuracy", False, NUM_STOCKS + 2,
                               f"Only {match_count}/{total_comparisons} current prices match. Mismatches: {'; '.join(mismatches[:3])}{'...' if len(mismatches) > 3 else ''}",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.LLM_VLM_JUDGEMENT if (failed_stocks and cached_url_contents) else StepCategory.FUZZY_MATCH)
     else:
         step_time = time.time() - step_start
         checkpoint2.add_step("Current Price Accuracy", False, NUM_STOCKS + 2,
                           "Cannot validate current prices - required columns not found or no ticker mapping available",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     # Gain/Loss step (checkpoint2): Verify gain/loss calculations are correct
     # Calculate expected gain/loss from actual current and past prices, then compare
@@ -616,20 +628,24 @@ def grade_checkpoint_1_and_2():
         if total_comparisons == 0:
             checkpoint2.add_step("Gain/Loss Calculation Accuracy", False, NUM_STOCKS + 3,
                               "No gain/loss values found to validate",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.EXECUTION_ERROR)
         elif match_count == total_comparisons:
             checkpoint2.add_step("Gain/Loss Calculation Accuracy", True, NUM_STOCKS + 3,
                               f"All {match_count}/{total_comparisons} gain/loss calculations are correct within 5% tolerance",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.FUZZY_MATCH)
         else:
             checkpoint2.add_step("Gain/Loss Calculation Accuracy", False, NUM_STOCKS + 3,
                               f"Only {match_count}/{total_comparisons} gain/loss calculations are correct. Mismatches: {'; '.join(mismatches[:3])}{'...' if len(mismatches) > 3 else ''}",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.FUZZY_MATCH)
     else:
         step_time = time.time() - step_start
         checkpoint2.add_step("Gain/Loss Calculation Accuracy", False, NUM_STOCKS + 3,
                           "Cannot validate gain/loss - required columns not found",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     checkpoint1.execution_time = time.time() - checkpoint_start
     checkpoint2.execution_time = time.time() - checkpoint_start
@@ -651,10 +667,12 @@ def grade_checkpoint_3(browsing_history=None):
     if not browsing_history:
         checkpoint.add_step("Stock Info Website", False, 1,
                           "No browsing history provided",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.add_step("Price Data Source", False, 2,
                           "Cannot validate - no browsing history",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -756,20 +774,24 @@ def grade_checkpoint_3(browsing_history=None):
     if found_sector_stocks_info:
         checkpoint.add_step("Stock Info Website", True, 1,
                           f"Verified website content contains top {SECTOR} stock info. Source(s): {', '.join(evidence_urls['sector_stocks'])}",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.LLM_VLM_JUDGEMENT)
     else:
         checkpoint.add_step("Stock Info Website", False, 1,
                           f"Could not verify top {SECTOR} stock info in visited websites (checked {urls_checked} URLs).",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.LLM_VLM_JUDGEMENT)
 
     if found_past_prices_info:
         checkpoint.add_step("Price Data Source", True, 2,
                           f"Verified website content contains past price data. Source(s): {', '.join(evidence_urls['past_prices'])}",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.LLM_VLM_JUDGEMENT)
     else:
         checkpoint.add_step("Price Data Source", False, 2,
                           f"Could not verify past price data in visited websites (checked {urls_checked} URLs).",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.LLM_VLM_JUDGEMENT)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -794,13 +816,16 @@ def grade_checkpoint_4():
         step_time = time.time() - step_start
         checkpoint.add_step("Bar Chart Exists", False, 1,
                           "No charts found in spreadsheet",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.DETERMINISTIC)
         checkpoint.add_step("Chart Contains Stocks", False, 2,
                           "Cannot validate - no chart found",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                           "Cannot validate - no chart found",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -812,13 +837,16 @@ def grade_checkpoint_4():
         found_types = [c.get('chart_type', 'unknown') for c in chart_data]
         checkpoint.add_step("Bar Chart Exists", False, 1,
                           f"No bar/column chart found. Found chart types: {', '.join(found_types)}",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.DETERMINISTIC)
         checkpoint.add_step("Chart Contains Stocks", False, 2,
                           "Cannot validate - no bar chart found",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                           "Cannot validate - no bar chart found",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -831,7 +859,8 @@ def grade_checkpoint_4():
 
     checkpoint.add_step("Bar Chart Exists", True, 1,
                       f"Found bar/column chart: '{chart_title}'",
-                      execution_time=step_time)
+                      execution_time=step_time,
+                      category=StepCategory.DETERMINISTIC)
 
     # Step 2: Validate chart contains all stocks
     step_start = time.time()
@@ -841,10 +870,12 @@ def grade_checkpoint_4():
         step_time = time.time() - step_start
         checkpoint.add_step("Chart Contains Stocks", False, 2,
                           "Cannot validate - required data from checkpoint 1 not available",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                           "Cannot validate - required data not available",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -856,10 +887,12 @@ def grade_checkpoint_4():
             step_time = time.time() - step_start
             checkpoint.add_step("Chart Contains Stocks", False, 2,
                               "Could not extract category data from chart",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.EXECUTION_ERROR)
             checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                               "Cannot validate - chart categories not found",
-                              execution_time=0)
+                              execution_time=0,
+                              category=StepCategory.DEPENDENCY_NOT_EVALUATED)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -877,10 +910,12 @@ def grade_checkpoint_4():
             step_time = time.time() - step_start
             checkpoint.add_step("Chart Contains Stocks", False, 2,
                               "Could not determine expected stocks from table data",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.EXECUTION_ERROR)
             checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                               "Cannot validate - expected stocks not found",
-                              execution_time=0)
+                              execution_time=0,
+                              category=StepCategory.DEPENDENCY_NOT_EVALUATED)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -890,10 +925,12 @@ def grade_checkpoint_4():
             step_time = time.time() - step_start
             checkpoint.add_step("Chart Contains Stocks", False, 2,
                               f"Duplicate stocks detected in table. Expected {len(expected_stocks)} unique stocks but found {len(stock_unique)} unique.",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.DETERMINISTIC)
             checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                               "Cannot validate - duplicate stocks in table.",
-                              execution_time=0)
+                              execution_time=0,
+                              category=StepCategory.DEPENDENCY_NOT_EVALUATED)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -903,10 +940,12 @@ def grade_checkpoint_4():
             step_time = time.time() - step_start
             checkpoint.add_step("Chart Contains Stocks", False, 2,
                               "Duplicate labels detected in chart domain. Chart should show each stock exactly once.",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.DETERMINISTIC)
             checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                               "Cannot validate - duplicate stocks in chart.",
-                              execution_time=0)
+                              execution_time=0,
+                              category=StepCategory.DEPENDENCY_NOT_EVALUATED)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -927,21 +966,25 @@ def grade_checkpoint_4():
         if match_count >= NUM_STOCKS:
             checkpoint.add_step("Chart Contains Stocks", True, 2,
                               f"Chart contains all {match_count} expected stocks",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.FUZZY_MATCH)
         else:
             missing_str = ', '.join(missing[:3]) + ('...' if len(missing) > 3 else '')
             checkpoint.add_step("Chart Contains Stocks", False, 2,
                               f"Chart only contains {match_count}/{total_expected} stocks. Missing: {missing_str}",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.FUZZY_MATCH)
 
     except Exception as e:
         step_time = time.time() - step_start
         checkpoint.add_step("Chart Contains Stocks", False, 2,
                           f"Error validating chart stocks: {str(e)}",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.EXECUTION_ERROR)
         checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                           "Cannot validate - error in stock validation",
-                          execution_time=0)
+                          execution_time=0,
+                          category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -956,7 +999,8 @@ def grade_checkpoint_4():
             step_time = time.time() - step_start
             checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                               "Could not extract value data from chart",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.EXECUTION_ERROR)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -967,7 +1011,8 @@ def grade_checkpoint_4():
             step_time = time.time() - step_start
             checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                               "Could not calculate expected dollar values from table data",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.EXECUTION_ERROR)
             checkpoint.execution_time = time.time() - checkpoint_start
             return checkpoint
 
@@ -981,18 +1026,21 @@ def grade_checkpoint_4():
         if match_count == total_count and total_count >= NUM_STOCKS:
             checkpoint.add_step("Chart Shows Dollar Values", True, 3,
                               f"All {match_count}/{total_count} dollar values match expected values within 2% tolerance",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.FUZZY_MATCH)
         else:
             mismatch_str = '; '.join(mismatches[:3]) + ('...' if len(mismatches) > 3 else '')
             checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                               f"Only {match_count}/{total_count} dollar values match. Mismatches: {mismatch_str}",
-                              execution_time=step_time)
+                              execution_time=step_time,
+                              category=StepCategory.FUZZY_MATCH)
 
     except Exception as e:
         step_time = time.time() - step_start
         checkpoint.add_step("Chart Shows Dollar Values", False, 3,
                           f"Error validating chart dollar values: {str(e)}",
-                          execution_time=step_time)
+                          execution_time=step_time,
+                          category=StepCategory.EXECUTION_ERROR)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -1040,7 +1088,8 @@ def grade_checkpoints(workspace_doc_id=None, browsing_history=None):
 
         # Return a failed result
         failed_checkpoint = Checkpoint(total=1, result=0, name="Evaluation Error")
-        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0)
+        failed_checkpoint.add_step("Evaluation", False, 1, f"Fatal error: {str(e)}", execution_time=0,
+category=StepCategory.EXECUTION_ERROR)
         return Result([failed_checkpoint], total_execution_time=time.time() - total_start_time)
 
 if __name__ == "__main__":

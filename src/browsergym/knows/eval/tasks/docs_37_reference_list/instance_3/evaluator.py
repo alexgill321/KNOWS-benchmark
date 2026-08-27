@@ -10,8 +10,6 @@ from typing import List
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
@@ -20,7 +18,7 @@ BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 # Imports from eval_utils
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score, StepCategory
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.knows.eval.eval_utils.google_services_helpers import get_doc_content
 
@@ -52,6 +50,17 @@ VALID_CATEGORIES_3 = {"Presentations", "Blogs"}
 
 model = None
 model_id = "gemini-3-flash-google-ai"
+
+# Maps match_valid_category / check_link_name_relevance return_method values to
+# step categories. A method of None means no phase accepted the text; since the
+# category cache here is built with a model, the LLM made the final rejection,
+# so callers use LLM_VLM_JUDGEMENT as the dict-lookup default.
+_METHOD_CATEGORIES = {
+    "exact": StepCategory.DETERMINISTIC,
+    "llm": StepCategory.LLM_VLM_JUDGEMENT,
+    "fuzzy": StepCategory.FUZZY_MATCH,
+    "error": StepCategory.EXECUTION_ERROR,
+}
 
 # Google services
 DRIVE_SERVICE, DOCS_SERVICE = initialize_google_services()
@@ -93,6 +102,7 @@ def grade_checkpoint_1():
                 name=sname, success=False, step_id=sid,
                 details="Error fetching document content.",
                 score=0, max_score=smax, execution_time=0,
+                category=StepCategory.EXECUTION_ERROR,
             )
         checkpoint.execution_time = time.time() - start
         return checkpoint
@@ -154,12 +164,14 @@ def grade_checkpoint_1():
                 details=f"{format_pass}/{total_count} lectures in correct format. "
                         + "; ".join(format_details) if format_details else f"{format_pass}/{total_count} all passed",
                 score=score_1, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.FUZZY_MATCH,
             )
         except Exception as e:
             checkpoint.add_step(
                 name="Title format (Month/Day: title) with gold match",
                 success=False, step_id=1, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.EXECUTION_ERROR,
             )
         _added.add(1)
 
@@ -184,12 +196,14 @@ def grade_checkpoint_1():
                 details=f"{h3_pass}/{total_count} lectures are Heading 3. "
                         + "; ".join(h3_details) if h3_details else f"{h3_pass}/{total_count} all passed",
                 score=score_2, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.STRUCTURAL,
             )
         except Exception as e:
             checkpoint.add_step(
                 name="Heading 3 style", success=False, step_id=2,
                 details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.EXECUTION_ERROR,
             )
         _added.add(2)
 
@@ -200,6 +214,7 @@ def grade_checkpoint_1():
                     name=sname, success=False, step_id=sid,
                     details=f"Data acquisition failed — {e}",
                     score=0, max_score=smax, execution_time=0,
+                    category=StepCategory.EXECUTION_ERROR,
                 )
 
     checkpoint.execution_time = time.time() - start
@@ -228,6 +243,7 @@ def grade_checkpoint_2():
                 name=sname, success=False, step_id=sid,
                 details="Error fetching document content.",
                 score=0, max_score=smax, execution_time=0,
+                category=StepCategory.EXECUTION_ERROR,
             )
         checkpoint.execution_time = time.time() - start
         return checkpoint
@@ -240,6 +256,7 @@ def grade_checkpoint_2():
                     name=step[1], success=False, step_id=step[0],
                     details="No bullet sections found in the document.",
                     score=0, max_score=step[2], execution_time=0,
+                    category=StepCategory.EXECUTION_ERROR,
                 )
             checkpoint.execution_time = time.time() - start
             return checkpoint
@@ -257,13 +274,13 @@ def grade_checkpoint_2():
             cat = section["category"]
             if cat not in category_cache:
                 category_cache[cat] = match_valid_category(
-                    cat, model=model, valid_categories=VALID_CATEGORIES_3
+                    cat, model=model, valid_categories=VALID_CATEGORIES_3, return_method=True
                 )
 
         valid_sections = []
         invalid_sections = []
         for section in sections:
-            if category_cache[section["category"]]:
+            if category_cache[section["category"]][0]:
                 valid_sections.append(section)
             else:
                 invalid_sections.append(section)
@@ -283,16 +300,24 @@ def grade_checkpoint_2():
         try:
             covered = 0
             coverage_details = []
+            coverage_items = []  # (category, success) per gold pair for StepCategory.aggregate
             for lecture, list_type in sorted(gold_pairs):
-                found = any(
-                    category_cache[s["category"]] == list_type
-                    for s in sections
-                    if lecture in section_to_gold_lectures.get(s["lecture"], set())
+                matched_section = next(
+                    (s for s in sections
+                     if lecture in section_to_gold_lectures.get(s["lecture"], set())
+                     and category_cache[s["category"]][0] == list_type),
+                    None,
                 )
-                if found:
+                if matched_section is not None:
                     covered += 1
+                    coverage_items.append((
+                        _METHOD_CATEGORIES.get(category_cache[matched_section["category"]][1], StepCategory.LLM_VLM_JUDGEMENT),
+                        True,
+                    ))
                 else:
                     coverage_details.append(f"Missing '{list_type}' under '{lecture}'")
+                    # Rejection is the exact comparison over cached category verdicts
+                    coverage_items.append((StepCategory.DETERMINISTIC, False))
             score_1 = calculate_percentage_score(covered, total_gold_pairs, 10)
             checkpoint.add_step(
                 name="Valid category titles (gold coverage)",
@@ -300,12 +325,14 @@ def grade_checkpoint_2():
                 details=f"{covered}/{total_gold_pairs} expected categories found. "
                         + "; ".join(coverage_details[:5]) if coverage_details else f"{covered}/{total_gold_pairs} all found",
                 score=score_1, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.aggregate(coverage_items),
             )
         except Exception as e:
             checkpoint.add_step(
                 name="Valid category titles (gold coverage)",
                 success=False, step_id=1, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.EXECUTION_ERROR,
             )
         _added.add(1)
 
@@ -329,12 +356,14 @@ def grade_checkpoint_2():
                 details=f"{format_pass}/{total_sections} category titles are bold bullets. "
                         + "; ".join(format_details[:5]) if format_details else f"{format_pass}/{total_sections} all correct",
                 score=score_2, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.STRUCTURAL,
             )
         except Exception as e:
             checkpoint.add_step(
                 name="Bullet list starts with title in bold",
                 success=False, step_id=2, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.EXECUTION_ERROR,
             )
         _added.add(2)
 
@@ -355,12 +384,14 @@ def grade_checkpoint_2():
                 details=f"{nonempty_pass}/{total_sections} sections non-empty. "
                         + "; ".join(empty_details) if empty_details else f"{nonempty_pass}/{total_sections} all non-empty",
                 score=score_3, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.STRUCTURAL,
             )
         except Exception as e:
             checkpoint.add_step(
                 name="No empty bullet lists",
                 success=False, step_id=3, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.EXECUTION_ERROR,
             )
         _added.add(3)
 
@@ -369,6 +400,11 @@ def grade_checkpoint_2():
         try:
             valid_count = len(valid_sections)
             invalid_details = [f"Invalid: '{s['category']}' under '{s['lecture']}'" for s in invalid_sections]
+            invalid_items = [
+                (_METHOD_CATEGORIES.get(category_cache[s["category"]][1], StepCategory.LLM_VLM_JUDGEMENT),
+                 bool(category_cache[s["category"]][0]))
+                for s in sections
+            ]
             score_4 = calculate_percentage_score(valid_count, total_sections, 10)
             checkpoint.add_step(
                 name="No invalid category titles",
@@ -376,12 +412,14 @@ def grade_checkpoint_2():
                 details=f"{valid_count}/{total_sections} sections have valid categories. "
                         + "; ".join(invalid_details[:5]) if invalid_details else f"{valid_count}/{total_sections} all valid",
                 score=score_4, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.aggregate(invalid_items),
             )
         except Exception as e:
             checkpoint.add_step(
                 name="No invalid category titles",
                 success=False, step_id=4, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.EXECUTION_ERROR,
             )
         _added.add(4)
 
@@ -392,6 +430,7 @@ def grade_checkpoint_2():
                     name=sname, success=False, step_id=sid,
                     details=f"Data acquisition failed — {e}",
                     score=0, max_score=smax, execution_time=0,
+                    category=StepCategory.EXECUTION_ERROR,
                 )
 
     checkpoint.execution_time = time.time() - start
@@ -428,6 +467,7 @@ def grade_checkpoint_3():
                 name=sname, success=False, step_id=sid,
                 details="Error fetching document content.",
                 score=0, max_score=smax, execution_time=0,
+                category=StepCategory.EXECUTION_ERROR,
             )
         checkpoint.execution_time = time.time() - start
         return checkpoint
@@ -483,12 +523,14 @@ def grade_checkpoint_3():
                 details=f"{present_count}/{total_gold} refs present. "
                         + "; ".join(presence_details[:5]) if presence_details else f"{present_count}/{total_gold} all present",
                 score=score_1, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.FUZZY_MATCH,
             )
         except Exception as e:
             checkpoint.add_step(
                 name="All references present",
                 success=False, step_id=1, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.EXECUTION_ERROR,
             )
         _added.add(1)
 
@@ -511,12 +553,14 @@ def grade_checkpoint_3():
                 details=f"{dup_pass}/{total_gold} refs have no duplicates. "
                         + "; ".join(dup_details[:5]) if dup_details else f"{dup_pass}/{total_gold} all unique",
                 score=score_2, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.DETERMINISTIC,
             )
         except Exception as e:
             checkpoint.add_step(
                 name="No duplicate reference links",
                 success=False, step_id=2, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.EXECUTION_ERROR,
             )
         _added.add(2)
 
@@ -526,19 +570,28 @@ def grade_checkpoint_3():
             live_found = [g for g in found_items if not g.get("is_dead")]
             cat_pass = 0
             cat_details = []
+            cat_items = []  # (category, success) per reference for StepCategory.aggregate
             for gold_item in live_found:
                 ref = gold_to_doc[(gold_item["lecture"], gold_item["url"])]
                 expected_type = gold_item.get("list_type", "")
-                doc_category = (category_cache.get(ref["category"])
-                                if category_cache else match_valid_category(
-                                    ref["category"], model=model, valid_categories=VALID_CATEGORIES_3
-                                ))
+                if category_cache:
+                    doc_category, cat_method = category_cache.get(ref["category"], (None, None))
+                else:
+                    doc_category, cat_method = match_valid_category(
+                        ref["category"], model=model, valid_categories=VALID_CATEGORIES_3,
+                        return_method=True,
+                    )
+                # A None method means no phase accepted: the LLM made the final
+                # rejection (the cache and the direct call both run with a model).
+                item_category = _METHOD_CATEGORIES.get(cat_method, StepCategory.LLM_VLM_JUDGEMENT)
                 if doc_category == expected_type:
                     cat_pass += 1
+                    cat_items.append((item_category, True))
                 else:
                     cat_details.append(
                         f"Wrong category '{ref['category']}' (expected '{expected_type}'): '{gold_item['name']}'"
                     )
+                    cat_items.append((item_category, False))
             score_3 = calculate_percentage_score(cat_pass, total_live, 10)
             checkpoint.add_step(
                 name="Correct categorization",
@@ -546,12 +599,14 @@ def grade_checkpoint_3():
                 details=f"{cat_pass}/{total_live} live refs correctly categorized. "
                         + "; ".join(cat_details[:5]) if cat_details else f"{cat_pass}/{total_live} all correct",
                 score=score_3, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.aggregate(cat_items),
             )
         except Exception as e:
             checkpoint.add_step(
                 name="Correct categorization",
                 success=False, step_id=3, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.EXECUTION_ERROR,
             )
         _added.add(3)
 
@@ -575,12 +630,14 @@ def grade_checkpoint_3():
                 details=f"{slide_match_count}/{total_gold} have correct slide numbers. "
                         + "; ".join(slide_match_details[:5]) if slide_match_details else f"{slide_match_count}/{total_gold} all match",
                 score=score_4, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.DETERMINISTIC,
             )
         except Exception as e:
             checkpoint.add_step(
                 name="Slide numbers match gold",
                 success=False, step_id=4, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.EXECUTION_ERROR,
             )
         _added.add(4)
 
@@ -603,12 +660,14 @@ def grade_checkpoint_3():
                 details=f"{format_pass}/{total_live} live refs use descriptive anchor text. "
                         + "; ".join(format_details[:5]) if format_details else f"{format_pass}/{total_live} all descriptive",
                 score=score_5, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.DETERMINISTIC,
             )
         except Exception as e:
             checkpoint.add_step(
                 name="Hyperlink format (descriptive anchor text)",
                 success=False, step_id=5, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.EXECUTION_ERROR,
             )
         _added.add(5)
 
@@ -630,12 +689,14 @@ def grade_checkpoint_3():
                 details=f"{slide_fmt_pass}/{total_gold} have correct slide format. "
                         + "; ".join(slide_fmt_details[:5]) if slide_fmt_details else f"{slide_fmt_pass}/{total_gold} all correct format",
                 score=score_6, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.DETERMINISTIC,
             )
         except Exception as e:
             checkpoint.add_step(
                 name="Slide number format",
                 success=False, step_id=6, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.EXECUTION_ERROR,
             )
         _added.add(6)
 
@@ -679,12 +740,14 @@ def grade_checkpoint_3():
                 details=f"{ya_pass}/{total_live} live refs have correct (YYYY, Author) format. "
                         + "; ".join(ya_details[:5]) if ya_details else f"{ya_pass}/{total_live} all correct",
                 score=score_7, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.FUZZY_MATCH,
             )
         except Exception as e:
             checkpoint.add_step(
                 name="Year and author format (YYYY, First Author) after hyperlink",
                 success=False, step_id=7, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.EXECUTION_ERROR,
             )
         _added.add(7)
 
@@ -706,23 +769,30 @@ def grade_checkpoint_3():
                     "id": f"{anchor_text}||{url}",
                     "func": check_link_name_relevance,
                     "args": (anchor_text, url, model),
-                    "kwargs": {"page_title": page_title},
+                    "kwargs": {"page_title": page_title, "return_method": True},
                 }
                 for (anchor_text, url), page_title in unique_relevance_pairs.items()
             ]
             relevance_results = parallel_execute(relevance_tasks, max_workers=10) if relevance_tasks else {}
-            relevance_cache = {
-                (anchor_text, url): relevance_results.get(f"{anchor_text}||{url}", False)
-                for (anchor_text, url) in unique_relevance_pairs
-            }
+            # Cache stores (verdict, method) — method records whether the fuzzy
+            # title match or the LLM decided. Verdict behavior is unchanged.
+            relevance_cache = {}
+            for (anchor_text, url) in unique_relevance_pairs:
+                res = relevance_results.get(f"{anchor_text}||{url}", (False, None))
+                if not isinstance(res, tuple):
+                    res = (bool(res), None)
+                relevance_cache[(anchor_text, url)] = res
             relevance_pass = 0
             relevance_details = []
+            rel_items = []  # (category, success) per reference for StepCategory.aggregate
             for gold_item in live_gold:
                 ref = gold_to_doc[(gold_item["lecture"], gold_item["url"])]
                 if not ref:
                     relevance_details.append(f"Missing: '{gold_item['name']}'")
                     continue
-                if relevance_cache.get((ref["anchor_text"], ref["url"]), False):
+                is_relevant, rel_method = relevance_cache.get((ref["anchor_text"], ref["url"]), (False, None))
+                rel_items.append((_METHOD_CATEGORIES.get(rel_method, StepCategory.LLM_VLM_JUDGEMENT), bool(is_relevant)))
+                if is_relevant:
                     relevance_pass += 1
                 else:
                     relevance_details.append(f"Irrelevant name '{ref['anchor_text']}' for '{ref['url']}'")
@@ -733,12 +803,14 @@ def grade_checkpoint_3():
                 details=f"{relevance_pass}/{total_live} live refs have relevant names. "
                         + "; ".join(relevance_details[:5]) if relevance_details else f"{relevance_pass}/{total_live} all relevant",
                 score=score_8, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.aggregate(rel_items),
             )
         except Exception as e:
             checkpoint.add_step(
                 name="Link names relevant",
                 success=False, step_id=8, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.EXECUTION_ERROR,
             )
         _added.add(8)
 
@@ -751,6 +823,7 @@ def grade_checkpoint_3():
                     success=True, step_id=9,
                     details="No dead links in gold — step passes vacuously",
                     score=10, max_score=10, execution_time=time.time() - t,
+                    category=StepCategory.VACUOUS_PASS,
                 )
             else:
                 strike_pass = 0
@@ -771,12 +844,14 @@ def grade_checkpoint_3():
                     details=f"{strike_pass}/{total_dead} dead links present with strikethrough. "
                             + "; ".join(strike_details[:5]) if strike_details else f"{strike_pass}/{total_dead} all correct",
                     score=score_9, max_score=10, execution_time=time.time() - t,
+                    category=StepCategory.STRUCTURAL,
                 )
         except Exception as e:
             checkpoint.add_step(
                 name="Dead links present with strikethrough",
                 success=False, step_id=9, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.EXECUTION_ERROR,
             )
         _added.add(9)
 
@@ -825,6 +900,7 @@ def grade_checkpoint_3():
                     success=True, step_id=10,
                     details="No category bullet lists found — step passes vacuously",
                     score=10, max_score=10, execution_time=time.time() - t,
+                    category=StepCategory.VACUOUS_PASS,
                 )
             else:
                 score_10 = calculate_percentage_score(sorted_groups, total_groups, 10)
@@ -834,12 +910,14 @@ def grade_checkpoint_3():
                     details=f"{sorted_groups}/{total_groups} category lists correctly sorted. "
                             + "; ".join(sort_details[:5]) if sort_details else f"{sorted_groups}/{total_groups} all sorted",
                     score=score_10, max_score=10, execution_time=time.time() - t,
+                    category=StepCategory.STRUCTURAL,
                 )
         except Exception as e:
             checkpoint.add_step(
                 name="Bullets sorted by year then title",
                 success=False, step_id=10, details=f"Step evaluation error: {e}",
                 score=0, max_score=10, execution_time=time.time() - t,
+                category=StepCategory.EXECUTION_ERROR,
             )
         _added.add(10)
 
@@ -850,6 +928,7 @@ def grade_checkpoint_3():
                     name=sname, success=False, step_id=sid,
                     details=f"Data acquisition failed — {e}",
                     score=0, max_score=smax, execution_time=0,
+                    category=StepCategory.EXECUTION_ERROR,
                 )
 
     checkpoint.execution_time = time.time() - start
@@ -875,6 +954,7 @@ def grade_checkpoint_4():
                 name=sname, success=False, step_id=sid,
                 details="Error fetching document content.",
                 score=0, max_score=smax, execution_time=0,
+                category=StepCategory.EXECUTION_ERROR,
             )
         checkpoint.execution_time = time.time() - start
         return checkpoint
@@ -890,6 +970,7 @@ def grade_checkpoint_4():
                     name=sname, success=True, step_id=sid,
                     details="No multi-slide references found — step passes vacuously",
                     score=smax, max_score=smax, execution_time=0,
+                    category=StepCategory.VACUOUS_PASS,
                 )
                 _added.add(sid)
         else:
@@ -939,12 +1020,14 @@ def grade_checkpoint_4():
                     details=f"{font_pass}/{total_multi} multi-slide refs have hyperlink font +1pt over surrounding text. "
                             + "; ".join(font_details[:5]) if font_details else f"{font_pass}/{total_multi} all +1pt",
                     score=score_1, max_score=10, execution_time=time.time() - t,
+                    category=StepCategory.DETERMINISTIC,
                 )
             except Exception as e:
                 checkpoint.add_step(
                     name="Font size +1pt for multi-slide refs",
                     success=False, step_id=1, details=f"Step evaluation error: {e}",
                     score=0, max_score=10, execution_time=time.time() - t,
+                    category=StepCategory.EXECUTION_ERROR,
                 )
             _added.add(1)
 
@@ -974,12 +1057,14 @@ def grade_checkpoint_4():
                     details=f"{bold_pass}/{total_multi} multi-slide refs are bold (only hyperlink). "
                             + "; ".join(bold_details[:5]) if bold_details else f"{bold_pass}/{total_multi} all bold",
                     score=score_2, max_score=10, execution_time=time.time() - t,
+                    category=StepCategory.STRUCTURAL,
                 )
             except Exception as e:
                 checkpoint.add_step(
                     name="Bold for multi-slide refs",
                     success=False, step_id=2, details=f"Step evaluation error: {e}",
                     score=0, max_score=10, execution_time=time.time() - t,
+                    category=StepCategory.EXECUTION_ERROR,
                 )
             _added.add(2)
 
@@ -1011,12 +1096,14 @@ def grade_checkpoint_4():
                     details=f"{magenta_pass}/{total_multi} multi-slide refs are light magenta 1 (only hyperlink). "
                             + "; ".join(magenta_details[:5]) if magenta_details else f"{magenta_pass}/{total_multi} all light magenta 1",
                     score=score_3, max_score=10, execution_time=time.time() - t,
+                    category=StepCategory.DETERMINISTIC,
                 )
             except Exception as e:
                 checkpoint.add_step(
                     name="Light magenta 1 for multi-slide refs",
                     success=False, step_id=3, details=f"Step evaluation error: {e}",
                     score=0, max_score=10, execution_time=time.time() - t,
+                    category=StepCategory.EXECUTION_ERROR,
                 )
             _added.add(3)
 
@@ -1042,12 +1129,14 @@ def grade_checkpoint_4():
                     details=f"{no_dup_pass}/{total_multi} have unique slide numbers. "
                             + "; ".join(dup_details[:5]) if dup_details else f"{no_dup_pass}/{total_multi} all unique",
                     score=score_4, max_score=10, execution_time=time.time() - t,
+                    category=StepCategory.DETERMINISTIC,
                 )
             except Exception as e:
                 checkpoint.add_step(
                     name="No duplicate slide numbers",
                     success=False, step_id=4, details=f"Step evaluation error: {e}",
                     score=0, max_score=10, execution_time=time.time() - t,
+                    category=StepCategory.EXECUTION_ERROR,
                 )
             _added.add(4)
 
@@ -1058,6 +1147,7 @@ def grade_checkpoint_4():
                     name=sname, success=False, step_id=sid,
                     details=f"Data acquisition failed — {e}",
                     score=0, max_score=smax, execution_time=0,
+                    category=StepCategory.EXECUTION_ERROR,
                 )
 
     checkpoint.execution_time = time.time() - start

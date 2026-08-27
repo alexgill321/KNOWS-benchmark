@@ -6,7 +6,8 @@ build-backend = "hatchling.build"
 name = "browsergym-knows"
 description = "Knows benchmark for BrowserGym"
 authors = [
-    {name = "Anonymous"},
+    {name = "Alexander Gill"},
+    {name = "Md Farhan Ishmam"},
 ]
 readme = "README.md"
 requires-python = ">3.7"
@@ -19,13 +20,12 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "License :: OSI Approved :: Apache Software License",
 ]
-dynamic = ["dependencies", "version"]
+version = "1.0.0"
+dynamic = ["dependencies"]
 
 [project.urls]
-homepage = "https://github.com/ServiceNow/BrowserGym"
+homepage = "https://github.com/alexgill321/KNOWS-benchmark"
 
-[tool.hatch.version]
-path = "src/browsergym/knows/__init__.py"
 
 [tool.hatch.metadata.hooks.requirements_txt]
 files = ["requirements.txt"]

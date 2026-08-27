@@ -8,15 +8,13 @@ import time
 def get_base_path():
     if os.path.exists("/app/src"):
         return "/app"
-    elif os.path.exists("/scratch"):
-        return "/path/to/KNOWS-benchmark/"
     else:
         return os.getcwd()
 
 BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score, StepCategory
 from src.browsergym.knows.eval.eval_utils.text_utils import keywords_exact_match
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.knows.eval.eval_utils.models import load_model
@@ -161,11 +159,11 @@ def grade_checkpoint_1(ctx, browsing_history=None):
     presentation_data = ctx.get('presentation_data')
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
         reason = ctx.get('fetch_error', "No slides found in presentation")
-        checkpoint.add_step("Title is Room/Project", False, 1, details=reason, max_score=2)
-        checkpoint.add_step("One Image on Title Slide", False, 2, details=reason, max_score=2)
-        checkpoint.add_step("Image Coverage >= 70%", False, 3, details=reason, max_score=4)
-        checkpoint.add_step("Browsing History Check", False, 4, details=reason, max_score=2)
-        checkpoint.add_step("Image Relevance (VLM)", False, 5, details=reason, max_score=2)
+        checkpoint.add_step("Title is Room/Project", False, 1, details=reason, max_score=2, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("One Image on Title Slide", False, 2, details=reason, max_score=2, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Image Coverage >= 70%", False, 3, details=reason, max_score=4, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Browsing History Check", False, 4, details=reason, max_score=2, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Image Relevance (VLM)", False, 5, details=reason, max_score=2, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - start
         return checkpoint
 
@@ -193,6 +191,7 @@ def grade_checkpoint_1(ctx, browsing_history=None):
 
     # Step 1: Title text contains the expected room type from task.md (2 pt)
     step_start = time.time()
+    step1_category = StepCategory.DETERMINISTIC  # regex word-boundary match
     if not title_text:
         title_pass = False
         title_detail = "No title text found in title position"
@@ -200,6 +199,7 @@ def grade_checkpoint_1(ctx, browsing_history=None):
         # Fallback: if we couldn't parse room type, just check title is non-empty
         title_pass = True
         title_detail = f"Title: '{title_text}' (room type unknown, accepting any title)"
+        step1_category = StepCategory.VACUOUS_PASS  # accepted without a real check
     else:
         title_pass = re.search(rf'\b{re.escape(room_type)}\b', title_text.lower()) is not None
         title_detail = (
@@ -209,7 +209,8 @@ def grade_checkpoint_1(ctx, browsing_history=None):
     checkpoint.add_step(
         "Title is Room/Project", title_pass, 1,
         details=title_detail,
-        max_score=2, execution_time=time.time() - step_start
+        max_score=2, execution_time=time.time() - step_start,
+        category=step1_category
     )
 
     # Step 2: Exactly one image on title slide (2 pt)
@@ -218,22 +219,23 @@ def grade_checkpoint_1(ctx, browsing_history=None):
     checkpoint.add_step(
         "One Image on Title Slide", has_one_image, 2,
         details=f"Found {len(images)} image(s)" + ("" if has_one_image else " (expected 1)"),
-        max_score=2, execution_time=time.time() - step_start
+        max_score=2, execution_time=time.time() - step_start,
+        category=StepCategory.STRUCTURAL
     )
 
     if len(images) == 0:
-        checkpoint.add_step("Image Coverage >= 70%", False, 3, details="No images on title slide", max_score=4)
-        checkpoint.add_step("Browsing History Check", False, 4, details="No images on title slide", max_score=2)
-        checkpoint.add_step("Image Relevance (VLM)", False, 5, details="No images on title slide", max_score=2)
+        checkpoint.add_step("Image Coverage >= 70%", False, 3, details="No images on title slide", max_score=4, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+        checkpoint.add_step("Browsing History Check", False, 4, details="No images on title slide", max_score=2, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+        checkpoint.add_step("Image Relevance (VLM)", False, 5, details="No images on title slide", max_score=2, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - start
         return checkpoint
 
     # Step 3: Image coverage >= 70% (4 pt)
     step_start = time.time()
     if ctx['slide_width_emu'] is None or ctx['slide_height_emu'] is None:
-        checkpoint.add_step("Image Coverage >= 70%", False, 3, details="Slide dimensions unavailable", max_score=4)
-        checkpoint.add_step("Browsing History Check", False, 4, details="Slide dimensions unavailable", max_score=2)
-        checkpoint.add_step("Image Relevance (VLM)", False, 5, details="Slide dimensions unavailable", max_score=2)
+        checkpoint.add_step("Image Coverage >= 70%", False, 3, details="Slide dimensions unavailable", max_score=4, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Browsing History Check", False, 4, details="Slide dimensions unavailable", max_score=2, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Image Relevance (VLM)", False, 5, details="Slide dimensions unavailable", max_score=2, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - start
         return checkpoint
     image_percentage = get_image_area_percentage_from_api(
@@ -243,7 +245,8 @@ def grade_checkpoint_1(ctx, browsing_history=None):
     checkpoint.add_step(
         "Image Coverage >= 70%", meets_70, 3,
         details=f"Image covers {image_percentage:.1f}% of slide area",
-        max_score=4, execution_time=time.time() - step_start
+        max_score=4, execution_time=time.time() - step_start,
+        category=StepCategory.SPATIAL
     )
 
     # Step 4: Browsing history check (2 pt)
@@ -252,7 +255,8 @@ def grade_checkpoint_1(ctx, browsing_history=None):
     checkpoint.add_step(
         "Browsing History Check", searched, 4,
         details=f"Agent searched for '{topic}'" if searched else f"No evidence of image search" + (f" for '{topic}'" if topic else ""),
-        max_score=2, execution_time=time.time() - step_start
+        max_score=2, execution_time=time.time() - step_start,
+        category=StepCategory.WEB_VISIT
     )
 
     # Step 5: Image relevance via VLM (2 pt)
@@ -263,7 +267,8 @@ def grade_checkpoint_1(ctx, browsing_history=None):
     checkpoint.add_step(
         "Image Relevance (VLM)", all_relevant, 5,
         details=f"{num_rel}/{total_rel} image(s) relevant to '{topic}'" if topic else "Could not identify image subject",
-        max_score=2, execution_time=time.time() - step_start
+        max_score=2, execution_time=time.time() - step_start,
+        category=StepCategory.LLM_VLM_JUDGEMENT
     )
 
     checkpoint.execution_time = time.time() - start
@@ -287,9 +292,9 @@ def grade_checkpoint_2(ctx):
     presentation_data = ctx.get('presentation_data')
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
         reason = ctx.get('fetch_error', "No slides found in presentation")
-        checkpoint.add_step("Color Slide Count (5-10)", False, 1, details=reason, max_score=10)
-        checkpoint.add_step("Color Name Titles", False, 2, details=reason, max_score=10)
-        checkpoint.add_step("Colors Distinct & Appropriate (LLM)", False, 3, details=reason, max_score=10)
+        checkpoint.add_step("Color Slide Count (5-10)", False, 1, details=reason, max_score=10, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Color Name Titles", False, 2, details=reason, max_score=10, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Colors Distinct & Appropriate (LLM)", False, 3, details=reason, max_score=10, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - start
         return checkpoint
 
@@ -303,12 +308,13 @@ def grade_checkpoint_2(ctx):
     checkpoint.add_step(
         "Color Slide Count (5-10)", in_range, 1,
         details=f"Found {num_colors} color slide(s)",
-        max_score=10, execution_time=time.time() - step_start
+        max_score=10, execution_time=time.time() - step_start,
+        category=StepCategory.STRUCTURAL
     )
 
     if num_colors == 0:
-        checkpoint.add_step("Color Name Titles", False, 2, details="No color slides found", max_score=10)
-        checkpoint.add_step("Colors Distinct & Appropriate (LLM)", False, 3, details="No color slides found", max_score=10)
+        checkpoint.add_step("Color Name Titles", False, 2, details="No color slides found", max_score=10, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+        checkpoint.add_step("Colors Distinct & Appropriate (LLM)", False, 3, details="No color slides found", max_score=10, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - start
         return checkpoint
 
@@ -325,7 +331,8 @@ def grade_checkpoint_2(ctx):
         details=f"{titled_count}/{content_slide_count} content slides have titles"
                 + (f" ({untitled_count} missing)" if untitled_count > 0 else "")
                 + f": {', '.join(color_names)}",
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.STRUCTURAL
     )
 
     # Step 3: Colors are distinct and appropriate for interior design (LLM judge) (10 pt, proportional)
@@ -378,6 +385,15 @@ def grade_checkpoint_2(ctx):
     all_pass = pass_count == num_colors
     step3_score = calculate_percentage_score(pass_count, num_colors, max_points=10)
 
+    # Category: the LLM verdict decides unless it returned nothing (execution
+    # error) or the deterministic uniqueness check alone rejected.
+    if not response:
+        step3_category = StepCategory.EXECUTION_ERROR
+    elif not all_pass and all(appropriate_mask) and not all(unique_mask):
+        step3_category = StepCategory.DETERMINISTIC
+    else:
+        step3_category = StepCategory.LLM_VLM_JUDGEMENT
+
     details_parts = []
     for i, name in enumerate(color_names):
         status = "pass" if (unique_mask[i] and appropriate_mask[i]) else "fail"
@@ -393,7 +409,8 @@ def grade_checkpoint_2(ctx):
         "Colors Distinct & Appropriate (LLM)", all_pass, 3,
         score=step3_score, max_score=10,
         details=details_str,
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=step3_category
     )
 
     checkpoint.execution_time = time.time() - start
@@ -421,13 +438,13 @@ def grade_checkpoint_3(ctx, browsing_history=None):
     presentation_data = ctx.get('presentation_data')
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
         reason = ctx.get('fetch_error', "No slides found in presentation")
-        checkpoint.add_step("Browsing History for Color Images", False, 1, details=reason, max_score=10)
-        checkpoint.add_step("Two Images Per Slide", False, 2, details=reason, max_score=10)
-        checkpoint.add_step("Image Positioning (BL + BR)", False, 3, details=reason, max_score=10)
-        checkpoint.add_step("Image Relevance (VLM)", False, 4, details=reason, max_score=10)
-        checkpoint.add_step("ALT Text Has Source URL", False, 5, details=reason, max_score=10)
-        checkpoint.add_step("Image Source Match (ALT URL)", False, 6, details=reason, max_score=10)
-        checkpoint.add_step("Two Images Are Unique", False, 7, details=reason, max_score=10)
+        checkpoint.add_step("Browsing History for Color Images", False, 1, details=reason, max_score=10, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Two Images Per Slide", False, 2, details=reason, max_score=10, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Image Positioning (BL + BR)", False, 3, details=reason, max_score=10, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Image Relevance (VLM)", False, 4, details=reason, max_score=10, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("ALT Text Has Source URL", False, 5, details=reason, max_score=10, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Image Source Match (ALT URL)", False, 6, details=reason, max_score=10, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Two Images Are Unique", False, 7, details=reason, max_score=10, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - start
         return checkpoint
 
@@ -437,13 +454,14 @@ def grade_checkpoint_3(ctx, browsing_history=None):
 
     if num_colors == 0:
         reason = ctx.get('fetch_error', "No color slides found")
-        checkpoint.add_step("Browsing History for Color Images", False, 1, details=reason, max_score=10)
-        checkpoint.add_step("Two Images Per Slide", False, 2, details=reason, max_score=10)
-        checkpoint.add_step("Image Positioning (BL + BR)", False, 3, details=reason, max_score=10)
-        checkpoint.add_step("Image Relevance (VLM)", False, 4, details=reason, max_score=10)
-        checkpoint.add_step("ALT Text Has Source URL", False, 5, details=reason, max_score=10)
-        checkpoint.add_step("Image Source Match (ALT URL)", False, 6, details=reason, max_score=10)
-        checkpoint.add_step("Two Images Are Unique", False, 7, details=reason, max_score=10)
+        # No color slides: downstream checks are skipped, not evaluated.
+        checkpoint.add_step("Browsing History for Color Images", False, 1, details=reason, max_score=10, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+        checkpoint.add_step("Two Images Per Slide", False, 2, details=reason, max_score=10, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+        checkpoint.add_step("Image Positioning (BL + BR)", False, 3, details=reason, max_score=10, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+        checkpoint.add_step("Image Relevance (VLM)", False, 4, details=reason, max_score=10, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+        checkpoint.add_step("ALT Text Has Source URL", False, 5, details=reason, max_score=10, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+        checkpoint.add_step("Image Source Match (ALT URL)", False, 6, details=reason, max_score=10, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+        checkpoint.add_step("Two Images Are Unique", False, 7, details=reason, max_score=10, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - start
         return checkpoint
 
@@ -464,7 +482,8 @@ def grade_checkpoint_3(ctx, browsing_history=None):
         "Browsing History for Color Images", search_pass_count == num_colors, 1,
         score=step1_score, max_score=10,
         details=f"{search_pass_count}/{num_colors} color searches found: {'; '.join(search_details)}",
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.WEB_VISIT
     )
 
     # Extract images for all color slides once (reused by steps 2-4)
@@ -490,17 +509,18 @@ def grade_checkpoint_3(ctx, browsing_history=None):
         "Two Images Per Slide", two_images_count == num_colors, 2,
         score=step2_score, max_score=10,
         details=f"{two_images_count}/{num_colors} slides have exactly 2 images: {'; '.join(image_count_details)}",
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.STRUCTURAL
     )
 
     # Step 3: Image positioning - bottom left + bottom right (10 pt, proportional)
     step_start = time.time()
     if ctx['slide_width_emu'] is None or ctx['slide_height_emu'] is None:
-        checkpoint.add_step("Image Positioning (BL + BR)", False, 3, details="Slide dimensions unavailable", max_score=10)
-        checkpoint.add_step("Image Relevance (VLM)", False, 4, details="Slide dimensions unavailable", max_score=10)
-        checkpoint.add_step("ALT Text Has Source URL", False, 5, details="Slide dimensions unavailable", max_score=10)
-        checkpoint.add_step("Image Source Match (ALT URL)", False, 6, details="Slide dimensions unavailable", max_score=10)
-        checkpoint.add_step("Two Images Are Unique", False, 7, details="Slide dimensions unavailable", max_score=10)
+        checkpoint.add_step("Image Positioning (BL + BR)", False, 3, details="Slide dimensions unavailable", max_score=10, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Image Relevance (VLM)", False, 4, details="Slide dimensions unavailable", max_score=10, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("ALT Text Has Source URL", False, 5, details="Slide dimensions unavailable", max_score=10, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Image Source Match (ALT URL)", False, 6, details="Slide dimensions unavailable", max_score=10, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Two Images Are Unique", False, 7, details="Slide dimensions unavailable", max_score=10, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - start
         return checkpoint
     position_pass_count = 0
@@ -531,7 +551,8 @@ def grade_checkpoint_3(ctx, browsing_history=None):
         "Image Positioning (BL + BR)", position_pass_count == num_colors, 3,
         score=step3_score, max_score=10,
         details=f"{position_pass_count}/{num_colors} correct: {'; '.join(position_details)}",
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.SPATIAL
     )
 
     # Step 4: Image relevance to color theme and room/project (VLM judge) (10 pt, proportional)
@@ -579,7 +600,8 @@ def grade_checkpoint_3(ctx, browsing_history=None):
         "Image Relevance (VLM)", step4_pass, 4,
         score=step4_score, max_score=10,
         details=step4_details,
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.LLM_VLM_JUDGEMENT
     )
 
     # Step 5: Each image has a source URL in its ALT text (10 pt, proportional)
@@ -606,7 +628,8 @@ def grade_checkpoint_3(ctx, browsing_history=None):
         "ALT Text Has Source URL", alt_url_pass_count == num_colors, 5,
         score=step5_score, max_score=10,
         details=f"{alt_url_pass_count}/{num_colors} slides: {'; '.join(alt_url_details)}",
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=StepCategory.DETERMINISTIC
     )
 
     # Step 6: ALT text source URL leads to the same image (10 pt, proportional)
@@ -704,9 +727,18 @@ def grade_checkpoint_3(ctx, browsing_history=None):
                 match_results.get(f"{object_id}_alt_{i}", (False, None))[0]
                 for i in range(n_alts)
             )
+            # The deciding tier ('exact' or 'perceptual_hash') of the first
+            # matching ALT, threaded through for the step category.
+            match_method = next(
+                (match_results.get(f"{object_id}_alt_{i}", (False, None))[1]
+                 for i in range(n_alts)
+                 if match_results.get(f"{object_id}_alt_{i}", (False, None))[0]),
+                None,
+            )
             obj_status[object_id] = {
                 'downloaded': content_ok and alt_ok,
                 'matched': matched,
+                'method': match_method,
             }
 
         # Per-color aggregation: track download failures separately from mismatch.
@@ -729,6 +761,25 @@ def grade_checkpoint_3(ctx, browsing_history=None):
             if failed_dl > 0:
                 parts.append(f"{failed_dl} download failed")
             source_details.append(f"{cs['color']}: {', '.join(parts)}")
+
+        # (category, success) per image for StepCategory.aggregate(): download
+        # failures could not be checked; matches carry their deciding tier;
+        # rejects were decided by the last tier that ran (perceptual hash).
+        step6_items = []
+        for object_id in image_pair_map:
+            st = obj_status[object_id]
+            if not st['downloaded']:
+                step6_items.append((StepCategory.EXECUTION_ERROR, False))
+            elif st['matched']:
+                step6_items.append((StepCategory.from_match_method(st['method']), True))
+            else:
+                step6_items.append((StepCategory.FUZZY_MATCH, False))
+        # Slides with no testable ALT/content pair (no ALT URL or no content
+        # URL) fail the step without any comparison having run.
+        for cs in color_slides:
+            if color_stats.get(cs['color'], {'total': 0})['total'] == 0:
+                step6_items.append((StepCategory.EXECUTION_ERROR, False))
+        step6_category = StepCategory.aggregate(step6_items)
 
         # Step 7: Two images on each slide are distinct (10 pt, proportional)
         # Pair the two content images per slide and call them duplicates if
@@ -784,6 +835,7 @@ def grade_checkpoint_3(ctx, browsing_history=None):
             score=step7_score, max_score=10,
             details=f"{unique_pass_count}/{num_colors} slides have unique images: {'; '.join(unique_details)}",
             execution_time=time.time() - step7_start,
+            category=StepCategory.FUZZY_MATCH,
         )
 
     finally:
@@ -795,7 +847,8 @@ def grade_checkpoint_3(ctx, browsing_history=None):
         "Image Source Match (ALT URL)", source_pass_count == num_colors, 6,
         score=step6_score, max_score=10,
         details=f"{source_pass_count}/{num_colors} slides verified: {'; '.join(source_details)}",
-        execution_time=time.time() - step_start
+        execution_time=time.time() - step_start,
+        category=step6_category
     )
 
     checkpoint.execution_time = time.time() - start
@@ -819,10 +872,10 @@ def grade_checkpoint_4(ctx):
     presentation_data = ctx.get('presentation_data')
     if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) == 0:
         reason = ctx.get('fetch_error', "No slides found in presentation")
-        checkpoint.add_step("Recommendation Slide Exists (Last)", False, 1, details=reason, max_score=2)
-        checkpoint.add_step('"{COLOR} is the best choice" Text', False, 2, details=reason, max_score=3)
-        checkpoint.add_step("Color Matches Previous Option", False, 3, details=reason, max_score=3)
-        checkpoint.add_step("Large Font", False, 4, details=reason, max_score=2)
+        checkpoint.add_step("Recommendation Slide Exists (Last)", False, 1, details=reason, max_score=2, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step('"{COLOR} is the best choice" Text', False, 2, details=reason, max_score=3, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Color Matches Previous Option", False, 3, details=reason, max_score=3, category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Large Font", False, 4, details=reason, max_score=2, category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - start
         return checkpoint
 
@@ -846,14 +899,16 @@ def grade_checkpoint_4(ctx):
     checkpoint.add_step(
         "Recommendation Slide Exists (Last)", is_last, 1,
         details=detail,
-        max_score=2, execution_time=time.time() - step_start
+        max_score=2, execution_time=time.time() - step_start,
+        category=StepCategory.STRUCTURAL
     )
 
     if not has_slide:
         reason = ctx.get('fetch_error', "No recommendation slide found")
-        checkpoint.add_step('"{COLOR} is the best choice" Text', False, 2, details=reason, max_score=3)
-        checkpoint.add_step("Color Matches Previous Option", False, 3, details=reason, max_score=3)
-        checkpoint.add_step("Large Font", False, 4, details=reason, max_score=2)
+        # No recommendation slide: downstream checks are skipped, not evaluated.
+        checkpoint.add_step('"{COLOR} is the best choice" Text', False, 2, details=reason, max_score=3, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+        checkpoint.add_step("Color Matches Previous Option", False, 3, details=reason, max_score=3, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
+        checkpoint.add_step("Large Font", False, 4, details=reason, max_score=2, category=StepCategory.DEPENDENCY_NOT_EVALUATED)
         checkpoint.execution_time = time.time() - start
         return checkpoint
 
@@ -883,7 +938,8 @@ def grade_checkpoint_4(ctx):
     checkpoint.add_step(
         '"{COLOR} is the best choice" Text', has_text, 2,
         details=f'Found: "{best_choice_text}"' if has_text else 'Text "{COLOR} is the best choice" not found',
-        max_score=3, execution_time=time.time() - step_start
+        max_score=3, execution_time=time.time() - step_start,
+        category=StepCategory.DETERMINISTIC
     )
 
     # Step 3: Chosen color matches a previously presented option (3 pt)
@@ -898,7 +954,8 @@ def grade_checkpoint_4(ctx):
         details=f"'{chosen_color}' matches color slides" if color_matches else (
             f"'{chosen_color}' not found in: {', '.join(color_names)}" if chosen_color else "No color extracted"
         ),
-        max_score=3, execution_time=time.time() - step_start
+        max_score=3, execution_time=time.time() - step_start,
+        category=StepCategory.DETERMINISTIC
     )
 
     # Step 4: Text in large font (2 pt)
@@ -909,7 +966,11 @@ def grade_checkpoint_4(ctx):
     checkpoint.add_step(
         "Large Font", is_large, 4,
         details=f"Font size: {font_size}pt" if font_size > 0 else "Could not determine font size",
-        max_score=2, execution_time=time.time() - step_start
+        max_score=2, execution_time=time.time() - step_start,
+        # No best-choice text box found (step 2 failed) means there was
+        # nothing to style-check; otherwise the font-size threshold decides.
+        category=(StepCategory.DETERMINISTIC if matching_element
+                  else StepCategory.DEPENDENCY_NOT_EVALUATED)
     )
 
     checkpoint.execution_time = time.time() - start
@@ -1008,7 +1069,8 @@ def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history=Non
             cp = Checkpoint(total=total, result=0, name=name)
             for i, (step_name, max_score) in enumerate(steps, start=1):
                 cp.add_step(step_name, False, i,
-                            details=f"Crashed: {e}", max_score=max_score)
+                            details=f"Crashed: {e}", max_score=max_score,
+                            category=StepCategory.EXECUTION_ERROR)
             checkpoints.append(cp)
 
     return Result(checkpoints, total_execution_time=time.time() - total_start)

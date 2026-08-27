@@ -13,7 +13,7 @@ from urllib.parse import quote
 
 import pandas as pd
 
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, calculate_percentage_score
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, StepCategory, calculate_percentage_score
 from src.browsergym.knows.eval.eval_utils.text_utils import keywords_exact_match
 from src.browsergym.knows.eval.eval_utils.llm_utils import extract_json_with_llm
 from src.browsergym.knows.eval.eval_utils.table_utils import (
@@ -285,8 +285,17 @@ def classify_destinations_activity_food(names: List[str], model) -> List[str]:
 
 
 def match_and_extract(df: pd.DataFrame, model) -> tuple:
-    """Match columns and LLM-clean the Destination column in one pass."""
-    all_matches = match_columns(df, REQUIRED_COLUMNS, model=model, strict=True, parallel=True, max_workers=10)
+    """Match columns and LLM-clean the Destination column in one pass.
+
+    Returns:
+        tuple: (matched_columns, dest_names, column_methods) where
+            column_methods maps required column name -> "keyword"|"llm"
+            recording which match_columns phase produced each hit.
+    """
+    all_matches, column_methods = match_columns(
+        df, REQUIRED_COLUMNS, model=model, strict=True, parallel=True,
+        max_workers=10, return_methods=True,
+    )
     seen = set()
     matched_columns = {}
     for req, actual in all_matches.items():
@@ -296,7 +305,7 @@ def match_and_extract(df: pd.DataFrame, model) -> tuple:
 
     dest_col = matched_columns.get("Destination")
     if not dest_col:
-        return matched_columns, {}
+        return matched_columns, {}, column_methods
 
     total_rows = len(df)
     raw_values = [str(df.iloc[i].get(dest_col, "")).strip() for i in range(total_rows)]
@@ -324,7 +333,7 @@ def match_and_extract(df: pd.DataFrame, model) -> tuple:
     )
 
     if isinstance(parsed, list) and len(parsed) == total_rows:
-        return matched_columns, {i: str(n).strip() for i, n in enumerate(parsed)}
+        return matched_columns, {i: str(n).strip() for i, n in enumerate(parsed)}, column_methods
 
     # Fallback: strip common category prefixes
     dest_names = {}
@@ -334,7 +343,7 @@ def match_and_extract(df: pd.DataFrame, model) -> tuple:
                 v = v[len(prefix):].strip()
                 break
         dest_names[i] = v
-    return matched_columns, dest_names
+    return matched_columns, dest_names, column_methods
 
 
 # --- Small helpers ----------------------------------------------------------
@@ -418,12 +427,19 @@ def find_semantic_duplicates(names: List[str], model) -> List[List[str]]:
     return all_groups
 
 
-def empty_checkpoint(name: str, total: int) -> Checkpoint:
-    """Build an empty checkpoint with a single 'no data' failure step whose max_score equals the total."""
+def empty_checkpoint(name: str, total: int, category: str = StepCategory.EXECUTION_ERROR) -> Checkpoint:
+    """Build an empty checkpoint with a single 'no data' failure step whose max_score equals the total.
+
+    Args:
+        name: Checkpoint name.
+        total: Checkpoint total points.
+        category: StepCategory for the failure step (defaults to
+            EXECUTION_ERROR: missing data prevented the checks from running).
+    """
     cp = Checkpoint(total=total, result=0, name=name)
     cp.add_step(
         "Data Extraction", False, 1, "No data found in spreadsheet",
-        score=0, max_score=total,
+        score=0, max_score=total, category=category,
     )
     return cp
 
@@ -441,13 +457,20 @@ def format_failures(failures: list, limit: int = 5, prefix: str = "Failed", sep:
 
 def add_fraction_step(checkpoint: Checkpoint, step_name: str, step_id: int,
                      passed: int, total: int, detail: str,
-                     step_start: Optional[float] = None) -> None:
-    """Add a step scored as passed/total out of 10 pts (standard evaluator pattern)."""
+                     step_start: Optional[float] = None,
+                     category: Optional[str] = None) -> None:
+    """Add a step scored as passed/total out of 10 pts (standard evaluator pattern).
+
+    Args:
+        category: Optional StepCategory value naming the mechanism that
+            decided the outcome; passed through to Checkpoint.add_step().
+    """
     checkpoint.add_step(
         step_name, passed == total and total > 0, step_id, details=detail,
         score=calculate_percentage_score(passed, total, 10) if total else 0,
         max_score=10,
         execution_time=(time.time() - step_start) if step_start is not None else None,
+        category=category,
     )
 
 
@@ -502,9 +525,20 @@ def run_vlm_batch(vlm_tasks: list, model, max_workers: int = 20) -> Dict[str, bo
 
 
 def score_vlm_steps(checkpoint, vlm_results: Dict[str, bool], steps: list,
-                    reasons: Optional[Dict[str, str]] = None):
-    """Score multiple VLM-verified steps from a shared results dict. `reasons[tid]` appended in [brackets]."""
+                    reasons: Optional[Dict[str, str]] = None,
+                    seed_categories: Optional[Dict[str, str]] = None):
+    """Score multiple VLM-verified steps from a shared results dict. `reasons[tid]` appended in [brackets].
+
+    Args:
+        seed_categories: Optional mapping of task id -> StepCategory for
+            results that were seeded deterministically (API caches) rather
+            than decided by the VLM. Task ids absent from the mapping are
+            treated as LLM/VLM-decided. The step category is derived with
+            StepCategory.aggregate() over the per-item (category, success)
+            pairs.
+    """
     reasons = reasons or {}
+    seed_categories = seed_categories or {}
     for step_id, step_name, prefix, name_source, msg_template, empty_msg in steps:
         start = time.time()
         matching = [tid for tid in vlm_results if tid.startswith(prefix)]
@@ -512,6 +546,7 @@ def score_vlm_steps(checkpoint, vlm_results: Dict[str, bool], steps: list,
             checkpoint.add_step(
                 step_name, False, step_id, details=empty_msg,
                 score=0, max_score=10, execution_time=time.time() - start,
+                category=StepCategory.EXECUTION_ERROR,
             )
             continue
         passed = sum(1 for tid in matching if vlm_results[tid])
@@ -534,6 +569,11 @@ def score_vlm_steps(checkpoint, vlm_results: Dict[str, bool], steps: list,
             step_name, passed == total, step_id, details=detail,
             score=calculate_percentage_score(passed, total, 10),
             max_score=10, execution_time=time.time() - start,
+            category=StepCategory.aggregate([
+                (seed_categories.get(tid, StepCategory.LLM_VLM_JUDGEMENT),
+                 vlm_results[tid])
+                for tid in matching
+            ]),
         )
 
 
@@ -958,7 +998,7 @@ def build_task_context(
         max_workers=2,
         timeout=60,
     )
-    matched_columns, dest_names = phase1.get("match") or ({}, {})
+    matched_columns, dest_names, matched_column_methods = phase1.get("match") or ({}, {}, {})
     trip_details = phase1.get("gold") or {}
 
     all_review_urls = extract_review_urls(df, matched_columns, raw_rows, header_row_idx)
@@ -1192,6 +1232,7 @@ def build_task_context(
 
     return {
         "matched_columns": matched_columns,
+        "matched_column_methods": matched_column_methods,
         "dest_names": dest_names,
         "trip_details": trip_details,
         "all_review_urls": all_review_urls,
@@ -1212,8 +1253,17 @@ def build_task_context(
     }
 
 
-def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[str, str]]:
-    """Seed deterministic results from caches, then run LLM fallback tasks in one batch. Returns (results, reasons)."""
+def build_cp3_cp4_vlm_results(ctx: Dict, model,
+                              seed_categories: Optional[Dict[str, str]] = None) -> Tuple[Dict[str, bool], Dict[str, str]]:
+    """Seed deterministic results from caches, then run LLM fallback tasks in one batch. Returns (results, reasons).
+
+    Args:
+        seed_categories: Optional dict filled in place with task id ->
+            StepCategory for results seeded without a VLM verdict (API
+            caches, deterministic URL checks). Ids left out were VLM-decided.
+    """
+    if seed_categories is None:
+        seed_categories = {}
     df = ctx["df"]
     matched_columns = ctx["matched_columns"]
     dest_names = ctx["dest_names"]
@@ -1263,13 +1313,16 @@ def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[s
                 # Empty cell → can't exist in any city. Mark as failure rather than
                 # silently dropping it from the denominator.
                 vlm_results[f"{prefix}_{i}"] = False
+                seed_categories[f"{prefix}_{i}"] = StepCategory.DETERMINISTIC
                 continue
             ln = name.lower()
             if ln in place_cache:
                 vlm_results[f"{prefix}_{i}"] = True  # Places API confirmed in city
+                seed_categories[f"{prefix}_{i}"] = StepCategory.DETERMINISTIC
                 continue
             if ln in places_out_of_city:
                 vlm_results[f"{prefix}_{i}"] = False  # Places API found it, but NOT in city
+                seed_categories[f"{prefix}_{i}"] = StepCategory.DETERMINISTIC
                 continue
             # Places API had no result → LLM fallback
             vlm_tasks.append(yes_no_task(
@@ -1305,6 +1358,7 @@ def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[s
                 if place and place.get("opening_periods") else None
             if det is not None:
                 vlm_results[f"open_{idx}"] = det
+                seed_categories[f"open_{idx}"] = StepCategory.DETERMINISTIC
             else:
                 opening_hours = cell(col["opening"])
                 p = f"Place: {name}\nPlanned visit time: {tod}"
@@ -1332,6 +1386,7 @@ def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[s
             place = place_cache.get(name.lower())
             if place and place.get("opening_periods") and stated_min is not None:
                 vlm_results[f"hours_{idx}"] = any_period_contains(place["opening_periods"], stated_min)
+                seed_categories[f"hours_{idx}"] = StepCategory.DETERMINISTIC
             else:
                 p = f"Place: {name}\nStated opening time: {val}"
                 if trip_month:
@@ -1407,6 +1462,7 @@ def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[s
             stated_min = rd.get("travel_min")
             if api_min is not None and stated_min is not None:
                 vlm_results[f"ttime_{idx}"] = is_travel_time_close(stated_min, api_min)
+                seed_categories[f"ttime_{idx}"] = StepCategory.FUZZY_MATCH
             else:
                 vlm_tasks.append(yes_no_task(
                     f"ttime_{idx}",
@@ -1475,6 +1531,7 @@ def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[s
             }
         else:
             vlm_results[f"review_{idx}"] = False
+            seed_categories[f"review_{idx}"] = StepCategory.DETERMINISTIC
 
         # CP4 Step 7: Alternative viable — same category (food↔food, activity↔activity),
         # open during the time slot, and reachable within 30 min transit.
@@ -1485,6 +1542,7 @@ def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[s
             tid = f"altv_{idx}"
             if main_type != alt_type:
                 vlm_results[tid] = False
+                seed_categories[tid] = StepCategory.DETERMINISTIC
                 reasons[tid] = f"category: main={main_type}, alt={alt_type}"
             else:
                 alt_place = place_cache.get(alt_val.lower())
@@ -1495,6 +1553,7 @@ def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[s
                     if open_ok is not None:
                         viable = bool(open_ok and alt_min <= 30)
                         vlm_results[tid] = viable
+                        seed_categories[tid] = StepCategory.DETERMINISTIC
                         seeded = True
                         if not viable:
                             parts = []
@@ -1545,6 +1604,18 @@ def build_cp3_cp4_vlm_results(ctx: Dict, model) -> Tuple[Dict[str, bool], Dict[s
                 fail_parts.append("missing review tab parameter")
 
         vlm_results[tid] = len(fail_parts) == 0
+        # Category: the review verdict combines a VLM name match with
+        # deterministic address/flag checks. A failure is attributed to the
+        # deterministic parts if any of them failed, else to the VLM name
+        # mismatch; a pass is attributed to the VLM when it participated.
+        if fail_parts:
+            det_fail = any(p != "name mismatch" for p in fail_parts)
+            seed_categories[tid] = (StepCategory.DETERMINISTIC if det_fail
+                                    else StepCategory.LLM_VLM_JUDGEMENT)
+        else:
+            seed_categories[tid] = (StepCategory.LLM_VLM_JUDGEMENT
+                                    if name_match is not None
+                                    else StepCategory.DETERMINISTIC)
         if fail_parts:
             reasons[tid] = "; ".join(fail_parts)
 
@@ -1567,12 +1638,21 @@ def seed_cp6_route_and_daytype(
     day_specific_transit_cache: Dict,
     city_name: str,
     day_return_transit_cache: Optional[Dict] = None,
+    seed_categories: Optional[Dict[str, str]] = None,
 ) -> Tuple[Dict[str, bool], list, Dict[str, str]]:
-    """Seed CP6 route_{di} (TSP-optimal full-loop) and daytype_{di} (transit match + reasonable return). Returns (seeded, pending_tasks, reasons)."""
+    """Seed CP6 route_{di} (TSP-optimal full-loop) and daytype_{di} (transit match + reasonable return). Returns (seeded, pending_tasks, reasons).
+
+    Args:
+        seed_categories: Optional dict filled in place with task id ->
+            StepCategory for deterministically seeded results (ids handed to
+            the VLM fallback are left out).
+    """
     results: Dict[str, bool] = {}
     reasons: Dict[str, str] = {}
     vlm_tasks: list = []
     day_return_transit_cache = day_return_transit_cache or {}
+    if seed_categories is None:
+        seed_categories = {}
 
     def route_time(seq):
         total = 0
@@ -1599,11 +1679,14 @@ def seed_cp6_route_and_daytype(
         seeded = True  # route_{di} will be deterministically set unless we explicitly defer to LLM
         if day_has_out_of_city:
             results[f"route_{di}"] = False
+            seed_categories[f"route_{di}"] = StepCategory.DETERMINISTIC
         elif len(dests) == 0:
             results[f"route_{di}"] = False
+            seed_categories[f"route_{di}"] = StepCategory.DETERMINISTIC
             reasons[f"route_{di}"] = "day has no destinations"
         elif len(dests) == 1:
             results[f"route_{di}"] = True
+            seed_categories[f"route_{di}"] = StepCategory.DETERMINISTIC
         elif len(dests) <= 7:
             seeded = False
             actual_total = route_time(full_loop(dests))
@@ -1615,6 +1698,7 @@ def seed_cp6_route_and_daytype(
                         best = t
                 if best is not None and best > 0:
                     results[f"route_{di}"] = actual_total <= best * 1.4
+                    seed_categories[f"route_{di}"] = StepCategory.FUZZY_MATCH
                     seeded = True
         else:
             # >7 stops: n! would lock the evaluator. Defer to LLM.
@@ -1638,6 +1722,7 @@ def seed_cp6_route_and_daytype(
         tid = f"daytype_{di}"
         if parse_trip_date(day) is None:
             results[tid] = False
+            seed_categories[tid] = StepCategory.DETERMINISTIC
             reasons[tid] = "date unparseable"
         else:
             compared = passed = 0
@@ -1662,6 +1747,7 @@ def seed_cp6_route_and_daytype(
                 and (passed == compared if strict else passed >= compared - 1)
             )
             results[tid] = ok
+            seed_categories[tid] = StepCategory.FUZZY_MATCH
             if not ok:
                 parts = []
                 if compared == 0:

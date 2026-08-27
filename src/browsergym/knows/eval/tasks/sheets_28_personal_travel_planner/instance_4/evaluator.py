@@ -8,12 +8,12 @@ from typing import List
 
 BASE_PATH = (
     "/app" if os.path.exists("/app/src")
-    else "/path/to/KNOWS-benchmark/" if os.path.exists("/scratch")
+    else "." if os.path.exists("/scratch")
     else os.getcwd()
 )
 sys.path.append(BASE_PATH)
 
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory, calculate_percentage_score
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.knows.eval.eval_utils.google_sheets_utils import (
     get_sheet_content,
@@ -59,6 +59,7 @@ sheet_id = sheet_raw = df = header_row_idx = model = None
 raw_rows = []
 maps_api_key = ""
 matched_columns = {}
+matched_column_methods = {}
 dest_names = {}
 trip_details = {}
 all_review_urls = {}
@@ -81,7 +82,7 @@ def setup(workspace_doc_id: str):
     """Fetch the sheet and delegate all pre-computation to utils.build_task_context()."""
     global sheet_id, sheet_raw, df, header_row_idx, model
     raw_rows.clear()
-    matched_columns.clear(); dest_names.clear(); trip_details.clear()
+    matched_columns.clear(); matched_column_methods.clear(); dest_names.clear(); trip_details.clear()
     all_review_urls.clear(); url_content.clear()
     place_cache.clear(); directions_cache.clear(); alt_directions_cache.clear()
     pairwise_transit_cache.clear(); day_specific_transit_cache.clear()
@@ -137,6 +138,13 @@ def grade_checkpoint_1():
         + (f". Missing: {missing}" if missing else ""),
         score=calculate_percentage_score(len(matched_columns), len(REQUIRED_COLUMNS), 10),
         max_score=10, execution_time=time.time() - step_start,
+        category=StepCategory.aggregate([
+            (StepCategory.DETERMINISTIC
+             if matched_column_methods.get(name) == "keyword"
+             else StepCategory.LLM_VLM_JUDGEMENT,
+             name in matched_columns)
+            for name, _ in REQUIRED_COLUMNS
+        ]),
     )
 
     # Step 2: Header frozen
@@ -152,6 +160,7 @@ def grade_checkpoint_1():
         details=f"Frozen rows: {frozen_rows}, header at row index {header_row_idx}",
         score=10 if is_frozen else 0, max_score=10,
         execution_time=time.time() - step_start,
+        category=StepCategory.DETERMINISTIC,
     )
 
     # Steps 3 & 4: Row counts per day (Activity/Food via pre-classified row_type from setup)
@@ -170,6 +179,7 @@ def grade_checkpoint_1():
                 name, False, step_id,
                 details="No days found" if date_col and row_types else "Required columns not found",
                 score=0, max_score=10, execution_time=time.time() - step_start,
+                category=StepCategory.EXECUTION_ERROR,
             )
             continue
 
@@ -193,7 +203,8 @@ def grade_checkpoint_1():
                 failures.append(f"{label} [{'; '.join(issues)}]")
         detail = f"{correct}/{total_days} days correct. [" + ", ".join(per_day_reports) + "]"
         detail += format_failures(failures, limit=None)
-        add_fraction_step(checkpoint, name, step_id, correct, total_days, detail, step_start)
+        add_fraction_step(checkpoint, name, step_id, correct, total_days, detail, step_start,
+                          category=StepCategory.DETERMINISTIC)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -277,13 +288,14 @@ def grade_checkpoint_2():
         count = filled[key]
         detail = f"{count}/{denom} rows have {name.lower()}"
         detail += format_failures(failures[key], prefix="Missing", sep=", ")
-        add_fraction_step(checkpoint, name, step_id, count, denom, detail)
+        add_fraction_step(checkpoint, name, step_id, count, denom, detail,
+                          category=StepCategory.DETERMINISTIC)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
 
-def grade_checkpoint_3(vlm_results=None, vlm_reasons=None):
+def grade_checkpoint_3(vlm_results=None, vlm_reasons=None, vlm_seed_categories=None):
     """Checkpoint 3: Destination Validity and Uniqueness (40 pts, 4 steps)."""
     if df is None or df.empty:
         return empty_checkpoint("Destination Validity and Uniqueness", 40)
@@ -304,7 +316,7 @@ def grade_checkpoint_3(vlm_results=None, vlm_reasons=None):
         (4, "Open During Visit Hours", "open_", dest_names,
          "{passed}/{total} destinations verified as open during visit time",
          "No visit time data to verify"),
-    ], reasons=vlm_reasons)
+    ], reasons=vlm_reasons, seed_categories=vlm_seed_categories)
 
     # Step 3: Uniqueness (exact match + LLM semantic dedup)
     step_start = time.time()
@@ -326,13 +338,15 @@ def grade_checkpoint_3(vlm_results=None, vlm_reasons=None):
                   max(0, total_names - sum(len(g) - 1 for g in duplicate_groups)),
                   total_names, 10),
         max_score=10, execution_time=time.time() - step_start,
+        category=(StepCategory.LLM_VLM_JUDGEMENT if model is not None
+                  else StepCategory.DETERMINISTIC),
     )
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
 
 
-def grade_checkpoint_4(vlm_results=None, vlm_reasons=None):
+def grade_checkpoint_4(vlm_results=None, vlm_reasons=None, vlm_seed_categories=None):
     """Checkpoint 4: Content Accuracy (70 pts, 7 steps scored from shared vlm_results)."""
     if df is None or df.empty:
         return empty_checkpoint("Content Accuracy", 70)
@@ -363,7 +377,7 @@ def grade_checkpoint_4(vlm_results=None, vlm_reasons=None):
         (7, "Alternatives Viable", "altv_", dest_names,
          "{passed}/{total} alternatives are viable substitutes within reachable distance",
          "No alternatives to verify"),
-    ], reasons=vlm_reasons)
+    ], reasons=vlm_reasons, seed_categories=vlm_seed_categories)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -391,11 +405,13 @@ def grade_checkpoint_5():
         )
         detail = f"{correct}/{checked} cost cells have correct color coding"
         detail += format_failures(failures)
-        add_fraction_step(checkpoint, "Cost Color Coding", 1, correct, checked, detail, step_start)
+        add_fraction_step(checkpoint, "Cost Color Coding", 1, correct, checked, detail, step_start,
+                          category=StepCategory.FUZZY_MATCH)
     else:
         checkpoint.add_step(
             "Cost Color Coding", False, 1, details="Cost column not found",
             score=0, max_score=10, execution_time=time.time() - step_start,
+            category=StepCategory.DEPENDENCY_NOT_EVALUATED,
         )
 
     # --- Step 2: Alternative Option text is blue ---
@@ -421,12 +437,14 @@ def grade_checkpoint_5():
         add_fraction_step(
             checkpoint, "Alternative Options Blue Text", 2,
             blue_count, non_empty, detail, step_start,
+            category=StepCategory.FUZZY_MATCH,
         )
     else:
         checkpoint.add_step(
             "Alternative Options Blue Text", False, 2,
             details="Alternative Option column not found", score=0, max_score=10,
             execution_time=time.time() - step_start,
+            category=StepCategory.DEPENDENCY_NOT_EVALUATED,
         )
 
     checkpoint.execution_time = time.time() - checkpoint_start
@@ -453,10 +471,12 @@ def grade_checkpoint_6():
     day_name_map = dict(enumerate(day_keys))
 
     # Steps 1 & 6: route order + day-aware transit (seeded + VLM fallback)
+    cp6_seed_categories: dict = {}
     vlm_results, vlm_tasks, vlm_reasons = seed_cp6_route_and_daytype(
         day_keys, day_groups, row_data, trip_details.get("hotel", ""),
         places_out_of_city, pairwise_transit_cache, day_specific_transit_cache, city_name,
         day_return_transit_cache=day_return_transit_cache,
+        seed_categories=cp6_seed_categories,
     )
     vlm_results.update(run_vlm_batch(vlm_tasks, model))
 
@@ -464,7 +484,7 @@ def grade_checkpoint_6():
         (1, "Logical Route Order", "route_", day_name_map,
          "{passed}/{total} days have a logical route order",
          "No route data to verify"),
-    ], reasons=vlm_reasons)
+    ], reasons=vlm_reasons, seed_categories=cp6_seed_categories)
 
     # --- Step 2: Meal placement ---
     step_start = time.time()
@@ -497,7 +517,8 @@ def grade_checkpoint_6():
 
     detail = f"{correct_days}/{total_days} days have correct meal placement"
     detail += format_failures(failures, limit=None)
-    add_fraction_step(checkpoint, "Meal Placement", 2, correct_days, total_days, detail, step_start)
+    add_fraction_step(checkpoint, "Meal Placement", 2, correct_days, total_days, detail, step_start,
+                      category=StepCategory.STRUCTURAL)
 
     # --- Step 3: Reasonable duration ---
     step_start = time.time()
@@ -516,7 +537,8 @@ def grade_checkpoint_6():
 
     detail = f"{reasonable}/{checked} rows have reasonable duration"
     detail += format_failures(failures)
-    add_fraction_step(checkpoint, "Reasonable Durations", 3, reasonable, checked, detail, step_start)
+    add_fraction_step(checkpoint, "Reasonable Durations", 3, reasonable, checked, detail, step_start,
+                      category=StepCategory.DETERMINISTIC)
 
     # --- Step 4: Start time feasible ---
     step_start = time.time()
@@ -548,7 +570,8 @@ def grade_checkpoint_6():
 
     detail = f"{feasible}/{checked} rows have feasible start time"
     detail += format_failures(failures)
-    add_fraction_step(checkpoint, "Start Time Feasible", 4, feasible, checked, detail, step_start)
+    add_fraction_step(checkpoint, "Start Time Feasible", 4, feasible, checked, detail, step_start,
+                      category=StepCategory.DETERMINISTIC)
 
     # --- Step 5: Departure time feasible ---
     step_start = time.time()
@@ -580,14 +603,15 @@ def grade_checkpoint_6():
 
     detail = f"{feasible}/{checked} rows have feasible departure time"
     detail += format_failures(failures)
-    add_fraction_step(checkpoint, "Departure Time Feasible", 5, feasible, checked, detail, step_start)
+    add_fraction_step(checkpoint, "Departure Time Feasible", 5, feasible, checked, detail, step_start,
+                      category=StepCategory.DETERMINISTIC)
 
     # Step 6: Weekday/weekend (scored from shared vlm_results built above)
     score_vlm_steps(checkpoint, vlm_results, [
         (6, "Day-Aware Transit Accuracy", "daytype_", day_name_map,
          "{passed}/{total} days have transit times matching the real schedule for that date",
          "No day-aware transit data to verify"),
-    ], reasons=vlm_reasons)
+    ], reasons=vlm_reasons, seed_categories=cp6_seed_categories)
 
     # --- Step 7: Transit time limits (includes return-to-hotel leg) ---
     step_start = time.time()
@@ -620,7 +644,8 @@ def grade_checkpoint_6():
 
     detail = f"{correct_days}/{total_days} days within transit time limits"
     detail += format_failures(failures, limit=None)
-    add_fraction_step(checkpoint, "Transit Time Limits", 7, correct_days, total_days, detail, step_start)
+    add_fraction_step(checkpoint, "Transit Time Limits", 7, correct_days, total_days, detail, step_start,
+                      category=StepCategory.DETERMINISTIC)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -639,11 +664,13 @@ def grade_checkpoints(
     except Exception as e:
         print(f"Setup failed: {e}")
         cp = Checkpoint(total=40, result=0, name="Table Structure and Layout")
-        cp.add_step("Setup", False, 1, f"Setup failed: {e}", score=0, max_score=10)
+        cp.add_step("Setup", False, 1, f"Setup failed: {e}", score=0, max_score=10,
+                    category=StepCategory.EXECUTION_ERROR)
         return Result(checkpoints=[cp], total_execution_time=time.time() - total_start)
 
     cp34_vlm_results: dict = {}
     cp34_vlm_reasons: dict = {}
+    cp34_vlm_seed_categories: dict = {}
     if df is not None and not df.empty:
         try:
             cp34_vlm_results, cp34_vlm_reasons = build_cp3_cp4_vlm_results(
@@ -666,6 +693,7 @@ def grade_checkpoints(
                 "maps_api_key": maps_api_key,
             },
             model=model,
+            seed_categories=cp34_vlm_seed_categories,
         )
         except Exception as e:
             print(f"Error in build_cp3_cp4_vlm_results: {e}")
@@ -674,8 +702,8 @@ def grade_checkpoints(
         checkpoints=[
             grade_checkpoint_1(),
             grade_checkpoint_2(),
-            grade_checkpoint_3(cp34_vlm_results, cp34_vlm_reasons),
-            grade_checkpoint_4(cp34_vlm_results, cp34_vlm_reasons),
+            grade_checkpoint_3(cp34_vlm_results, cp34_vlm_reasons, cp34_vlm_seed_categories),
+            grade_checkpoint_4(cp34_vlm_results, cp34_vlm_reasons, cp34_vlm_seed_categories),
             grade_checkpoint_5(),
             grade_checkpoint_6(),
         ],

@@ -11,13 +11,13 @@ BASE_PATH = None
 if os.path.exists("/app/src"):
     BASE_PATH = "/app"
 elif os.path.exists("/scratch"):
-    BASE_PATH = "/path/to/KNOWS-benchmark/"
+    BASE_PATH = "."
 else:
     BASE_PATH = os.getcwd()
 sys.path.append(BASE_PATH)
 
 # imports from eval_utils
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result
+from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
 from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
 from src.browsergym.knows.eval.eval_utils.text_utils import keyword_exact_match
 from src.browsergym.knows.eval.eval_utils.slides_utils import (
@@ -107,8 +107,10 @@ def grade_checkpoint_1():
     checkpoint = Checkpoint(total=2, result=0, name="Title Slide")
 
     if not presentation_data or 'slides' not in presentation_data or not presentation_data['slides']:
-        checkpoint.add_step("Title Match", False, 1, "No slides found in presentation", execution_time=0)
-        checkpoint.add_step("Title Font Size at least 30pt", False, 2, "No slides found in presentation", execution_time=0)
+        checkpoint.add_step("Title Match", False, 1, "No slides found in presentation", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
+        checkpoint.add_step("Title Font Size at least 30pt", False, 2, "No slides found in presentation", execution_time=0,
+                            category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -153,13 +155,16 @@ def grade_checkpoint_1():
     checkpoint.add_step("Title Match", title_found, 1,
                        f"Found exact title '{EXPECTED_TITLE}'" if title_found
                        else f"Title does not match. Found: '{title_text}'",
-                       execution_time=time.time() - step_start)
+                       execution_time=time.time() - step_start,
+                       category=StepCategory.DETERMINISTIC)
 
     checkpoint.add_step("Title Font Size at least 30pt", font_big, 2,
                        "The title font size is at least 30pt" if font_big
                        else "The title font size is less than 30pt" if title_found
                        else "Title not found; font size cannot be checked",
-                       execution_time=time.time() - step_start)
+                       execution_time=time.time() - step_start,
+                       category=(StepCategory.DETERMINISTIC if (font_big or title_found)
+                                 else StepCategory.DEPENDENCY_NOT_EVALUATED))
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -184,24 +189,28 @@ def grade_checkpoint_2(browsing_history=None):
     # Step 1: Browsing history contains a visit to article
     step_start = time.time()
     article_url = ""
+    article_visit_category = StepCategory.LLM_VLM_JUDGEMENT
     if browsing_history:
         try:
             article_url = find_year_category_article(browsing_history, YEAR, CATEGORY, model)
         except Exception as e:
             print(f"Warning: article-find failed: {e}")
             article_url = ""
+            article_visit_category = StepCategory.EXECUTION_ERROR
 
     checkpoint.add_step("Article Visit", bool(article_url), 1,
                        f"Browsing history contains visit to a valid article about best {CATEGORY}s: {article_url}" if bool(article_url)
                        else f"No visit to {CATEGORY} article found in browsing history",
-                       execution_time=time.time() - step_start)
+                       execution_time=time.time() - step_start,
+                       category=article_visit_category)
 
     # Step 2: At least 5 slides, each containing the name of a gold car (5pts)
     step_start = time.time()
 
     if not presentation_data or 'slides' not in presentation_data:
         checkpoint.add_step("At Least 5 Car Slides", False, 2, "No slides found in presentation",
-                           score=0, max_score=5, execution_time=time.time() - step_start)
+                           score=0, max_score=5, execution_time=time.time() - step_start,
+                           category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -209,7 +218,8 @@ def grade_checkpoint_2(browsing_history=None):
     if len(slides) < 2:
         checkpoint.add_step("At Least 5 Car Slides", False, 2,
                            f"Not enough slides in presentation (found {len(slides)})",
-                           score=0, max_score=5, execution_time=time.time() - step_start)
+                           score=0, max_score=5, execution_time=time.time() - step_start,
+                           category=StepCategory.EXECUTION_ERROR)
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
@@ -252,7 +262,8 @@ Article content:
     checkpoint.add_step("At Least 5 Car Slides", num_matched >= 5, 2,
                        f"Found {num_matched}/5 cars mentioned: {', '.join(matched_cars)}",
                        score=min(num_matched, 5), max_score=5,
-                       execution_time=time.time() - step_start)
+                       execution_time=time.time() - step_start,
+                       category=StepCategory.LLM_VLM_JUDGEMENT)
 
     checkpoint.execution_time = time.time() - checkpoint_start
     return checkpoint
@@ -288,7 +299,8 @@ def grade_checkpoint_3(browsing_history=None):
          for car_idx in range(NUM_CARS):
              for name in step_names:
                  checkpoint.add_step(f"Car {car_idx+1} - {name}", False, step_id,
-                                    "Insufficient slides in presentation", execution_time=0)
+                                    "Insufficient slides in presentation", execution_time=0,
+                                    category=StepCategory.EXECUTION_ERROR)
                  step_id += 1
          checkpoint.execution_time = time.time() - checkpoint_start
          return checkpoint
@@ -561,13 +573,15 @@ Slide text:
      step_id = 0
      for car_idx in range(NUM_CARS):
          car_steps = car_results.get(car_idx) or [
-             {"name": f"Car {car_idx+1} - {name}", "success": False, "detail": "Evaluation failed", "execution_time": 0}
+             {"name": f"Car {car_idx+1} - {name}", "success": False, "detail": "Evaluation failed", "execution_time": 0,
+              "category": StepCategory.EXECUTION_ERROR}
              for name in step_names
          ]
          for step in car_steps:
              step_id += 1
              checkpoint.add_step(step["name"], step["success"], step_id,
-                                step["detail"], execution_time=step["execution_time"])
+                                step["detail"], execution_time=step["execution_time"],
+                                category=step.get("category"))
 
      # Cleanup all temp image and example directories — a cleanup failure must not void the checkpoint
      for cleanup_dir in list(slide_image_dirs.values()) + list(kbb_example_dirs.values()):
@@ -601,7 +615,8 @@ def grade_checkpoint_4():
 
      if not presentation_data or 'slides' not in presentation_data or len(presentation_data['slides']) < 3:
          for i, name in enumerate(summary_step_names, 1):
-             checkpoint.add_step(name, False, i, "Insufficient slides in presentation", execution_time=0)
+             checkpoint.add_step(name, False, i, "Insufficient slides in presentation", execution_time=0,
+                                 category=StepCategory.EXECUTION_ERROR)
          checkpoint.execution_time = time.time() - checkpoint_start
          return checkpoint
 
@@ -624,7 +639,9 @@ def grade_checkpoint_4():
          print(f"Warning: last slide title extraction failed: {e}")
          last_slide_title = ""
      title_denotes_best = False
+     title_denotes_category = StepCategory.DETERMINISTIC  # empty title: rejected without an LLM call
      if last_slide_title.strip():
+         title_denotes_category = StepCategory.LLM_VLM_JUDGEMENT
          try:
              title_denotes_best = evaluate_with_llm(
                  f"Does this slide title indicate or imply that the slide contains the best car stats, best categories, top performers, or a summary/comparison of which cars performed best? Answer Yes for titles that reference 'best', 'top', 'winner', 'summary', 'comparison', 'stats by category', or similar.\n\nSlide title: {last_slide_title}",
@@ -633,10 +650,12 @@ def grade_checkpoint_4():
          except Exception as e:
              print(f"Warning: title-denotes-best LLM failed: {e}")
              title_denotes_best = False
+             title_denotes_category = StepCategory.EXECUTION_ERROR
      checkpoint.add_step("Title Denotes Best Car Stats", bool(title_denotes_best), 1,
                         f"Title '{last_slide_title}' denotes best car stats" if title_denotes_best
                         else f"Title '{last_slide_title}' does not denote best car stats",
-                        execution_time=time.time() - step_start)
+                        execution_time=time.time() - step_start,
+                        category=title_denotes_category)
 
      # Extract car stats from all car slides for comparison
      car_slides = slides[1:-1] if len(slides) > 2 else []
@@ -766,7 +785,8 @@ Respond ONLY with this JSON:
          if not expected_car:
              checkpoint.add_step(step_name, False, i,
                                 f"Could not determine winner for {step_name} from car slides",
-                                execution_time=0)
+                                execution_time=0,
+                                category=StepCategory.EXECUTION_ERROR)
              continue
 
          json_key = CP4_WINNER_KEY_MAP[source_key]
@@ -776,13 +796,16 @@ Respond ONLY with this JSON:
          if not listed_car:
              correct_winner = False
              detail = f"Summary slide did not list a car for {step_name} (expected '{expected_car}')"
+             winner_category = StepCategory.DETERMINISTIC
          else:
              correct_winner = expected_car_in_text(listed_car, expected_car, CATEGORY)
              detail = (f"The correct car '{expected_car}' is listed for {step_name}"
                        if correct_winner
                        else f"Slide listed '{listed_car}' for {step_name} (expected '{expected_car}')")
+             winner_category = StepCategory.LLM_VLM_JUDGEMENT
 
-         checkpoint.add_step(step_name, correct_winner, i, detail, execution_time=step_elapsed)
+         checkpoint.add_step(step_name, correct_winner, i, detail, execution_time=step_elapsed,
+                             category=winner_category)
 
      checkpoint.execution_time = time.time() - checkpoint_start
      return checkpoint

@@ -1,6 +1,6 @@
 # Checkpoints
 
-## Checkpoint 1 (25 pt): Header & Subheader
+## Checkpoint 1 (65 pt): Header & Subheader
 
 The header and subheader follow proper structure and contain correct information.
 
@@ -19,7 +19,7 @@ The header and subheader follow proper structure and contain correct information
 - Subheader contains host (University of Utah)
 - Visual contrast is clear between header and subheader text
 
-## Checkpoint 2 (15 pt): Logo
+## Checkpoint 2 (20 pt): Logo
 
 The logo is properly placed, scaled, and sourced.
 
@@ -29,7 +29,7 @@ The logo is properly placed, scaled, and sourced.
 - Logo appropriately scaled (not disproportionately large or small)
 - Logo does not overlap or crowd header/subheader text
 
-## Checkpoint 3 (20 pt): Central Body — Topic Background
+## Checkpoint 3 (30 pt): Central Body — Topic Background
 
 The central body contains an accurate and well-sourced summary of the topic.
 
@@ -41,7 +41,7 @@ The central body contains an accurate and well-sourced summary of the topic.
 - Summary is engaging and highlights why the event is worth attending
 - At least 2 reputable, stable sources (e.g., university, professional association, major news outlet, encyclopedia, or speaker's official website) are used
 
-## Checkpoint 4 (25 pt): Right Sidebar — Speaker Bio
+## Checkpoint 4 (30 pt): Right Sidebar — Speaker Bio
 
 The sidebar contains correct and verifiable speaker information.
 
