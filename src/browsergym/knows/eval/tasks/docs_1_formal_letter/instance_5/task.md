@@ -8,4 +8,4 @@ Include the following information in the letter header:
 - My Github
 - My LinkedIn
 
-Take the photo of my signature from the drive folder here: https://drive.google.com/drive/folders/1JCx-ULf0uOLh-VlF4hiv6y-AjUZnqxnp and add it to the end of the letter.
+Take the photo of my signature from the drive folder here: https://drive.google.com/drive/folders/1yr55MnD387BOSULTrEBOBfOtxtyMJGnm and add it to the end of the letter.
