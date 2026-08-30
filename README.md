@@ -73,6 +73,25 @@ Six task families reference source documents/folders on Google Drive from their 
 
 `analysis/` contains the dataset-statistics script (`analyze_task_instances.py`) and the step-type taxonomy labels (`analysis/taxonomy/`). Step-level failure categories are produced natively by the evaluators (`Result.get_category_summary()`; see `eval/eval_utils/scoring.py`).
 
+## Maintenance, Versioning, and Issue Reporting
+
+KNOWS tasks are curated to be time-agnostic and independent of any single website, but some tasks reference live web pages and Drive-hosted assets that can change over time. Our maintenance policy:
+
+- **Periodic freshness checks.** We maintain an internal list of the external URLs and website-extracted gold data our evaluators rely on, and manually verify them at periodic intervals after release (automated checks will replace manual ones once validated against them).
+- **Updates and deprecation.** If a website change or outage significantly alters a task's difficulty or solvability, we will update the affected task or replace it with a new task of similar complexity and scope.
+- **Versioning.** Every change to tasks or evaluators is released as a new tagged version on GitHub. Prior versions remain permanently available via their release tags, so results reported against any version stay interpretable and reproducible. Always report the benchmark version (release tag) alongside your results.
+
+### Reporting outdated tasks or evaluator issues
+
+Found a task whose referenced website changed, a dead link, or an evaluator that scores incorrectly? Please [open a GitHub issue](../../issues/new/choose) using the provided templates. Include:
+
+1. the task and instance (e.g. `sheets_7_running_analysis/instance_3`) and the benchmark version (release tag);
+2. what you observed vs. what you expected (for evaluator issues: the step name and the evaluator's printed output — scores, step details, and category summary);
+3. for outdated-content reports: the affected URL and what changed;
+4. if relevant and shareable: a link to the graded document (shared as view-only).
+
+We triage reports against the policy above; fixes ship as new tagged releases.
+
 ## Citation
 
 If you use KNOWS, please cite:
