@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KNOWS Benchmark</title>
+<meta name="description" content="KNOWS: a benchmark for web agents on realistic Google Workspace tasks, with hybrid white-box evaluators and step-level failure categories.">
+<meta property="og:title" content="KNOWS Benchmark">
+<meta property="og:description" content="110 realistic Google Workspace tasks for web agents, with hybrid white-box evaluators and step-level failure categories.">
+<meta property="og:type" content="website">
+<style>
+:root{
+  --bg:#fff; --bg-alt:#f6f7f9; --fg:#15171a; --fg-muted:#5b6169;
+  --line:#e2e5ea; --accent:#1f6feb; --accent-soft:#e8f0fe;
+  --code-bg:#f3f4f6;
+  --pass:#1a7f5a; --pass-bg:#e7f5ef; --fail:#c0392b; --fail-bg:#fdeceb;
+  --muted-bg:#f0f1f3;
+  --docs:#1a7f5a; --sheets:#1f6feb; --slides:#b45309;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0f1115; --bg-alt:#161a21; --fg:#e8eaed; --fg-muted:#9aa3ad;
+    --line:#262c36; --accent:#6ea8ff; --accent-soft:#16233a;
+    --code-bg:#161a21;
+    --pass:#4ec49a; --pass-bg:#12261f; --fail:#ff8a80; --fail-bg:#2a1615;
+    --muted-bg:#1c222b;
+    --docs:#4ec49a; --sheets:#6ea8ff; --slides:#e0a458;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1000px;margin:0 auto;padding:0 24px}
+header{padding:60px 0 38px;text-align:center;border-bottom:1px solid var(--line)}
+.venue{display:inline-block;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--accent);background:var(--accent-soft);padding:5px 12px;border-radius:999px;margin-bottom:18px}
+h1{font-size:clamp(30px,5vw,46px);line-height:1.15;margin:0;letter-spacing:-.02em}
+h1 .sub{display:block;font-size:clamp(16px,2.4vw,21px);font-weight:400;color:var(--fg-muted);margin-top:12px;letter-spacing:0}
+.authors{margin:22px 0 4px;font-size:17px}
+.affil{color:var(--fg-muted);font-size:14px;margin:0}
+.links{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:26px}
+.btn{display:inline-flex;align-items:center;padding:9px 17px;border:1px solid var(--line);border-radius:8px;
+  background:var(--bg-alt);color:var(--fg);font-size:15px;font-weight:500}
+.btn:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{opacity:.9;color:#fff}
+section{padding:44px 0;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+h2{font-size:25px;margin:0 0 16px;letter-spacing:-.01em}
+h3{font-size:17px;margin:24px 0 8px}
+p{margin:0 0 14px}
+.lead{font-size:17px;color:var(--fg-muted)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin:24px 0 8px}
+.stat{background:var(--bg-alt);border:1px solid var(--line);border-radius:10px;padding:16px;text-align:center}
+.stat .n{display:block;font-size:27px;font-weight:650;letter-spacing:-.02em}
+.stat .l{display:block;font-size:13px;color:var(--fg-muted);margin-top:3px}
+table{width:100%;border-collapse:collapse;font-size:15px;margin:14px 0}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.03em;color:var(--fg-muted)}
+.scroll{overflow-x:auto}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;background:var(--code-bg);padding:2px 5px;border-radius:4px}
+pre{background:var(--code-bg);border:1px solid var(--line);border-radius:9px;padding:15px;overflow-x:auto;margin:14px 0}
+pre code{background:none;padding:0;font-size:13.5px;line-height:1.6}
+.example{background:var(--bg-alt);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 9px 9px 0;padding:15px 18px;margin:14px 0}
+.example .kind{font-size:12px;font-weight:650;letter-spacing:.05em;text-transform:uppercase;margin-bottom:7px}
+.example.docs{border-left-color:var(--docs)} .example.docs .kind{color:var(--docs)}
+.example.slides{border-left-color:var(--slides)} .example.slides .kind{color:var(--slides)}
+.example p{margin:0;font-size:15px;color:var(--fg-muted)}
+.cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:18px 0}
+.cat{border:1px solid var(--line);border-radius:9px;padding:12px 14px;background:var(--bg-alt)}
+.cat .name{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;font-weight:600;color:var(--accent)}
+.cat .desc{font-size:13.5px;color:var(--fg-muted);margin-top:4px}
+.todo{background:#fff4d6;border:1px dashed #d19c00;color:#6b4e00;padding:2px 8px;border-radius:5px;font-size:14px;font-weight:600}
+@media (prefers-color-scheme:dark){.todo{background:#3a2f10;border-color:#8a6d00;color:#f0d68a}}
+
+/* comparison viewer */
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 20px}
+.tab{padding:8px 15px;border:1px solid var(--line);border-radius:8px;background:var(--bg-alt);
+  cursor:pointer;font:inherit;font-size:15px;color:var(--fg)}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:550}
+.cmp-blurb{color:var(--fg-muted);margin-bottom:14px}
+details.prompt{margin:0 0 18px;border:1px solid var(--line);border-radius:9px;background:var(--bg-alt);padding:10px 14px}
+details.prompt summary{cursor:pointer;font-size:14px;font-weight:550}
+details.prompt p{margin:10px 0 2px;font-size:14.5px;color:var(--fg-muted);white-space:pre-wrap}
+.panes{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.panes{grid-template-columns:1fr}}
+.pane{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg-alt)}
+.pane-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 13px;border-bottom:1px solid var(--line)}
+.pane-title{font-size:14px;font-weight:650}
+.pane-score{font-size:13px;font-weight:650;padding:3px 9px;border-radius:999px}
+.score-good{background:var(--pass-bg);color:var(--pass)}
+.score-bad{background:var(--fail-bg);color:var(--fail)}
+.pane-img{display:block;width:100%;height:auto;cursor:zoom-in;background:#fff}
+.pager{display:flex;gap:6px;align-items:center;justify-content:center;padding:8px;font-size:13px;color:var(--fg-muted)}
+.pager button{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:6px;
+  cursor:pointer;font:inherit;font-size:13px;padding:2px 9px}
+.pager button:disabled{opacity:.4;cursor:default}
+.controls{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:22px 0 10px;font-size:14px}
+.controls label{display:flex;gap:7px;align-items:center;cursor:pointer;color:var(--fg-muted)}
+.steps{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.cp-head{background:var(--bg-alt);padding:9px 14px;font-size:13px;font-weight:650;
+  border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
+.cp-head .cp-scores{font-weight:500;color:var(--fg-muted)}
+.step{display:grid;grid-template-columns:34px 34px 1fr;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);font-size:14.5px}
+.step:last-child{border-bottom:0}
+.step.diff{background:var(--fail-bg)}
+.mark{font-weight:700;text-align:center}
+.mark.ok{color:var(--pass)} .mark.no{color:var(--fail)} .mark.na{color:var(--fg-muted)}
+.step-name{font-weight:500}
+.badge{display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;
+  padding:1px 7px;border-radius:999px;background:var(--muted-bg);color:var(--fg-muted);margin-left:8px;vertical-align:1px}
+.why{font-size:13.5px;color:var(--fg-muted);margin-top:4px}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--fg-muted);padding:9px 14px;background:var(--bg-alt);border-bottom:1px solid var(--line)}
+.note{font-size:13.5px;color:var(--fg-muted);margin-top:10px}
+#lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:50;cursor:zoom-out;padding:20px}
+#lightbox.on{display:flex}
+#lightbox img{max-width:100%;max-height:100%;object-fit:contain}
+footer{padding:32px 0 60px;color:var(--fg-muted);font-size:14px;text-align:center}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <span class="venue">EMNLP 2026</span>
+    <!-- TODO: replace with the final camera-ready paper title -->
+    <h1>KNOWS<span class="sub">A Benchmark for Web Agents on Realistic Google Workspace Tasks</span></h1>
+    <!-- TODO: replace with the final author list and affiliations -->
+    <p class="authors"><span class="todo">Author list to be added</span></p>
+    <p class="affil"><span class="todo">Affiliations to be added</span></p>
+    <div class="links">
+      <!-- TODO: add the ACL Anthology / arXiv link when available -->
+      <a class="btn" href="#citation">Paper (coming soon)</a>
+      <a class="btn primary" href="https://github.com/alexgill321/KNOWS-benchmark">Code &amp; Data</a>
+      <a class="btn" href="https://github.com/alexgill321/KNOWS-benchmark/releases/tag/v1.0.0">Release v1.0.0</a>
+      <a class="btn" href="https://github.com/farhanishmam/BrowserGym-Knows">BrowserGym</a>
+      <a class="btn" href="https://github.com/farhanishmam/AgentLab-Knows">AgentLab</a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section id="overview">
+  <h2>Overview</h2>
+  <p class="lead">KNOWS evaluates web agents on the work people actually do in Google Workspace: writing documents, building spreadsheets, and composing slide decks that require web research, multi-step tool use, and faithful grounding in retrieved sources.</p>
+  <p>Tasks are open-ended and realistic — an agent must find information on the live web, decide what matters, and produce a correctly structured, correctly formatted artifact. Every task ships with a programmatic evaluator that scores the finished artifact step by step, so agents are graded on the document they produced.</p>
+  <div class="stats">
+    <div class="stat"><span class="n">110</span><span class="l">task instances</span></div>
+    <div class="stat"><span class="n">22</span><span class="l">task templates</span></div>
+    <div class="stat"><span class="n">653</span><span class="l">checkpoints</span></div>
+    <div class="stat"><span class="n">2,711</span><span class="l">evaluation steps</span></div>
+  </div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Artifact</th><th>Templates</th><th>Instances</th><th>Example task families</th></tr></thead>
+    <tbody>
+      <tr><td>Google Docs</td><td>5</td><td>25</td><td>formal letters, lesson plans, reference lists, recipe OCR, influential papers</td></tr>
+      <tr><td>Google Sheets</td><td>9</td><td>45</td><td>investment tracking, running analysis, apartment search, travel planning</td></tr>
+      <tr><td>Google Slides</td><td>8</td><td>40</td><td>book reports, product comparisons, event posters, illustrated decks</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Each template has five independent instances with different subjects, data, and constraints, so results reflect a task design rather than a single lucky prompt. Instances average ~25 evaluation steps, ranging from 9 to 70.</p>
+</section>
+
+<section id="compare">
+  <h2>Gold vs. agent, step by step</h2>
+  <p class="lead">Real artifacts from the benchmark, scored by the real evaluators. The left pane is the reference (gold) document; the right is what a browser agent produced for the same prompt. Below them is every evaluation step, with the evaluator's own explanation for each failure.</p>
+
+  <div class="tabs" id="cmp-tabs" role="tablist"></div>
+  <div id="cmp-body"><p class="note">Loading comparisons…</p></div>
+</section>
+
+<section id="evaluation">
+  <h2>Hybrid, white-box evaluation</h2>
+  <p>Each task's evaluator is an ordinary Python program that inspects the finished artifact through the Workspace APIs and its rendered form. Checks combine deterministic comparisons, tolerance-based matching, geometric layout tests, document-structure inspection, browsing-trace verification, and LLM/VLM judgements — whichever fits the criterion, rather than routing everything through a single model judge.</p>
+
+  <!-- TODO: drop the paper figures in here (pipeline / taxonomy diagrams) -->
+
+  <h3>Step-level failure categories</h3>
+  <p>Every scoring site in every evaluator records the mechanism that <em>decided</em> the step's outcome. Because categories are recorded on passing steps too, any run yields per-mechanism failure <em>rates</em>, separating genuine agent errors from judge-mediated failures, cascades, and harness faults.</p>
+  <div class="cats">
+    <div class="cat"><span class="name">deterministic</span><div class="desc">Exact text, numeric, regex, or pixel-exact comparison</div></div>
+    <div class="cat"><span class="name">fuzzy_match</span><div class="desc">Tolerance-based: fuzzy text, perceptual hash, numeric or color tolerance</div></div>
+    <div class="cat"><span class="name">llm_vlm_judgement</span><div class="desc">An LLM or VLM verdict decided the step</div></div>
+    <div class="cat"><span class="name">spatial</span><div class="desc">Geometric checks over rendered coordinates: bounding boxes, regions, coverage</div></div>
+    <div class="cat"><span class="name">structural</span><div class="desc">Document structure: element counts, ordering, position in the document tree</div></div>
+    <div class="cat"><span class="name">web_visit</span><div class="desc">Verification against the agent's browsing history</div></div>
+    <div class="cat"><span class="name">dependency_not_evaluated</span><div class="desc">Skipped because a prerequisite failed — a cascade, not a new error</div></div>
+    <div class="cat"><span class="name">execution_error</span><div class="desc">Missing data, unreachable source, or evaluator exception — a harness fault</div></div>
+    <div class="cat"><span class="name">vacuous_pass</span><div class="desc">Credit awarded although no check actually ran</div></div>
+  </div>
+  <p>Evaluators print a per-category summary alongside the score:</p>
+<pre><code>=== CATEGORY SUMMARY ===
+  deterministic: 4/4 passed (0 failed)
+  spatial: 3/3 passed (0 failed)
+  llm_vlm_judgement: 0/1 passed (1 failed)
+  dependency_not_evaluated: 0/1 passed (1 failed)
+  structural: 1/1 passed (0 failed)</code></pre>
+</section>
+
+<section id="results">
+  <h2>Results</h2>
+  <!-- TODO: headline model comparison table from the camera-ready -->
+  <p><span class="todo">Results from the paper to be added here.</span></p>
+</section>
+
+<section id="start">
+  <h2>Getting started</h2>
+  <p>The reference setup runs KNOWS through a BrowserGym fork; AgentLab provides the agent configurations used in the paper.</p>
+<pre><code>git clone https://github.com/farhanishmam/BrowserGym-Knows
+cd BrowserGym-Knows
+git submodule update --init --recursive   # pulls in the benchmark
+# then follow the repo's README for installation and credentials</code></pre>
+  <p>Evaluators are harness-agnostic: give your agent the task prompt plus a Google file it can edit, record the URLs it visits, and score the result from the repository root.</p>
+<pre><code>python src/browsergym/knows/eval/tasks/&lt;family&gt;/instance_&lt;N&gt;/evaluator.py \
+  --workspace_doc_id "&lt;FILE_ID&gt;" \
+  --browsing_history "https://example.com/a" "https://example.com/b"</code></pre>
+  <p>The full protocol for any framework — provisioning, sharing, prompting, history capture, grading, and reading results — is in <a href="https://github.com/alexgill321/KNOWS-benchmark/blob/main/RUNNING_STANDALONE.md">RUNNING_STANDALONE.md</a>.</p>
+</section>
+
+<section id="maintenance">
+  <h2>Maintenance and versioning</h2>
+  <p>Tasks are curated to be time-agnostic and independent of any single website, but some reference live pages that can change. We verify the external sources our evaluators depend on at periodic intervals; if a change significantly alters a task's difficulty or solvability, we update the task or replace it with one of similar scope.</p>
+  <p>Every change ships as a new tagged release, and prior versions stay permanently available, so results reported against any version remain reproducible. <strong>Please report the benchmark version alongside your results.</strong> Outdated tasks and evaluator issues can be reported through the <a href="https://github.com/alexgill321/KNOWS-benchmark/issues/new/choose">issue templates</a>.</p>
+</section>
+
+<section id="citation">
+  <h2>Citation</h2>
+  <!-- TODO: replace with the final camera-ready citation (authors, title, main vs. Findings) -->
+<pre><code>@inproceedings{knows2026,
+  author    = {&lt;author list&gt;},
+  title     = {&lt;final paper title&gt;},
+  booktitle = {Proceedings of the 2026 Conference on Empirical Methods
+               in Natural Language Processing (EMNLP)},
+  year      = {2026},
+  note      = {Benchmark v1.0.0:
+               \url{https://github.com/alexgill321/KNOWS-benchmark}}
+}</code></pre>
+</section>
+
+</div>
+
+<footer>
+  <div class="wrap">Released under the Apache License 2.0 · <a href="https://github.com/alexgill321/KNOWS-benchmark">GitHub</a></div>
+</footer>
+
+<div id="lightbox"><img alt=""></div>
+
+<script>
+(function(){
+  var tabsEl = document.getElementById('cmp-tabs');
+  var bodyEl = document.getElementById('cmp-body');
+  var lightbox = document.getElementById('lightbox');
+  var cache = {}, pageState = {};
+
+  lightbox.addEventListener('click', function(){ lightbox.classList.remove('on'); });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') lightbox.classList.remove('on');
+  });
+
+  function zoom(src){
+    lightbox.querySelector('img').src = src;
+    lightbox.classList.add('on');
+  }
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+    });
+  }
+
+  // Steps the agent cannot be held responsible for: harness/web faults, and
+  // browsing checks for runs archived without a trace.
+  function unassessable(step, historyAvailable){
+    return step.category === 'execution_error' ||
+           (step.category === 'web_visit' && historyAvailable === false);
+  }
+
+  function assessable(data){
+    var r = 0, t = 0;
+    (data.checkpoints || []).forEach(function(cp){
+      cp.steps.forEach(function(s){
+        if (unassessable(s, data.history_available)) return;
+        r += s.score; t += s.max_score;
+      });
+    });
+    return {result:r, total:t};
+  }
+
+  function pane(side, label, data, key){
+    var pages = data.pages || [];
+    if (!pages.length) return '<div class="pane"><div class="pane-head"><span class="pane-title">' +
+      esc(label) + '</span></div><p class="note" style="padding:14px">Render unavailable.</p></div>';
+    var idx = (pageState[key] && pageState[key][side]) || 0;
+    if (idx >= pages.length) idx = 0;
+    var sc = data.score || {result:0,total:0};
+    var asx = assessable(data);
+    var perfect = asx.total > 0 && asx.result === asx.total;
+    var scoreLabel = sc.result + '/' + sc.total;
+    if (asx.total && asx.total !== sc.total) scoreLabel += ' · ' + asx.result + '/' + asx.total + ' assessable';
+    var html = '<div class="pane"><div class="pane-head"><span class="pane-title">' + esc(label) + '</span>' +
+      '<span class="pane-score ' + (perfect ? 'score-good' : 'score-bad') + '">' +
+      scoreLabel + '</span></div>' +
+      '<img class="pane-img" alt="' + esc(label) + ' page ' + (idx+1) + '" src="comparisons/' +
+      esc(key) + '/' + esc(pages[idx]) + '" data-zoom="1">';
+    if (pages.length > 1){
+      html += '<div class="pager"><button data-nav="' + side + '" data-d="-1"' + (idx === 0 ? ' disabled' : '') +
+        '>&larr;</button><span>' + (idx+1) + ' / ' + pages.length + '</span>' +
+        '<button data-nav="' + side + '" data-d="1"' + (idx === pages.length-1 ? ' disabled' : '') + '>&rarr;</button></div>';
+    }
+    return html + '</div>';
+  }
+
+  function render(key){
+    var d = cache[key];
+    if (!d){ bodyEl.innerHTML = '<p class="note">Loading…</p>'; return; }
+    var gold = d.sides.gold || {}, agent = d.sides.agent || {};
+    var onlyFail = !!(pageState[key] && pageState[key].onlyFail);
+
+    var html = '<p class="cmp-blurb">' + esc(d.blurb) + '</p>' +
+      '<details class="prompt"><summary>Show the full task prompt</summary><p>' + esc(d.prompt) + '</p></details>' +
+      '<div class="panes">' + pane('gold','Gold reference',gold,key) + pane('agent','Agent output',agent,key) + '</div>' +
+      '<div class="controls"><label><input type="checkbox" id="only-fail"' + (onlyFail ? ' checked' : '') +
+      '> Show only steps the agent failed</label></div>';
+
+    var gcps = gold.checkpoints || [], acps = agent.checkpoints || [];
+    if (!acps.length){
+      html += '<p class="note">Evaluation data unavailable for this comparison.</p>';
+      bodyEl.innerHTML = html; wire(key); return;
+    }
+    html += '<div class="steps"><div class="legend"><span>Left mark: gold</span><span>Right mark: agent</span>' +
+      '<span>“–” = not assessable (harness or source fault)</span></div>';
+
+    for (var i = 0; i < acps.length; i++){
+      var acp = acps[i], gcp = gcps[i] || {steps:[]};
+      var rows = '';
+      for (var j = 0; j < acp.steps.length; j++){
+        var as = acp.steps[j], gs = (gcp.steps || [])[j] || {};
+        var untested = unassessable(as, agent.history_available);
+        if (onlyFail && (as.success || untested)) continue;
+        var amark = untested
+          ? '<span class="mark na" title="Not attributable to the agent">–</span>'
+          : '<span class="mark ' + (as.success ? 'ok">✓' : 'no">✗') + '</span>';
+        var gmark = unassessable(gs, gold.history_available)
+          ? '<span class="mark na">–</span>'
+          : '<span class="mark ' + (gs.success ? 'ok">✓' : (gs.success === false ? 'no">✗' : 'na">–')) + '</span>';
+        var why = untested
+          ? (as.category === 'web_visit'
+              ? 'Not assessable: this archived run has no captured browsing trace.'
+              : 'Not assessable: ' + esc(as.details || 'the evaluator could not reach the source.'))
+          : (!as.success && as.details ? esc(as.details) : '');
+        rows += '<div class="step' + (!as.success && !untested ? ' diff' : '') + '">' + gmark + amark +
+          '<div><span class="step-name">' + esc(as.name) + '</span>' +
+          '<span class="badge">' + esc(as.category) + '</span>' +
+          (why ? '<div class="why">' + why + '</div>' : '') +
+          '</div></div>';
+      }
+      if (!rows) continue;
+      html += '<div class="cp-head"><span>' + esc(acp.name) + '</span><span class="cp-scores">gold ' +
+        (gcp.result != null ? gcp.result + '/' + gcp.total : '–') + ' · agent ' + acp.result + '/' + acp.total +
+        '</span></div>' + rows;
+    }
+    html += '</div>';
+    var notes = [];
+    if (agent.history_available === false){
+      notes.push('This agent run was archived without its browsing trace, so <code>web_visit</code> ' +
+        'steps cannot be assessed.');
+    }
+    var execFails = 0;
+    [gold, agent].forEach(function(side){
+      (side.checkpoints || []).forEach(function(cp){
+        cp.steps.forEach(function(s){ if (s.category === 'execution_error') execFails++; });
+      });
+    });
+    if (execFails){
+      notes.push('Some steps are <code>execution_error</code>: the evaluator could not reach a source the ' +
+        'document cites, so the content could not be verified either way — a harness fault rather than an ' +
+        'agent mistake. This is exactly what the failure categories are for.');
+    }
+    if (notes.length){
+      notes.push('Steps like these are shown as “–” and excluded from the “assessable” score, while still ' +
+        'counting against the raw score.');
+      html += '<p class="note">' + notes.join(' ') + '</p>';
+    }
+    bodyEl.innerHTML = html;
+    wire(key);
+  }
+
+  function wire(key){
+    bodyEl.querySelectorAll('[data-zoom]').forEach(function(img){
+      img.addEventListener('click', function(){ zoom(img.src); });
+    });
+    bodyEl.querySelectorAll('[data-nav]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var side = btn.getAttribute('data-nav'), d = parseInt(btn.getAttribute('data-d'), 10);
+        pageState[key] = pageState[key] || {};
+        pageState[key][side] = ((pageState[key][side] || 0) + d);
+        render(key);
+      });
+    });
+    var cb = document.getElementById('only-fail');
+    if (cb) cb.addEventListener('change', function(){
+      pageState[key] = pageState[key] || {};
+      pageState[key].onlyFail = cb.checked;
+      render(key);
+    });
+  }
+
+  function select(key, tabBtn){
+    tabsEl.querySelectorAll('.tab').forEach(function(t){ t.setAttribute('aria-selected', t === tabBtn); });
+    if (cache[key]) { render(key); return; }
+    bodyEl.innerHTML = '<p class="note">Loading…</p>';
+    fetch('comparisons/' + key + '.json').then(function(r){ return r.json(); })
+      .then(function(d){ cache[key] = d; render(key); })
+      .catch(function(){ bodyEl.innerHTML = '<p class="note">Could not load this comparison.</p>'; });
+  }
+
+  fetch('comparisons/index.json').then(function(r){ return r.json(); }).then(function(list){
+    if (!list.length){ bodyEl.innerHTML = '<p class="note">No comparisons available.</p>'; return; }
+    list.forEach(function(item, i){
+      var b = document.createElement('button');
+      b.className = 'tab'; b.type = 'button'; b.setAttribute('role','tab');
+      b.textContent = item.kind.charAt(0).toUpperCase() + item.kind.slice(1) + ' · ' + item.title;
+      b.addEventListener('click', function(){ select(item.key, b); });
+      tabsEl.appendChild(b);
+      if (i === 0) select(item.key, b);
+    });
+  }).catch(function(){
+    bodyEl.innerHTML = '<p class="note">Comparisons are not available in this build.</p>';
+  });
+})();
+</script>
+
+</body>
+</html>

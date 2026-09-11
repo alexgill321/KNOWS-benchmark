@@ -1,0 +1,970 @@
+{
+ "key": "docs_11",
+ "task": "docs_11_personal_recipe_ocr",
+ "instance": "instance_1",
+ "kind": "docs",
+ "title": "Recipe OCR",
+ "blurb": "Transcribe a photographed recipe into a styled Docs template, then add tips quoted from real cooking sites.",
+ "prompt": "Create a recipe from the Recipe Coral template in Google Docs. First, replace the name of the recipe with the correct recipe name by looking at the image saved in the drive at https://drive.google.com/file/d/1S7XtioiuOZXdNt6fSS_9FkGQ42UDZ8l-/view?usp=sharing. Then, copy the ingredient list into the template and paste the instructions into the corresponding field. Get tips from an online source, and make sure to cite source urls for tips below the tips entries. Use direct quotes for all tips. Replace the default image with a cropped image from the original drive link that shows the recipe text clearly. Fill out the rest of the template with relevant information from the recipe. Then search the internet for at least 3 similar recipes and put them on separate pages with the same format as the first recipe. Put the link for the source of each additional recipe on a line below the title fitting with the formatting. Make sure each page of recipes is visually distinct from the others. Finally, check the other online recipes and fill in the tips with some useful information that you found.",
+ "sides": {
+  "gold": {
+   "score": {
+    "result": 48,
+    "total": 53
+   },
+   "categories": {
+    "deterministic": {
+     "total": 16,
+     "passed": 16,
+     "failed": 0
+    },
+    "fuzzy_match": {
+     "total": 17,
+     "passed": 17,
+     "failed": 0
+    },
+    "llm_vlm_judgement": {
+     "total": 14,
+     "passed": 13,
+     "failed": 1
+    },
+    "structural": {
+     "total": 2,
+     "passed": 2,
+     "failed": 0
+    },
+    "execution_error": {
+     "total": 2,
+     "passed": 0,
+     "failed": 2
+    }
+   },
+   "checkpoints": [
+    {
+     "name": "Original Recipe Page",
+     "result": 10,
+     "total": 10,
+     "steps": [
+      {
+       "name": "Title Match",
+       "success": true,
+       "details": "Title 'Pumpkin Soup' matches 'Pumpkin Soup'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Ingredients Match",
+       "success": true,
+       "details": "All 6 ingredients matched",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Preparation Steps Match",
+       "success": true,
+       "details": "All 4 steps matched (text, numbers, verbs)",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Tips Relevance",
+       "success": true,
+       "details": "All 5 tips are relevant to pumpkin soup",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Tips URLs Valid",
+       "success": true,
+       "details": "All 1 tip source URLs are accessible",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Tips Are Direct Quotes",
+       "success": true,
+       "details": "All tips verified as quotes from sources",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Image from Original",
+       "success": true,
+       "details": "Image matched via vlm",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Image Properly Cropped",
+       "success": true,
+       "details": "Image dimensions (234x252 PT) fit template slot (214x287 PT)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Image Shows Recipe Text",
+       "success": true,
+       "details": "Recipe text clearly visible in image (VLM confirmed)",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Info Modified from Defaults",
+       "success": true,
+       "details": "Ready In: 36 min (valid range 36-50); Serves: not specified; Calories: not specified",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Additional Recipe Pages Formatting",
+     "result": 23,
+     "total": 24,
+     "steps": [
+      {
+       "name": "Recipe 2 - Title Theme",
+       "success": true,
+       "details": "Found thematic keywords: pumpkin, soup",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Source URL",
+       "success": true,
+       "details": "Valid source URL below title: https://cookieandkate.com/creamy-vegan-pumpkin-sou...",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Format Match",
+       "success": true,
+       "details": "Structural match: sections=['ingredients', 'preparation', 'tips'], has_image=True (VLM did not confirm layout match)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Ingredients Modified",
+       "success": true,
+       "details": "Ingredients modified from default (24.825174825174823% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Preparation Modified",
+       "success": true,
+       "details": "Preparation modified from default (27.705627705627712% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Tips Modified",
+       "success": true,
+       "details": "Tips modified from default (17.92114695340502% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Info Modified",
+       "success": true,
+       "details": "Ready In: 85 (changed from 20); Serves: 4 (changed from 8); Calories: 309 (changed from 280)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Visual Distinction",
+       "success": true,
+       "details": "Visually distinct from all other recipes (['R1', 'R3', 'R4'])",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Title Theme",
+       "success": true,
+       "details": "Found thematic keywords: pumpkin, soup",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Source URL",
+       "success": true,
+       "details": "Valid source URL below title: https://www.bbcgoodfood.com/recipes/spiced-pumpkin...",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Format Match",
+       "success": true,
+       "details": "Format matches template layout; sections: ['ingredients', 'preparation', 'tips'], has_image: True",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Ingredients Modified",
+       "success": true,
+       "details": "Ingredients modified from default (28.00875273522976% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Preparation Modified",
+       "success": true,
+       "details": "Preparation modified from default (35.39467068878833% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Tips Modified",
+       "success": true,
+       "details": "Tips modified from default (37.31778425655977% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Info Modified",
+       "success": true,
+       "details": "Serves: 4 (changed from 8); Calories: 315 (changed from 280)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Visual Distinction",
+       "success": false,
+       "details": "Visually similar to recipe(s) [1]; distinct from [2, 4]",
+       "category": "llm_vlm_judgement",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Title Theme",
+       "success": true,
+       "details": "Found thematic keywords: pumpkin",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Source URL",
+       "success": true,
+       "details": "Valid source URL below title: https://www.allrecipes.com/recipe/13477/double-lay...",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Format Match",
+       "success": true,
+       "details": "Structural match: sections=['ingredients', 'preparation', 'tips'], has_image=True (VLM did not confirm layout match)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Ingredients Modified",
+       "success": true,
+       "details": "Ingredients modified from default (30.727762803234505% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Preparation Modified",
+       "success": true,
+       "details": "Preparation modified from default (38.269100743745774% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Tips Modified",
+       "success": true,
+       "details": "Tips modified from default (41.40625% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Info Modified",
+       "success": true,
+       "details": "Ready In: 295 (changed from 20); Calories: 415 (changed from 280)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Visual Distinction",
+       "success": true,
+       "details": "Visually distinct from all other recipes (['R1', 'R2', 'R3'])",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Additional Recipe Pages Content",
+     "result": 15,
+     "total": 15,
+     "steps": [
+      {
+       "name": "Recipe 2 - Photo from Source",
+       "success": true,
+       "details": "Recipe image matches source via vlm",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Ingredients Match",
+       "success": true,
+       "details": "Ingredients match source (14 items, strict match)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Preparation Match",
+       "success": true,
+       "details": "Preparation matches source (LLM verified, 8 doc steps vs 11 source steps)",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Tips Direct Quotes",
+       "success": true,
+       "details": "All 3 tips verified as quotes from sources",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Info Relevant",
+       "success": true,
+       "details": "Metadata relevant to source: Ready In: 85; Serves: 4; Calories: 309",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Photo from Source",
+       "success": true,
+       "details": "Recipe image matches source via perceptual_hash",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Ingredients Match",
+       "success": true,
+       "details": "Ingredients match source (LLM verified, 11 items)",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Preparation Match",
+       "success": true,
+       "details": "Preparation matches source (LLM verified, 3 doc steps vs 3 source steps)",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Tips Direct Quotes",
+       "success": true,
+       "details": "All 1 tips verified as quotes from sources",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Info Relevant",
+       "success": true,
+       "details": "Metadata relevant to source: Serves: 4; Calories: 315",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Photo from Source",
+       "success": true,
+       "details": "Photo appears to show Double-Layer Pumpkin Cheesecake (VLM validated)",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Ingredients Match",
+       "success": true,
+       "details": "Ingredients match source (9 items, strict match)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Preparation Match",
+       "success": true,
+       "details": "Preparation matches source (LLM verified, 8 doc steps vs 9 source steps)",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Tips Direct Quotes",
+       "success": true,
+       "details": "All 2 tips verified as quotes from sources",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Info Relevant",
+       "success": true,
+       "details": "Metadata relevant to source: Ready In: 295; Calories: 415",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Websites Visited Check",
+     "result": 0,
+     "total": 4,
+     "steps": [
+      {
+       "name": "Tips Source Visited",
+       "success": false,
+       "details": "No browsing history provided",
+       "category": "execution_error",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Additional Recipe Sources Visited",
+       "success": false,
+       "details": "No browsing history provided",
+       "category": "execution_error",
+       "score": 0,
+       "max_score": 1
+      }
+     ]
+    }
+   ],
+   "history_available": false,
+   "pages": [
+    "gold_p1.jpg",
+    "gold_p2.png",
+    "gold_p3.jpg",
+    "gold_p4.jpg",
+    "gold_p5.png",
+    "gold_p6.jpg"
+   ]
+  },
+  "agent": {
+   "score": {
+    "result": 36,
+    "total": 53
+   },
+   "categories": {
+    "deterministic": {
+     "total": 12,
+     "passed": 11,
+     "failed": 1
+    },
+    "fuzzy_match": {
+     "total": 14,
+     "passed": 14,
+     "failed": 0
+    },
+    "llm_vlm_judgement": {
+     "total": 17,
+     "passed": 11,
+     "failed": 6
+    },
+    "structural": {
+     "total": 3,
+     "passed": 0,
+     "failed": 3
+    },
+    "execution_error": {
+     "total": 5,
+     "passed": 0,
+     "failed": 5
+    }
+   },
+   "checkpoints": [
+    {
+     "name": "Original Recipe Page",
+     "result": 7,
+     "total": 10,
+     "steps": [
+      {
+       "name": "Title Match",
+       "success": true,
+       "details": "Title 'Pumpkin Soup' matches 'Pumpkin Soup'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Ingredients Match",
+       "success": true,
+       "details": "All 6 ingredients matched",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Preparation Steps Match",
+       "success": true,
+       "details": "All 4 steps matched (text, numbers, verbs)",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Tips Relevance",
+       "success": true,
+       "details": "All 3 tips are relevant to pumpkin soup",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Tips URLs Valid",
+       "success": true,
+       "details": "All 3 tip source URLs are accessible",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Tips Are Direct Quotes",
+       "success": true,
+       "details": "All tips verified as quotes from sources",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Image from Original",
+       "success": false,
+       "details": "First recipe image does not match original recipe image",
+       "category": "llm_vlm_judgement",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Image Properly Cropped",
+       "success": true,
+       "details": "Image dimensions (214x287 PT) fit template slot (214x287 PT)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Image Shows Recipe Text",
+       "success": false,
+       "details": "Recipe text not clearly visible in image (VLM rejected)",
+       "category": "llm_vlm_judgement",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Info Modified from Defaults",
+       "success": false,
+       "details": "Ready In: 30 min (expected 36-50); Serves: 4 (changed from default 8); Calories: 180 (changed from default 280)",
+       "category": "deterministic",
+       "score": 0,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Additional Recipe Pages Formatting",
+     "result": 21,
+     "total": 24,
+     "steps": [
+      {
+       "name": "Recipe 2 - Title Theme",
+       "success": true,
+       "details": "Found thematic keywords: squash, soup",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Source URL",
+       "success": true,
+       "details": "Valid source URL below title: https://www.tosimplyinspire.com/butternut-squash-s...",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Format Match",
+       "success": false,
+       "details": "Format check failed; sections=['ingredients', 'preparation', 'tips'], has_image=False",
+       "category": "structural",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Ingredients Modified",
+       "success": true,
+       "details": "Ingredients modified from default (36.065573770491795% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Preparation Modified",
+       "success": true,
+       "details": "Preparation modified from default (37.917485265225935% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Tips Modified",
+       "success": true,
+       "details": "Tips modified from default (31.805929919137466% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Info Modified",
+       "success": true,
+       "details": "Ready In: 45 (changed from 20); Serves: 6 (changed from 8); Calories: 220 (changed from 280)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Visual Distinction",
+       "success": true,
+       "details": "Visually distinct from all other recipes (['R1', 'R3', 'R4'])",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Title Theme",
+       "success": true,
+       "details": "Found thematic keywords: pumpkin, soup",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Source URL",
+       "success": true,
+       "details": "Valid source URL below title: https://thewoksoflife.com/pumpkin-soup-recipe/...",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Format Match",
+       "success": false,
+       "details": "Format check failed; sections=['ingredients', 'preparation', 'tips'], has_image=False",
+       "category": "structural",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Ingredients Modified",
+       "success": true,
+       "details": "Ingredients modified from default (35.251798561151084% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Preparation Modified",
+       "success": true,
+       "details": "Preparation modified from default (40.140845070422536% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Tips Modified",
+       "success": true,
+       "details": "Tips modified from default (35.35911602209944% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Info Modified",
+       "success": true,
+       "details": "Serves: 6 (changed from 8); Calories: 260 (changed from 280)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Visual Distinction",
+       "success": true,
+       "details": "Visually distinct from all other recipes (['R1', 'R2', 'R4'])",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Title Theme",
+       "success": true,
+       "details": "Found thematic keywords: pumpkin, soup",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Source URL",
+       "success": true,
+       "details": "Valid source URL below title: https://blackberrybabe.com/2022/09/06/creamy-pumpk...",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Format Match",
+       "success": false,
+       "details": "Format check failed; sections=['ingredients', 'preparation', 'tips'], has_image=False",
+       "category": "structural",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Ingredients Modified",
+       "success": true,
+       "details": "Ingredients modified from default (33.333333333333336% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Preparation Modified",
+       "success": true,
+       "details": "Preparation modified from default (37.631327602674304% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Tips Modified",
+       "success": true,
+       "details": "Tips modified from default (29.218106995884774% similar to template)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Info Modified",
+       "success": true,
+       "details": "Ready In: 25 (changed from 20); Serves: 4 (changed from 8); Calories: 190 (changed from 280)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Visual Distinction",
+       "success": true,
+       "details": "Visually distinct from all other recipes (['R1', 'R2', 'R3'])",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Additional Recipe Pages Content",
+     "result": 8,
+     "total": 15,
+     "steps": [
+      {
+       "name": "Recipe 2 - Photo from Source",
+       "success": false,
+       "details": "No image elements found in recipe structure",
+       "category": "execution_error",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Ingredients Match",
+       "success": true,
+       "details": "Ingredients match source (LLM verified, 11 items)",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Preparation Match",
+       "success": false,
+       "details": "Preparation content differs from source (LLM judged mismatch, 5 doc steps vs 6 source steps): No: The document omits the crucial instruction to remove the bay leaf before blending the soup. Bay leaves are typically removed as they are fibrous a",
+       "category": "llm_vlm_judgement",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Tips Direct Quotes",
+       "success": true,
+       "details": "All 2 tips verified as quotes from sources",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 2 - Info Relevant",
+       "success": true,
+       "details": "Metadata relevant to source: Ready In: 45; Serves: 6; Calories: 220",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Photo from Source",
+       "success": false,
+       "details": "No image elements found in recipe structure",
+       "category": "execution_error",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Ingredients Match",
+       "success": false,
+       "details": "Ingredients differ from source: 3- pound pumpkin (kabocha squash or butternut squash; around 2 pounds/900g peeled), 2 tablespoons butter, 1 leek (white part only)...",
+       "category": "llm_vlm_judgement",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Preparation Match",
+       "success": false,
+       "details": "Preparation content differs from source (LLM judged mismatch, 6 doc steps vs 15 source steps): No: The document adds garlic, which is not in the source recipe, and omits the initial pumpkin preparation steps (cutting, hollowing, slicing rind) th",
+       "category": "llm_vlm_judgement",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Tips Direct Quotes",
+       "success": true,
+       "details": "All 2 tips verified as quotes from sources",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 3 - Info Relevant",
+       "success": true,
+       "details": "Metadata relevant to source: Serves: 6; Calories: 260",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Photo from Source",
+       "success": false,
+       "details": "No image elements found in recipe structure",
+       "category": "execution_error",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Ingredients Match",
+       "success": false,
+       "details": "Ingredients differ from source: 15 ounces pumpkin puree, canned, 4 cups chicken broth, low sodium, 1 teaspoon salt...",
+       "category": "llm_vlm_judgement",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Preparation Match",
+       "success": true,
+       "details": "Preparation matches source (LLM verified, 6 doc steps vs 8 source steps)",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Tips Direct Quotes",
+       "success": true,
+       "details": "All 2 tips verified as quotes from sources",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Recipe 4 - Info Relevant",
+       "success": true,
+       "details": "Metadata relevant to source: Ready In: 25; Serves: 4; Calories: 190",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Websites Visited Check",
+     "result": 0,
+     "total": 4,
+     "steps": [
+      {
+       "name": "Tips Source Visited",
+       "success": false,
+       "details": "No browsing history provided",
+       "category": "execution_error",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Additional Recipe Sources Visited",
+       "success": false,
+       "details": "No browsing history provided",
+       "category": "execution_error",
+       "score": 0,
+       "max_score": 1
+      }
+     ]
+    }
+   ],
+   "history_available": false,
+   "pages": [
+    "agent_p1.jpg",
+    "agent_p2.png",
+    "agent_p3.png",
+    "agent_p4.png",
+    "agent_p5.png"
+   ]
+  }
+ }
+}

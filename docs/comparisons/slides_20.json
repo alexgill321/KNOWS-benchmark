@@ -1,0 +1,810 @@
+{
+ "key": "slides_20",
+ "task": "slides_20_Illustrated_Book_Report",
+ "instance": "instance_1",
+ "kind": "slides",
+ "title": "Illustrated Book Report",
+ "blurb": "Build a book-report deck: title slide, one slide per character with sourced bullet points and distinct backgrounds, author slide, references.",
+ "prompt": "I need to make a book report slideshow about the Red Rising Series book 1, can you help me get started? First, on the title slide put my name Stacey Johnson on the bottom, the title of the book above my name, and a photo of the cover of the book above that. Next, make a slide for at least 5 of the major characters with their name as the title and bulletpoints describing their characteristics below. At the bottom of each slide, include a section where you link to the source that you got the information for that character from. Make sure each character slide has a different background color. Finally, make a slide for the author of the book with their name and a photo of them. At the end, create a references slide and include links to at least 3 different sites that you used to create the presentations. Ensure that all information you enter in the slides is from these references.",
+ "sides": {
+  "gold": {
+   "pages": [
+    "gold_p1.png",
+    "gold_p2.png",
+    "gold_p3.png",
+    "gold_p4.png",
+    "gold_p5.png",
+    "gold_p6.png"
+   ],
+   "score": {
+    "result": 120,
+    "total": 130
+   },
+   "categories": {
+    "deterministic": {
+     "total": 7,
+     "passed": 7,
+     "failed": 0
+    },
+    "fuzzy_match": {
+     "total": 9,
+     "passed": 9,
+     "failed": 0
+    },
+    "llm_vlm_judgement": {
+     "total": 8,
+     "passed": 8,
+     "failed": 0
+    },
+    "spatial": {
+     "total": 6,
+     "passed": 6,
+     "failed": 0
+    },
+    "structural": {
+     "total": 8,
+     "passed": 8,
+     "failed": 0
+    },
+    "execution_error": {
+     "total": 1,
+     "passed": 0,
+     "failed": 1
+    },
+    "web_visit": {
+     "total": 1,
+     "passed": 1,
+     "failed": 0
+    }
+   },
+   "checkpoints": [
+    {
+     "name": "Title Slide Validation",
+     "result": 6,
+     "total": 6,
+     "steps": [
+      {
+       "name": "Name Match",
+       "success": true,
+       "details": "Found 'Stacey Johnson' in title slide",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Book Title Match",
+       "success": true,
+       "details": "Found 'Red Rising' in title slide",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Book Cover Photo",
+       "success": true,
+       "details": "Found valid Red Rising book cover image in title slide",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Name at Bottom",
+       "success": true,
+       "details": "Name 'Stacey Johnson' correctly positioned in bottom 25% at y=4217900",
+       "category": "spatial",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Title Above Name",
+       "success": true,
+       "details": "Title correctly positioned above name (title_y=3254650, name_y=4217900)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Photo Above Both",
+       "success": true,
+       "details": "Photo correctly positioned above title and name (photo_y=203575)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Character Slides Validation",
+     "result": 110,
+     "total": 120,
+     "steps": [
+      {
+       "name": "Character 1 - Valid Character and Name as Title",
+       "success": true,
+       "details": "Character 'Darrow' is in gold list and slide title matches character",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 1 - Unique Background",
+       "success": true,
+       "details": "Slide has different background color from other character slides",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 1 - Bullet Point Count",
+       "success": true,
+       "details": "Found 4 bullet points (>= 3 required)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 1 - Characteristics Quality",
+       "success": true,
+       "details": "4/4 text items describe characteristics (10/10 pts)",
+       "category": "llm_vlm_judgement",
+       "score": 10,
+       "max_score": 10
+      },
+      {
+       "name": "Character 1 - Source Link at Bottom",
+       "success": true,
+       "details": "All 1 source link(s) correctly positioned at bottom of slide",
+       "category": "spatial",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 1 - Characteristics from Sources",
+       "success": false,
+       "details": "Could not fetch source URL content. Could not fetch any source URLs",
+       "category": "execution_error",
+       "score": 0,
+       "max_score": 10
+      },
+      {
+       "name": "Character 2 - Valid Character and Name as Title",
+       "success": true,
+       "details": "Character 'Cassius au Bellona' is in gold list and slide title matches character",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 2 - Unique Background",
+       "success": true,
+       "details": "Slide has different background color from other character slides",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 2 - Bullet Point Count",
+       "success": true,
+       "details": "Found 3 bullet points (>= 3 required)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 2 - Characteristics Quality",
+       "success": true,
+       "details": "3/3 text items describe characteristics (10/10 pts)",
+       "category": "llm_vlm_judgement",
+       "score": 10,
+       "max_score": 10
+      },
+      {
+       "name": "Character 2 - Source Link at Bottom",
+       "success": true,
+       "details": "All 1 source link(s) correctly positioned at bottom of slide",
+       "category": "spatial",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 2 - Characteristics from Sources",
+       "success": true,
+       "details": "3/3 characteristics supported by sources (10/10 pts). \u2713 Found in https://fantasyarchives.com/ranking-the-red-rising...; \u2713 Found in https://fantasyarchives.com/ranking-the-red-rising...; \u2713 Found in https://fantasyarchives.com/ranking-the-red-rising...",
+       "category": "fuzzy_match",
+       "score": 10,
+       "max_score": 10
+      },
+      {
+       "name": "Character 3 - Valid Character and Name as Title",
+       "success": true,
+       "details": "Character 'Roque au Fabii' is in gold list and slide title matches character",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 3 - Unique Background",
+       "success": true,
+       "details": "Slide has different background color from other character slides",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 3 - Bullet Point Count",
+       "success": true,
+       "details": "Found 3 bullet points (>= 3 required)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 3 - Characteristics Quality",
+       "success": true,
+       "details": "3/3 text items describe characteristics (10/10 pts)",
+       "category": "llm_vlm_judgement",
+       "score": 10,
+       "max_score": 10
+      },
+      {
+       "name": "Character 3 - Source Link at Bottom",
+       "success": true,
+       "details": "All 1 source link(s) correctly positioned at bottom of slide",
+       "category": "spatial",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 3 - Characteristics from Sources",
+       "success": true,
+       "details": "3/3 characteristics supported by sources (10/10 pts). \u2713 Found in https://red-rising.fandom.com/wiki/Roque_au_Fabii...; \u2713 Found in https://red-rising.fandom.com/wiki/Roque_au_Fabii...; \u2713 Found in https://red-rising.fandom.com/wiki/Roque_au_Fabii...",
+       "category": "fuzzy_match",
+       "score": 10,
+       "max_score": 10
+      },
+      {
+       "name": "Character 4 - Valid Character and Name as Title",
+       "success": true,
+       "details": "Character 'Adrius au Augustus' is in gold list and slide title matches character",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 4 - Unique Background",
+       "success": true,
+       "details": "Slide has different background color from other character slides",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 4 - Bullet Point Count",
+       "success": true,
+       "details": "Found 4 bullet points (>= 3 required)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 4 - Characteristics Quality",
+       "success": true,
+       "details": "4/4 text items describe characteristics (10/10 pts)",
+       "category": "llm_vlm_judgement",
+       "score": 10,
+       "max_score": 10
+      },
+      {
+       "name": "Character 4 - Source Link at Bottom",
+       "success": true,
+       "details": "All 1 source link(s) correctly positioned at bottom of slide",
+       "category": "spatial",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 4 - Characteristics from Sources",
+       "success": true,
+       "details": "4/4 characteristics supported by sources (10/10 pts). \u2713 Found in https://red-rising.fandom.com/wiki/Adrius_au_Augus...; \u2713 Found in https://red-rising.fandom.com/wiki/Adrius_au_Augus...; \u2713 Found in https://red-rising.fandom.com/wiki/Adrius_au_Augus...",
+       "category": "fuzzy_match",
+       "score": 10,
+       "max_score": 10
+      },
+      {
+       "name": "Character 5 - Valid Character and Name as Title",
+       "success": true,
+       "details": "Character 'Virginia au Augustus' is in gold list and slide title matches character",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 5 - Unique Background",
+       "success": true,
+       "details": "Slide has different background color from other character slides",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 5 - Bullet Point Count",
+       "success": true,
+       "details": "Found 3 bullet points (>= 3 required)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 5 - Characteristics Quality",
+       "success": true,
+       "details": "3/3 text items describe characteristics (10/10 pts)",
+       "category": "llm_vlm_judgement",
+       "score": 10,
+       "max_score": 10
+      },
+      {
+       "name": "Character 5 - Source Link at Bottom",
+       "success": true,
+       "details": "All 1 source link(s) correctly positioned at bottom of slide",
+       "category": "spatial",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 5 - Characteristics from Sources",
+       "success": true,
+       "details": "3/3 characteristics supported by sources (10/10 pts). \u2713 Found in https://red-rising.fandom.com/wiki/Virginia_au_Aug...; \u2713 Found in https://red-rising.fandom.com/wiki/Virginia_au_Aug...; \u2713 Found in https://red-rising.fandom.com/wiki/Virginia_au_Aug...",
+       "category": "llm_vlm_judgement",
+       "score": 10,
+       "max_score": 10
+      }
+     ]
+    },
+    {
+     "name": "Author Slide Validation",
+     "result": 2,
+     "total": 2,
+     "steps": [
+      {
+       "name": "Author Name",
+       "success": true,
+       "details": "Found 'Pierce Brown' in author slide",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Author Photo",
+       "success": true,
+       "details": "Found valid photo of Pierce Brown in author slide",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "References Slide Validation",
+     "result": 2,
+     "total": 2,
+     "steps": [
+      {
+       "name": "Reference Links Count",
+       "success": true,
+       "details": "Found 3 unique reference links (>= 3 required)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Links in Browsing History",
+       "success": true,
+       "details": "All 3 reference links found in browsing history",
+       "category": "web_visit",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    }
+   ],
+   "history_available": true
+  },
+  "agent": {
+   "pages": [
+    "agent_p1.png",
+    "agent_p2.png",
+    "agent_p3.png",
+    "agent_p4.png",
+    "agent_p5.png",
+    "agent_p6.png"
+   ],
+   "score": {
+    "result": 80,
+    "total": 130
+   },
+   "categories": {
+    "deterministic": {
+     "total": 7,
+     "passed": 7,
+     "failed": 0
+    },
+    "fuzzy_match": {
+     "total": 6,
+     "passed": 6,
+     "failed": 0
+    },
+    "llm_vlm_judgement": {
+     "total": 12,
+     "passed": 10,
+     "failed": 2
+    },
+    "spatial": {
+     "total": 6,
+     "passed": 6,
+     "failed": 0
+    },
+    "structural": {
+     "total": 8,
+     "passed": 8,
+     "failed": 0
+    },
+    "execution_error": {
+     "total": 1,
+     "passed": 0,
+     "failed": 1
+    }
+   },
+   "checkpoints": [
+    {
+     "name": "Title Slide Validation",
+     "result": 6,
+     "total": 6,
+     "steps": [
+      {
+       "name": "Name Match",
+       "success": true,
+       "details": "Found 'Stacey Johnson' in title slide",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Book Title Match",
+       "success": true,
+       "details": "Found 'Red Rising' in title slide",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Book Cover Photo",
+       "success": true,
+       "details": "Found valid Red Rising book cover image in title slide",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Name at Bottom",
+       "success": true,
+       "details": "Name 'Stacey Johnson' correctly positioned in bottom 25% at y=4627950",
+       "category": "spatial",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Title Above Name",
+       "success": true,
+       "details": "Title correctly positioned above name (title_y=3366700, name_y=4627950)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Photo Above Both",
+       "success": true,
+       "details": "Photo correctly positioned above title and name (photo_y=274320)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Character Slides Validation",
+     "result": 71,
+     "total": 120,
+     "steps": [
+      {
+       "name": "Character 1 - Valid Character and Name as Title",
+       "success": true,
+       "details": "Character 'Darrow' is in gold list and slide title matches character",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 1 - Unique Background",
+       "success": true,
+       "details": "Slide has different background color from other character slides",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 1 - Bullet Point Count",
+       "success": true,
+       "details": "Found 6 bullet points (>= 3 required)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 1 - Characteristics Quality",
+       "success": true,
+       "details": "3/6 text items describe characteristics (5/10 pts)",
+       "category": "llm_vlm_judgement",
+       "score": 5,
+       "max_score": 10
+      },
+      {
+       "name": "Character 1 - Source Link at Bottom",
+       "success": true,
+       "details": "All 1 source link(s) correctly positioned at bottom of slide",
+       "category": "spatial",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 1 - Characteristics from Sources",
+       "success": true,
+       "details": "4/6 characteristics supported by sources (6/10 pts). \u2713 Found in https://www.supersummary.com/red-rising/character-...; \u2713 Found in https://www.supersummary.com/red-rising/character-...; \u2713 Found in https://www.supersummary.com/red-rising/character-...",
+       "category": "llm_vlm_judgement",
+       "score": 6,
+       "max_score": 10
+      },
+      {
+       "name": "Character 2 - Valid Character and Name as Title",
+       "success": true,
+       "details": "Character 'Eo' is in gold list and slide title matches character",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 2 - Unique Background",
+       "success": true,
+       "details": "Slide has different background color from other character slides",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 2 - Bullet Point Count",
+       "success": true,
+       "details": "Found 5 bullet points (>= 3 required)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 2 - Characteristics Quality",
+       "success": true,
+       "details": "2/5 text items describe characteristics (4/10 pts)",
+       "category": "llm_vlm_judgement",
+       "score": 4,
+       "max_score": 10
+      },
+      {
+       "name": "Character 2 - Source Link at Bottom",
+       "success": true,
+       "details": "All 1 source link(s) correctly positioned at bottom of slide",
+       "category": "spatial",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 2 - Characteristics from Sources",
+       "success": true,
+       "details": "1/5 characteristics supported by sources (2/10 pts). \u2717 Not found: Darrow's wife and a Red, also called Eo of Lykos...; \u2717 Not found: Publicly hanged for treason after singing a forbid...; \u2713 Found in https://www.gradesaver.com/red-rising/study-guide/...",
+       "category": "llm_vlm_judgement",
+       "score": 2,
+       "max_score": 10
+      },
+      {
+       "name": "Character 3 - Valid Character and Name as Title",
+       "success": true,
+       "details": "Character 'Virginia au Augustus' is in gold list and slide title matches character",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 3 - Unique Background",
+       "success": true,
+       "details": "Slide has different background color from other character slides",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 3 - Bullet Point Count",
+       "success": true,
+       "details": "Found 6 bullet points (>= 3 required)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 3 - Characteristics Quality",
+       "success": true,
+       "details": "6/6 text items describe characteristics (10/10 pts)",
+       "category": "llm_vlm_judgement",
+       "score": 10,
+       "max_score": 10
+      },
+      {
+       "name": "Character 3 - Source Link at Bottom",
+       "success": true,
+       "details": "All 1 source link(s) correctly positioned at bottom of slide",
+       "category": "spatial",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 3 - Characteristics from Sources",
+       "success": true,
+       "details": "5/6 characteristics supported by sources (8/10 pts). \u2713 Found in https://en.wikipedia.org/wiki/Red_Rising...; \u2717 Not found: Small in stature but highly intelligent and a bril...; \u2713 Found in https://en.wikipedia.org/wiki/Red_Rising...",
+       "category": "llm_vlm_judgement",
+       "score": 8,
+       "max_score": 10
+      },
+      {
+       "name": "Character 4 - Valid Character and Name as Title",
+       "success": true,
+       "details": "Character 'Sevro au Barca' is in gold list and slide title matches character",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 4 - Unique Background",
+       "success": true,
+       "details": "Slide has different background color from other character slides",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 4 - Bullet Point Count",
+       "success": true,
+       "details": "Found 6 bullet points (>= 3 required)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 4 - Characteristics Quality",
+       "success": true,
+       "details": "6/6 text items describe characteristics (10/10 pts)",
+       "category": "llm_vlm_judgement",
+       "score": 10,
+       "max_score": 10
+      },
+      {
+       "name": "Character 4 - Source Link at Bottom",
+       "success": true,
+       "details": "All 1 source link(s) correctly positioned at bottom of slide",
+       "category": "spatial",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 4 - Characteristics from Sources",
+       "success": false,
+       "details": "0/6 characteristics supported by sources (0/10 pts). \u2717 Not found: A Gold and one of Darrow's most loyal friends and ...; \u2717 Not found: A \"lowDraft\" with an antisocial attitude and uncon...; \u2717 Not found: Fiercely loyal to Darrow and known for his ferocit...",
+       "category": "llm_vlm_judgement",
+       "score": 0,
+       "max_score": 10
+      },
+      {
+       "name": "Character 5 - Valid Character and Name as Title",
+       "success": true,
+       "details": "Character 'Cassius au Bellona' is in gold list and slide title matches character",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 5 - Unique Background",
+       "success": true,
+       "details": "Slide has different background color from other character slides",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 5 - Bullet Point Count",
+       "success": true,
+       "details": "Found 6 bullet points (>= 3 required)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 5 - Characteristics Quality",
+       "success": true,
+       "details": "4/6 text items describe characteristics (6/10 pts)",
+       "category": "llm_vlm_judgement",
+       "score": 6,
+       "max_score": 10
+      },
+      {
+       "name": "Character 5 - Source Link at Bottom",
+       "success": true,
+       "details": "All 1 source link(s) correctly positioned at bottom of slide",
+       "category": "spatial",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Character 5 - Characteristics from Sources",
+       "success": false,
+       "details": "0/6 characteristics supported by sources (0/10 pts). \u2717 Not found: A Gold and one of Darrow's friends and allies in H...; \u2717 Not found: Charming, charismatic, and a skilled warrior...; \u2717 Not found: Comes from the powerful Bellona family...",
+       "category": "llm_vlm_judgement",
+       "score": 0,
+       "max_score": 10
+      }
+     ]
+    },
+    {
+     "name": "Author Slide Validation",
+     "result": 2,
+     "total": 2,
+     "steps": [
+      {
+       "name": "Author Name",
+       "success": true,
+       "details": "Found 'Pierce Brown' in author slide",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Author Photo",
+       "success": true,
+       "details": "Found valid photo of Pierce Brown in author slide",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "References Slide Validation",
+     "result": 1,
+     "total": 2,
+     "steps": [
+      {
+       "name": "Reference Links Count",
+       "success": true,
+       "details": "Found 4 unique reference links (>= 3 required)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Links in Browsing History",
+       "success": false,
+       "details": "No browsing history provided to validate",
+       "category": "execution_error",
+       "score": 0,
+       "max_score": 1
+      }
+     ]
+    }
+   ],
+   "history_available": false
+  }
+ }
+}
