@@ -154,13 +154,19 @@ We triage reports against the policy above; fixes ship as new tagged releases.
 If you use KNOWS, please cite:
 
 ```bibtex
-@article{knows2026,
-  title  = {KNOWS: A Benchmark for Knowledge-Grounded Web Agents in Google Workspace},
-  author = {},
-  year   = {2026},
-  note   = {Under review}
+@inproceedings{gill2026knows,
+  title     = {The Hard Part Comes After Search: Benchmarking Web Agents on
+               Synthesizing, Organizing, and Displaying Knowledge},
+  author    = {Gill, Alexander and Ishmam, Md Farhan and Nguyen, Xuyen and
+               Bhat, Neha and DeYoung, Parker Henry and
+               Hashemi Chaleshtori, Fateme and Stringham, Nathan and
+               Marino, Kenneth and Marasovi\'{c}, Ana},
+  booktitle = {Findings of the Association for Computational Linguistics: EMNLP 2026},
+  year      = {2026}
 }
 ```
+
+Please also state which benchmark version you ran (see [Maintenance, Versioning, and Issue Reporting](#maintenance-versioning-and-issue-reporting)).
 
 ## License
 
