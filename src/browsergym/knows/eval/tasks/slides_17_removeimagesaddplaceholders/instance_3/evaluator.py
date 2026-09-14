@@ -29,6 +29,7 @@ BASE_PATH = get_base_path()
 sys.path.append(BASE_PATH)
 
 # Imports
+from src.browsergym.knows.eval.eval_utils.run_targets import target_folder_id
 from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score, StepCategory
 from src.browsergym.knows.eval.eval_utils.google_services_utils import (
     initialize_google_services,
@@ -67,7 +68,10 @@ GOLD_IMAGES_DIR = os.path.join(DATA_DIR, "gold_images/")
 GOLD_DESCRIPTIONS_CSV = os.path.join(DATA_DIR, "gold_descriptions.csv")
 ORIGINAL_LOCATIONS_JSON = os.path.join(DATA_DIR, "original_image_locations.json")
 ORIGINAL_TEXTBOX_LOCATIONS_JSON = os.path.join(DATA_DIR,"original_textbox_locations.json")
-DRIVE_FOLDER_ID = "1ZWlBfRO48joOLT6_NwyFf5HtCqwrOWeh"
+# Drive folder the agent saves extracted images into. Provisioned per
+# run by provision_run_targets.py, so no account-specific id is committed.
+TASK_FAMILY = "slides_17_removeimagesaddplaceholders"
+TASK_INSTANCE = "instance_3"
 
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
@@ -233,7 +237,10 @@ def grade_checkpoint_1():
     try:
         # Get list of files in the Drive folder
         step_start = time.time()
-        drive_files = list_drive_folder_files(DRIVE_FOLDER_ID, DRIVE_SERVICE)
+        drive_files = list_drive_folder_files(
+            target_folder_id(TASK_FAMILY, TASK_INSTANCE, "IMAGES_FOLDER_URL"),
+            DRIVE_SERVICE,
+        )
 
         if not drive_files:
             checkpoint.add_step(

@@ -6,6 +6,10 @@ KNOWS is a benchmark for evaluating web agents on realistic, open-ended **Google
 - **Hybrid, white-box evaluation**: each task ships a programmatic evaluator (`evaluator.py`) that scores the produced artifact step by step, combining deterministic checks, fuzzy/tolerance matching, geometric layout tests, document-structure tests, browsing-trace checks, and LLM/VLM judgements.
 - **Step-level failure categories**: every evaluation step records the mechanism that decided its outcome (`StepCategory` in `src/browsergym/knows/eval/eval_utils/scoring.py`), enabling quantitative failure-mode analysis of any run via `Result.get_category_summary()`.
 
+**Project page:** [alexgill321.github.io/KNOWS-benchmark](https://alexgill321.github.io/KNOWS-benchmark) · **Dataset:** [`utahnlp/knows-benchmark`](https://huggingface.co/datasets/utahnlp/knows-benchmark) on Hugging Face
+
+The Hugging Face dataset carries the prompts and the structured evaluation rubric as data, for analysis or task selection. It does not score anything — the evaluators live here.
+
 ## Repository layout
 
 ```
@@ -65,9 +69,62 @@ python -m playwright install chromium   # only needed for harness runs / doc_set
 
 `auth-data/` is git-ignored — never commit credentials.
 
+### 6. Provision write targets (required for two task families)
+
+Most tasks only *read* from Drive. Two families ask the agent to **write** into it:
+
+| Family | What the agent writes |
+|---|---|
+| `sheets_10_paper_sorting` | Uploads paper PDFs and Figure 1 screenshots |
+| `slides_17_removeimagesaddplaceholders` | Saves images extracted from a deck, and edits a copy of it |
+
+A write destination can't be shared between users, so their prompts ship with
+`{{PLACEHOLDER}}` tokens instead of URLs. Run this once before each benchmark pass to create the
+folders in **your** Drive and fill the tokens in:
+
+```bash
+python src/browsergym/knows/eval/tasks/provision_run_targets.py --all
+```
+
+This creates a fresh `run_NNNN` per instance, so one pass never sees another's uploads:
+
+```
+KNOWS-runs/                                    <- created in your My Drive
+  sheets_10_paper_sorting/
+    instance_1/run_0001/
+      pdfs/                                    <- {{OUTPUT_FOLDER_URL}} points here
+      figures/                                    (the prompt names both subfolders)
+  slides_17_removeimagesaddplaceholders/
+    instance_1/run_0001/
+      images/                                  <- {{IMAGES_FOLDER_URL}}
+      KNOWS ... run_0001                       <- {{WORKING_COPY_URL}} (a deck copy)
+    instance_2/run_0001/
+      images/                                  <- {{IMAGES_FOLDER_URL}}
+      copies/                                  <- {{OUTPUT_FOLDER_URL}}
+```
+
+Useful flags: `--family <name>` / `--instance <N>` to do a subset, `--parent_folder_id <id>` to
+build somewhere other than a new `KNOWS-runs` folder, and `--auth oauth|service` to choose
+credentials.
+
+> **Use OAuth for `slides_17`.** Instance 1 needs a *copy* of a presentation, and service accounts
+> have no Drive storage quota, so they cannot own files. Folder-only provisioning
+> (`sheets_10`, `slides_17` instances 2–5) works with either credential.
+
+The resulting IDs are written to `run_targets.json` in the repository root. The harness substitutes
+them into the prompt at episode start and the evaluators read the same file when grading, so there
+is nothing to edit by hand. It is git-ignored — it holds locations only you can write to.
+
+If a task runs without provisioning, it fails immediately with the exact command to fix it. Set
+`KNOWS_SKIP_PROVISION=1` to reuse the existing folders (e.g. when re-grading a finished run) and
+`KNOWS_RUN_TARGETS=/path/to/file.json` to keep the config elsewhere.
+
 ## External task assets
 
-Six task families reference source documents/folders on Google Drive from their prompts. To run them, download the released assets bundle and upload the files to **your own** Drive, then substitute the URLs — full instructions in [ASSETS.md](ASSETS.md).
+Six task families reference source documents/folders on Google Drive from their prompts. Those
+sources are hosted view-only and work as-is; the two families above additionally need the write
+targets described in step 6. Full details — including how to rehost the sources from the released
+assets bundle if a link ever breaks — are in [ASSETS.md](ASSETS.md).
 
 ## Reproducing paper analyses
 

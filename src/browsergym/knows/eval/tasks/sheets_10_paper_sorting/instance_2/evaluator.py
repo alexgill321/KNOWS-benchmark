@@ -103,9 +103,8 @@ TASK_DIR = os.path.join(BASE_PATH, f"src/browsergym/knows/eval/tasks/sheets_10_p
 DATA_DIR = os.path.join(TASK_DIR, "data")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
-# Folder IDs (DEST_FOLDER_ID is set by setup_run.py before each benchmark)
+# Folder IDs
 SOURCE_FOLDER_ID = "1Qm2gLrC3PhRqhlAI_WXBjYKqECdPOwBE"
-DEST_FOLDER_ID = "1lwLNgxT9_S6SKW43Ag-lyed5qPrGLfcP"
 
 # Model configuration
 model = None

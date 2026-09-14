@@ -86,15 +86,18 @@ def parse_checkpoints_md(path: Path) -> dict:
         total_pts = sum(int(m) for m in re.findall(r"##\s+Checkpoint[^(]*\((\d+)", text))
 
     # --- split into checkpoint blocks ---
-    # Some files use single # for checkpoint headers (e.g. slides_29, slides_42)
-    checkpoint_blocks = re.split(r"(?=^#{1,2} Checkpoint)", text, flags=re.MULTILINE)
+    # Some files use single # for checkpoint headers (e.g. slides_29, slides_42).
+    # The trailing digit is required: every file opens with a "# Checkpoints"
+    # title, which otherwise counts as a checkpoint and inflates the total by
+    # exactly one per instance (110 across the benchmark).
+    checkpoint_blocks = re.split(r"(?=^#{1,2} Checkpoint\s*\d)", text, flags=re.MULTILINE)
 
     num_checkpoints = 0
     outcome_steps: list[int] = []
     eval_templates: list[str] = []
 
     for block in checkpoint_blocks:
-        if not re.match(r"^#{1,2} Checkpoint", block.strip()):
+        if not re.match(r"^#{1,2} Checkpoint\s*\d", block.strip()):
             continue
         num_checkpoints += 1
 

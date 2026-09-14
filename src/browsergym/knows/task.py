@@ -23,6 +23,8 @@ import types
 import re
 from abc import abstractmethod
 
+from .eval.eval_utils.run_targets import needs_provisioning, resolve_prompt
+
 # Recognized workspace kinds (i.e. which Google app the task targets). Used to
 # pick the right doc-creation URL and the right id-extraction regex.
 WORKSPACE_KIND_DOCS = "docs"
@@ -287,6 +289,14 @@ class KnowsBenchTask(AbstractBrowserTask):
             with open(task_desc_path, "r") as f:
                 task_description = f.read()
 
+        # Tasks that upload to Drive keep {{PLACEHOLDER}} tokens in task.md
+        # instead of a hard-coded URL, so no account-specific write target is
+        # committed. Swap in the folders this user provisioned; prompts without
+        # tokens pass through untouched. Raises MissingRunTarget with the
+        # provisioning command if the run was not set up.
+        family, _, instance = self._task_name.partition("/")
+        task_description = resolve_prompt(task_description, family, instance)
+
         # Append run-time guidance injected via env var (set by run.sh).
         # Lets us add sign-in fallbacks / account credentials / etc. without
         # editing each per-instance task.md.
@@ -500,7 +510,91 @@ class KnowsWorkspaceTask(KnowsBenchTask):
         WORKSPACE_KIND_SLIDES: "Google Slides presentation",
     }
 
+    def _provision_run_targets(self) -> None:
+        """Create this episode's Drive write targets, if the family needs any.
+
+        A no-op for every family that only reads from Drive. The two that
+        upload (sheets_10, slides_17) get a fresh ``run_NNNN`` folder per
+        episode, so a previous run's uploads cannot be counted against this
+        one. Set ``KNOWS_SKIP_PROVISION=1`` to reuse whatever is already in
+        ``run_targets.json`` -- useful when re-grading a finished run.
+        """
+        if not needs_provisioning(self.TASK_FAMILY_FOLDER):
+            return
+        if os.environ.get("KNOWS_SKIP_PROVISION", "").strip().lower() in {"1", "true", "yes"}:
+            print(
+                f"KNOWS_SKIP_PROVISION set; reusing existing write targets for "
+                f"{self.TASK_FAMILY_FOLDER} instance {self._instance_id}"
+            )
+            return
+        self._run_script(
+            EVAL_TASKS_DIR / "provision_run_targets.py",
+            ["--family", self.TASK_FAMILY_FOLDER],
+        )
+
+    def _run_script(self, script_path: Path, extra_args: list = None) -> None:
+        """Run a setup script as a subprocess, with ``--instance`` appended.
+
+        Args:
+            script_path: Absolute path to the script to run.
+            extra_args: Extra CLI arguments placed before ``--instance``.
+
+        Raises:
+            FileNotFoundError: if the script is missing.
+            RuntimeError: if it exits non-zero.
+        """
+        if not script_path.exists():
+            raise FileNotFoundError(f"Required script not found: {script_path}")
+
+        package_root = _PACKAGE_DIR.parents[2]  # browsergym/knows/
+        env = os.environ.copy()
+        self._load_local_env(env, package_root)
+
+        command = [sys.executable, str(script_path)]
+        if extra_args:
+            command.extend(extra_args)
+        command += ["--instance", str(self._instance_id)]
+
+        print(f"Running {script_path.name}: " + " ".join(command))
+        try:
+            subprocess.run(command, cwd=str(package_root), env=env, check=True)
+        except subprocess.CalledProcessError as exc:
+            raise RuntimeError(
+                f"{script_path.name} failed for {self.TASK_FAMILY_FOLDER} "
+                f"instance {self._instance_id}."
+            ) from exc
+
+    @staticmethod
+    def _load_local_env(env: Dict[str, str], package_root: Path) -> None:
+        """Populate subprocess env from local .env files without overriding live env."""
+        for env_path in (
+            package_root / ".env",
+            package_root.parents[1] / ".env",
+        ):
+            if not env_path.is_file():
+                continue
+            try:
+                with open(env_path) as env_file:
+                    for raw_line in env_file:
+                        line = raw_line.strip()
+                        if not line or line.startswith("#"):
+                            continue
+                        if line.startswith("export "):
+                            line = line[len("export ") :]
+                        if "=" not in line:
+                            continue
+                        key, _, value = line.partition("=")
+                        key = key.strip()
+                        value = value.strip().strip('"').strip("'")
+                        if key and key not in env:
+                            env[key] = value
+            except OSError:
+                continue
+
     def setup(self, page: playwright.sync_api.Page) -> Tuple[str, dict]:
+        # Must precede super().setup(), which resolves the {{PLACEHOLDER}}
+        # tokens these folders fill in.
+        self._provision_run_targets()
         goal, info = super().setup(page)
 
         if self._existing_doc_id:
@@ -1164,81 +1258,27 @@ class SheetsPaperSortingTask(KnowsWorkspaceTask):
         return super().setup(page)
 
     def _run_setup_pipeline(self) -> None:
-        """Run pre-benchmark pipeline for sheets_10.
+        """Run the optional gold-data pipeline for sheets_10.
 
-        Always creates fresh Drive folders. Optionally runs gold data
-        collection if RUN_GOLD_PIPELINE is True.
+        The run's Drive folders are created by the shared
+        :meth:`KnowsWorkspaceTask._provision_run_targets` hook; this only adds
+        the gold data collection steps when RUN_GOLD_PIPELINE is True.
         """
-        self._run_task_script("setup_run.py")
         if self.RUN_GOLD_PIPELINE:
             self._run_task_script("preprocess.py", ["--rematch-only"])
             self._run_task_script("extract_figures.py", ["--skip-existing"])
             self._run_task_script("detect_keyword.py", ["--skip-existing"])
 
     def _run_task_script(self, script_name: str, extra_args: list = None) -> None:
-        """Run a task-level script as a subprocess.
+        """Run a script from this task family's folder as a subprocess.
 
         Args:
             script_name: Name of the script in the task family folder.
             extra_args: Additional CLI arguments to pass after --instance.
         """
-        script_path = EVAL_TASKS_DIR / self.TASK_FAMILY_FOLDER / script_name
-        if not script_path.exists():
-            raise FileNotFoundError(f"Required script not found: {script_path}")
-
-        package_root = _PACKAGE_DIR.parents[2]  # browsergym/knows/
-        env = os.environ.copy()
-        self._load_local_env(env, package_root)
-
-        command = [
-            sys.executable,
-            str(script_path),
-            "--instance",
-            str(self._instance_id),
-        ]
-        if extra_args:
-            command.extend(extra_args)
-
-        print(f"Running sheets_10 {script_name}: " + " ".join(command))
-        try:
-            subprocess.run(
-                command,
-                cwd=str(package_root),
-                env=env,
-                check=True,
-            )
-        except subprocess.CalledProcessError as exc:
-            raise RuntimeError(
-                f"sheets_10 {script_name} failed for "
-                f"{self.TASK_FAMILY_FOLDER} instance {self._instance_id}."
-            ) from exc
-
-    @staticmethod
-    def _load_local_env(env: Dict[str, str], package_root: Path) -> None:
-        """Populate subprocess env from local .env files without overriding live env."""
-        for env_path in (
-            package_root / ".env",
-            package_root.parents[1] / ".env",
-        ):
-            if not env_path.is_file():
-                continue
-            try:
-                with open(env_path) as env_file:
-                    for raw_line in env_file:
-                        line = raw_line.strip()
-                        if not line or line.startswith("#"):
-                            continue
-                        if line.startswith("export "):
-                            line = line[len("export ") :]
-                        if "=" not in line:
-                            continue
-                        key, _, value = line.partition("=")
-                        key = key.strip()
-                        value = value.strip().strip('"').strip("'")
-                        if key and key not in env:
-                            env[key] = value
-            except OSError:
-                continue
+        self._run_script(
+            EVAL_TASKS_DIR / self.TASK_FAMILY_FOLDER / script_name, extra_args
+        )
 
 
 class SheetsPersonalTravelPlannerTask(KnowsWorkspaceTask):

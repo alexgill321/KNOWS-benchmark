@@ -44,7 +44,21 @@ Evaluators consume a **flat list of raw URL strings** — no timestamps or title
 
 ## 4. Per-family setup hooks
 
-- `sheets_10_paper_sorting`: run `python src/browsergym/knows/eval/tasks/sheets_10_paper_sorting/setup_run.py --instance <N>` before the episode (creates the fresh Drive folders the task needs).
+- `sheets_10_paper_sorting` and `slides_17_removeimagesaddplaceholders` write into Drive, so their
+  prompts contain `{{PLACEHOLDER}}` tokens. Before the episode, run:
+
+  ```bash
+  python src/browsergym/knows/eval/tasks/provision_run_targets.py --family <name> --instance <N>
+  # add --auth oauth for slides_17 instance 1: it copies a deck, and service
+  # accounts have no Drive storage quota
+  ```
+
+  It creates a fresh `run_NNNN` folder tree in your Drive and records the URLs in
+  `run_targets.json`. **On your own harness you must substitute the tokens yourself** — read them
+  back with `resolve_prompt(task_md_text, family, instance)` from
+  `eval/eval_utils/run_targets.py`, or simply string-replace each `{{TOKEN}}` with the matching URL
+  from that file. The evaluators read the same config, so the folder the agent uploaded to is the
+  one they grade. See [ASSETS.md](ASSETS.md) for the folder layout each token refers to.
 - Families listed in [ASSETS.md](ASSETS.md) need their Drive assets uploaded and URLs substituted once, before any run.
 
 ## 5. Grade
