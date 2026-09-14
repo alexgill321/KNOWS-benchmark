@@ -64,17 +64,87 @@ class Recipe:
     pdf_pages: List[int] = field(default_factory=list)     # 0-indexed PDF page numbers for this recipe
 
 
-def map_recipes_to_pdf_pages(recipes: List['Recipe'], pdf_path: str) -> None:
-    """
-    Map each recipe to its PDF page(s) by extracting text from each page
-    and matching RECIPE headers.
+# Page/recipe matching thresholds. Observed margins are ~50 points, so these
+# only fire on genuinely ambiguous pages.
+MIN_PAGE_TEXT_CHARS = 40     # below this a page is treated as a continuation
+PAGE_MATCH_MIN_SCORE = 70    # best score must clear this to stand on its own
+PAGE_MATCH_MIN_MARGIN = 10   # ...and must beat the runner-up by this much
+PAGE_MATCH_WINDOW = 3000     # chars of page text compared
+RECIPE_MATCH_WINDOW = 6000   # chars of recipe text compared
 
-    Uses PyMuPDF to extract text per page, finds pages containing "RECIPE"
-    headers, and assigns page ranges to each recipe. Mutates recipes in-place.
+
+def _normalize_for_match(text: str) -> str:
+    """Collapse whitespace and case so PDF and Docs text compare cleanly."""
+    return ' '.join((text or "").split()).lower()
+
+
+def _page_recipe_similarity(page_text: str, recipe_text: str) -> float:
+    """Similarity of a page's text to a recipe's known text (0-100).
+
+    `partial_ratio` finds the best-matching span of the recipe text, so a page
+    holding any slice of a long recipe still scores high.
+    """
+    if not page_text or not recipe_text:
+        return 0.0
+    try:
+        from rapidfuzz import fuzz
+    except ImportError:
+        # Fall back to crude token overlap when rapidfuzz is unavailable.
+        page_tokens = set(page_text.split())
+        recipe_tokens = set(recipe_text.split())
+        if not page_tokens:
+            return 0.0
+        return 100.0 * len(page_tokens & recipe_tokens) / len(page_tokens)
+    return float(fuzz.partial_ratio(page_text[:PAGE_MATCH_WINDOW],
+                                    recipe_text[:RECIPE_MATCH_WINDOW]))
+
+
+def _resolve_page_owner_with_llm(page_text, recipes, candidates, model) -> Optional[int]:
+    """Ask an LLM which candidate recipe a page belongs to. None if unresolved."""
+    if model is None or not candidates:
+        return None
+    options = "\n\n".join(
+        f"[{n + 1}] {recipes[n].title or 'Untitled'}\n"
+        f"{_normalize_for_match(recipes[n].text)[:800]}"
+        for n in candidates
+    )
+    messages = [
+        {"role": "system", "content": [{"type": "text", "text":
+            "You match a page of a document to the section it belongs to. "
+            "Reply with only the number of the best match."}]},
+        {"role": "user", "content": [{"type": "text", "text":
+            f"Which recipe does this page come from?\n\n"
+            f"PAGE TEXT:\n{page_text[:1500]}\n\n"
+            f"CANDIDATE RECIPES:\n{options}\n\n"
+            f"Answer with only the number in brackets."}]},
+    ]
+    try:
+        reply = str(model(messages))
+    except Exception as e:
+        print(f"Warning: page-match LLM tiebreak failed: {e}")
+        return None
+    for n in candidates:
+        if str(n + 1) in reply:
+            return n
+    return None
+
+
+def map_recipes_to_pdf_pages(recipes: List['Recipe'], pdf_path: str,
+                             model=None) -> None:
+    """
+    Map each recipe to its PDF page(s) by matching page content against the
+    recipe text discovered from the document structure. Mutates in-place.
+
+    Each page's extracted text is scored against every recipe's known text, and
+    the page is assigned to its best match. Matching on content rather than on
+    titles or heading styles keeps this correct when two recipes share a name
+    (the earlier title search mapped the second "Pumpkin Soup" onto the first
+    one's page) and when an agent's document carries no heading styles at all.
 
     Args:
-        recipes: List of Recipe objects with titles set.
+        recipes: List of Recipe objects with `text` populated by discovery.
         pdf_path: Path to the PDF file.
+        model: Optional LLM used only to break ties the score cannot resolve.
     """
     try:
         import fitz  # PyMuPDF
@@ -92,44 +162,41 @@ def map_recipes_to_pdf_pages(recipes: List['Recipe'], pdf_path: str) -> None:
         return
 
     num_pages = doc.page_count
-
-    # Find which pages contain each recipe's title or RECIPE header
-    # For each recipe, search for its title text on each page
-    recipe_start_pages = []  # List of 0-indexed page numbers
-    for recipe in recipes:
-        found_page = None
-        for page_idx in range(num_pages):
-            page_text = doc[page_idx].get_text()
-            # Normalize whitespace for comparison (PDF may break titles across lines)
-            page_text_normalized = ' '.join(page_text.split())
-            # Check for RECIPE header (original detection) or the recipe title
-            if recipe.recipe_num == 1 and 'RECIPE' in page_text:
-                found_page = page_idx
-                break
-            elif recipe.title and recipe.title in page_text_normalized:
-                found_page = page_idx
-                break
-        recipe_start_pages.append(found_page)
-
+    page_texts = [_normalize_for_match(doc[i].get_text()) for i in range(num_pages)]
     doc.close()
 
-    # Assign page ranges: each recipe spans from its start page to
-    # the page before the next recipe's start (or end of document)
+    recipe_texts = [_normalize_for_match(r.text or "") for r in recipes]
+
+    # Score every page against every recipe, then take the best match. Scores
+    # separate sharply in practice (~98 for the right recipe vs ~50 for the
+    # rest), so the thresholds below are deliberately loose.
+    page_owner: List[Optional[int]] = []
+    last_owner = 0
+    for page_idx, page_text in enumerate(page_texts):
+        if len(page_text) < MIN_PAGE_TEXT_CHARS:
+            # Continuation/near-empty page: it belongs with the page before it.
+            page_owner.append(page_owner[-1] if page_owner else None)
+            continue
+
+        scores = [_page_recipe_similarity(page_text, rt) for rt in recipe_texts]
+        order = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
+        best, runner_up = order[0], (order[1] if len(order) > 1 else None)
+        margin = scores[best] - (scores[runner_up] if runner_up is not None else 0)
+
+        if scores[best] < PAGE_MATCH_MIN_SCORE or margin < PAGE_MATCH_MIN_MARGIN:
+            resolved = _resolve_page_owner_with_llm(page_text, recipes, order[:2], model)
+            best = resolved if resolved is not None else best
+
+        # Pages and recipes both run in document order, so a page can never
+        # belong to an earlier recipe than the page before it.
+        best = max(best, last_owner)
+        last_owner = best
+        page_owner.append(best)
+
     for i, recipe in enumerate(recipes):
-        start_page = recipe_start_pages[i]
-        if start_page is not None:
-            # Find the next recipe's start page
-            next_start = None
-            for j in range(i + 1, len(recipes)):
-                if recipe_start_pages[j] is not None:
-                    next_start = recipe_start_pages[j]
-                    break
-            end_page = (next_start - 1) if next_start is not None else (num_pages - 1)
-            end_page = max(end_page, start_page)  # At minimum, include the start page
-            recipe.pdf_pages = list(range(start_page, end_page + 1))
-        else:
-            print(f"Warning: No PDF page found for recipe {recipe.recipe_num} ('{recipe.title}')")
-            recipe.pdf_pages = []
+        recipe.pdf_pages = [p for p, owner in enumerate(page_owner) if owner == i]
+        if not recipe.pdf_pages:
+            print(f"Warning: No PDF page matched recipe {recipe.recipe_num} ('{recipe.title}')")
 
     print("Recipe to PDF page mapping:")
     for r in recipes:

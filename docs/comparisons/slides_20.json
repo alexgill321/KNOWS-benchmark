@@ -14,10 +14,12 @@
     "gold_p3.png",
     "gold_p4.png",
     "gold_p5.png",
-    "gold_p6.png"
+    "gold_p6.png",
+    "gold_p7.png",
+    "gold_p8.png"
    ],
    "score": {
-    "result": 120,
+    "result": 130,
     "total": 130
    },
    "categories": {
@@ -27,13 +29,13 @@
      "failed": 0
     },
     "fuzzy_match": {
-     "total": 9,
-     "passed": 9,
+     "total": 11,
+     "passed": 11,
      "failed": 0
     },
     "llm_vlm_judgement": {
-     "total": 8,
-     "passed": 8,
+     "total": 7,
+     "passed": 7,
      "failed": 0
     },
     "spatial": {
@@ -45,11 +47,6 @@
      "total": 8,
      "passed": 8,
      "failed": 0
-    },
-    "execution_error": {
-     "total": 1,
-     "passed": 0,
-     "failed": 1
     },
     "web_visit": {
      "total": 1,
@@ -115,7 +112,7 @@
     },
     {
      "name": "Character Slides Validation",
-     "result": 110,
+     "result": 120,
      "total": 120,
      "steps": [
       {
@@ -160,10 +157,10 @@
       },
       {
        "name": "Character 1 - Characteristics from Sources",
-       "success": false,
-       "details": "Could not fetch source URL content. Could not fetch any source URLs",
-       "category": "execution_error",
-       "score": 0,
+       "success": true,
+       "details": "4/4 characteristics supported by sources (10/10 pts). \u2713 Found in https://red-rising.fandom.com/wiki/Darrow_O%27Lyko...; \u2713 Found in https://red-rising.fandom.com/wiki/Darrow_O%27Lyko...; \u2713 Found in https://red-rising.fandom.com/wiki/Darrow_O%27Lyko...",
+       "category": "fuzzy_match",
+       "score": 10,
        "max_score": 10
       },
       {
@@ -354,7 +351,7 @@
        "name": "Character 5 - Characteristics from Sources",
        "success": true,
        "details": "3/3 characteristics supported by sources (10/10 pts). \u2713 Found in https://red-rising.fandom.com/wiki/Virginia_au_Aug...; \u2713 Found in https://red-rising.fandom.com/wiki/Virginia_au_Aug...; \u2713 Found in https://red-rising.fandom.com/wiki/Virginia_au_Aug...",
-       "category": "llm_vlm_judgement",
+       "category": "fuzzy_match",
        "score": 10,
        "max_score": 10
       }
@@ -416,10 +413,12 @@
     "agent_p3.png",
     "agent_p4.png",
     "agent_p5.png",
-    "agent_p6.png"
+    "agent_p6.png",
+    "agent_p7.jpg",
+    "agent_p8.png"
    ],
    "score": {
-    "result": 80,
+    "result": 70,
     "total": 130
    },
    "categories": {
@@ -512,7 +511,7 @@
     },
     {
      "name": "Character Slides Validation",
-     "result": 71,
+     "result": 61,
      "total": 120,
      "steps": [
       {
@@ -590,9 +589,9 @@
       {
        "name": "Character 2 - Characteristics Quality",
        "success": true,
-       "details": "2/5 text items describe characteristics (4/10 pts)",
+       "details": "1/5 text items describe characteristics (2/10 pts)",
        "category": "llm_vlm_judgement",
-       "score": 4,
+       "score": 2,
        "max_score": 10
       },
       {
@@ -638,9 +637,9 @@
       {
        "name": "Character 3 - Characteristics Quality",
        "success": true,
-       "details": "6/6 text items describe characteristics (10/10 pts)",
+       "details": "5/6 text items describe characteristics (8/10 pts)",
        "category": "llm_vlm_judgement",
-       "score": 10,
+       "score": 8,
        "max_score": 10
       },
       {
@@ -654,9 +653,9 @@
       {
        "name": "Character 3 - Characteristics from Sources",
        "success": true,
-       "details": "5/6 characteristics supported by sources (8/10 pts). \u2713 Found in https://en.wikipedia.org/wiki/Red_Rising...; \u2717 Not found: Small in stature but highly intelligent and a bril...; \u2713 Found in https://en.wikipedia.org/wiki/Red_Rising...",
+       "details": "3/6 characteristics supported by sources (5/10 pts). \u2713 Found in https://en.wikipedia.org/wiki/Red_Rising...; \u2717 Not found: Small in stature but highly intelligent and a bril...; \u2717 Not found: Holds philosophical views that differ from typical...",
        "category": "llm_vlm_judgement",
-       "score": 8,
+       "score": 5,
        "max_score": 10
       },
       {
@@ -686,9 +685,9 @@
       {
        "name": "Character 4 - Characteristics Quality",
        "success": true,
-       "details": "6/6 text items describe characteristics (10/10 pts)",
+       "details": "5/6 text items describe characteristics (8/10 pts)",
        "category": "llm_vlm_judgement",
-       "score": 10,
+       "score": 8,
        "max_score": 10
       },
       {
@@ -734,9 +733,9 @@
       {
        "name": "Character 5 - Characteristics Quality",
        "success": true,
-       "details": "4/6 text items describe characteristics (6/10 pts)",
+       "details": "3/6 text items describe characteristics (5/10 pts)",
        "category": "llm_vlm_judgement",
-       "score": 6,
+       "score": 5,
        "max_score": 10
       },
       {

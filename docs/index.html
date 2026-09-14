@@ -4,434 +4,1525 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>KNOWS Benchmark</title>
-<meta name="description" content="KNOWS: a benchmark for web agents on realistic Google Workspace tasks, with hybrid white-box evaluators and step-level failure categories.">
+<meta name="description" content="KNOWS: benchmarking web agents on synthesizing, organizing, and displaying knowledge. 110 live-web Google Workspace tasks with hybrid white-box evaluators.">
 <meta property="og:title" content="KNOWS Benchmark">
-<meta property="og:description" content="110 realistic Google Workspace tasks for web agents, with hybrid white-box evaluators and step-level failure categories.">
+<meta property="og:description" content="Benchmarking web agents on synthesizing, organizing, and displaying knowledge. 110 live-web tasks; the best system fully completes 2.7%.">
 <meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
 :root{
-  --bg:#fff; --bg-alt:#f6f7f9; --fg:#15171a; --fg-muted:#5b6169;
-  --line:#e2e5ea; --accent:#1f6feb; --accent-soft:#e8f0fe;
-  --code-bg:#f3f4f6;
-  --pass:#1a7f5a; --pass-bg:#e7f5ef; --fail:#c0392b; --fail-bg:#fdeceb;
-  --muted-bg:#f0f1f3;
-  --docs:#1a7f5a; --sheets:#1f6feb; --slides:#b45309;
-}
-@media (prefers-color-scheme:dark){
-  :root{
-    --bg:#0f1115; --bg-alt:#161a21; --fg:#e8eaed; --fg-muted:#9aa3ad;
-    --line:#262c36; --accent:#6ea8ff; --accent-soft:#16233a;
-    --code-bg:#161a21;
-    --pass:#4ec49a; --pass-bg:#12261f; --fail:#ff8a80; --fail-bg:#2a1615;
-    --muted-bg:#1c222b;
-    --docs:#4ec49a; --sheets:#6ea8ff; --slides:#e0a458;
-  }
-}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);
-  font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-a{color:var(--accent);text-decoration:none}
-a:hover{text-decoration:underline}
-.wrap{max-width:1000px;margin:0 auto;padding:0 24px}
-header{padding:60px 0 38px;text-align:center;border-bottom:1px solid var(--line)}
-.venue{display:inline-block;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
-  color:var(--accent);background:var(--accent-soft);padding:5px 12px;border-radius:999px;margin-bottom:18px}
-h1{font-size:clamp(30px,5vw,46px);line-height:1.15;margin:0;letter-spacing:-.02em}
-h1 .sub{display:block;font-size:clamp(16px,2.4vw,21px);font-weight:400;color:var(--fg-muted);margin-top:12px;letter-spacing:0}
-.authors{margin:22px 0 4px;font-size:17px}
-.affil{color:var(--fg-muted);font-size:14px;margin:0}
-.links{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:26px}
-.btn{display:inline-flex;align-items:center;padding:9px 17px;border:1px solid var(--line);border-radius:8px;
-  background:var(--bg-alt);color:var(--fg);font-size:15px;font-weight:500}
-.btn:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn.primary:hover{opacity:.9;color:#fff}
-section{padding:44px 0;border-bottom:1px solid var(--line)}
-section:last-of-type{border-bottom:0}
-h2{font-size:25px;margin:0 0 16px;letter-spacing:-.01em}
-h3{font-size:17px;margin:24px 0 8px}
-p{margin:0 0 14px}
-.lead{font-size:17px;color:var(--fg-muted)}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin:24px 0 8px}
-.stat{background:var(--bg-alt);border:1px solid var(--line);border-radius:10px;padding:16px;text-align:center}
-.stat .n{display:block;font-size:27px;font-weight:650;letter-spacing:-.02em}
-.stat .l{display:block;font-size:13px;color:var(--fg-muted);margin-top:3px}
-table{width:100%;border-collapse:collapse;font-size:15px;margin:14px 0}
-th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
-th{font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.03em;color:var(--fg-muted)}
-.scroll{overflow-x:auto}
-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;background:var(--code-bg);padding:2px 5px;border-radius:4px}
-pre{background:var(--code-bg);border:1px solid var(--line);border-radius:9px;padding:15px;overflow-x:auto;margin:14px 0}
-pre code{background:none;padding:0;font-size:13.5px;line-height:1.6}
-.example{background:var(--bg-alt);border:1px solid var(--line);border-left:3px solid var(--accent);
-  border-radius:0 9px 9px 0;padding:15px 18px;margin:14px 0}
-.example .kind{font-size:12px;font-weight:650;letter-spacing:.05em;text-transform:uppercase;margin-bottom:7px}
-.example.docs{border-left-color:var(--docs)} .example.docs .kind{color:var(--docs)}
-.example.slides{border-left-color:var(--slides)} .example.slides .kind{color:var(--slides)}
-.example p{margin:0;font-size:15px;color:var(--fg-muted)}
-.cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:18px 0}
-.cat{border:1px solid var(--line);border-radius:9px;padding:12px 14px;background:var(--bg-alt)}
-.cat .name{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;font-weight:600;color:var(--accent)}
-.cat .desc{font-size:13.5px;color:var(--fg-muted);margin-top:4px}
-.todo{background:#fff4d6;border:1px dashed #d19c00;color:#6b4e00;padding:2px 8px;border-radius:5px;font-size:14px;font-weight:600}
-@media (prefers-color-scheme:dark){.todo{background:#3a2f10;border-color:#8a6d00;color:#f0d68a}}
+  --paper:#fbfbf9;
+  --ink:#15171b;
+  --muted:#5c616a;
+  --rule:#e3e3de;
+  --marker:#e4f13f;
+  --link:#1a4fb4;
+  --pass:#1a7f5a;
+  --fail:#c0392b;
+  --shadow:0 1px 2px rgba(21,23,27,.06), 0 8px 24px -12px rgba(21,23,27,.18);
 
-/* comparison viewer */
-.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 20px}
-.tab{padding:8px 15px;border:1px solid var(--line);border-radius:8px;background:var(--bg-alt);
-  cursor:pointer;font:inherit;font-size:15px;color:var(--fg)}
-.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:550}
-.cmp-blurb{color:var(--fg-muted);margin-bottom:14px}
-details.prompt{margin:0 0 18px;border:1px solid var(--line);border-radius:9px;background:var(--bg-alt);padding:10px 14px}
-details.prompt summary{cursor:pointer;font-size:14px;font-weight:550}
-details.prompt p{margin:10px 0 2px;font-size:14.5px;color:var(--fg-muted);white-space:pre-wrap}
-.panes{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media (max-width:760px){.panes{grid-template-columns:1fr}}
-.pane{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg-alt)}
-.pane-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 13px;border-bottom:1px solid var(--line)}
-.pane-title{font-size:14px;font-weight:650}
-.pane-score{font-size:13px;font-weight:650;padding:3px 9px;border-radius:999px}
-.score-good{background:var(--pass-bg);color:var(--pass)}
-.score-bad{background:var(--fail-bg);color:var(--fail)}
-.pane-img{display:block;width:100%;height:auto;cursor:zoom-in;background:#fff}
-.pager{display:flex;gap:6px;align-items:center;justify-content:center;padding:8px;font-size:13px;color:var(--fg-muted)}
-.pager button{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:6px;
-  cursor:pointer;font:inherit;font-size:13px;padding:2px 9px}
-.pager button:disabled{opacity:.4;cursor:default}
-.controls{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:22px 0 10px;font-size:14px}
-.controls label{display:flex;gap:7px;align-items:center;cursor:pointer;color:var(--fg-muted)}
-.steps{border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.cp-head{background:var(--bg-alt);padding:9px 14px;font-size:13px;font-weight:650;
-  border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
-.cp-head .cp-scores{font-weight:500;color:var(--fg-muted)}
-.step{display:grid;grid-template-columns:34px 34px 1fr;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line);font-size:14.5px}
-.step:last-child{border-bottom:0}
-.step.diff{background:var(--fail-bg)}
-.mark{font-weight:700;text-align:center}
-.mark.ok{color:var(--pass)} .mark.no{color:var(--fail)} .mark.na{color:var(--fg-muted)}
-.step-name{font-weight:500}
-.badge{display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;
-  padding:1px 7px;border-radius:999px;background:var(--muted-bg);color:var(--fg-muted);margin-left:8px;vertical-align:1px}
-.why{font-size:13.5px;color:var(--fg-muted);margin-top:4px}
-.legend{display:flex;gap:16px;font-size:13px;color:var(--fg-muted);padding:9px 14px;background:var(--bg-alt);border-bottom:1px solid var(--line)}
-.note{font-size:13.5px;color:var(--fg-muted);margin-top:10px}
-#lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:50;cursor:zoom-out;padding:20px}
+  --f-display:"Source Serif 4",Iowan Old Style,Georgia,serif;
+  --f-body:"Source Sans 3",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+
+  --col:1280px;
+  --col-wide:1400px;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--f-body);
+  font-size:17px;
+  line-height:1.62;
+  font-synthesis-weight:none;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{width:100%;max-width:var(--col);margin-inline:auto;padding-inline:24px}
+.wrap-wide{width:100%;max-width:var(--col-wide);margin-inline:auto;padding-inline:24px}
+
+a{color:var(--link);text-decoration:none;text-underline-offset:3px}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--link);outline-offset:3px;border-radius:3px}
+
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+p{margin:0}
+
+/* ---------- hero ---------- */
+.hero{
+  padding-block:clamp(38px,6vw,68px) clamp(30px,4vw,44px);
+  text-align:center;
+}
+.hero-stack{display:flex;flex-direction:column;align-items:center;gap:20px}
+
+h1{
+  font-weight:700;
+  font-size:clamp(52px,9vw,92px);
+  line-height:1;
+  letter-spacing:.005em;
+}
+.subhead{
+  font-family:var(--f-display);
+  font-size:clamp(20px,2.7vw,27px);
+  font-weight:400;
+  line-height:1.32;
+  color:var(--ink);
+  max-width:42ch;
+  text-wrap:balance;
+  margin-top:-6px;
+}
+.venue{
+  display:inline-block;
+  font-family:var(--f-body);
+  font-size:15px;
+  font-weight:700;
+  letter-spacing:.03em;
+  line-height:1.2;
+  color:var(--ink);
+  background:var(--marker);
+  padding:6px 14px 5px;
+  border-radius:3px;
+}
+
+.byline{display:flex;flex-direction:column;align-items:center;gap:11px}
+.authors{font-size:16.5px;line-height:1.75;max-width:58ch}
+.authors a{
+  color:var(--ink);
+  text-decoration:underline;
+  text-decoration-color:var(--rule);
+  text-decoration-thickness:1.5px;
+  text-underline-offset:2.5px;
+  transition:text-decoration-color .15s ease,color .15s ease;
+}
+.authors a:hover{color:var(--link);text-decoration-color:currentColor}
+.authors a.me{font-weight:600}
+
+/* affiliation lockups — university, then the two labs */
+.org{display:inline-block;transition:opacity .15s ease;margin-top:2px}
+.org:hover{opacity:.7;text-decoration:none}
+.org img{height:52px;width:auto;display:block}
+
+.labs{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:14px 38px;margin-top:4px}
+.lab{display:inline-flex;align-items:center;transition:opacity .15s ease}
+.lab:hover{opacity:.7;text-decoration:none}
+.lab img{height:38px;width:auto;display:block}
+
+/* ---------- buttons ---------- */
+.links{display:flex;flex-wrap:wrap;gap:11px;justify-content:center;align-items:center;margin-top:4px}
+.btn{
+  display:inline-flex;align-items:center;gap:9px;
+  background:var(--ink);color:var(--paper);
+  border:1px solid var(--ink);
+  border-radius:999px;
+  padding:10px 21px;
+  font-size:15.5px;font-weight:600;
+  letter-spacing:.005em;
+  transition:opacity .15s ease;
+}
+.btn:hover{opacity:.84;text-decoration:none;color:var(--paper)}
+.btn svg{width:16px;height:16px;fill:currentColor;flex:none}
+
+/* ---------- sections ---------- */
+section{padding-block:clamp(44px,5.5vw,66px);border-top:1px solid var(--rule)}
+h2{
+  font-weight:600;
+  font-size:clamp(28px,3.6vw,38px);
+  line-height:1.12;
+  letter-spacing:-.018em;
+  text-align:center;
+}
+.prose{
+  max-width:920px;
+  margin:26px auto 0;
+  display:flex;flex-direction:column;gap:17px;
+}
+.prose p{font-size:17.5px;line-height:1.68}
+.prose em{font-style:italic}
+
+/* ---------- sub-heads & requirement lists ---------- */
+.sub-head{
+  font-family:var(--f-display);font-weight:600;
+  font-size:22px;letter-spacing:-.01em;
+  max-width:920px;margin:38px auto 0;
+}
+.sub-head.explorer-head{margin-top:52px}
+.sub-note{
+  max-width:920px;margin:8px auto 0;
+  font-size:16px;color:var(--muted);
+}
+.reqs{
+  max-width:920px;margin:16px auto 0;padding:0;list-style:none;
+  display:flex;flex-direction:column;gap:11px;
+}
+.reqs li{
+  position:relative;padding-left:20px;
+  font-size:16.5px;line-height:1.6;color:var(--muted);
+}
+.reqs li::before{
+  content:"";position:absolute;left:0;top:.62em;
+  width:7px;height:7px;border-radius:2px;background:var(--ink);
+}
+.reqs li b{color:var(--ink);font-weight:600}
+.reqs.anatomy li::before{
+  background:transparent;box-shadow:inset 0 0 0 1.5px var(--ink);
+}
+.lead-note{
+  max-width:920px;margin:30px auto 0;
+  font-size:17.5px;line-height:1.68;color:var(--muted);
+}
+.band-top{margin-top:18px;margin-bottom:44px}
+
+/* ---------- figure ---------- */
+.fig-block{padding-block:clamp(22px,3vw,32px) 0}
+.fig-frame{
+  border:1px solid var(--rule);
+  border-radius:6px;
+  background:#fff;
+  padding:10px;
+  box-shadow:var(--shadow);
+  cursor:zoom-in;
+  display:block;width:100%;
+}
+.fig-frame img{display:block;width:100%;height:auto;border-radius:2px}
+figcaption{
+  font-size:15.5px;line-height:1.6;color:var(--muted);
+  max-width:880px;margin:16px auto 0;text-align:center;
+}
+figcaption b{color:var(--ink);font-weight:600}
+.zoom-hint{
+  font-family:var(--f-mono);font-size:11.5px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);
+  display:block;text-align:center;margin-top:9px;
+}
+
+/* ---------- stat band ---------- */
+.band{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  margin-top:40px;
+}
+.band-item{padding:22px 20px;border-left:1px solid var(--rule);text-align:center}
+.band-item:first-child{border-left:0}
+.band-n{
+  font-family:var(--f-display);font-weight:700;
+  font-size:clamp(28px,3.6vw,38px);line-height:1;
+  letter-spacing:-.025em;font-variant-numeric:tabular-nums;
+}
+.band-l{
+  font-family:var(--f-mono);font-size:11.5px;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--muted);margin-top:8px;
+}
+.scale-line{
+  display:flex;flex-wrap:wrap;gap:6px 26px;justify-content:center;
+  font-size:15px;color:var(--muted);padding-top:16px;
+}
+.scale-line span{display:inline-flex;gap:7px;align-items:baseline}
+.scale-line b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+
+.band-5{grid-template-columns:repeat(5,1fr)}
+
+/* ---------- interactive tool panel ---------- */
+.tool{
+  border:1px solid var(--ink);
+  border-radius:12px;
+  background:#fff;
+  padding:22px 22px 24px;
+  margin-top:8px;
+  box-shadow:var(--shadow);
+}
+.tool-head{max-width:920px;margin-inline:auto}
+.tool-tag{
+  display:inline-block;
+  font-family:var(--f-mono);font-size:10.5px;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink);background:var(--marker);
+  padding:4px 10px 3px;border-radius:4px;
+}
+.tool-title{
+  font-family:var(--f-display);font-weight:600;
+  font-size:26px;letter-spacing:-.012em;margin-top:11px;
+}
+.tool-sub{margin-top:7px;font-size:16px;color:var(--muted)}
+.tool .explorer{margin-top:20px}
+.tool-eval{margin-top:32px}
+
+/* ---------- task explorer ---------- */
+.explorer{margin-top:22px}
+.seg{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.seg button{
+  font:inherit;font-size:15px;font-weight:600;
+  padding:8px 18px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--rule);background:transparent;color:var(--muted);
+  transition:background .14s ease,color .14s ease,border-color .14s ease;
+}
+.seg button:hover{color:var(--ink);border-color:var(--muted)}
+.seg button[aria-selected="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.seg .count{font-weight:400;opacity:.7;margin-left:6px;font-variant-numeric:tabular-nums}
+
+.chips{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:12px}
+.chips button{
+  font:inherit;font-size:14px;padding:5px 13px;border-radius:6px;cursor:pointer;
+  border:1px solid transparent;background:transparent;color:var(--muted);
+  transition:background .14s ease,color .14s ease;
+}
+.chips button:hover{color:var(--ink);background:rgba(21,23,27,.05)}
+.chips button[aria-selected="true"]{
+  color:var(--ink);font-weight:600;
+  background:var(--marker);
+}
+
+.panes{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:16px;margin-top:22px}
+.pane{border:1px solid var(--rule);border-radius:9px;overflow:hidden;background:#fff}
+.pane-head{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:10px 14px;border-bottom:1px solid var(--rule);background:var(--paper);
+}
+.pane-title{font-size:13px;font-weight:700;letter-spacing:.02em}
+.pane-meta{font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
+.prompt-body{
+  padding:15px 17px;font-size:15.5px;line-height:1.62;
+  white-space:pre-wrap;overflow-wrap:anywhere;
+  max-height:520px;overflow-y:auto;
+}
+.cp-list{max-height:520px;overflow-y:auto}
+
+details.cp{border-bottom:1px solid var(--rule)}
+details.cp:last-child{border-bottom:0}
+details.cp > summary{
+  list-style:none;cursor:pointer;padding:11px 15px;
+  display:flex;align-items:baseline;gap:10px;
+  font-size:15px;transition:background .12s ease;
+}
+details.cp > summary::-webkit-details-marker{display:none}
+details.cp > summary:hover{background:var(--paper)}
+.cp-caret{
+  flex:none;width:9px;color:var(--muted);font-size:10px;
+  transition:transform .15s ease;display:inline-block;
+}
+details.cp[open] .cp-caret{transform:rotate(90deg)}
+.cp-n{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);flex:none}
+.cp-title{font-weight:600;flex:1 1 auto;min-width:0}
+.cp-count{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);flex:none;white-space:nowrap}
+
+.steps{list-style:none;margin:0;padding:2px 15px 13px 34px;display:flex;flex-direction:column;gap:9px}
+.steps li{font-size:14.5px;line-height:1.5;color:var(--muted)}
+.step-text{display:block}
+.step-tags{display:flex;flex-wrap:wrap;gap:5px 12px;align-items:center;margin-top:3px}
+.tag-cat{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--muted);
+}
+.tag-cat .sw{width:9px;height:9px;border-radius:2px;flex:none;background:var(--c)}
+.tag-llm{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink);background:var(--marker);padding:1px 6px;border-radius:3px;
+}
+
+.legend-wrap{margin-top:22px}
+.legend-hint{
+  font-size:14px;color:var(--muted);text-align:center;margin-bottom:11px;
+}
+.legend{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.legend button{
+  display:inline-flex;align-items:center;gap:7px;
+  font:inherit;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--muted);
+  background:transparent;border:1px solid var(--rule);border-radius:999px;
+  padding:5px 11px;cursor:pointer;
+  transition:border-color .14s ease,color .14s ease,background .14s ease;
+}
+.legend button:hover{color:var(--ink);border-color:var(--muted)}
+.legend button[aria-pressed="true"]{
+  color:var(--ink);border-color:var(--ink);background:#fff;font-weight:600;
+}
+.legend .sw{width:9px;height:9px;border-radius:2px;background:var(--c);flex:none}
+.legend-def{
+  max-width:70ch;margin:13px auto 0;
+  border-left:3px solid var(--c,var(--rule));
+  background:#fff;border-radius:0 7px 7px 0;
+  padding:11px 15px;
+  font-size:15px;line-height:1.55;color:var(--muted);
+}
+.legend-def b{color:var(--ink);font-weight:600}
+/* dim steps that don't match the selected check type */
+.cp-list.filtering .steps li{opacity:.28;transition:opacity .15s ease}
+.cp-list.filtering .steps li.match{opacity:1}
+
+@media (max-width:820px){
+  .panes{grid-template-columns:1fr}
+  .prompt-body,.cp-list{max-height:400px}
+}
+
+/* ---------- check-category list ---------- */
+.reqs.checks li::before{background:var(--cat,var(--ink))}
+.reqs.checks li[data-cat="structural_check"]     {--cat:#2a78d6}
+.reqs.checks li[data-cat="information_retrieval"]{--cat:#eb6834}
+.reqs.checks li[data-cat="formatting_check"]     {--cat:#1baf7a}
+.reqs.checks li[data-cat="content_check"]        {--cat:#eda100}
+.reqs.checks li[data-cat="spatial_check"]        {--cat:#e87ba4}
+.reqs.checks li[data-cat="web_visit_check"]      {--cat:#008300}
+.reqs.checks li[data-cat="visual_check"]         {--cat:#4a3aa7}
+
+/* ---------- gold vs agent comparison ---------- */
+.cmp-blurb{
+  max-width:920px;margin:14px auto 0;
+  font-size:16px;color:var(--muted);text-align:center;
+}
+.prompt-fold{
+  max-width:920px;margin:14px auto 0;
+  border:1px solid var(--rule);border-radius:8px;background:#fff;
+  overflow:hidden;
+}
+.prompt-fold > summary{
+  cursor:pointer;padding:10px 15px;font-size:14px;font-weight:600;
+  list-style:none;
+}
+.prompt-fold > summary::-webkit-details-marker{display:none}
+.prompt-fold > summary::before{content:"▶ ";font-size:10px;color:var(--muted)}
+.prompt-fold[open] > summary::before{content:"▼ "}
+.prompt-fold .prompt-body{
+  border-top:1px solid var(--rule);max-height:300px;
+}
+
+.cmp-panes{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+.cmp-panes .pane{display:flex;flex-direction:column}
+.pane-title .who{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);font-weight:400;margin-left:6px;
+}
+.score{
+  font-family:var(--f-mono);font-size:12px;font-weight:600;
+  padding:3px 9px;border-radius:999px;white-space:nowrap;
+}
+.score.good{background:#e7f5ef;color:var(--pass)}
+.score.bad{background:#fdeceb;color:var(--fail)}
+.shot{display:block;background:#fff;cursor:zoom-in;line-height:0}
+.shot img{display:block;width:100%;height:auto}
+.pager{
+  display:flex;gap:8px;align-items:center;justify-content:center;
+  padding:9px;border-top:1px solid var(--rule);
+  font-family:var(--f-mono);font-size:11.5px;color:var(--muted);
+  margin-top:auto;
+}
+.pager button{
+  border:1px solid var(--rule);background:var(--paper);color:var(--ink);
+  border-radius:5px;cursor:pointer;font:inherit;padding:2px 9px;
+}
+.pager button:disabled{opacity:.35;cursor:default}
+
+.cmp-controls{
+  display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;
+  margin-top:22px;font-size:14.5px;color:var(--muted);
+}
+.cmp-controls label{display:inline-flex;gap:8px;align-items:center;cursor:pointer}
+.cmp-key{display:inline-flex;flex-wrap:wrap;gap:14px;font-size:13px}
+.cmp-key span{display:inline-flex;gap:6px;align-items:center}
+
+.cmp-steps{border:1px solid var(--rule);border-radius:9px;overflow:hidden;margin-top:11px}
+details.pair{border-bottom:1px solid var(--rule)}
+details.pair:last-child{border-bottom:0}
+details.pair > summary{
+  list-style:none;cursor:pointer;padding:11px 15px;
+  display:grid;grid-template-columns:14px 42px 1fr 92px 92px;gap:12px;align-items:center;
+  font-size:15px;background:var(--paper);
+}
+details.pair > summary::-webkit-details-marker{display:none}
+details.pair > summary:hover{background:#fff}
+.pair-caret{font-size:10px;color:var(--muted);transition:transform .15s ease}
+details.pair[open] .pair-caret{transform:rotate(90deg)}
+.pair-idx{font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
+.pair-name{font-weight:600;min-width:0}
+.pair-score{
+  font-family:var(--f-mono);font-size:11px;white-space:nowrap;text-align:center;
+  padding:2px 6px;border-radius:999px;
+}
+.pair-score.g{background:#e7f5ef;color:var(--pass)}
+.pair-score.a{background:#fdeceb;color:var(--fail)}
+.pair-score.same{background:var(--paper);color:var(--muted);border:1px solid var(--rule)}
+
+.pair-rows{display:flex;flex-direction:column}
+.prow{
+  display:grid;grid-template-columns:1fr 92px 92px;gap:12px;align-items:start;
+  padding:9px 15px;border-top:1px solid var(--rule);font-size:14.5px;
+}
+.cols-head{
+  display:grid;grid-template-columns:1fr 92px 92px;gap:12px;
+  padding:9px 15px;border-bottom:1px solid var(--ink);
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);
+}
+.cols-head span:not(:first-child){text-align:center}
+.prow.differ{background:#fffdf0}
+.mk{
+  font-style:normal;font-weight:700;text-align:center;display:block;
+  font-size:15px;line-height:1.4;
+}
+.mk.ok{color:var(--pass)}
+.mk.no{color:var(--fail)}
+.mk.na{color:var(--muted)}
+.mk.part{color:#b45309}
+.mk.frac{
+  font-family:var(--f-mono);font-size:12px;font-weight:600;
+  font-variant-numeric:tabular-nums;
+}
+.prow-mid{min-width:0}
+.prow-name{color:var(--ink);font-weight:600}
+.prow-desc{font-size:13.5px;line-height:1.45;color:var(--muted);margin-top:2px}
+.prow-why{font-size:13.5px;color:var(--muted);margin-top:3px}
+.prow-why b{font-weight:600;color:var(--ink)}
+.cmp-foot{
+  max-width:920px;margin:12px auto 0;
+  font-size:13.5px;color:var(--muted);text-align:center;
+}
+.footnote{
+  max-width:920px;margin:26px auto 0;padding-top:12px;
+  border-top:1px solid var(--rule);
+  font-size:13.5px;color:var(--muted);
+}
+.footnote a, .fnref{
+  font-family:var(--f-mono);font-size:11px;vertical-align:super;
+  text-decoration:none;color:var(--link);
+}
+.fnref::before{content:"["}
+.fnref::after{content:"]"}
+
+@media (max-width:820px){
+  .cmp-panes{grid-template-columns:1fr}
+  details.pair > summary{grid-template-columns:14px 42px 1fr;row-gap:7px}
+  details.pair > summary .pair-score{grid-column:3;justify-self:start}
+}
+
+/* ---------- citation ---------- */
+.cite-note{text-align:center}
+.cite-block{
+  position:relative;max-width:920px;margin:20px auto 0;
+  border:1px solid var(--rule);border-radius:9px;background:#fff;overflow:hidden;
+}
+.cite-block pre{
+  margin:0;padding:18px 20px;overflow-x:auto;
+  font-family:var(--f-mono);font-size:13px;line-height:1.62;color:var(--ink);
+}
+.cite-block code{font:inherit}
+.copy-btn{
+  position:absolute;top:10px;right:10px;
+  font:inherit;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;
+  text-transform:uppercase;
+  padding:5px 12px;border-radius:6px;cursor:pointer;
+  border:1px solid var(--rule);background:var(--paper);color:var(--muted);
+  transition:color .14s ease,border-color .14s ease;
+}
+.copy-btn:hover{color:var(--ink);border-color:var(--muted)}
+.copy-btn.done{color:var(--pass);border-color:var(--pass)}
+
+/* ---------- results table ---------- */
+.reqs.metrics li::before{background:var(--muted)}
+.results-scroll{margin-top:26px}
+table.results{
+  min-width:940px;font-size:14.5px;border-collapse:collapse;width:100%;
+  font-variant-numeric:tabular-nums;
+}
+table.results caption{
+  text-align:left;font-size:14.5px;color:var(--muted);padding-bottom:12px;
+}
+table.results th, table.results td{
+  padding:8px 10px;border-bottom:1px solid var(--rule);text-align:right;
+  vertical-align:middle;
+}
+table.results th{
+  font-family:var(--f-mono);font-weight:500;font-size:11px;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+}
+table.results tr.grp th{
+  text-align:center;border-bottom:1px solid var(--rule);
+  font-size:11.5px;color:var(--ink);font-weight:600;
+}
+table.results tr.sub th{border-bottom:1px solid var(--ink)}
+table.results .method{
+  text-align:left;font-weight:600;white-space:nowrap;
+  position:sticky;left:0;background:var(--paper);
+}
+table.results thead .method{background:var(--paper);z-index:1}
+table.results .ov{background:rgba(21,23,27,.035)}
+table.results tr.band-row td{
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--muted);
+  text-align:left;padding-top:16px;border-bottom:1px solid var(--rule);
+}
+table.results tr.best td{font-weight:700;background:rgba(228,241,63,.24)}
+table.results tr.best td.method{background:rgba(228,241,63,.24)}
+table.results tr.best td.ov{background:rgba(228,241,63,.38)}
+
+/* ---------- table ---------- */
+.table-scroll{overflow-x:auto;margin-top:38px}
+table{width:100%;border-collapse:collapse;font-size:16px;min-width:560px}
+caption{text-align:center;font-size:15px;color:var(--muted);padding-bottom:14px}
+th,td{text-align:left;padding:12px 14px 12px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
+th{
+  font-family:var(--f-mono);font-weight:500;
+  font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);border-bottom-color:var(--ink);
+}
+td:nth-child(2),td:nth-child(3),th:nth-child(2),th:nth-child(3){
+  font-variant-numeric:tabular-nums;text-align:right;padding-right:26px;
+}
+.kind{font-weight:600;white-space:nowrap}
+.kind::before{
+  content:"";display:inline-block;width:9px;height:9px;border-radius:2px;
+  margin-right:9px;vertical-align:1px;background:var(--dot,var(--muted));
+}
+tr.docs{--dot:#1a73e8}
+tr.sheets{--dot:#0f9d58}
+tr.slides{--dot:#f4b400}
+td.families{color:var(--muted);font-size:15px;padding-right:0}
+
+
+/* ---------- lightbox ---------- */
+#lightbox{
+  position:fixed;inset:0;background:rgba(10,11,13,.92);
+  display:none;align-items:center;justify-content:center;
+  z-index:50;cursor:zoom-out;padding:16px;
+}
 #lightbox.on{display:flex}
-#lightbox img{max-width:100%;max-height:100%;object-fit:contain}
-footer{padding:32px 0 60px;color:var(--fg-muted);font-size:14px;text-align:center}
+#lightbox img{max-width:100%;max-height:100%;object-fit:contain;border-radius:3px}
+
+@media (max-width:900px){
+  .band-5{grid-template-columns:repeat(3,1fr)}
+  .band-5 .band-item:nth-child(4){border-left:0}
+  .band-5 .band-item:nth-child(n+4){border-top:1px solid var(--rule)}
+}
+@media (max-width:760px){
+  .band{grid-template-columns:repeat(2,1fr)}
+  .band-item{border-left:0}
+  .band-item:nth-child(2n){border-left:1px solid var(--rule)}
+  .band-item:nth-child(n+3){border-top:1px solid var(--rule)}
+  .band-5{grid-template-columns:repeat(2,1fr)}
+  .band-5 .band-item:nth-child(2n){border-left:1px solid var(--rule)}
+  .band-5 .band-item:nth-child(2n+1){border-left:0}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
 </style>
 </head>
 <body>
 
-<header>
-  <div class="wrap">
-    <span class="venue">EMNLP 2026</span>
-    <!-- TODO: replace with the final camera-ready paper title -->
-    <h1>KNOWS<span class="sub">A Benchmark for Web Agents on Realistic Google Workspace Tasks</span></h1>
-    <!-- TODO: replace with the final author list and affiliations -->
-    <p class="authors"><span class="todo">Author list to be added</span></p>
-    <p class="affil"><span class="todo">Affiliations to be added</span></p>
-    <div class="links">
-      <!-- TODO: add the ACL Anthology / arXiv link when available -->
-      <a class="btn" href="#citation">Paper (coming soon)</a>
-      <a class="btn primary" href="https://github.com/alexgill321/KNOWS-benchmark">Code &amp; Data</a>
-      <a class="btn" href="https://github.com/alexgill321/KNOWS-benchmark/releases/tag/v1.0.0">Release v1.0.0</a>
-      <a class="btn" href="https://github.com/farhanishmam/BrowserGym-Knows">BrowserGym</a>
-      <a class="btn" href="https://github.com/farhanishmam/AgentLab-Knows">AgentLab</a>
+<header class="hero">
+  <div class="wrap hero-stack">
+
+    <h1>KNOWS</h1>
+
+    <p class="subhead">Benchmarking web agents on synthesizing, organizing, and displaying knowledge</p>
+
+    <p><span class="venue">Findings of EMNLP 2026</span></p>
+
+    <div class="byline">
+      <p class="authors">
+        <a class="me" href="https://alexgill321.github.io/">Alexander Gill</a>,
+        <a href="https://farhanishmam.github.io/">Md Farhan Ishmam</a>,
+        <a href="https://www.linkedin.com/in/nltrieuxuyen27/">Xuyen Nguyen</a>,
+        <a href="https://www.linkedin.com/in/neha--bhat/">Neha Bhat</a>,
+        <a href="https://www.linkedin.com/in/parker-deyoung/">Parker Henry DeYoung</a>,
+        <a href="https://fateme-hshm96.github.io/">Fateme Hashemi Chaleshtori</a>,
+        <a href="https://n8stringham.github.io/about.html">Nathan Stringham</a>,
+        <a href="https://kennethmarino.com/">Kenneth Marino</a>,
+        <a href="https://www.anamarasovic.com/">Ana Marasović</a>
+      </p>
+
+      <a class="org" href="https://www.cs.utah.edu/">
+        <img src="assets/university-of-utah.svg" alt="The University of Utah — Kahlert School of Computing">
+      </a>
+
+      <div class="labs">
+        <a class="lab" href="https://nlp.cs.utah.edu/">
+          <img src="assets/utahnlp_logo.png" alt="Utah NLP Lab">
+        </a>
+        <a class="lab" href="https://sparklabutah.github.io/">
+          <img src="assets/sparklab.png" alt="SPARK Lab">
+        </a>
+      </div>
     </div>
+
+    <div class="links">
+      <a class="btn" data-placeholder href="#" aria-label="arXiv paper (link coming soon)">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 0H3.75A1.75 1.75 0 0 0 2 1.75v12.5c0 .97.78 1.75 1.75 1.75h8.5c.97 0 1.75-.78 1.75-1.75V4.5L9.5 0Zm0 1.5L12.5 4.5H10a.5.5 0 0 1-.5-.5V1.5ZM5 7.25h6v1.5H5v-1.5Zm0 3h6v1.5H5v-1.5Zm0-6h3v1.5H5v-1.5Z"/></svg>
+        arXiv
+      </a>
+      <a class="btn" href="https://github.com/alexgill321/KNOWS-benchmark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        Code
+      </a>
+      <a class="btn" data-placeholder href="#" aria-label="Dataset (link coming soon)">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c3.31 0 6 1.12 6 2.5v11C14 14.88 11.31 16 8 16s-6-1.12-6-2.5v-11C2 1.12 4.69 0 8 0Zm4.5 6.28C11.4 6.94 9.8 7.33 8 7.33s-3.4-.39-4.5-1.05v3.1C3.5 10.06 5.4 10.83 8 10.83s4.5-.77 4.5-1.45v-3.1Zm0 5.2c-1.1.66-2.7 1.05-4.5 1.05s-3.4-.39-4.5-1.05v1.95c0 .68 1.9 1.45 4.5 1.45s4.5-.77 4.5-1.45v-1.95ZM8 1.5C5.4 1.5 3.5 2.27 3.5 2.95S5.4 4.4 8 4.4s4.5-.77 4.5-1.45S10.6 1.5 8 1.5Z"/></svg>
+        Dataset
+      </a>
+      <a class="btn" data-placeholder href="#" aria-label="X post (link coming soon)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 1.15h3.68l-8.04 9.19L24 22.85h-7.41l-5.8-7.58-6.64 7.58H.46l8.6-9.83L0 1.15h7.59l5.24 6.93ZM17.61 20.64h2.04L6.49 3.24H4.3Z"/></svg>
+        X Post
+      </a>
+    </div>
+
   </div>
 </header>
 
-<div class="wrap">
 
-<section id="overview">
-  <h2>Overview</h2>
-  <p class="lead">KNOWS evaluates web agents on the work people actually do in Google Workspace: writing documents, building spreadsheets, and composing slide decks that require web research, multi-step tool use, and faithful grounding in retrieved sources.</p>
-  <p>Tasks are open-ended and realistic — an agent must find information on the live web, decide what matters, and produce a correctly structured, correctly formatted artifact. Every task ships with a programmatic evaluator that scores the finished artifact step by step, so agents are graded on the document they produced.</p>
-  <div class="stats">
-    <div class="stat"><span class="n">110</span><span class="l">task instances</span></div>
-    <div class="stat"><span class="n">22</span><span class="l">task templates</span></div>
-    <div class="stat"><span class="n">653</span><span class="l">checkpoints</span></div>
-    <div class="stat"><span class="n">2,711</span><span class="l">evaluation steps</span></div>
+<section id="overview" class="first">
+  <div class="wrap">
+    <h2>Overview</h2>
   </div>
-  <div class="scroll">
-  <table>
-    <thead><tr><th>Artifact</th><th>Templates</th><th>Instances</th><th>Example task families</th></tr></thead>
-    <tbody>
-      <tr><td>Google Docs</td><td>5</td><td>25</td><td>formal letters, lesson plans, reference lists, recipe OCR, influential papers</td></tr>
-      <tr><td>Google Sheets</td><td>9</td><td>45</td><td>investment tracking, running analysis, apartment search, travel planning</td></tr>
-      <tr><td>Google Slides</td><td>8</td><td>40</td><td>book reports, product comparisons, event posters, illustrated decks</td></tr>
-    </tbody>
-  </table>
+
+
+  <div class="wrap">
+    <div class="prose">
+      <p>We introduce KNOWS (Knowledge Navigation and Organized Web Synthesis), the first
+        benchmark spanning live-web search, productivity tool use, and visual-spatial
+        understanding. KNOWS consists of 110 open-ended and complex browser-based tasks
+        that jointly evaluate these capabilities, with each task culminating in a produced
+        artifact. Each artifact is a real Google Doc, Sheet, or Slide deck, built in the
+        live Workspace interface. To write tasks, we develop a task design rubric and a
+        protocol for ensuring that tasks meet the requirements. Each task is paired with an
+        <em>evaluator</em>, a program that combines deterministic checks with LLM judgments
+        to balance the richness, reliability, and automation tradeoff inherent to agent
+        evaluation. In total, the creation of each task from start to finish took around
+        9–18 hours of expert work.</p>
+
+      <p>We evaluate and analyze frontier computer-use agents and browser-based harnesses
+        on KNOWS, and find that the best performer fully succeeds in fewer than 3% of our
+        complex, long-horizon tasks. Failures on visual steps render the resulting artifacts
+        unusable, even when agents complete more than 50% of other evaluation steps. Our
+        results expose limitations of current agents acting as end-to-end assistants, and
+        call for progress on tool use, visual understanding, and long-horizon reasoning.</p>
+
+      <p>Below is an example of a single task in KNOWS, from prompt to evaluation.</p>
+    </div>
   </div>
-  <p>Each template has five independent instances with different subjects, data, and constraints, so results reflect a task design rather than a single lucky prompt. Instances average ~25 evaluation steps, ranging from 9 to 70.</p>
+
+  <div class="wrap-wide fig-block">
+    <figure>
+      <a class="fig-frame" href="#" id="fig1" aria-label="Enlarge overview figure">
+        <img src="assets/figure1.png"
+             alt="Overview of a KNOWS task: a natural-language prompt specifying a seven-slide teaching deck, the agent's browser and Google Slides environment, the deck it produces, and the checkpoint decomposition used to evaluate it.">
+      </a>
+      <figcaption>An overview of the KNOWS benchmark.</figcaption>
+      <span class="zoom-hint">↗ Click to enlarge</span>
+    </figure>
+  </div>
 </section>
 
-<section id="compare">
-  <h2>Gold vs. agent, step by step</h2>
-  <p class="lead">Real artifacts from the benchmark, scored by the real evaluators. The left pane is the reference (gold) document; the right is what a browser agent produced for the same prompt. Below them is every evaluation step, with the evaluator's own explanation for each failure.</p>
+<section id="tasks">
+  <div class="wrap">
+    <h2>Tasks</h2>
 
-  <div class="tabs" id="cmp-tabs" role="tablist"></div>
-  <div id="cmp-body"><p class="note">Loading comparisons…</p></div>
+    <p class="lead-note">A KNOWS’ task asks an agent to research something on the live web and
+      turn what it finds into a finished Google Doc, Sheet, or Slide deck — satisfying
+      content, formatting, and layout requirements at once. Every task is made of three
+      parts.</p>
+
+    <ul class="reqs anatomy">
+      <li><b>A task prompt.</b> A detailed description in English of what the agent has to
+        do, written to be clear enough that a detail-oriented human could complete the task
+        with no further instruction.</li>
+      <li><b>A set of checkpoints.</b> Discrete, measurable milestones, each containing
+        multiple separate evaluation steps. Tasks score on overall or partial completion.</li>
+      <li><b>An evaluator.</b> A script that automatically checks the artifact at each
+        checkpoint, combining hard-coded logic, utility functions such as the Google
+        Workspace APIs, and LLM and VLM judgments.</li>
+    </ul>
+
+    <h3 class="sub-head">Task creation overview</h3>
+  </div>
+
+    <p class="sub-note">Holding every task to that standard takes a deliberate process: a
+      rubric of requirements, prompt creation with peer review, and a programmed evaluator
+      written and debugged for each task.</p>
+  </div>
+
+  <div class="wrap-wide fig-block">
+    <figure>
+      <a class="fig-frame" href="#" id="fig2" aria-label="Enlarge the benchmark construction figure">
+        <img src="assets/figure2.png"
+             alt="Three-stage construction of KNOWS: determining a rubric of task requirements; creating task prompts through brainstorming, a rubric-based self-check, peer review and expansion; and programming a task evaluator for every task from shared deterministic and LLM-as-judge utilities.">
+      </a>
+      <figcaption>An overview of the construction of the KNOWS benchmark.</figcaption>
+      <span class="zoom-hint">↗ Click to enlarge</span>
+    </figure>
+  </div>
+
+  <div class="wrap">
+    <h3 class="sub-head">Task desiderata</h3>
+    <p class="sub-note">We translate our core design requirements into a rubric that guides
+      task creation and keeps new tasks aligned with our motivation. Every task must satisfy
+      all five.</p>
+    <ul class="reqs">
+      <li><b>Realism.</b> The task is something a real user might want to do, and would save
+        time if automated.</li>
+      <li><b>Information retrieval.</b> Completing it requires browsing the live web for at
+        least five pieces of information — often many more — drawn from at least two websites.</li>
+      <li><b>Artifact synthesis.</b> The result is a cohesive, well-organized Google Doc,
+        Sheet, or Slide deck. Retrieved information must be meaningfully synthesized, not
+        copied in unedited.</li>
+      <li><b>Visual or spatial reasoning.</b> Identifying or editing specific elements,
+        honoring spatial relationships (left, right, above), or color-based modification
+        — for example, remove all red links.</li>
+      <li><b>Complexity.</b> At least four steps of information retrieval, multiple steps to
+        construct the artifact, and at least ten steps to incorporate and synthesize what was
+        found.</li>
+    </ul>
+
+
+    <h3 class="sub-head">Task statistics</h3>
+
+    <div class="band band-5 band-top">
+      <div class="band-item"><div class="band-n">110</div><div class="band-l">Tasks</div></div>
+      <div class="band-item"><div class="band-n">20</div><div class="band-l">Domains</div></div>
+      <div class="band-item"><div class="band-n">204</div><div class="band-l">Mean prompt words</div></div>
+      <div class="band-item"><div class="band-n">24.6</div><div class="band-l">Eval steps / task</div></div>
+      <div class="band-item"><div class="band-n">9–18</div><div class="band-l">Hours to author</div></div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-head">
+        <span class="tool-tag">Interactive</span>
+        <h3 class="tool-title">Browse a task</h3>
+        <p class="tool-sub">Choose an artifact type and a domain to see a full task from that
+          domain. The checkpoints on the right show every individual evaluation step, along
+          with the type of check it performs.</p>
+      </div>
+
+    <div class="explorer" id="explorer">
+      <div class="seg" id="seg" role="tablist" aria-label="Artifact type"></div>
+      <div class="chips" id="chips" role="tablist" aria-label="Domain"></div>
+
+      <div class="panes">
+        <div class="pane">
+          <div class="pane-head"><span class="pane-title">Task prompt</span>
+            <span class="pane-meta" id="promptMeta"></span></div>
+          <div class="prompt-body" id="promptBody"></div>
+        </div>
+        <div class="pane">
+          <div class="pane-head"><span class="pane-title">Checkpoints</span>
+            <span class="pane-meta" id="cpMeta"></span></div>
+          <div class="cp-list" id="cpList"></div>
+        </div>
+      </div>
+
+      <div class="legend-wrap">
+        <p class="legend-hint">Check types — select one for its definition and to highlight
+          those steps.</p>
+        <div class="legend" id="legend" role="group" aria-label="Check types"></div>
+        <div class="legend-def" id="legendDef" hidden></div>
+      </div>
+    </div>
+    </div>
+  </div>
 </section>
 
 <section id="evaluation">
-  <h2>Hybrid, white-box evaluation</h2>
-  <p>Each task's evaluator is an ordinary Python program that inspects the finished artifact through the Workspace APIs and its rendered form. Checks combine deterministic comparisons, tolerance-based matching, geometric layout tests, document-structure inspection, browsing-trace verification, and LLM/VLM judgements — whichever fits the criterion, rather than routing everything through a single model judge.</p>
+  <div class="wrap">
+    <h2>Hybrid Evaluation Framework</h2>
 
-  <!-- TODO: drop the paper figures in here (pipeline / taxonomy diagrams) -->
+    <p class="lead-note">For each evaluation step in a task, there is a verifier for the
+      successful completion of that step. Each task has a dedicated evaluator script, which
+      programmatically checks completion of each evaluation step, and returns completion
+      scores for each checkpoint. Our evaluators are implemented by examining Google
+      Workspace tool states, analyzing agent trajectories, and extracting data from the
+      live web.</p>
 
-  <h3>Step-level failure categories</h3>
-  <p>Every scoring site in every evaluator records the mechanism that <em>decided</em> the step's outcome. Because categories are recorded on passing steps too, any run yields per-mechanism failure <em>rates</em>, separating genuine agent errors from judge-mediated failures, cascades, and harness faults.</p>
-  <div class="cats">
-    <div class="cat"><span class="name">deterministic</span><div class="desc">Exact text, numeric, regex, or pixel-exact comparison</div></div>
-    <div class="cat"><span class="name">fuzzy_match</span><div class="desc">Tolerance-based: fuzzy text, perceptual hash, numeric or color tolerance</div></div>
-    <div class="cat"><span class="name">llm_vlm_judgement</span><div class="desc">An LLM or VLM verdict decided the step</div></div>
-    <div class="cat"><span class="name">spatial</span><div class="desc">Geometric checks over rendered coordinates: bounding boxes, regions, coverage</div></div>
-    <div class="cat"><span class="name">structural</span><div class="desc">Document structure: element counts, ordering, position in the document tree</div></div>
-    <div class="cat"><span class="name">web_visit</span><div class="desc">Verification against the agent's browsing history</div></div>
-    <div class="cat"><span class="name">dependency_not_evaluated</span><div class="desc">Skipped because a prerequisite failed — a cascade, not a new error</div></div>
-    <div class="cat"><span class="name">execution_error</span><div class="desc">Missing data, unreachable source, or evaluator exception — a harness fault</div></div>
-    <div class="cat"><span class="name">vacuous_pass</span><div class="desc">Credit awarded although no check actually ran</div></div>
+    <h3 class="sub-head">Eval step taxonomy</h3>
+    <p class="sub-note">Many evaluation steps share common requirements in implementation, so
+      we provide a suite of shared evaluation utilities available to any evaluator, organized
+      around seven categories of evaluation step.</p>
+    <ul class="reqs checks">
+      <li data-cat="structural_check"><b>Structural checks</b> verify the existence, order,
+        and hierarchy of elements via the Google Workspace API.</li>
+      <li data-cat="information_retrieval"><b>Information retrieval checks</b> compare
+        extracted data values against gold-standard references using exact matching, fuzzy
+        matching, or numerical comparison with tolerances.</li>
+      <li data-cat="formatting_check"><b>Formatting checks</b> verify visual styling
+        properties such as font weight, size, color, and alignment by querying the API
+        directly.</li>
+      <li data-cat="spatial_check"><b>Spatial checks</b> validate the physical layout of
+        elements through their position, size, alignment, and whether they overlap or extend
+        beyond the page.</li>
+      <li data-cat="content_check"><b>Content checks</b> assess source fidelity and semantic
+        accuracy of generated text.</li>
+      <li data-cat="web_visit_check"><b>Web visit checks</b> confirm that the agent actually
+        visited relevant websites by inspecting its trace of visited URLs.</li>
+      <li data-cat="visual_check"><b>Visual checks</b> verify image content and provenance —
+        whether an inserted image depicts the expected subject, originates from the correct
+        source, or is visually distinct from other images.</li>
+    </ul>
+
+    <div class="tool tool-eval">
+      <div class="tool-head">
+        <span class="tool-tag">Interactive</span>
+        <h3 class="tool-title">Inspect the evaluators yourself</h3>
+        <p class="tool-sub">Below you can see how our evaluators grade expert-created
+          &ldquo;gold standard&rdquo; artifacts, compared to how artifacts created for the
+          same task by the top-performing computer-use agent, Comet<a class="fnref"
+          href="#fn-comet" id="fnref-comet">1</a>, are graded.</p>
+      </div>
+
+    <div class="explorer" id="cmp">
+      <div class="seg" id="cmpSeg" role="tablist" aria-label="Task"></div>
+      <p class="cmp-blurb" id="cmpBlurb"></p>
+
+      <details class="prompt-fold" id="cmpPromptFold">
+        <summary>Show the task prompt</summary>
+        <div class="prompt-body" id="cmpPrompt"></div>
+      </details>
+
+      <div class="cmp-panes">
+        <div class="pane" data-side="gold">
+          <div class="pane-head">
+            <span class="pane-title">Gold standard <span class="who">expert</span></span>
+            <span class="score" id="goldScore"></span>
+          </div>
+          <a class="shot" id="goldShot" href="#" aria-label="Enlarge gold artifact page"><img id="goldImg" alt="Gold standard artifact"></a>
+          <div class="pager" id="goldPager"></div>
+        </div>
+        <div class="pane" data-side="agent">
+          <div class="pane-head">
+            <span class="pane-title">Comet <span class="who">agent</span></span>
+            <span class="score" id="agentScore"></span>
+          </div>
+          <a class="shot" id="agentShot" href="#" aria-label="Enlarge Comet artifact page"><img id="agentImg" alt="Comet artifact"></a>
+          <div class="pager" id="agentPager"></div>
+        </div>
+      </div>
+
+      <div class="cmp-controls">
+        <label><input type="checkbox" id="diffOnly"> Only steps where they differ</label>
+        <span class="cmp-key">
+          <span><i class="mk ok">✓</i> passed</span>
+          <span><i class="mk part frac">6/10</i> partial credit</span>
+          <span><i class="mk no">✗</i> failed</span>
+          <span><i class="mk na">–</i> not evaluated</span>
+        </span>
+      </div>
+
+      <div class="cmp-steps" id="cmpSteps">
+        <div class="cols-head"><span>Evaluation step</span><span>Gold</span><span>Comet</span></div>
+      </div>
+      <p class="cmp-foot" id="cmpFoot"></p>
+    </div>
+    </div>
+
+    <p class="footnote" id="fn-comet"><a href="#fnref-comet">1</a> Comet running a Claude
+      Opus 4.7 agent.</p>
   </div>
-  <p>Evaluators print a per-category summary alongside the score:</p>
-<pre><code>=== CATEGORY SUMMARY ===
-  deterministic: 4/4 passed (0 failed)
-  spatial: 3/3 passed (0 failed)
-  llm_vlm_judgement: 0/1 passed (1 failed)
-  dependency_not_evaluated: 0/1 passed (1 failed)
-  structural: 1/1 passed (0 failed)</code></pre>
 </section>
 
 <section id="results">
-  <h2>Results</h2>
-  <!-- TODO: headline model comparison table from the camera-ready -->
-  <p><span class="todo">Results from the paper to be added here.</span></p>
+  <div class="wrap">
+    <h2>Benchmark Results</h2>
+
+    <p class="lead-note">We evaluate state-of-the-art computer-use agents across open-source
+      and proprietary vision-and-language models and harnesses. Scores are reported per
+      artifact type and overall, on four metrics ordered from strictest to loosest.</p>
+
+    <h3 class="sub-head">Metrics</h3>
+    <ul class="reqs metrics">
+      <li><b>SR — Success Rate.</b> A task scores 1 only if <em>every</em> evaluation step
+        across all checkpoints is correct. The standard complete-success metric.</li>
+      <li><b>ASC — Average Successful Checkpoints.</b> The fraction of a task's checkpoints
+        in which all steps are correct. Each checkpoint is a milestone in building the
+        artifact, so ASC counts milestones fully reached.</li>
+      <li><b>ACF — Average Checkpoint Fraction.</b> The fraction of steps correct within each
+        checkpoint, averaged across checkpoints. Awards partial credit per milestone.</li>
+      <li><b>SF — Step Fraction.</b> The fraction of all evaluation steps correct. Similar in
+        strictness to ACF, but weights complex checkpoints more heavily by pooling steps
+        rather than averaging over checkpoints.</li>
+    </ul>
+
+    <h3 class="sub-head">Systems</h3>
+    <ul class="reqs metrics">
+      <li><b>BrowserGym–AgentLab, text only (AXT).</b> The open-source harness driving each
+        model from the accessibility tree alone — no screenshots. Run with GPT&nbsp;5.5,
+        Claude&nbsp;Opus&nbsp;4.7, and the open-source DeepSeek&nbsp;V4&nbsp;Pro.</li>
+      <li><b>BrowserGym–AgentLab, multimodal (AXT&nbsp;+&nbsp;SS).</b> The same harness given
+        screenshots alongside the accessibility tree. Visual inputs were not available for
+        the DeepSeek V4 Pro API at the time of writing, so it appears in the text-only block
+        only.</li>
+      <li><b>AI browsers.</b> Closed-source harnesses that browse on their own: ChatGPT Atlas
+        (GPT agent, selected automatically by the harness) and Perplexity Comet (Claude Opus
+        4.7 agent).</li>
+    </ul>
+
+    <div class="table-scroll results-scroll">
+      <table class="results">
+        <caption>Results on KNOWS, as percentages. Baselines that are not AI browsers use the
+          BrowserGym–AgentLab harness.</caption>
+        <thead>
+          <tr class="grp">
+            <th rowspan="2" class="method">Method</th>
+            <th colspan="4">Docs</th>
+            <th colspan="4">Sheets</th>
+            <th colspan="4">Slides</th>
+            <th colspan="4" class="ov">Overall</th>
+          </tr>
+          <tr class="sub">
+            <th>SR</th><th>ASC</th><th>ACF</th><th>SF</th>
+            <th>SR</th><th>ASC</th><th>ACF</th><th>SF</th>
+            <th>SR</th><th>ASC</th><th>ACF</th><th>SF</th>
+            <th class="ov">SR</th><th class="ov">ASC</th><th class="ov">ACF</th><th class="ov">SF</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="band-row"><td colspan="17">Textual — accessibility tree (AXT)</td></tr>
+          <tr>
+            <td class="method">GPT 5.5</td>
+            <td>0</td><td>18.0</td><td>38.5</td><td>36.6</td>
+            <td>0</td><td>26.8</td><td>46.8</td><td>44.4</td>
+            <td>0</td><td>15.1</td><td>38.6</td><td>31.7</td>
+            <td class="ov">0</td><td class="ov">20.6</td><td class="ov">41.9</td><td class="ov">38.0</td>
+          </tr>
+          <tr>
+            <td class="method">Claude Opus 4.7</td>
+            <td>0</td><td>7.7</td><td>19.9</td><td>21.9</td>
+            <td>0</td><td>3.0</td><td>12.3</td><td>10.0</td>
+            <td>0</td><td>9.3</td><td>20.3</td><td>12.5</td>
+            <td class="ov">0</td><td class="ov">6.4</td><td class="ov">17.0</td><td class="ov">13.6</td>
+          </tr>
+          <tr>
+            <td class="method">DeepSeek V4 Pro</td>
+            <td>0</td><td>17.0</td><td>39.3</td><td>41.1</td>
+            <td>0</td><td>8.7</td><td>23.7</td><td>18.6</td>
+            <td>0</td><td>14.2</td><td>34.3</td><td>26.1</td>
+            <td class="ov">0</td><td class="ov">12.6</td><td class="ov">31.1</td><td class="ov">26.4</td>
+          </tr>
+
+          <tr class="band-row"><td colspan="17">Multimodal — accessibility tree + screenshot (AXT + SS)</td></tr>
+          <tr>
+            <td class="method">GPT 5.5</td>
+            <td>0</td><td>21.7</td><td>44.9</td><td>46.2</td>
+            <td>0</td><td>25.0</td><td>50.1</td><td>48.2</td>
+            <td>0</td><td>18.1</td><td>51.7</td><td>45.3</td>
+            <td class="ov">0</td><td class="ov">21.8</td><td class="ov">49.5</td><td class="ov">46.7</td>
+          </tr>
+          <tr>
+            <td class="method">Claude Opus 4.7</td>
+            <td>0</td><td>21.3</td><td>47.3</td><td>49.0</td>
+            <td>0</td><td>11.4</td><td>28.8</td><td>24.8</td>
+            <td>0</td><td>19.7</td><td>54.8</td><td>48.9</td>
+            <td class="ov">0</td><td class="ov">16.7</td><td class="ov">42.5</td><td class="ov">39.1</td>
+          </tr>
+
+          <tr class="band-row"><td colspan="17">AI browsers</td></tr>
+          <tr>
+            <td class="method">ChatGPT Atlas</td>
+            <td>0</td><td>22.3</td><td>43.6</td><td>40.6</td>
+            <td>0</td><td>25.9</td><td>51.5</td><td>48.6</td>
+            <td>0</td><td>16.3</td><td>39.7</td><td>31.6</td>
+            <td class="ov">0</td><td class="ov">21.6</td><td class="ov">45.4</td><td class="ov">40.6</td>
+          </tr>
+          <tr class="best">
+            <td class="method">Perplexity Comet</td>
+            <td>12.0</td><td>41.0</td><td>68.7</td><td>66.3</td>
+            <td>0</td><td>35.8</td><td>73.0</td><td>68.3</td>
+            <td>0</td><td>31.3</td><td>67.5</td><td>59.7</td>
+            <td class="ov">2.7</td><td class="ov">35.4</td><td class="ov">70.0</td><td class="ov">64.7</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub-head">Results and analysis</h3>
+    <ul class="reqs metrics">
+      <li><b>Long-horizon tasks remain challenging.</b> SR is near zero across most methods
+        and splits, showing both the difficulty of our benchmark and the inability of SOTA
+        agents on challenging, long-horizon tasks. The exception is Docs, where the best
+        baseline, Comet, achieves a non-zero, albeit low, SR (12.0%). This result is
+        unsurprising, as doc tasks resemble the conversational, text-only outputs best suited
+        for the underlying LLMs. Partial success is also similarly low across most methods.
+        Among the general agents, GPT-5.5 performs relatively well compared to other models.
+        While Comet achieves the best performance, qualitative results show many of these
+        outputs are often unusable.</li>
+      <li><b>Visual modality is important.</b> KNOWS contains a large fraction of tasks that
+        require visual and spatial reasoning, which are often unsolvable from the AXT alone.
+        Adding visual inputs as screenshots (SS) with the AXT can significantly improve
+        performance, as much as (+10.3 ASC, +25.5 ACF, +25.5 SF) for Opus 4.7 over its
+        AXT-only variant.</li>
+      <li><b>Harness matters as much as the model.</b> Perhaps the starkest finding is the
+        gap between two systems sharing the same backbone, e.g., Opus 4.7 with the Comet
+        harness outperforms the BrowserGym harness by (+2.7 SR, +18.7 ASC, +27.5 ACF, and
+        +25.6 SF) overall. Proprietary harnesses show clear advantages in live web browsing,
+        e.g., on complex webpages and with pop-up advertisements.</li>
+      <li><b>Qualitative error analysis.</b> While the best-performing agents can achieve
+        decent partial success scores, several of the resulting outputs often remain
+        practically unusable. We observe similar errors in structuring documents, applying
+        formulae in spreadsheets, structuring tables, and creating proper visualizations.</li>
+    </ul>
+  </div>
 </section>
 
-<section id="start">
-  <h2>Getting started</h2>
-  <p>The reference setup runs KNOWS through a BrowserGym fork; AgentLab provides the agent configurations used in the paper.</p>
-<pre><code>git clone https://github.com/farhanishmam/BrowserGym-Knows
-cd BrowserGym-Knows
-git submodule update --init --recursive   # pulls in the benchmark
-# then follow the repo's README for installation and credentials</code></pre>
-  <p>Evaluators are harness-agnostic: give your agent the task prompt plus a Google file it can edit, record the URLs it visits, and score the result from the repository root.</p>
-<pre><code>python src/browsergym/knows/eval/tasks/&lt;family&gt;/instance_&lt;N&gt;/evaluator.py \
-  --workspace_doc_id "&lt;FILE_ID&gt;" \
-  --browsing_history "https://example.com/a" "https://example.com/b"</code></pre>
-  <p>The full protocol for any framework — provisioning, sharing, prompting, history capture, grading, and reading results — is in <a href="https://github.com/alexgill321/KNOWS-benchmark/blob/main/RUNNING_STANDALONE.md">RUNNING_STANDALONE.md</a>.</p>
-</section>
-
-<section id="maintenance">
-  <h2>Maintenance and versioning</h2>
-  <p>Tasks are curated to be time-agnostic and independent of any single website, but some reference live pages that can change. We verify the external sources our evaluators depend on at periodic intervals; if a change significantly alters a task's difficulty or solvability, we update the task or replace it with one of similar scope.</p>
-  <p>Every change ships as a new tagged release, and prior versions stay permanently available, so results reported against any version remain reproducible. <strong>Please report the benchmark version alongside your results.</strong> Outdated tasks and evaluator issues can be reported through the <a href="https://github.com/alexgill321/KNOWS-benchmark/issues/new/choose">issue templates</a>.</p>
+<section id="acknowledgments">
+  <div class="wrap">
+    <h2>Acknowledgments</h2>
+    <p class="lead-note">We thank Google for providing funding for the construction of this
+      benchmark. We thank Anthropic and OpenAI for their donation of API credits for
+      benchmarking models. We thank Ivan Andhika, Matthew Lee, Ryhor Pryslopski, Spike Cheng
+      and Qui Ngo for their contributions to the codebase, Shrusti Ghela and Ana Alvarez
+      Lopez for providing valuable annotations, and everyone who consented to our use of
+      their information in this benchmark. We also thank everyone involved in the review
+      process for providing valuable feedback on KNOWS.</p>
+  </div>
 </section>
 
 <section id="citation">
-  <h2>Citation</h2>
-  <!-- TODO: replace with the final camera-ready citation (authors, title, main vs. Findings) -->
-<pre><code>@inproceedings{knows2026,
-  author    = {&lt;author list&gt;},
-  title     = {&lt;final paper title&gt;},
-  booktitle = {Proceedings of the 2026 Conference on Empirical Methods
-               in Natural Language Processing (EMNLP)},
-  year      = {2026},
-  note      = {Benchmark v1.0.0:
-               \url{https://github.com/alexgill321/KNOWS-benchmark}}
+  <div class="wrap">
+    <h2>BibTeX</h2>
+    <p class="sub-note cite-note">Placeholder — the final entry will be updated once the
+      Findings of EMNLP 2026 proceedings are published.</p>
+    <div class="cite-block">
+      <button class="copy-btn" id="copyCite" type="button">Copy</button>
+      <pre><code id="citeText">@inproceedings{gill2026knows,
+  title     = {The Hard Part Comes After Search: Benchmarking Web Agents on
+               Synthesizing, Organizing, and Displaying Knowledge},
+  author    = {Gill, Alexander and Ishmam, Md Farhan and Nguyen, Xuyen and
+               Bhat, Neha and DeYoung, Parker Henry and
+               Hashemi Chaleshtori, Fateme and Stringham, Nathan and
+               Marino, Kenneth and Marasovi\'{c}, Ana},
+  booktitle = {Findings of the Association for Computational Linguistics: EMNLP 2026},
+  year      = {2026}
 }</code></pre>
+    </div>
+  </div>
 </section>
 
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Overview figure, enlarged">
+  <img src="assets/figure1.png" alt="Overview figure, enlarged">
 </div>
 
-<footer>
-  <div class="wrap">Released under the Apache License 2.0 · <a href="https://github.com/alexgill321/KNOWS-benchmark">GitHub</a></div>
-</footer>
-
-<div id="lightbox"><img alt=""></div>
-
 <script>
+/* ---- task explorer ---- */
 (function(){
-  var tabsEl = document.getElementById('cmp-tabs');
-  var bodyEl = document.getElementById('cmp-body');
-  var lightbox = document.getElementById('lightbox');
-  var cache = {}, pageState = {};
+  var CAT_COLOR = {
+    structural_check:      '#2a78d6',
+    information_retrieval: '#eb6834',
+    formatting_check:      '#1baf7a',
+    content_check:         '#eda100',
+    spatial_check:         '#e87ba4',
+    web_visit_check:       '#008300',
+    visual_check:          '#4a3aa7'
+  };
+  var CAT_ORDER = ['structural_check','information_retrieval','formatting_check',
+                   'content_check','spatial_check','web_visit_check','visual_check'];
+  var CAT_DEF = {
+    structural_check:
+      'Verifies the existence, order, and hierarchy of elements through the Google Workspace API — whether the right pieces are present and correctly arranged, not how they are styled or placed.',
+    information_retrieval:
+      'Compares extracted data values against gold-standard references, using exact matching, fuzzy matching, or numerical comparison with tolerances.',
+    formatting_check:
+      'Verifies visual styling properties — font weight, size, color, alignment — by querying the API directly.',
+    content_check:
+      'Assesses the source fidelity and semantic accuracy of generated text: whether what the agent wrote is faithful to what it retrieved.',
+    spatial_check:
+      'Validates the physical layout of elements: position, size, alignment, and whether they overlap one another or extend beyond the page.',
+    web_visit_check:
+      'Confirms the agent actually visited the relevant websites, by inspecting its trace of visited URLs.',
+    visual_check:
+      'Verifies image content and provenance — whether an inserted image depicts the expected subject, originates from the correct source, or is visually distinct from other images.'
+  };
 
-  lightbox.addEventListener('click', function(){ lightbox.classList.remove('on'); });
-  document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape') lightbox.classList.remove('on');
+  var seg = document.getElementById('seg'),
+      chips = document.getElementById('chips'),
+      promptBody = document.getElementById('promptBody'),
+      promptMeta = document.getElementById('promptMeta'),
+      cpList = document.getElementById('cpList'),
+      cpMeta = document.getElementById('cpMeta'),
+      legend = document.getElementById('legend'),
+      legendDef = document.getElementById('legendDef');
+  if (!seg) return;
+
+  var DATA = null, artifact = null, taskId = null, activeCat = null;
+
+  function el(tag, cls, text){
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function label(cat){
+    return (DATA.categoryLabels && DATA.categoryLabels[cat]) || cat.replace(/_/g,' ');
+  }
+  function tasksFor(a){ return DATA.tasks.filter(function(t){ return t.artifact === a; }); }
+
+  function renderSeg(){
+    seg.textContent = '';
+    DATA.artifactOrder.forEach(function(a){
+      var b = el('button', null);
+      b.type = 'button';
+      b.setAttribute('role','tab');
+      b.setAttribute('aria-selected', String(a === artifact));
+      b.appendChild(document.createTextNode(a));
+      b.addEventListener('click', function(){
+        artifact = a;
+        taskId = tasksFor(a)[0].id;
+        renderSeg(); renderChips(); renderTask();
+      });
+      seg.appendChild(b);
+    });
+  }
+
+  function renderChips(){
+    chips.textContent = '';
+    tasksFor(artifact).forEach(function(t){
+      var b = el('button', null, t.domain);
+      b.type = 'button';
+      b.setAttribute('role','tab');
+      b.setAttribute('aria-selected', String(t.id === taskId));
+      b.addEventListener('click', function(){
+        taskId = t.id; renderChips(); renderTask();
+      });
+      chips.appendChild(b);
+    });
+  }
+
+  function renderTask(){
+    var t = DATA.tasks.filter(function(x){ return x.id === taskId; })[0];
+    if (!t) return;
+
+    promptBody.textContent = t.prompt;
+    promptMeta.textContent = t.prompt.trim().split(/\s+/).length + ' words';
+    cpMeta.textContent = t.checkpoints.length + ' checkpoints · ' + t.n_steps + ' steps';
+
+    cpList.textContent = '';
+    t.checkpoints.forEach(function(cp, i){
+      var d = el('details','cp');
+      if (i === 0) d.open = true;
+      var s = el('summary');
+      s.appendChild(el('span','cp-caret','▶'));
+      s.appendChild(el('span','cp-n','CP ' + cp.n));
+      s.appendChild(el('span','cp-title', cp.title || 'Checkpoint ' + cp.n));
+      s.appendChild(el('span','cp-count', cp.steps.length + (cp.steps.length === 1 ? ' step' : ' steps')));
+      d.appendChild(s);
+
+      var ul = el('ul','steps');
+      cp.steps.forEach(function(step){
+        var li = el('li');
+        li.dataset.cat = step.category;
+        li.appendChild(el('span','step-text', step.text || step.name));
+        var tags = el('div','step-tags');
+        var cat = el('span','tag-cat');
+        var sw = el('span','sw');
+        sw.style.setProperty('--c', CAT_COLOR[step.category] || '#888');
+        cat.appendChild(sw);
+        cat.appendChild(document.createTextNode(label(step.category)));
+        tags.appendChild(cat);
+        if (step.llm) tags.appendChild(el('span','tag-llm','LLM / VLM'));
+        li.appendChild(tags);
+        ul.appendChild(li);
+      });
+      d.appendChild(ul);
+      cpList.appendChild(d);
+    });
+    applyFilter();
+  }
+
+  /* Selecting a check type shows its definition and highlights matching steps. */
+  function applyFilter(){
+    cpList.classList.toggle('filtering', !!activeCat);
+    Array.prototype.forEach.call(cpList.querySelectorAll('.steps li'), function(li){
+      li.classList.toggle('match', li.dataset.cat === activeCat);
+    });
+    if (activeCat){
+      // open any checkpoint that contains a matching step, so highlights are visible
+      Array.prototype.forEach.call(cpList.querySelectorAll('details.cp'), function(d){
+        if (d.querySelector('.steps li.match')) d.open = true;
+      });
+    }
+  }
+
+  function setCat(cat){
+    activeCat = (activeCat === cat) ? null : cat;
+    Array.prototype.forEach.call(legend.querySelectorAll('button'), function(b){
+      b.setAttribute('aria-pressed', String(b.dataset.cat === activeCat));
+    });
+    if (activeCat){
+      legendDef.hidden = false;
+      legendDef.style.setProperty('--c', CAT_COLOR[activeCat]);
+      legendDef.textContent = '';
+      var strong = el('b', null, label(activeCat) + ' — ');
+      legendDef.appendChild(strong);
+      legendDef.appendChild(document.createTextNode(CAT_DEF[activeCat] || ''));
+    } else {
+      legendDef.hidden = true;
+    }
+    applyFilter();
+  }
+
+  function renderLegend(){
+    legend.textContent = '';
+    CAT_ORDER.forEach(function(c){
+      var b = el('button');
+      b.type = 'button';
+      b.dataset.cat = c;
+      b.setAttribute('aria-pressed','false');
+      var sw = el('span','sw');
+      sw.style.setProperty('--c', CAT_COLOR[c]);
+      b.appendChild(sw);
+      b.appendChild(document.createTextNode(label(c)));
+      b.addEventListener('click', function(){ setCat(c); });
+      legend.appendChild(b);
+    });
+  }
+
+  fetch('tasks.json')
+    .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(d){
+      DATA = d;
+      artifact = d.artifactOrder[0];
+      taskId = tasksFor(artifact)[0].id;
+      renderSeg(); renderChips(); renderTask(); renderLegend();
+    })
+    .catch(function(){
+      document.getElementById('explorer').innerHTML =
+        '<p class="sub-note" style="text-align:center">Task data could not be loaded.</p>';
+    });
+})();
+
+/* ---- copy the citation ---- */
+(function(){
+  var btn = document.getElementById('copyCite'),
+      src = document.getElementById('citeText');
+  if (!btn || !src) return;
+  btn.addEventListener('click', function(){
+    var text = src.textContent;
+    function done(){
+      btn.textContent = 'Copied';
+      btn.classList.add('done');
+      setTimeout(function(){ btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1600);
+    }
+    /* clipboard access can be blocked; fall back to selecting the entry */
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done, select);
+    } else {
+      select();
+    }
+    function select(){
+      var r = document.createRange();
+      r.selectNodeContents(src);
+      var s = window.getSelection();
+      s.removeAllRanges(); s.addRange(r);
+      btn.textContent = 'Select + copy';
+      setTimeout(function(){ btn.textContent = 'Copy'; }, 2200);
+    }
   });
+})();
 
-  function zoom(src){
-    lightbox.querySelector('img').src = src;
-    lightbox.classList.add('on');
+/* ---- gold vs Comet comparison ---- */
+(function(){
+  var seg = document.getElementById('cmpSeg');
+  if (!seg) return;
+  var blurb = document.getElementById('cmpBlurb'),
+      promptEl = document.getElementById('cmpPrompt'),
+      diffOnly = document.getElementById('diffOnly'),
+      stepsEl = document.getElementById('cmpSteps'),
+      footEl = document.getElementById('cmpFoot');
+
+  var INDEX = null, KEY = null, TASK = null, STEP_TEXT = {}, page = { gold: 0, agent: 0 };
+
+  /* Browsing-history steps are excluded: the agent runs archived here carry no
+     browsing trace, so those steps say more about the capture than the artifact.
+     A step counts as one if either side was decided by a web-visit check, or the
+     evaluator's own explanation refers to browsing history. */
+  function isHistoryStep(g, a){
+    if (g.category === 'web_visit' || a.category === 'web_visit') return true;
+    var t = ((g.details || '') + ' ' + (a.details || '')).toLowerCase();
+    return t.indexOf('browsing history') !== -1;
+  }
+  /* Proportional steps are flagged success:true by the evaluator whenever they
+     score above zero, so `success` alone would render 2/10 as a clean pass.
+     Grade off the score, and show the fraction wherever a step is worth >1. */
+  function verdict(s){
+    if (s.category === 'execution_error' || s.category === 'dependency_not_evaluated')
+      return 'na';
+    if (s.max_score > 1){
+      if (s.score >= s.max_score) return 'ok';
+      return s.score > 0 ? 'part' : 'no';
+    }
+    return s.success ? 'ok' : 'no';
+  }
+  var MARK = { ok: '✓', no: '✗', na: '–', part: '' };
+  function mark(s, v){
+    if (s.max_score > 1 && v !== 'na') return s.score + '/' + s.max_score;
+    return MARK[v];
+  }
+  function sameOutcome(g, a){
+    return verdict(g) === verdict(a) && (g.score / g.max_score) === (a.score / a.max_score);
   }
 
-  function esc(s){
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
-    });
-  }
+  function el(t, c, x){ var n = document.createElement(t); if(c) n.className=c;
+                        if(x!=null) n.textContent=x; return n; }
 
-  // Steps the agent cannot be held responsible for: harness/web faults, and
-  // browsing checks for runs archived without a trace.
-  function unassessable(step, historyAvailable){
-    return step.category === 'execution_error' ||
-           (step.category === 'web_visit' && historyAvailable === false);
-  }
-
-  function assessable(data){
-    var r = 0, t = 0;
-    (data.checkpoints || []).forEach(function(cp){
-      cp.steps.forEach(function(s){
-        if (unassessable(s, data.history_available)) return;
-        r += s.score; t += s.max_score;
+  /* build the paired, filtered view for the loaded task */
+  function pairs(){
+    var G = TASK.sides.gold, A = TASK.sides.agent, out = [], dropped = 0;
+    G.checkpoints.forEach(function(gc, i){
+      var ac = A.checkpoints[i], rows = [], gp = 0, ap = 0, mx = 0;
+      gc.steps.forEach(function(gs, j){
+        var as_ = ac.steps[j];
+        if (isHistoryStep(gs, as_)) { dropped++; return; }
+        gp += gs.score; ap += as_.score; mx += gs.max_score;
+        var byCp = STEP_TEXT[KEY] || [];
+        rows.push({ name: gs.name, g: gs, a: as_, gv: verdict(gs), av: verdict(as_),
+                    same: sameOutcome(gs, as_),
+                    desc: (byCp[i] || [])[j] || null });
       });
+      if (rows.length) out.push({ name: gc.name, rows: rows, gp: gp, ap: ap, mx: mx });
     });
-    return {result:r, total:t};
+    return { cps: out, dropped: dropped };
   }
 
-  function pane(side, label, data, key){
-    var pages = data.pages || [];
-    if (!pages.length) return '<div class="pane"><div class="pane-head"><span class="pane-title">' +
-      esc(label) + '</span></div><p class="note" style="padding:14px">Render unavailable.</p></div>';
-    var idx = (pageState[key] && pageState[key][side]) || 0;
-    if (idx >= pages.length) idx = 0;
-    var sc = data.score || {result:0,total:0};
-    var asx = assessable(data);
-    var perfect = asx.total > 0 && asx.result === asx.total;
-    var scoreLabel = sc.result + '/' + sc.total;
-    if (asx.total && asx.total !== sc.total) scoreLabel += ' · ' + asx.result + '/' + asx.total + ' assessable';
-    var html = '<div class="pane"><div class="pane-head"><span class="pane-title">' + esc(label) + '</span>' +
-      '<span class="pane-score ' + (perfect ? 'score-good' : 'score-bad') + '">' +
-      scoreLabel + '</span></div>' +
-      '<img class="pane-img" alt="' + esc(label) + ' page ' + (idx+1) + '" src="comparisons/' +
-      esc(key) + '/' + esc(pages[idx]) + '" data-zoom="1">';
+  function renderSeg(){
+    seg.textContent = '';
+    var KIND = { docs: 'Doc', sheets: 'Sheet', slides: 'Slide' };
+    INDEX.forEach(function(t){
+      var b = el('button', null, KIND[t.kind] || t.title);
+      b.type = 'button'; b.setAttribute('role','tab');
+      b.setAttribute('aria-selected', String(t.key === KEY));
+      b.addEventListener('click', function(){ load(t.key); });
+      seg.appendChild(b);
+    });
+  }
+
+  function shot(side){
+    var pages = TASK.sides[side].pages,
+        img = document.getElementById(side + 'Img'),
+        pager = document.getElementById(side + 'Pager'),
+        link = document.getElementById(side + 'Shot');
+    var src = 'comparisons/' + KEY + '/' + pages[page[side]];
+    img.src = src;
+    link.onclick = function(e){ e.preventDefault(); window.__openLightbox(src); };
+    pager.textContent = '';
     if (pages.length > 1){
-      html += '<div class="pager"><button data-nav="' + side + '" data-d="-1"' + (idx === 0 ? ' disabled' : '') +
-        '>&larr;</button><span>' + (idx+1) + ' / ' + pages.length + '</span>' +
-        '<button data-nav="' + side + '" data-d="1"' + (idx === pages.length-1 ? ' disabled' : '') + '>&rarr;</button></div>';
+      var prev = el('button', null, '‹'), next = el('button', null, '›');
+      prev.type = next.type = 'button';
+      prev.disabled = page[side] === 0;
+      next.disabled = page[side] === pages.length - 1;
+      prev.onclick = function(){ page[side]--; shot(side); };
+      next.onclick = function(){ page[side]++; shot(side); };
+      pager.appendChild(prev);
+      pager.appendChild(el('span', null, (page[side]+1) + ' / ' + pages.length));
+      pager.appendChild(next);
+    } else {
+      pager.appendChild(el('span', null, '1 / 1'));
     }
-    return html + '</div>';
   }
 
-  function render(key){
-    var d = cache[key];
-    if (!d){ bodyEl.innerHTML = '<p class="note">Loading…</p>'; return; }
-    var gold = d.sides.gold || {}, agent = d.sides.agent || {};
-    var onlyFail = !!(pageState[key] && pageState[key].onlyFail);
+  function renderSteps(){
+    var data = pairs(), onlyDiff = diffOnly.checked;
+    var head = stepsEl.querySelector('.cols-head');
+    stepsEl.textContent = '';
+    stepsEl.appendChild(head);
+    var gTot = 0, aTot = 0, mTot = 0, rendered = 0;
+    data.cps.forEach(function(cp, i){
+      gTot += cp.gp; aTot += cp.ap; mTot += cp.mx;
+      var rows = onlyDiff ? cp.rows.filter(function(r){ return !r.same; }) : cp.rows;
+      if (!rows.length) return;
 
-    var html = '<p class="cmp-blurb">' + esc(d.blurb) + '</p>' +
-      '<details class="prompt"><summary>Show the full task prompt</summary><p>' + esc(d.prompt) + '</p></details>' +
-      '<div class="panes">' + pane('gold','Gold reference',gold,key) + pane('agent','Agent output',agent,key) + '</div>' +
-      '<div class="controls"><label><input type="checkbox" id="only-fail"' + (onlyFail ? ' checked' : '') +
-      '> Show only steps the agent failed</label></div>';
+      /* open the first checkpoint that actually renders — under the
+         differences-only filter that is rarely checkpoint 1 */
+      var d = el('details','pair'); if (rendered === 0) d.open = true;
+      rendered++;
+      var s = el('summary');
+      s.appendChild(el('span','pair-caret','▶'));
+      s.appendChild(el('span','pair-idx','CP ' + (i+1)));
+      s.appendChild(el('span','pair-name', cp.name));
+      s.appendChild(el('span','pair-score ' + (cp.gp === cp.mx ? 'g' : 'same'),
+                       'gold ' + cp.gp + '/' + cp.mx));
+      s.appendChild(el('span','pair-score ' + (cp.ap < cp.mx ? 'a' : 'same'),
+                       'comet ' + cp.ap + '/' + cp.mx));
+      d.appendChild(s);
 
-    var gcps = gold.checkpoints || [], acps = agent.checkpoints || [];
-    if (!acps.length){
-      html += '<p class="note">Evaluation data unavailable for this comparison.</p>';
-      bodyEl.innerHTML = html; wire(key); return;
-    }
-    html += '<div class="steps"><div class="legend"><span>Left mark: gold</span><span>Right mark: agent</span>' +
-      '<span>“–” = not assessable (harness or source fault)</span></div>';
-
-    for (var i = 0; i < acps.length; i++){
-      var acp = acps[i], gcp = gcps[i] || {steps:[]};
-      var rows = '';
-      for (var j = 0; j < acp.steps.length; j++){
-        var as = acp.steps[j], gs = (gcp.steps || [])[j] || {};
-        var untested = unassessable(as, agent.history_available);
-        if (onlyFail && (as.success || untested)) continue;
-        var amark = untested
-          ? '<span class="mark na" title="Not attributable to the agent">–</span>'
-          : '<span class="mark ' + (as.success ? 'ok">✓' : 'no">✗') + '</span>';
-        var gmark = unassessable(gs, gold.history_available)
-          ? '<span class="mark na">–</span>'
-          : '<span class="mark ' + (gs.success ? 'ok">✓' : (gs.success === false ? 'no">✗' : 'na">–')) + '</span>';
-        var why = untested
-          ? (as.category === 'web_visit'
-              ? 'Not assessable: this archived run has no captured browsing trace.'
-              : 'Not assessable: ' + esc(as.details || 'the evaluator could not reach the source.'))
-          : (!as.success && as.details ? esc(as.details) : '');
-        rows += '<div class="step' + (!as.success && !untested ? ' diff' : '') + '">' + gmark + amark +
-          '<div><span class="step-name">' + esc(as.name) + '</span>' +
-          '<span class="badge">' + esc(as.category) + '</span>' +
-          (why ? '<div class="why">' + why + '</div>' : '') +
-          '</div></div>';
-      }
-      if (!rows) continue;
-      html += '<div class="cp-head"><span>' + esc(acp.name) + '</span><span class="cp-scores">gold ' +
-        (gcp.result != null ? gcp.result + '/' + gcp.total : '–') + ' · agent ' + acp.result + '/' + acp.total +
-        '</span></div>' + rows;
-    }
-    html += '</div>';
-    var notes = [];
-    if (agent.history_available === false){
-      notes.push('This agent run was archived without its browsing trace, so <code>web_visit</code> ' +
-        'steps cannot be assessed.');
-    }
-    var execFails = 0;
-    [gold, agent].forEach(function(side){
-      (side.checkpoints || []).forEach(function(cp){
-        cp.steps.forEach(function(s){ if (s.category === 'execution_error') execFails++; });
+      var box = el('div','pair-rows');
+      rows.forEach(function(r){
+        var row = el('div','prow' + (r.same ? '' : ' differ'));
+        var mid = el('div','prow-mid');
+        mid.appendChild(el('div','prow-name', r.name));
+        if (r.desc) mid.appendChild(el('div','prow-desc', r.desc));
+        [['Gold', r.g, r.gv], ['Comet', r.a, r.av]].forEach(function(p){
+          if (p[2] !== 'ok' && p[1].details){
+            var w = el('div','prow-why');
+            w.appendChild(el('b', null, p[0] + ': '));
+            w.appendChild(document.createTextNode(p[1].details));
+            mid.appendChild(w);
+          }
+        });
+        row.appendChild(mid);
+        row.appendChild(el('i','mk ' + r.gv + (r.g.max_score > 1 ? ' frac' : ''),
+                            mark(r.g, r.gv)));
+        row.appendChild(el('i','mk ' + r.av + (r.a.max_score > 1 ? ' frac' : ''),
+                            mark(r.a, r.av)));
+        box.appendChild(row);
       });
+      d.appendChild(box);
+      stepsEl.appendChild(d);
     });
-    if (execFails){
-      notes.push('Some steps are <code>execution_error</code>: the evaluator could not reach a source the ' +
-        'document cites, so the content could not be verified either way — a harness fault rather than an ' +
-        'agent mistake. This is exactly what the failure categories are for.');
+
+    function pill(id, v, m){
+      var e = document.getElementById(id);
+      e.textContent = v + ' / ' + m;
+      e.className = 'score ' + (v === m ? 'good' : 'bad');
     }
-    if (notes.length){
-      notes.push('Steps like these are shown as “–” and excluded from the “assessable” score, while still ' +
-        'counting against the raw score.');
-      html += '<p class="note">' + notes.join(' ') + '</p>';
-    }
-    bodyEl.innerHTML = html;
-    wire(key);
+    pill('goldScore', gTot, mTot);
+    pill('agentScore', aTot, mTot);
+
+    footEl.textContent = data.dropped ? 'Browsing-history steps are excluded.' : '';
   }
 
-  function wire(key){
-    bodyEl.querySelectorAll('[data-zoom]').forEach(function(img){
-      img.addEventListener('click', function(){ zoom(img.src); });
-    });
-    bodyEl.querySelectorAll('[data-nav]').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        var side = btn.getAttribute('data-nav'), d = parseInt(btn.getAttribute('data-d'), 10);
-        pageState[key] = pageState[key] || {};
-        pageState[key][side] = ((pageState[key][side] || 0) + d);
-        render(key);
+  function load(key){
+    KEY = key; page = { gold: 0, agent: 0 };
+    fetch('comparisons/' + key + '.json')
+      .then(function(r){ return r.json(); })
+      .then(function(t){
+        TASK = t;
+        renderSeg();
+        blurb.textContent = t.blurb || '';
+        promptEl.textContent = t.prompt || '';
+        shot('gold'); shot('agent');
+        renderSteps();
       });
-    });
-    var cb = document.getElementById('only-fail');
-    if (cb) cb.addEventListener('change', function(){
-      pageState[key] = pageState[key] || {};
-      pageState[key].onlyFail = cb.checked;
-      render(key);
-    });
   }
 
-  function select(key, tabBtn){
-    tabsEl.querySelectorAll('.tab').forEach(function(t){ t.setAttribute('aria-selected', t === tabBtn); });
-    if (cache[key]) { render(key); return; }
-    bodyEl.innerHTML = '<p class="note">Loading…</p>';
-    fetch('comparisons/' + key + '.json').then(function(r){ return r.json(); })
-      .then(function(d){ cache[key] = d; render(key); })
-      .catch(function(){ bodyEl.innerHTML = '<p class="note">Could not load this comparison.</p>'; });
-  }
+  diffOnly.addEventListener('change', renderSteps);
 
-  fetch('comparisons/index.json').then(function(r){ return r.json(); }).then(function(list){
-    if (!list.length){ bodyEl.innerHTML = '<p class="note">No comparisons available.</p>'; return; }
-    list.forEach(function(item, i){
-      var b = document.createElement('button');
-      b.className = 'tab'; b.type = 'button'; b.setAttribute('role','tab');
-      b.textContent = item.kind.charAt(0).toUpperCase() + item.kind.slice(1) + ' · ' + item.title;
-      b.addEventListener('click', function(){ select(item.key, b); });
-      tabsEl.appendChild(b);
-      if (i === 0) select(item.key, b);
+  fetch('comparisons/step_text.json')
+    .then(function(r){ return r.ok ? r.json() : {}; })
+    .catch(function(){ return {}; })
+    .then(function(t){ STEP_TEXT = t || {}; return fetch('comparisons/index.json'); })
+    .then(function(r){ return r.json(); })
+    .then(function(ix){ INDEX = ix; load(ix[0].key); })
+    .catch(function(){
+      document.getElementById('cmp').innerHTML =
+        '<p class="sub-note" style="text-align:center">Comparison data could not be loaded.</p>';
     });
-  }).catch(function(){
-    bodyEl.innerHTML = '<p class="note">Comparisons are not available in this build.</p>';
+})();
+
+(function(){
+  var lb = document.getElementById('lightbox');
+  var lbImg = lb.querySelector('img');
+  var last = null;
+  function show(src){ lbImg.src = src; lb.classList.add('on'); }
+  function close(){ lb.classList.remove('on'); if (last) last.focus(); last = null; }
+  /* the gold-vs-Comet panes reuse this lightbox for their page images */
+  window.__openLightbox = function(src){ last = document.activeElement; show(src); };
+  ['fig1','fig2'].forEach(function(id){
+    var t = document.getElementById(id);
+    if (!t) return;
+    t.addEventListener('click', function(e){
+      e.preventDefault(); last = t; show(t.querySelector('img').getAttribute('src'));
+    });
+  });
+  lb.addEventListener('click', close);
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && lb.classList.contains('on')) close();
   });
 })();
 </script>

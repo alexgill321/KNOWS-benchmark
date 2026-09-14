@@ -9,7 +9,7 @@
  "sides": {
   "gold": {
    "score": {
-    "result": 48,
+    "result": 49,
     "total": 53
    },
    "categories": {
@@ -24,13 +24,13 @@
      "failed": 0
     },
     "llm_vlm_judgement": {
-     "total": 14,
-     "passed": 13,
-     "failed": 1
+     "total": 15,
+     "passed": 15,
+     "failed": 0
     },
     "structural": {
-     "total": 2,
-     "passed": 2,
+     "total": 1,
+     "passed": 1,
      "failed": 0
     },
     "execution_error": {
@@ -129,7 +129,7 @@
     },
     {
      "name": "Additional Recipe Pages Formatting",
-     "result": 23,
+     "result": 24,
      "total": 24,
      "steps": [
       {
@@ -151,8 +151,8 @@
       {
        "name": "Recipe 2 - Format Match",
        "success": true,
-       "details": "Structural match: sections=['ingredients', 'preparation', 'tips'], has_image=True (VLM did not confirm layout match)",
-       "category": "structural",
+       "details": "Format matches template layout; sections: ['ingredients', 'preparation', 'tips'], has_image: True",
+       "category": "llm_vlm_judgement",
        "score": 1,
        "max_score": 1
       },
@@ -254,10 +254,10 @@
       },
       {
        "name": "Recipe 3 - Visual Distinction",
-       "success": false,
-       "details": "Visually similar to recipe(s) [1]; distinct from [2, 4]",
+       "success": true,
+       "details": "Visually distinct from all other recipes (['R1', 'R2', 'R4'])",
        "category": "llm_vlm_judgement",
-       "score": 0,
+       "score": 1,
        "max_score": 1
       },
       {
@@ -350,7 +350,7 @@
       {
        "name": "Recipe 2 - Preparation Match",
        "success": true,
-       "details": "Preparation matches source (LLM verified, 8 doc steps vs 11 source steps)",
+       "details": "Preparation matches source (LLM verified, 8 doc steps vs 29 source steps)",
        "category": "llm_vlm_judgement",
        "score": 1,
        "max_score": 1
@@ -390,7 +390,7 @@
       {
        "name": "Recipe 3 - Preparation Match",
        "success": true,
-       "details": "Preparation matches source (LLM verified, 3 doc steps vs 3 source steps)",
+       "details": "Preparation matches source (LLM verified, 3 doc steps vs 10 source steps)",
        "category": "llm_vlm_judgement",
        "score": 1,
        "max_score": 1
@@ -484,12 +484,15 @@
     "gold_p3.jpg",
     "gold_p4.jpg",
     "gold_p5.png",
-    "gold_p6.jpg"
+    "gold_p6.jpg",
+    "gold_p7.png",
+    "gold_p8.jpg",
+    "gold_p9.png"
    ]
   },
   "agent": {
    "score": {
-    "result": 36,
+    "result": 37,
     "total": 53
    },
    "categories": {
@@ -505,8 +508,8 @@
     },
     "llm_vlm_judgement": {
      "total": 17,
-     "passed": 11,
-     "failed": 6
+     "passed": 12,
+     "failed": 5
     },
     "structural": {
      "total": 3,
@@ -808,7 +811,7 @@
     },
     {
      "name": "Additional Recipe Pages Content",
-     "result": 8,
+     "result": 9,
      "total": 15,
      "steps": [
       {
@@ -829,10 +832,10 @@
       },
       {
        "name": "Recipe 2 - Preparation Match",
-       "success": false,
-       "details": "Preparation content differs from source (LLM judged mismatch, 5 doc steps vs 6 source steps): No: The document omits the crucial instruction to remove the bay leaf before blending the soup. Bay leaves are typically removed as they are fibrous a",
+       "success": true,
+       "details": "Preparation matches source (LLM verified, 5 doc steps vs 6 source steps)",
        "category": "llm_vlm_judgement",
-       "score": 0,
+       "score": 1,
        "max_score": 1
       },
       {
@@ -862,7 +865,7 @@
       {
        "name": "Recipe 3 - Ingredients Match",
        "success": false,
-       "details": "Ingredients differ from source: 3- pound pumpkin (kabocha squash or butternut squash; around 2 pounds/900g peeled), 2 tablespoons butter, 1 leek (white part only)...",
+       "details": "Ingredients differ from source: 3- pound pumpkin (kabocha squash or butternut squash; around 2 pounds/900g peeled), 2 tablespoons butter, 1 leek (white part only; or medium yellow onion)...",
        "category": "llm_vlm_judgement",
        "score": 0,
        "max_score": 1
@@ -870,7 +873,7 @@
       {
        "name": "Recipe 3 - Preparation Match",
        "success": false,
-       "details": "Preparation content differs from source (LLM judged mismatch, 6 doc steps vs 15 source steps): No: The document adds garlic, which is not in the source recipe, and omits the initial pumpkin preparation steps (cutting, hollowing, slicing rind) th",
+       "details": "Preparation content differs from source (LLM judged mismatch, 6 doc steps vs 15 source steps): No: Missing key steps for preparing pumpkin (cutting, seeding, peeling) and adds garlic as an ingredient which is not in the source.",
        "category": "llm_vlm_judgement",
        "score": 0,
        "max_score": 1
