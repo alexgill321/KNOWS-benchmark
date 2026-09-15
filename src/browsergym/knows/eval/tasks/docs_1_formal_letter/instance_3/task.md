@@ -8,5 +8,5 @@ Include the following information in the letter header:
 - My Institution/Company
 - My Email Address
 
-Take the photo of my signature from the drive folder here: https://drive.google.com/drive/folders/1JCFk0TdlCPk-__Od8w_5ZKypb_gFVOKS and add it to the end of the letter.
+Take the photo of my signature from the drive folder here: https://drive.google.com/drive/folders/1LatG8gzruM50ebGfosWw49xXGxLQZRMW and add it to the end of the letter.
 Save the completed letter as "<first_name>\_<last_name>\_formal_letter" in the "WebAgentsShared -> Task Outputs" directory in Google Drive.

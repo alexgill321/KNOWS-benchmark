@@ -1,0 +1,26 @@
+[
+ {
+  "key": "docs_11",
+  "task": "docs_11_personal_recipe_ocr",
+  "instance": "instance_1",
+  "kind": "docs",
+  "title": "Recipe OCR",
+  "blurb": "Transcribe a photographed recipe into a styled Docs template, then add tips quoted from real cooking sites."
+ },
+ {
+  "key": "sheets_25",
+  "task": "sheets_25_skitourplan",
+  "instance": "instance_1",
+  "kind": "sheets",
+  "title": "Ski Tour Plan",
+  "blurb": "Plan backcountry ski runs in a spreadsheet: route data pulled from a guide site, avalanche forecast, and color-coded danger ratings."
+ },
+ {
+  "key": "slides_20",
+  "task": "slides_20_Illustrated_Book_Report",
+  "instance": "instance_1",
+  "kind": "slides",
+  "title": "Illustrated Book Report",
+  "blurb": "Build a book-report deck: title slide, one slide per character with sourced bullet points and distinct backgrounds, author slide, references."
+ }
+]

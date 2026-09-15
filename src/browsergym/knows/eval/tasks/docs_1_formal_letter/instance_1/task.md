@@ -6,4 +6,4 @@ Include the following information in the letter header:
 - My Email Address
 - My Job/Position Title
 
-Take the photo of my signature from the drive folder here: https://drive.google.com/drive/folders/1Fonh_b2Gj9bsDl_J8Yu9C7OFI7GhdIHo?usp=drive_link and add it to the end of the letter.
+Take the photo of my signature from the drive folder here: https://drive.google.com/drive/folders/1kJM2XLnf8qIu652O2H_uk23i6Es9Ajgf?usp=drive_link and add it to the end of the letter.

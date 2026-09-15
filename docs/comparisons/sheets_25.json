@@ -1,0 +1,914 @@
+{
+ "key": "sheets_25",
+ "task": "sheets_25_skitourplan",
+ "instance": "instance_1",
+ "kind": "sheets",
+ "title": "Ski Tour Plan",
+ "blurb": "Plan backcountry ski runs in a spreadsheet: route data pulled from a guide site, avalanche forecast, and color-coded danger ratings.",
+ "prompt": "Create a ski tour plan for 3 possible runs 26 degrees or less using the wasatch backcountry ski guide. Organize the route information for each run in a google sheet including the run name, run link, starting location, gps coordinates of the run location, typical vertical of the run, slope aspect, and slope angle as columns. Then look up the danger color rating for this run according to the Utah Avalanche Center forecast for 02/05/2025. Add columns for forecast date and forecast link and a screenshot of the full danger rose. These 3 columns should be merged vertically since they apply to all runs. Then using this information, determine the danger color rating for each run. Color the cell of each run name with the color of its danger rating.",
+ "sides": {
+  "gold": {
+   "pages": [
+    "gold_p1.png"
+   ],
+   "score": {
+    "result": 46,
+    "total": 46
+   },
+   "categories": {
+    "deterministic": {
+     "total": 30,
+     "passed": 30,
+     "failed": 0
+    },
+    "structural": {
+     "total": 2,
+     "passed": 2,
+     "failed": 0
+    },
+    "fuzzy_match": {
+     "total": 9,
+     "passed": 9,
+     "failed": 0
+    },
+    "vacuous_pass": {
+     "total": 1,
+     "passed": 1,
+     "failed": 0
+    },
+    "web_visit": {
+     "total": 4,
+     "passed": 4,
+     "failed": 0
+    }
+   },
+   "checkpoints": [
+    {
+     "name": "Spreadsheet Structure",
+     "result": 9,
+     "total": 9,
+     "steps": [
+      {
+       "name": "Run Name Column",
+       "success": true,
+       "details": "Found column: 'run name'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run Link Column",
+       "success": true,
+       "details": "Found column: 'run link'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Starting Location Column",
+       "success": true,
+       "details": "Found column: 'starting location'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "GPS Coordinates Column",
+       "success": true,
+       "details": "Found column: 'run location'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Typical Vertical Column",
+       "success": true,
+       "details": "Found column: 'typical vertical'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Slope Aspect Column",
+       "success": true,
+       "details": "Found column: 'slope aspect'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Slope Angle Column",
+       "success": true,
+       "details": "Found column: 'slope angle'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Forecast Date Column",
+       "success": true,
+       "details": "Found column: 'forecast date'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Forecast Link Column",
+       "success": true,
+       "details": "Found column: 'forecast link'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Run Selection Criteria",
+     "result": 4,
+     "total": 4,
+     "steps": [
+      {
+       "name": "Run Count",
+       "success": true,
+       "details": "Found 3 runs (expected 3)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Slope Angle Run 1",
+       "success": true,
+       "details": "Angle: 26\u00b0 (max 26\u00b0)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Slope Angle Run 2",
+       "success": true,
+       "details": "Angle: 26\u00b0 (max 26\u00b0)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Slope Angle Run 3",
+       "success": true,
+       "details": "Angle: 26\u00b0 (max 26\u00b0)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Run Data Accuracy",
+     "result": 21,
+     "total": 21,
+     "steps": [
+      {
+       "name": "Run 1 - Name Valid",
+       "success": true,
+       "details": "'Reynold's Glade' found in gold data",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 1 - Link Valid",
+       "success": true,
+       "details": "Valid WBSGuide URL: https://wbsguide.com/2104.php",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 1 - Starting Location",
+       "success": true,
+       "details": "'Spruce's' matches gold 'Spruces'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 1 - GPS Coordinates",
+       "success": true,
+       "details": "Coordinates match within tolerance",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 1 - Typical Vertical",
+       "success": true,
+       "details": "900 ft (gold range: 700-900 ft)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 1 - Slope Aspect",
+       "success": true,
+       "details": "Aspect: N",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 1 - Slope Angle",
+       "success": true,
+       "details": "Angle: 26\u00b0 (valid <= 26\u00b0)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 2 - Name Valid",
+       "success": true,
+       "details": "'Tom's Hill' found in gold data",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 2 - Link Valid",
+       "success": true,
+       "details": "Valid WBSGuide URL: https://wbsguide.com/2117.php",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 2 - Starting Location",
+       "success": true,
+       "details": "'Spruce's' matches gold 'Spruces'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 2 - GPS Coordinates",
+       "success": true,
+       "details": "Coordinates match within tolerance",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 2 - Typical Vertical",
+       "success": true,
+       "details": "500 ft (gold: 500 ft)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 2 - Slope Aspect",
+       "success": true,
+       "details": "Aspect: NE",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 2 - Slope Angle",
+       "success": true,
+       "details": "Angle: 26\u00b0 (valid <= 26\u00b0)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 3 - Name Valid",
+       "success": true,
+       "details": "'South Murdock Bowl' found in gold data",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 3 - Link Valid",
+       "success": true,
+       "details": "Valid WBSGuide URL: https://wbsguide.com/1119.php",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 3 - Starting Location",
+       "success": true,
+       "details": "No gold starting_location to validate against (benefit of the doubt)",
+       "category": "vacuous_pass",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 3 - GPS Coordinates",
+       "success": true,
+       "details": "Coordinates match within tolerance",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 3 - Typical Vertical",
+       "success": true,
+       "details": "800 ft (gold: 800 ft)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 3 - Slope Aspect",
+       "success": true,
+       "details": "Aspect: S",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 3 - Slope Angle",
+       "success": true,
+       "details": "Angle: 26\u00b0 (valid <= 26\u00b0)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Website Visit Validation",
+     "result": 4,
+     "total": 4,
+     "steps": [
+      {
+       "name": "Wasatch Guide Visited",
+       "success": true,
+       "details": "wbsguide.com found in history",
+       "category": "web_visit",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Utah Avalanche Center Visited",
+       "success": true,
+       "details": "utahavalanchecenter.org found in history",
+       "category": "web_visit",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run Links Visited",
+       "success": true,
+       "details": "Run link found in history",
+       "category": "web_visit",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Forecast Page Visited",
+       "success": true,
+       "details": "Forecast page for 02/05/2025 found in history",
+       "category": "web_visit",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Avalanche Forecast Data",
+     "result": 5,
+     "total": 5,
+     "steps": [
+      {
+       "name": "Forecast Date Correct",
+       "success": true,
+       "details": "Date: '02/05/2025' (expected 02/05/2025)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Forecast Link Valid",
+       "success": true,
+       "details": "Link: 'https://utahavalanchecenter.org/forecast/salt-lake...'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Merged Cells",
+       "success": true,
+       "details": "Columns [8, 9] are merged vertically",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Danger Rose Present",
+       "success": true,
+       "details": "Image URL: https://utahavalanchecenter.org/sites/default/file...",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Danger Rose Valid",
+       "success": true,
+       "details": "Match: True (method: exact)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Danger Rating Cell Coloring",
+     "result": 3,
+     "total": 3,
+     "steps": [
+      {
+       "name": "Run 1 - Cell Colored",
+       "success": true,
+       "details": "Cell color: orange, Expected: orange",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 2 - Cell Colored",
+       "success": true,
+       "details": "Cell color: orange, Expected: orange",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 3 - Cell Colored",
+       "success": true,
+       "details": "Cell color: yellow, Expected: yellow",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    }
+   ],
+   "history_available": true
+  },
+  "agent": {
+   "pages": [
+    "agent_p1.png"
+   ],
+   "score": {
+    "result": 37,
+    "total": 46
+   },
+   "categories": {
+    "deterministic": {
+     "total": 29,
+     "passed": 26,
+     "failed": 3
+    },
+    "llm_vlm_judgement": {
+     "total": 1,
+     "passed": 1,
+     "failed": 0
+    },
+    "structural": {
+     "total": 2,
+     "passed": 2,
+     "failed": 0
+    },
+    "fuzzy_match": {
+     "total": 9,
+     "passed": 8,
+     "failed": 1
+    },
+    "execution_error": {
+     "total": 4,
+     "passed": 0,
+     "failed": 4
+    },
+    "dependency_not_evaluated": {
+     "total": 1,
+     "passed": 0,
+     "failed": 1
+    }
+   },
+   "checkpoints": [
+    {
+     "name": "Spreadsheet Structure",
+     "result": 9,
+     "total": 9,
+     "steps": [
+      {
+       "name": "Run Name Column",
+       "success": true,
+       "details": "Found column: 'Run Name'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run Link Column",
+       "success": true,
+       "details": "Found column: 'Run Link'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Starting Location Column",
+       "success": true,
+       "details": "Found column: 'Starting Location'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "GPS Coordinates Column",
+       "success": true,
+       "details": "Found column: 'GPS Coordinates'",
+       "category": "llm_vlm_judgement",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Typical Vertical Column",
+       "success": true,
+       "details": "Found column: 'Typical Vertical'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Slope Aspect Column",
+       "success": true,
+       "details": "Found column: 'Slope Aspect'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Slope Angle Column",
+       "success": true,
+       "details": "Found column: 'Slope Angle'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Forecast Date Column",
+       "success": true,
+       "details": "Found column: 'Forecast Date'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Forecast Link Column",
+       "success": true,
+       "details": "Found column: 'Forecast Link'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Run Selection Criteria",
+     "result": 4,
+     "total": 4,
+     "steps": [
+      {
+       "name": "Run Count",
+       "success": true,
+       "details": "Found 3 runs (expected 3)",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Slope Angle Run 1",
+       "success": true,
+       "details": "Angle: 26\u00b0 (max 26\u00b0)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Slope Angle Run 2",
+       "success": true,
+       "details": "Angle: 24\u00b0 (max 26\u00b0)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Slope Angle Run 3",
+       "success": true,
+       "details": "Angle: 22\u00b0 (max 26\u00b0)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Run Data Accuracy",
+     "result": 19,
+     "total": 21,
+     "steps": [
+      {
+       "name": "Run 1 - Name Valid",
+       "success": true,
+       "details": "'Powder Park 1' found in gold data",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 1 - Link Valid",
+       "success": true,
+       "details": "Valid WBSGuide URL: https://wbsguide.com/2120.php",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 1 - Starting Location",
+       "success": true,
+       "details": "'Spruces Trailhead' matches gold 'Spruces'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 1 - GPS Coordinates",
+       "success": true,
+       "details": "Coordinates match within tolerance",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 1 - Typical Vertical",
+       "success": true,
+       "details": "400 ft (gold: 400 ft)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 1 - Slope Aspect",
+       "success": true,
+       "details": "Aspect: N",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 1 - Slope Angle",
+       "success": true,
+       "details": "Angle: 26\u00b0 (valid <= 26\u00b0)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 2 - Name Valid",
+       "success": true,
+       "details": "'Powder Park 3' found in gold data",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 2 - Link Valid",
+       "success": true,
+       "details": "Valid WBSGuide URL: https://wbsguide.com/2122.php",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 2 - Starting Location",
+       "success": true,
+       "details": "'Spruces Trailhead' matches gold 'Spruces'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 2 - GPS Coordinates",
+       "success": true,
+       "details": "Coordinates match within tolerance",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 2 - Typical Vertical",
+       "success": true,
+       "details": "700 ft (gold: 700 ft)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 2 - Slope Aspect",
+       "success": false,
+       "details": "User: N, Gold: NW",
+       "category": "deterministic",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Run 2 - Slope Angle",
+       "success": true,
+       "details": "Angle: 24\u00b0 (valid <= 26\u00b0)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 3 - Name Valid",
+       "success": true,
+       "details": "'No Water' found in gold data",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 3 - Link Valid",
+       "success": true,
+       "details": "Valid WBSGuide URL: https://wbsguide.com/1165.php",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 3 - Starting Location",
+       "success": true,
+       "details": "'Spruces Trailhead' matches gold 'Spruces'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 3 - GPS Coordinates",
+       "success": true,
+       "details": "Coordinates match within tolerance",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 3 - Typical Vertical",
+       "success": true,
+       "details": "900 ft (gold: 900 ft)",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 3 - Slope Aspect",
+       "success": false,
+       "details": "User: S, Gold: NW",
+       "category": "deterministic",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Run 3 - Slope Angle",
+       "success": true,
+       "details": "Angle: 22\u00b0 (valid <= 26\u00b0)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Website Visit Validation",
+     "result": 0,
+     "total": 4,
+     "steps": [
+      {
+       "name": "Wasatch Guide Visited",
+       "success": false,
+       "details": "No browsing history provided",
+       "category": "execution_error",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Utah Avalanche Center Visited",
+       "success": false,
+       "details": "No browsing history provided",
+       "category": "execution_error",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Run Links Visited",
+       "success": false,
+       "details": "No browsing history provided",
+       "category": "execution_error",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Forecast Page Visited",
+       "success": false,
+       "details": "No browsing history provided",
+       "category": "execution_error",
+       "score": 0,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Avalanche Forecast Data",
+     "result": 3,
+     "total": 5,
+     "steps": [
+      {
+       "name": "Forecast Date Correct",
+       "success": true,
+       "details": "Date: '02/05/2025' (expected 02/05/2025)",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Forecast Link Valid",
+       "success": true,
+       "details": "Link: 'https://utahavalanchecenter.org/forecast/salt-lake...'",
+       "category": "deterministic",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Merged Cells",
+       "success": true,
+       "details": "Columns [7, 8] are merged vertically",
+       "category": "structural",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Danger Rose Present",
+       "success": false,
+       "details": "not found",
+       "category": "deterministic",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Danger Rose Valid",
+       "success": false,
+       "details": "No image to validate or missing gold data",
+       "category": "dependency_not_evaluated",
+       "score": 0,
+       "max_score": 1
+      }
+     ]
+    },
+    {
+     "name": "Danger Rating Cell Coloring",
+     "result": 2,
+     "total": 3,
+     "steps": [
+      {
+       "name": "Run 1 - Cell Colored",
+       "success": true,
+       "details": "Cell color: orange, Expected: orange",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      },
+      {
+       "name": "Run 2 - Cell Colored",
+       "success": false,
+       "details": "Cell color: orange, Expected: yellow",
+       "category": "fuzzy_match",
+       "score": 0,
+       "max_score": 1
+      },
+      {
+       "name": "Run 3 - Cell Colored",
+       "success": true,
+       "details": "Cell color: yellow, Expected: yellow",
+       "category": "fuzzy_match",
+       "score": 1,
+       "max_score": 1
+      }
+     ]
+    }
+   ],
+   "history_available": false
+  }
+ }
+}

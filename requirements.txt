@@ -9,8 +9,7 @@ google-cloud-secret-manager>=2.16.0
 requests
 beautifulsoup4
 html2text
-playwright
-chromium
+playwright  # browsers installed separately: python -m playwright install chromium
 curl-cffi
 
 # BrowserGym framework (provides browsergym.core.registration)
@@ -47,12 +46,16 @@ gunicorn
 # Claude API (for perturbation testing with computer use)
 anthropic>=0.40.0
 
+paperscraper
+
 # Optional: Task-specific dependencies (uncomment if needed)
 # oxylabs        # sheets_38 task
 # llama-cpp-python  # Local Llama models
 # qwen-vl-utils     # Qwen VL models
-transformers
-torch
-torchvision
-accelerate
-paperscraper
+
+# Optional: local judge models (the default judge uses the Google AI API and
+# does not need these; uncomment only to run local HF models from models.py)
+# transformers
+# torch
+# torchvision
+# accelerate

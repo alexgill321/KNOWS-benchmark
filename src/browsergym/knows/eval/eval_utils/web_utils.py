@@ -360,7 +360,7 @@ def validate_url_accessible(url: str, timeout: int = 10, fallback_to_format: boo
 def fetch_page_text_content(
     url: str,
     timeout: int = 10,
-    max_chars: int = 15000,
+    max_chars: Optional[int] = 15000,
     headers: Optional[Dict[str, str]] = None,
     aggressive_strip: bool = False,
 ) -> Tuple[Optional[str], str]:
@@ -374,7 +374,7 @@ def fetch_page_text_content(
     Args:
         url: URL to fetch.
         timeout: Request timeout in seconds.
-        max_chars: Maximum characters to return (truncates if exceeded).
+        max_chars: Maximum characters to return, or None for no limit.
         headers: Optional HTTP headers to send with request.
         aggressive_strip: When True, also remove inline ads / sidebars /
             comments / forms / iframes via class+id pattern matching.
@@ -412,7 +412,7 @@ def fetch_page_text_content(
         else:
             text = text_default
 
-        if len(text) > max_chars:
+        if max_chars is not None and len(text) > max_chars:
             text = text[:max_chars] + "..."
 
         return text, "OK"
@@ -427,7 +427,7 @@ def fetch_page_text_content(
 
 def fetch_page_text_content_playwright(
     url: str,
-    max_chars: int = 15000,
+    max_chars: Optional[int] = 15000,
     timeout: int = 10,
     aggressive_strip: bool = False,
 ) -> Tuple[Optional[str], str]:
@@ -537,7 +537,7 @@ def fetch_page_text_content_playwright(
         h.body_width = 0
         markdown = h.handle(cleaned_html)
 
-        if len(markdown) > max_chars:
+        if max_chars is not None and len(markdown) > max_chars:
             markdown = markdown[:max_chars]
 
         return markdown, "OK"
@@ -547,15 +547,32 @@ def fetch_page_text_content_playwright(
         return fetch_page_text_content(url, timeout=timeout, max_chars=max_chars)
 
 
-def _looks_like_deny_page(content: Optional[str]) -> bool:
-    """Heuristic: True if `content` is a 200-served bot/access-denied page."""
+def _looks_like_deny_page(content: Optional[str], url: Optional[str] = None) -> bool:
+    """True if `content` is a 200-served bot/access-denied page.
+
+    The LLM classifier is authoritative when available; marker phrases only
+    decide whether it is worth consulting. A page can therefore no longer be
+    rejected merely for *mentioning* words like "forbidden" in its prose.
+    Falls back to the marker heuristic when no model is reachable.
+    """
     if not content:
         return False
-    head = content[:5000].lower()
-    return any(m in head for m in _DENY_PAGE_MARKERS)
+    text = content.strip()
+    head = text[:_DENY_EXCERPT_CHARS].lower()
+    has_marker = any(m in head for m in _DENY_PAGE_MARKERS)
+    is_short = len(text) < _DENY_SHORT_LEN
+
+    # Long text with no block phrasing is real content; skip the model call.
+    if not has_marker and not is_short:
+        return False
+
+    verdict = _classify_page_with_llm(text, url)
+    if verdict is not None:
+        return verdict
+    return has_marker and is_short
 
 
-def fetch_with_fallbacks(url: str, max_chars: int = 15000, timeout: int = 15,
+def fetch_with_fallbacks(url: str, max_chars: Optional[int] = 15000, timeout: int = 15,
                          aggressive_strip: bool = False) -> Tuple[Optional[str], str]:
     """Fetch URL content with multiple fallback strategies.
 
@@ -570,7 +587,7 @@ def fetch_with_fallbacks(url: str, max_chars: int = 15000, timeout: int = 15,
 
     Args:
         url: URL to fetch.
-        max_chars: Maximum characters to return.
+        max_chars: Maximum characters to return, or None for no limit.
         timeout: Request timeout in seconds.
         aggressive_strip: When True, also remove ads / sidebars / comments
             via class+id pattern matching. Forwarded to each strategy.
@@ -579,7 +596,7 @@ def fetch_with_fallbacks(url: str, max_chars: int = 15000, timeout: int = 15,
         Tuple of (text_content or None, status_details).
     """
     def _is_real_content(c: Optional[str]) -> bool:
-        return bool(c and len(c.strip()) > 200 and not _looks_like_deny_page(c))
+        return bool(c and len(c.strip()) > 200 and not _looks_like_deny_page(c, url))
 
     content, status = fetch_page_text_content(url, max_chars=max_chars, timeout=timeout,
                                               aggressive_strip=aggressive_strip)
@@ -624,13 +641,113 @@ def fetch_with_fallbacks(url: str, max_chars: int = 15000, timeout: int = 15,
 
 
 _CURL_CFFI_PROFILES = ("safari17_0", "chrome120", "chrome131", "edge99")
+# Phrases that occur on genuine block/challenge pages. Bare words such as
+# "forbidden" are deliberately NOT listed: they appear in ordinary prose, and a
+# wiki article mentioning "The Forbidden Song" was being discarded as a bot
+# block. Markers no longer reject a page on their own -- they only decide
+# whether the LLM classifier is worth consulting (see _looks_like_deny_page).
 _DENY_PAGE_MARKERS = (
-    "access denied", "permission to access", "verify you are human",
-    "request blocked", "forbidden", "are you a robot",
+    "403 forbidden", "http 403", "error 403", "429 too many requests",
+    "access denied", "permission to access", "request blocked",
+    "verify you are human", "are you a robot", "captcha",
+    "checking your browser before accessing",
+    "enable javascript and cookies to continue",
+    "cloudflare ray id", "unusual traffic from your computer",
 )
 
+_DENY_SHORT_LEN = 4000       # genuine block pages are short; real documents rarely are
+_DENY_EXCERPT_CHARS = 5000   # how much page text the classifier is shown
+_PAGE_CLASS_CACHE: Dict[tuple, bool] = {}
+_DENY_MODEL_UNSET = object()
+_DENY_MODEL = _DENY_MODEL_UNSET
 
-def _fetch_with_curl_cffi(url: str, max_chars: int = 15000, timeout: int = 30,
+
+def _deny_classifier_model():
+    """Lazily load the page classifier model; None when unavailable."""
+    global _DENY_MODEL
+    if _DENY_MODEL is _DENY_MODEL_UNSET:
+        if os.environ.get("KNOWS_DISABLE_LLM_PAGE_CLASS"):
+            _DENY_MODEL = None
+        else:
+            try:
+                from .models import load_model
+                _DENY_MODEL = load_model(os.environ.get(
+                    "KNOWS_PAGE_CLASSIFIER_MODEL", "gemini-2.5-flash-google-ai"))
+            except Exception as e:
+                print(f"Page classifier unavailable ({type(e).__name__}); "
+                      "falling back to marker heuristics.")
+                _DENY_MODEL = None
+    return _DENY_MODEL
+
+
+def _classify_page_with_llm(text: str, url: Optional[str] = None) -> Optional[bool]:
+    """Ask an LLM whether `text` is a block/challenge page.
+
+    Returns True (blocked), False (real content), or None when no verdict could
+    be obtained. Results are cached per (url, content prefix) so the same page
+    validated by several fallback strategies costs a single call.
+    """
+    key = (url or "", hash(text[:2000]))
+    if key in _PAGE_CLASS_CACHE:
+        return _PAGE_CLASS_CACHE[key]
+    model = _deny_classifier_model()
+    if model is None:
+        return None
+
+    excerpt = text[:_DENY_EXCERPT_CHARS]
+    messages = [
+        {
+            "role": "system",
+            "content": [{"type": "text", "text": (
+                "You classify text extracted from a fetched web page. Decide whether "
+                "the page is a genuine access-blocked / bot-challenge / error page, or "
+                "real readable content. Answer with exactly one word: BLOCKED or CONTENT."
+            )}],
+        },
+        {
+            "role": "user",
+            "content": [{"type": "text", "text": (
+                "A tool fetched this page in order to read its content. Decide what the "
+                "page actually is.\n\n"
+                "BLOCKED - the page itself denies access or is an error placeholder:\n"
+                "  bot checks (\"verify you are human\", CAPTCHA, Cloudflare challenge / ray ID),\n"
+                "  403 / 404 / 429 error pages, rate-limit notices,\n"
+                "  \"enable JavaScript and cookies to continue\",\n"
+                "  a login or paywall screen that has replaced the article.\n\n"
+                "CONTENT - the page contains real readable material (article, wiki page, "
+                "product page, documentation, listing), EVEN IF it also happens to mention "
+                "words like \"forbidden\", \"access denied\", \"blocked\", \"robot\", or "
+                "\"captcha\" as part of its subject matter. A wiki article about a song "
+                "titled \"The Forbidden Song\" is CONTENT. A product page for a router with "
+                "\"parental blocking\" is CONTENT.\n\n"
+                "Judge what the page IS, not what it mentions.\n\n"
+                f"URL: {url or 'unknown'}\n"
+                f"Extracted text length: {len(text)} characters\n"
+                f"--- first {len(excerpt)} characters ---\n"
+                f"{excerpt}\n"
+                "--- end excerpt ---\n\n"
+                "Answer with exactly one word: BLOCKED or CONTENT."
+            )}],
+        },
+    ]
+
+    try:
+        reply = str(model(messages) or "").strip().lower()
+    except Exception as e:
+        print(f"Page classification failed ({type(e).__name__}); using heuristics.")
+        return None
+
+    if "blocked" in reply and "content" not in reply:
+        verdict = True
+    elif "content" in reply and "blocked" not in reply:
+        verdict = False
+    else:
+        return None  # ambiguous or an error string from the model wrapper
+    _PAGE_CLASS_CACHE[key] = verdict
+    return verdict
+
+
+def _fetch_with_curl_cffi(url: str, max_chars: Optional[int] = 15000, timeout: int = 30,
                           aggressive_strip: bool = False) -> Tuple[Optional[str], str]:
     """Fetch URL via curl-cffi, sweeping browser TLS/HTTP2 fingerprints.
 
@@ -660,10 +777,8 @@ def _fetch_with_curl_cffi(url: str, max_chars: int = 15000, timeout: int = 30,
             last_status = f"curl-cffi[{profile}] HTTP {resp.status_code}"
             continue
         body = resp.text or ""
-        head = body[:5000].lower()
-        if any(m in head for m in _DENY_PAGE_MARKERS):
-            last_status = f"curl-cffi[{profile}] deny-page (200 body)"
-            continue
+        # The deny check runs after extraction (below) so the classifier sees
+        # readable text rather than raw HTML boilerplate.
         soup = BeautifulSoup(body, 'html.parser')
         for el in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
             el.decompose()
@@ -679,10 +794,13 @@ def _fetch_with_curl_cffi(url: str, max_chars: int = 15000, timeout: int = 30,
                 text = text_default
         else:
             text = text_default
-        if len(text) > max_chars:
+        if max_chars is not None and len(text) > max_chars:
             text = text[:max_chars] + '...'
         if len(text) <= 200:
             last_status = f"curl-cffi[{profile}] response too short"
+            continue
+        if _looks_like_deny_page(text, url):
+            last_status = f"curl-cffi[{profile}] deny-page (200 body)"
             continue
         return text, f"OK (curl-cffi {profile})"
     return None, last_status

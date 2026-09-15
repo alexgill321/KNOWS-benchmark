@@ -68,12 +68,12 @@ INSTANCE_CONFIGS = {
     2: {
         'gold_sheet_id': '1Ii69xyjTzsqpYhrmNJWjznyoRoxiWDVJaGdDEI47_7s',
         'source_folder_id': '1Qm2gLrC3PhRqhlAI_WXBjYKqECdPOwBE',
-        'dest_folder_id': None,  # Set by setup_run.py before each benchmark
+        'dest_folder_id': None,  # Provisioned per run; see eval_utils/run_targets.py
     },
     3: {
         'gold_sheet_id': '1uYA5xL9Enij6kOWQHp84vCxc4XlqaKBZcgdtBLf3DLk',
         'source_folder_id': '1Fc1GthzO8dAuekt-L3dL4FfUbW7wjeZM',
-        'dest_folder_id': None,  # Set by setup_run.py before each benchmark
+        'dest_folder_id': None,  # Provisioned per run; see eval_utils/run_targets.py
     },
     4: {
         'gold_sheet_id': '1OYSkAGF6rTD2FzxdHu09FcqSemdJx8PnEL6PMujm_hg',

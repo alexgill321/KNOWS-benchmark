@@ -232,7 +232,10 @@ def fetch_url_content(url):
     Returns:
         str: Markdown content (truncated to 60k chars), or None if fetch fails.
     """
-    content, status = fetch_with_fallbacks(url, max_chars=60000, timeout=15)
+    # Uncapped: source verification must see the whole page. A 60k cap silently
+    # truncated long wiki articles (the Personality section of an 86k-char page
+    # sat past the cutoff), so correct characteristics were scored unsupported.
+    content, status = fetch_with_fallbacks(url, max_chars=None, timeout=15)
     if content:
         return content
     print(f"All fetch strategies failed for {url}: {status}")
@@ -262,6 +265,12 @@ def validate_bullet_in_content(bullet_text, markdown_content, model, character_n
     """
     if not bullet_text or not markdown_content:
         return (False, None) if return_method else False
+
+    # Fuzzy matching sees the full page; only the LLM prompt is bounded, since a
+    # pathological page (multi-MB) would otherwise dominate the request. 400k
+    # chars is ~100k tokens — well inside the judge's context window and far
+    # larger than any real article.
+    LLM_CONTENT_LIMIT = 400_000
 
     # Method 1: Fuzzy match with 70% threshold
     # This catches near-exact or closely paraphrased content
@@ -300,7 +309,7 @@ def validate_bullet_in_content(bullet_text, markdown_content, model, character_n
 Characteristic: {bullet_text}
 
 Source Content (Markdown):
-{markdown_content}
+{markdown_content[:LLM_CONTENT_LIMIT]}
 
 Answer Yes if the source content contains information that supports or corroborates this characteristic for this specific character.
 Answer No if the characteristic is not supported, contradicted, or describes a different character."""
