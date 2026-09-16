@@ -7,33 +7,25 @@ import time
 import pandas as pd
 import argparse
 
-# Base path setup
-def get_base_path():
-    if os.path.exists("/app/src"):
-        return "/app"
-    elif os.path.exists("/scratch"):
-        return "/scratch/general/vast/USER/Agent-Benchmark/"
-    else:
-        return os.getcwd()
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.data_paths import resolve_task_dir
 
-BASE_PATH = get_base_path()
-sys.path.append(BASE_PATH)
-
-# Imports from eval_utils
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
-from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
-from src.browsergym.knows.eval.eval_utils.google_sheets_utils import (
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
+from browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
+from browsergym.knows.eval.eval_utils.google_sheets_utils import (
     extract_tables_from_sheet,
     extract_sheet_data,
     get_sheet_content,
     detect_header_row,
 )
-from src.browsergym.knows.eval.eval_utils.text_utils import (
+from browsergym.knows.eval.eval_utils.text_utils import (
     numerical_match_with_error,
     keywords_exact_match,
     keywords_match_robust,
 )
-from src.browsergym.knows.eval.eval_utils.table_utils import (
+from browsergym.knows.eval.eval_utils.table_utils import (
     get_cell_background_color,
     colors_are_similar,
     colors_are_distinct,
@@ -47,14 +39,14 @@ from src.browsergym.knows.eval.eval_utils.table_utils import (
     row_has_top_border,
     count_bold_cells_in_row,
 )
-from src.browsergym.knows.eval.eval_utils.models import load_model
-from src.browsergym.knows.eval.eval_utils.parallel_utils import (
+from browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.parallel_utils import (
     parallel_download,
     fast_parallel_vlm_calls,
 )
 
 # Local utils (template-specific functions and constants)
-from src.browsergym.knows.eval.tasks.sheets_2_personal_recipe_foodcomposition.utils import (
+from browsergym.knows.eval.tasks.sheets_2_personal_recipe_foodcomposition.utils import (
     fetch_usda_page_title,
     fetch_usda_nutrients,
     ingredient_matches_usda_page,
@@ -69,7 +61,7 @@ from src.browsergym.knows.eval.tasks.sheets_2_personal_recipe_foodcomposition.ut
     FDA_DAILY_VALUES,
     VALUE_TOLERANCE,
 )
-from src.browsergym.knows.eval.eval_utils.web_utils import is_url_from_domain
+from browsergym.knows.eval.eval_utils.web_utils import is_url_from_domain
 
 # Instance-specific constants (specific to cashew cream recipe)
 EXPECTED_INGREDIENTS = [
@@ -99,7 +91,7 @@ INGREDIENT_KEYWORDS = {
 EXCLUDED_KEYWORDS = ["black pepper", "pepper"]
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/sheets_2_personal_recipe_foodcomposition/instance_1/")
+TASK_DIR = resolve_task_dir(__file__)
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 # Model configuration

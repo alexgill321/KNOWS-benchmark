@@ -5,7 +5,7 @@ import time
 import uuid
 from urllib.parse import unquote, urlparse
 
-from src.browsergym.knows.eval.eval_utils.slides_utils import (
+from browsergym.knows.eval.eval_utils.slides_utils import (
     extract_slide_images,
     extract_slide_text,
     extract_image_source_urls,
@@ -14,8 +14,8 @@ from src.browsergym.knows.eval.eval_utils.slides_utils import (
     get_element_bbox,
     download_slide_image,
 )
-from src.browsergym.knows.eval.eval_utils.image_utils import binary_judge_image
-from src.browsergym.knows.eval.eval_utils.web_utils import download_image_from_url
+from browsergym.knows.eval.eval_utils.image_utils import binary_judge_image
+from browsergym.knows.eval.eval_utils.web_utils import download_image_from_url
 
 
 # Two-word room types that should survive adjective stripping. Anything not

@@ -14,38 +14,31 @@ import time
 import glob
 from typing import List, Optional
 
-# Get the base path that works in both Docker and local environments
-def get_base_path():
-    if os.path.exists("/app/src"):
-        return "/app"
-    elif os.path.exists("/scratch"):
-        return "/scratch/general/vast/USER/Agent-Benchmark/"
-    else:
-        return os.getcwd()
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.data_paths import resolve_task_dir
 
-BASE_PATH = get_base_path()
-sys.path.append(BASE_PATH)
-
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
-from src.browsergym.knows.eval.eval_utils.google_services_utils import (
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
+from browsergym.knows.eval.eval_utils.google_services_utils import (
     initialize_google_services,
     get_image_dimensions_from_doc,
 )
-from src.browsergym.knows.eval.eval_utils.image_utils import (
+from browsergym.knows.eval.eval_utils.image_utils import (
     match_image_tiered,
     binary_compare_images,
 )
-from src.browsergym.knows.eval.eval_utils.text_utils import keyword_exact_match
-from src.browsergym.knows.eval.eval_utils.web_utils import (
+from browsergym.knows.eval.eval_utils.text_utils import keyword_exact_match
+from browsergym.knows.eval.eval_utils.web_utils import (
     validate_url_accessible,
     fetch_page_text_content,
     download_image_from_url,
     normalize_url_for_comparison,
 )
-from src.browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.models import load_model
 
 # Import task-specific utilities
-from src.browsergym.knows.eval.tasks.docs_11_personal_recipe_ocr.utils import (
+from browsergym.knows.eval.tasks.docs_11_personal_recipe_ocr.utils import (
     # Phase 1: Recipe discovery
     Recipe,
     discover_recipes,
@@ -78,7 +71,7 @@ from src.browsergym.knows.eval.tasks.docs_11_personal_recipe_ocr.utils import (
 )
 
 # Task directories
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/docs_11_personal_recipe_ocr/instance_1/")
+TASK_DIR = resolve_task_dir(__file__)
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 GOLDS_DIR = os.path.join(DATA_DIR, "golds/")
 DOC_IMAGES_DIR = os.path.join(DATA_DIR, "images/")

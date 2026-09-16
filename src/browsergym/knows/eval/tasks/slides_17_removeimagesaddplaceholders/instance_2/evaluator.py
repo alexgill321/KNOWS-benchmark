@@ -18,28 +18,20 @@ import tempfile
 import shutil
 from typing import List, Dict, Any, Tuple
 
-# Base path setup
-def get_base_path():
-    if os.path.exists("/app/src"):
-        return "/app"
-    elif os.path.exists("/scratch"):
-        return "/scratch/general/vast/USER/Agent-Benchmark/"
-    else:
-        return os.getcwd()
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.data_paths import resolve_task_dir
 
-BASE_PATH = get_base_path()
-sys.path.append(BASE_PATH)
-
-# Imports
-from src.browsergym.knows.eval.eval_utils.run_targets import target_folder_id
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score, StepCategory
-from src.browsergym.knows.eval.eval_utils.google_services_utils import (
+from browsergym.knows.eval.eval_utils.run_targets import target_folder_id
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score, StepCategory
+from browsergym.knows.eval.eval_utils.google_services_utils import (
     initialize_google_services,
     list_drive_folder_files,
     download_drive_file_as_image,
     download_drive_image_threadsafe
 )
-from src.browsergym.knows.eval.eval_utils.slides_utils import (
+from browsergym.knows.eval.eval_utils.slides_utils import (
     extract_slide_images,
     download_slide_image,
     extract_slide_links_with_positions,
@@ -49,12 +41,12 @@ from src.browsergym.knows.eval.eval_utils.slides_utils import (
     is_text_big,
     find_url_below_image
 )
-from src.browsergym.knows.eval.eval_utils.image_utils import match_image_tiered, binary_judge_image
-from src.browsergym.knows.eval.eval_utils.text_utils import text_fuzzy_match_contained_short
-from src.browsergym.knows.eval.eval_utils.utils import is_bbox_mostly_inside
-from src.browsergym.knows.eval.eval_utils.models import load_model
-from src.browsergym.knows.eval.eval_utils.web_utils import download_image_from_url, is_unverifiable_url
-from src.browsergym.knows.eval.eval_utils.parallel_utils import (
+from browsergym.knows.eval.eval_utils.image_utils import match_image_tiered, binary_judge_image
+from browsergym.knows.eval.eval_utils.text_utils import text_fuzzy_match_contained_short
+from browsergym.knows.eval.eval_utils.utils import is_bbox_mostly_inside
+from browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.web_utils import download_image_from_url, is_unverifiable_url
+from browsergym.knows.eval.eval_utils.parallel_utils import (
     parallel_download,
     parallel_execute,
     parallel_vlm_calls,
@@ -64,7 +56,7 @@ from src.browsergym.knows.eval.eval_utils.parallel_utils import (
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/slides_17_removeimagesaddplaceholders/instance_2/")
+TASK_DIR = resolve_task_dir(__file__)
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 GOLD_IMAGES_DIR = os.path.join(DATA_DIR, "gold_images/")
 GOLD_DESCRIPTIONS_CSV = os.path.join(DATA_DIR, "gold_descriptions.csv")

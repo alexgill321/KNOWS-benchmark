@@ -2,8 +2,11 @@ import sys
 import os
 import re
 from typing import Dict, List, Optional, Tuple
-sys.path.append(os.getcwd())
-from src.browsergym.knows.eval.eval_utils.google_services_helpers import *
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.google_services_helpers import *
+from browsergym.knows.eval.eval_utils.google_services_helpers import auth_data_path
 import requests
 import mimetypes
 from urllib.parse import urlparse, parse_qs
@@ -20,7 +23,7 @@ import difflib
 # Re-export sheets-related functions from google_sheets_utils for backward compatibility
 # These functions have been moved to google_sheets_utils.py but are re-exported here
 # to support existing code that uses wildcard imports from this module.
-from src.browsergym.knows.eval.eval_utils.google_sheets_utils import (
+from browsergym.knows.eval.eval_utils.google_sheets_utils import (
     get_sheet_content,
     detect_header_row,
     search_sheet,
@@ -34,7 +37,7 @@ from src.browsergym.knows.eval.eval_utils.google_sheets_utils import (
 GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID") # e.g., your-project-id
 SECRET_ID = os.environ.get("DRIVE_SA_SECRET_ID")   # e.g., doc-eval-service-account-key
 SECRET_VERSION_ID = os.environ.get("DRIVE_SA_SECRET_VERSION_ID", "latest")
-SERVICE_ACCOUNT_PATH = os.environ.get("SERVICE_ACCOUNT_PATH", os.path.join(os.getcwd(), "auth-data", "service-account.json"))
+SERVICE_ACCOUNT_PATH = auth_data_path("SERVICE_ACCOUNT_PATH", "service-account.json")
 
 # Global variable to hold initialized Google API services
 # (Initialize them once, not on every request)

@@ -5,20 +5,15 @@ import time
 import argparse
 import shutil
 
-# Base path resolution
-BASE_PATH = None
-if os.path.exists("/app/src"):
-    BASE_PATH = "/app"
-elif os.path.exists("/scratch"):
-    BASE_PATH = "/scratch/general/vast/USER/Agent-Benchmark/"
-else:
-    BASE_PATH = os.getcwd()
-sys.path.append(BASE_PATH)
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.data_paths import resolve_task_dir
 
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score, StepCategory
-from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
-from src.browsergym.knows.eval.eval_utils.text_utils import text_fuzzy_match_contained_long
-from src.browsergym.knows.eval.eval_utils.slides_utils import (
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score, StepCategory
+from browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
+from browsergym.knows.eval.eval_utils.text_utils import text_fuzzy_match_contained_long
+from browsergym.knows.eval.eval_utils.slides_utils import (
     extract_slide_text,
     extract_text_boxes_from_slide,
     extract_slide_images,
@@ -36,10 +31,10 @@ from src.browsergym.knows.eval.eval_utils.slides_utils import (
     find_url_below_image,
     _extract_links_from_text_element,
 )
-from src.browsergym.knows.eval.eval_utils.image_utils import binary_judge_image
-from src.browsergym.knows.eval.eval_utils.llm_utils import evaluate_with_llm
-from src.browsergym.knows.eval.eval_utils.parallel_utils import parallel_execute
-from src.browsergym.knows.eval.tasks.slides_26_basic_educational_slide_deck.utils import (
+from browsergym.knows.eval.eval_utils.image_utils import binary_judge_image
+from browsergym.knows.eval.eval_utils.llm_utils import evaluate_with_llm
+from browsergym.knows.eval.eval_utils.parallel_utils import parallel_execute
+from browsergym.knows.eval.tasks.slides_26_basic_educational_slide_deck.utils import (
     parse_task_md,
     filter_non_image_links,
     find_small_font_credit,
@@ -69,7 +64,7 @@ from src.browsergym.knows.eval.tasks.slides_26_basic_educational_slide_deck.util
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/slides_26_basic_educational_slide_deck/instance_2/")
+TASK_DIR = resolve_task_dir(__file__)
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 
 # Module-level so the catastrophic-failure handler can still emit a complete report
@@ -699,7 +694,7 @@ def grade_checkpoint_2():
         # Lazy import: slim envs may lack Playwright; the wrapper adds curl-cffi as a
         # 5th strategy for Cloudflare-protected hosts whose TLS fingerprint gets blocked.
         try:
-            from src.browsergym.knows.eval.eval_utils.web_utils import (
+            from browsergym.knows.eval.eval_utils.web_utils import (
                 fetch_with_fallbacks_extended as fetch_with_fallbacks,
             )
         except Exception as e:

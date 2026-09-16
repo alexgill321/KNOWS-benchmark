@@ -10,21 +10,21 @@ import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
-from src.browsergym.knows.eval.eval_utils.scoring import StepCategory
-from src.browsergym.knows.eval.eval_utils.slides_utils import (
+from browsergym.knows.eval.eval_utils.scoring import StepCategory
+from browsergym.knows.eval.eval_utils.slides_utils import (
     get_element_bbox,
     get_text_style_from_shape,
     is_text_big,
     resolve_theme_color,
 )
-from src.browsergym.knows.eval.eval_utils.llm_utils import evaluate_with_llm
-from src.browsergym.knows.eval.eval_utils.image_utils import (
+from browsergym.knows.eval.eval_utils.llm_utils import evaluate_with_llm
+from browsergym.knows.eval.eval_utils.image_utils import (
     match_image_tiered,
     binary_compare_images,
     perceptual_hash_match,
 )
-from src.browsergym.knows.eval.eval_utils.web_utils import download_image_from_url, download_page_images
-from src.browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.web_utils import download_image_from_url, download_page_images
+from browsergym.knows.eval.eval_utils.models import load_model
 
 
 def _browser_headers(url: str) -> Dict[str, str]:

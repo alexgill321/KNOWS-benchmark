@@ -51,15 +51,15 @@ import sys
 import time
 from pathlib import Path
 
-BASE_PATH = Path(__file__).resolve().parents[5]
-if str(BASE_PATH) not in sys.path:
-    sys.path.append(str(BASE_PATH))
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")))
 
-from src.browsergym.knows.eval.eval_utils.google_services_helpers import authenticate
-from src.browsergym.knows.eval.eval_utils.google_services_utils import (
+from browsergym.knows.eval.eval_utils.google_services_helpers import authenticate
+from browsergym.knows.eval.eval_utils.google_services_utils import (
     initialize_google_services,
 )
-from src.browsergym.knows.eval.eval_utils.run_targets import (
+from browsergym.knows.eval.eval_utils.run_targets import (
     REQUIRED_TARGETS,
     config_path,
     required_tokens,

@@ -11,26 +11,20 @@ import shutil
 
 # base path helper
 
-def get_base_path():
-    if os.path.exists("/app/src"):
-        return "/app"
-    elif os.path.exists("/scratch"):
-        return "/scratch/general/vast/USER/Agent-Benchmark/"
-    else:
-        return os.getcwd()
-
-BASE_PATH = get_base_path()
-sys.path.append(BASE_PATH)
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.data_paths import resolve_task_dir
 
 # imports from eval_utils
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
-from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
-from src.browsergym.knows.eval.eval_utils.text_utils import (
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
+from browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
+from browsergym.knows.eval.eval_utils.text_utils import (
     keywords_exact_match,
     keywords_match_robust,
     keyword_exact_match,
 )
-from src.browsergym.knows.eval.eval_utils.slides_utils import (
+from browsergym.knows.eval.eval_utils.slides_utils import (
     extract_slide_links,
     extract_slide_text,
     extract_text_boxes_from_slide,
@@ -43,12 +37,12 @@ from src.browsergym.knows.eval.eval_utils.slides_utils import (
     extract_table_from_slide,
     get_element_bbox
 )
-from src.browsergym.knows.eval.eval_utils.parallel_utils import parallel_download, parallel_execute
-from src.browsergym.knows.eval.eval_utils.image_utils import binary_judge_image
-from src.browsergym.knows.eval.eval_utils.models import load_model
-from src.browsergym.knows.eval.eval_utils.web_utils import fetch_url_content
+from browsergym.knows.eval.eval_utils.parallel_utils import parallel_download, parallel_execute
+from browsergym.knows.eval.eval_utils.image_utils import binary_judge_image
+from browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.web_utils import fetch_url_content
 
-from src.browsergym.knows.eval.tasks.slides_42_personal_none_product_comparison.utils import (
+from browsergym.knows.eval.tasks.slides_42_personal_none_product_comparison.utils import (
     detect_color_name,
     ensure_scheme,
     extract_device_info_with_llm,
@@ -59,8 +53,7 @@ from src.browsergym.knows.eval.tasks.slides_42_personal_none_product_comparison.
 
 # Constants
 # Resolve TASK_DIR from this file's location so the path is correct regardless of
-# how BASE_PATH is configured at runtime.
-TASK_DIR = os.path.dirname(os.path.abspath(__file__))
+TASK_DIR = resolve_task_dir(__file__)
 DATA_DIR = os.path.join(TASK_DIR, "data")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 GOLD_IMAGES_DIR = os.path.join(DATA_DIR, "gold_images")

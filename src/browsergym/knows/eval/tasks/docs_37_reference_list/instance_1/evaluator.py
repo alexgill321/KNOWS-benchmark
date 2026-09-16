@@ -6,28 +6,20 @@ import argparse
 from datetime import datetime
 from typing import List
 
-def get_base_path():
-    if os.path.exists("/app/src"):
-        return "/app"
-    elif os.path.exists("/scratch"):
-        return "/scratch/general/vast/USER/Agent-Benchmark/"
-    else:
-        return os.getcwd()
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.data_paths import resolve_task_dir
 
-
-BASE_PATH = get_base_path()
-sys.path.append(BASE_PATH)
-
-# Imports from eval_utils
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score, StepCategory
-from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
-from src.browsergym.knows.eval.eval_utils.google_services_helpers import get_doc_content
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score, StepCategory
+from browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
+from browsergym.knows.eval.eval_utils.google_services_helpers import get_doc_content
 
 # Imports from template-level utils
-from src.browsergym.knows.eval.eval_utils.parallel_utils import parallel_execute
-from src.browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.parallel_utils import parallel_execute
+from browsergym.knows.eval.eval_utils.models import load_model
 
-from src.browsergym.knows.eval.tasks.docs_37_reference_list.utils import (
+from browsergym.knows.eval.tasks.docs_37_reference_list.utils import (
     extract_headings_with_bookmarks,
     extract_bullet_sections,
     extract_reference_links,
@@ -42,7 +34,7 @@ from src.browsergym.knows.eval.tasks.docs_37_reference_list.utils import (
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/docs_37_reference_list/instance_1/")
+TASK_DIR = resolve_task_dir(__file__)
 GOLD_DATA_PATH = os.path.join(TASK_DIR, "data/gold_outputs.json")
 NOTION_DATA_PATH = os.path.join(TASK_DIR, "data/notion_schedule.json")
 PAGE_TITLES_PATH = os.path.join(TASK_DIR, "data/page_titles.json")

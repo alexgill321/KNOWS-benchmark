@@ -17,32 +17,22 @@ import traceback
 import argparse
 
 
-# Base path setup
-def get_base_path():
-    if os.path.exists("/app/src"):
-        return "/app"
-    elif os.path.exists("/scratch"):
-        return "/scratch/general/vast/USER/Agent-Benchmark/"
-    else:
-        return os.getcwd()
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
 
-
-BASE_PATH = get_base_path()
-sys.path.append(BASE_PATH)
-
-# Imports from eval_utils
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
-from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
-from src.browsergym.knows.eval.eval_utils.google_sheets_utils import get_sheet_content
-from src.browsergym.knows.eval.eval_utils.parallel_utils import (
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
+from browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
+from browsergym.knows.eval.eval_utils.google_sheets_utils import get_sheet_content
+from browsergym.knows.eval.eval_utils.parallel_utils import (
     fast_parallel_vlm_calls,
     parallel_download,
     parallel_execute,
 )
-from src.browsergym.knows.eval.eval_utils.web_utils import download_image_from_url, fetch_page_title
+from browsergym.knows.eval.eval_utils.web_utils import download_image_from_url, fetch_page_title
 
 # Shared task-agnostic utilities
-from src.browsergym.knows.eval.tasks.sheets_45_Personal_WeddingPlanner_weddingcolorpallette.utils import (
+from browsergym.knows.eval.tasks.sheets_45_Personal_WeddingPlanner_weddingcolorpallette.utils import (
     DEFAULT_COLOR_MAX_ROW,
     TOP_LEFT_MAX_ROW,
     cell_bg_hex,

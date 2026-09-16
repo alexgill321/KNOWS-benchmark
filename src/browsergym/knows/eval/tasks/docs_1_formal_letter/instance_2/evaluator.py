@@ -7,29 +7,20 @@ import shutil
 import glob
 from concurrent.futures import ThreadPoolExecutor
 
-# Get the base path that works in both Docker and local environments
-def get_base_path():
-    # First check if we're in a Docker container at /app
-    if os.path.exists("/app/src"):
-        return "/app"
-    # Otherwise use current working directory
-    elif os.path.exists("/scratch"):
-        return "/scratch/general/vast/USER/Agent-Benchmark/"
-    else:
-        return os.getcwd()
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.data_paths import resolve_task_dir
 
-BASE_PATH = get_base_path()
-sys.path.append(BASE_PATH)
-
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, EvaluationStep, StepCategory # type: ignore
-from src.browsergym.knows.eval.eval_utils.google_services_utils import *  # type: ignore
-from src.browsergym.knows.eval.eval_utils.text_utils import extract_text_from_pdf_file, keyword_exact_match, extract_text_location, get_smallest_x_position, find_gold_text_location, strip_label_prefix # type: ignore
-from src.browsergym.knows.eval.eval_utils.image_utils import * # type: ignore
-from src.browsergym.knows.eval.eval_utils.utils import layout, image_id_from_path, location as Location # type: ignore
-from src.browsergym.knows.eval.eval_utils.models import load_model # type: ignore
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, EvaluationStep, StepCategory # type: ignore
+from browsergym.knows.eval.eval_utils.google_services_utils import *  # type: ignore
+from browsergym.knows.eval.eval_utils.text_utils import extract_text_from_pdf_file, keyword_exact_match, extract_text_location, get_smallest_x_position, find_gold_text_location, strip_label_prefix # type: ignore
+from browsergym.knows.eval.eval_utils.image_utils import * # type: ignore
+from browsergym.knows.eval.eval_utils.utils import layout, image_id_from_path, location as Location # type: ignore
+from browsergym.knows.eval.eval_utils.models import load_model # type: ignore
 
 # FOLDER_ID = "1UcssqmcyrYCXBDpxp-mircdolZjcTIQb"
-TASK_DIR = os.path.dirname(os.path.abspath(__file__))
+TASK_DIR = resolve_task_dir(__file__)
 DOC_IMAGES_DIR = os.path.join(TASK_DIR, "data/images/")
 DOC_IMAGES_CROPPED_DIR = os.path.join(TASK_DIR, "data/cropped_images/")
 PDF_IMAGES_DIR = os.path.join(TASK_DIR, "data/pdf_images/")

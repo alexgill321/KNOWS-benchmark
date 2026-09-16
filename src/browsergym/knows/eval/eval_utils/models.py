@@ -9,22 +9,6 @@ from google.genai import types
 from PIL import Image
 import io
 
-# # Get the base path that works in both Docker and local environments
-# def get_base_path():
-#     # First check if we're in a Docker container at /app
-#     if os.path.exists("/app/src"):
-#         return "/app"
-#     # Otherwise use current working directory
-#     elif os.path.exists("/scratch"):
-#         return "/scratch/general/vast/USER/Agent-Benchmark/"
-#     else:
-#         return os.getcwd()
-
-# # Set HF cache to base directory
-# BASE_PATH = get_base_path()
-# print(f"Using base path: {BASE_PATH}")
-# os.environ["HF_HOME"] = os.path.join(BASE_PATH, ".huggingface")
-
 # Handle Hugging Face authentication
 hf_key = os.environ.get("HF_KEY")
 if hf_key:

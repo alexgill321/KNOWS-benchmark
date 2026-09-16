@@ -10,10 +10,10 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 import pandas as pd
 
-from src.browsergym.knows.eval.eval_utils.chart_utils import (
+from browsergym.knows.eval.eval_utils.chart_utils import (
     find_chart_by_metadata
 )
-from src.browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_content
+from browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_content
 
 
 # =============================================================================

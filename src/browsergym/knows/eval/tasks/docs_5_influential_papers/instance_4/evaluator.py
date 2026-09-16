@@ -4,25 +4,17 @@ import sys
 import time
 import argparse
 
-# Base path setup (same pattern as other evaluators)
-def get_base_path():
-    if os.path.exists("/app/src"):
-        return "/app"
-    elif os.path.exists("/scratch"):
-        return "/scratch/general/vast/USER/Agent-Benchmark/"
-    else:
-        return os.getcwd()
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.data_paths import resolve_task_dir
 
-BASE_PATH = get_base_path()
-sys.path.append(BASE_PATH)
-
-# Imports
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, EvaluationStep, StepCategory
-from src.browsergym.knows.eval.eval_utils.google_services_utils import *
-from src.browsergym.knows.eval.eval_utils.text_utils import text_fuzzy_match_contained_short, text_fuzzy_match_contained_long
-from src.browsergym.knows.eval.eval_utils.models import load_model
-from src.browsergym.knows.eval.eval_utils.parallel_utils import fast_parallel_vlm_calls
-from src.browsergym.knows.eval.tasks.docs_5_influential_papers.utils import (
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, EvaluationStep, StepCategory
+from browsergym.knows.eval.eval_utils.google_services_utils import *
+from browsergym.knows.eval.eval_utils.text_utils import text_fuzzy_match_contained_short, text_fuzzy_match_contained_long
+from browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.parallel_utils import fast_parallel_vlm_calls
+from browsergym.knows.eval.tasks.docs_5_influential_papers.utils import (
     is_within_x_years,
     extract_paper_links_from_text,
     extract_paper_id,
@@ -31,7 +23,7 @@ from src.browsergym.knows.eval.tasks.docs_5_influential_papers.utils import (
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/eval/tasks/docs_5_influential_papers/instance_4/")
+TASK_DIR = resolve_task_dir(__file__)
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 CLEANUP_ENABLED = os.environ.get("CLEANUP", "True").lower() == "true"
 

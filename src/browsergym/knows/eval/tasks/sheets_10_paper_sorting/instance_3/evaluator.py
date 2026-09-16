@@ -13,40 +13,32 @@ import time
 import argparse
 from typing import List, Dict, Optional, Any, Tuple
 
-# Base path setup
-def get_base_path():
-    if os.path.exists("/app/src"):
-        return "/app"
-    elif os.path.exists("/scratch"):
-        return "/scratch/general/vast/USER/Agent-Benchmark/"
-    else:
-        return os.getcwd()
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.data_paths import resolve_task_dir
 
-BASE_PATH = get_base_path()
-sys.path.append(BASE_PATH)
-
-# Imports
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
-from src.browsergym.knows.eval.eval_utils.google_services_utils import (
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
+from browsergym.knows.eval.eval_utils.google_services_utils import (
     initialize_google_services,
     extract_drive_file_id
 )
-from src.browsergym.knows.eval.eval_utils.google_sheets_utils import (
+from browsergym.knows.eval.eval_utils.google_sheets_utils import (
     extract_tables_from_sheet,
     extract_sheet_data,
     get_sheet_content,
     parse_sheet_to_dataframe,
 )
-from src.browsergym.knows.eval.eval_utils.text_utils import (
+from browsergym.knows.eval.eval_utils.text_utils import (
     text_fuzzy_match_contained_long,
     fuzzy_match_text,
     split_delimited_text,
     normalize_name
 )
-from src.browsergym.knows.eval.eval_utils.web_utils import extract_id_from_url
-from src.browsergym.knows.eval.eval_utils.image_utils import binary_compare_images
-from src.browsergym.knows.eval.eval_utils.models import load_model
-from src.browsergym.knows.eval.eval_utils.table_utils import (
+from browsergym.knows.eval.eval_utils.web_utils import extract_id_from_url
+from browsergym.knows.eval.eval_utils.image_utils import binary_compare_images
+from browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.table_utils import (
     extract_image_url_from_cell,
     get_image_url_from_raw_sheet_cell,
     get_column_index_by_name,
@@ -56,7 +48,7 @@ from src.browsergym.knows.eval.eval_utils.table_utils import (
     validate_color_grouping,
     match_columns
 )
-from src.browsergym.knows.eval.eval_utils.parallel_utils import (
+from browsergym.knows.eval.eval_utils.parallel_utils import (
     parallel_download,
     fast_parallel_vlm_calls
 )
@@ -64,7 +56,7 @@ import tempfile
 import requests
 
 # Local imports - only task-specific utilities
-from src.browsergym.knows.eval.tasks.sheets_10_paper_sorting.utils import compare_authors_list
+from browsergym.knows.eval.tasks.sheets_10_paper_sorting.utils import compare_authors_list
 
 # ============================================================================
 # INSTANCE-SPECIFIC CONFIGURATION
@@ -101,7 +93,7 @@ def extract_arxiv_id_from_url(url: str) -> str:
 
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, f"src/browsergym/knows/eval/tasks/sheets_10_paper_sorting/{INSTANCE_NAME}/")
+TASK_DIR = resolve_task_dir(__file__)
 DATA_DIR = os.path.join(TASK_DIR, "data")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
@@ -180,7 +172,7 @@ def load_gold_data():
 
 def download_image_from_url(url: str) -> Optional[str]:
     """Download an image from URL and return the temp file path."""
-    from src.browsergym.knows.eval.tasks.sheets_10_paper_sorting.utils import _arxiv_request_with_retry
+    from browsergym.knows.eval.tasks.sheets_10_paper_sorting.utils import _arxiv_request_with_retry
 
     try:
         if 'arxiv.org' in url and 'export.arxiv.org' not in url:
@@ -312,7 +304,7 @@ def setup(workspace_doc_id: str):
     # Fallback to manual extraction if no table object found
     if df is None and sheet_raw is not None:
         try:
-            from src.browsergym.knows.eval.eval_utils.google_sheets_utils import detect_header_row
+            from browsergym.knows.eval.eval_utils.google_sheets_utils import detect_header_row
             rows = sheet_raw.get('sheets', [{}])[0].get('data', [{}])[0].get('rowData', [])
             detected_header_row = detect_header_row(rows, required_columns=REQUIRED_COLUMNS)
             df = parse_sheet_to_dataframe(sheet_raw, header_row=detected_header_row)
@@ -1062,7 +1054,7 @@ def grade_checkpoint_5():
     # Step 3: Text overflow
     step_start = time.time()
     try:
-        from src.browsergym.knows.eval.eval_utils.table_utils import is_text_visible_in_cell
+        from browsergym.knows.eval.eval_utils.table_utils import is_text_visible_in_cell
 
         CHAR_WIDTH = 7
         hidden_cells = 0

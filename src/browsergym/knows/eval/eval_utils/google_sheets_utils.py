@@ -16,10 +16,10 @@ import re
 from googleapiclient.discovery import build
 
 # Import SheetTable from table_utils
-from src.browsergym.knows.eval.eval_utils.table_utils import SheetTable
+from browsergym.knows.eval.eval_utils.table_utils import SheetTable
 
 # Import authentication helper (needed for extract_structure_from_sheet)
-from src.browsergym.knows.eval.eval_utils.google_services_helpers import authenticate
+from browsergym.knows.eval.eval_utils.google_services_helpers import authenticate
 
 
 # =============================================================================
@@ -539,7 +539,7 @@ def search_sheet(filename: str, service, folder_id: str = None) -> Tuple[int, Op
             - sheet_id (str): The ID of the found Google Sheet, or None if not found.
     """
     # Import here to avoid circular imports
-    from src.browsergym.knows.eval.eval_utils.google_services_utils import (
+    from browsergym.knows.eval.eval_utils.google_services_utils import (
         find_doc_specified_location,
         find_file_any
     )

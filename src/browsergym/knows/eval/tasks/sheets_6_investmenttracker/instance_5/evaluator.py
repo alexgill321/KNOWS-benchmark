@@ -9,28 +9,20 @@ import requests
 import json
 
 
-# Base path setup (same pattern as other evaluators)
-def get_base_path():
-    if os.path.exists("/app/src"):
-        return "/app"
-    elif os.path.exists("/scratch"):
-        return "/scratch/general/vast/USER/Agent-Benchmark/"
-    else:
-        return os.getcwd()
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.data_paths import resolve_task_dir
 
-BASE_PATH = get_base_path()
-sys.path.append(BASE_PATH)
-
-# Imports
-from src.browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_content
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, EvaluationStep, StepCategory
-from src.browsergym.knows.eval.eval_utils.google_services_utils import *
-from src.browsergym.knows.eval.eval_utils.table_utils import *
-from src.browsergym.knows.eval.eval_utils.models import load_model
-from src.browsergym.knows.eval.eval_utils.text_utils import keywords_match_robust, numerical_match_with_error
-from src.browsergym.knows.eval.tasks.sheets_6_investmenttracker.utils import calculate_expected_stock_values, verify_past_prices_with_web_content, parse_currency_value
-from src.browsergym.knows.eval.eval_utils.parallel_utils import parallel_download, parallel_execute
-from src.browsergym.knows.eval.eval_utils.chart_utils import (
+from browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_content
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, EvaluationStep, StepCategory
+from browsergym.knows.eval.eval_utils.google_services_utils import *
+from browsergym.knows.eval.eval_utils.table_utils import *
+from browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.text_utils import keywords_match_robust, numerical_match_with_error
+from browsergym.knows.eval.tasks.sheets_6_investmenttracker.utils import calculate_expected_stock_values, verify_past_prices_with_web_content, parse_currency_value
+from browsergym.knows.eval.eval_utils.parallel_utils import parallel_download, parallel_execute
+from browsergym.knows.eval.eval_utils.chart_utils import (
     debug_chart_structure,
     extract_chart_domain_data,
     extract_chart_series_data,
@@ -40,7 +32,7 @@ from src.browsergym.knows.eval.eval_utils.chart_utils import (
 
 # Constants
 GOLD_LABELS_SHEET_ID = "1lea8l7xbTCa_2enkg_llh6VelXr-mq4etUMGfZN2txk"
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/sheets_6_investmenttracker/instance_5/")
+TASK_DIR = resolve_task_dir(__file__)
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 

@@ -6,21 +6,16 @@ import shutil
 from typing import List, Dict, Any
 
 
-# base path resolution
-BASE_PATH = None
-if os.path.exists("/app/src"):
-    BASE_PATH = "/app"
-elif os.path.exists("/scratch"):
-    BASE_PATH = "/scratch/general/vast/USER/Agent-Benchmark/"
-else:
-    BASE_PATH = os.getcwd()
-sys.path.append(BASE_PATH)
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.data_paths import resolve_task_dir
 
 # imports from eval_utils
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
-from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
-from src.browsergym.knows.eval.eval_utils.text_utils import keyword_exact_match
-from src.browsergym.knows.eval.eval_utils.slides_utils import (
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
+from browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
+from browsergym.knows.eval.eval_utils.text_utils import keyword_exact_match
+from browsergym.knows.eval.eval_utils.slides_utils import (
     extract_slide_text,
     extract_text_boxes_from_slide,
     extract_title_text,
@@ -29,11 +24,11 @@ from src.browsergym.knows.eval.eval_utils.slides_utils import (
     get_text_style_from_shape,
     is_text_big,
 )
-from src.browsergym.knows.eval.eval_utils.parallel_utils import parallel_download, parallel_execute
-from src.browsergym.knows.eval.eval_utils.models import load_model
-from src.browsergym.knows.eval.eval_utils.web_utils import download_page_images, fetch_page_text_content, fetch_with_fallbacks_extended
+from browsergym.knows.eval.eval_utils.parallel_utils import parallel_download, parallel_execute
+from browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.web_utils import download_page_images, fetch_page_text_content, fetch_with_fallbacks_extended
 
-from src.browsergym.knows.eval.tasks.slides_29_buy_car_pres.utils import (
+from browsergym.knows.eval.tasks.slides_29_buy_car_pres.utils import (
     CP3_PER_CAR_STEPS,
     CP4_STEP_NAMES,
     CP4_WINNER_KEY_MAP,
@@ -55,7 +50,7 @@ from src.browsergym.knows.eval.tasks.slides_29_buy_car_pres.utils import (
 )
 
 # Constants
-TASK_DIR = os.path.join(os.path.dirname(__file__))
+TASK_DIR = resolve_task_dir(__file__)
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 model_id = "gemini-2.5-flash-google-ai"
 

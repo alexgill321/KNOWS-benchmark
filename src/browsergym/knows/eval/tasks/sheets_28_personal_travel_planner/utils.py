@@ -13,16 +13,16 @@ from urllib.parse import quote
 
 import pandas as pd
 
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, StepCategory, calculate_percentage_score
-from src.browsergym.knows.eval.eval_utils.text_utils import keywords_exact_match
-from src.browsergym.knows.eval.eval_utils.llm_utils import extract_json_with_llm
-from src.browsergym.knows.eval.eval_utils.table_utils import (
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, StepCategory, calculate_percentage_score
+from browsergym.knows.eval.eval_utils.text_utils import keywords_exact_match
+from browsergym.knows.eval.eval_utils.llm_utils import extract_json_with_llm
+from browsergym.knows.eval.eval_utils.table_utils import (
     match_columns, get_column_index_by_name, get_background_color,
     classify_row_color,
 )
-from src.browsergym.knows.eval.eval_utils.parallel_utils import fast_parallel_vlm_calls, parallel_execute
-from src.browsergym.knows.eval.eval_utils.google_sheets_utils import find_urls_in_sheet
-from src.browsergym.knows.eval.eval_utils.web_utils import (
+from browsergym.knows.eval.eval_utils.parallel_utils import fast_parallel_vlm_calls, parallel_execute
+from browsergym.knows.eval.eval_utils.google_sheets_utils import find_urls_in_sheet
+from browsergym.knows.eval.eval_utils.web_utils import (
     fetch_api_with_retry,
     fetch_with_fallbacks,
     is_unverifiable_url,

@@ -7,43 +7,39 @@ import glob
 from typing import Dict, List
 from concurrent.futures import ThreadPoolExecutor
 
-# Base path used for sys.path injection so Docker and CHPC layouts both resolve.
-if os.path.exists("/app/src"):
-    BASE_PATH = "/app"
-elif os.path.exists("/scratch"):
-    BASE_PATH = os.path.expanduser("~/Agent-Benchmark")
-else:
-    BASE_PATH = os.getcwd()
-sys.path.append(BASE_PATH)
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.data_paths import resolve_task_dir
 
 # Core evaluation imports
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory, calculate_percentage_score
-from src.browsergym.knows.eval.eval_utils.google_services_utils import (
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory, calculate_percentage_score
+from browsergym.knows.eval.eval_utils.google_services_utils import (
     initialize_google_services,
     get_doc_content,
     download_doc_as_pdf,
     extract_images_from_doc_extended,
     extract_hyperlinks_from_doc,
 )
-from src.browsergym.knows.eval.eval_utils.text_utils import (
+from browsergym.knows.eval.eval_utils.text_utils import (
     fuzzy_match_text,
     text_fuzzy_match_contained_long,
 )
-from src.browsergym.knows.eval.eval_utils.image_utils import convert_pdf_to_pngs
-from src.browsergym.knows.eval.eval_utils.models import load_model
-from src.browsergym.knows.eval.eval_utils.utils import location as Location
-from src.browsergym.knows.eval.eval_utils.web_utils import (
+from browsergym.knows.eval.eval_utils.image_utils import convert_pdf_to_pngs
+from browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.utils import location as Location
+from browsergym.knows.eval.eval_utils.web_utils import (
     validate_url_accessible,
     normalize_url_for_comparison,
     fetch_with_fallbacks,
 )
-from src.browsergym.knows.eval.eval_utils.parallel_utils import (
+from browsergym.knows.eval.eval_utils.parallel_utils import (
     parallel_execute,
     fast_parallel_vlm_calls,
 )
 
 # Task-specific utilities
-from src.browsergym.knows.eval.tasks.docs_31_education_lesson_plan.utils import (
+from browsergym.knows.eval.tasks.docs_31_education_lesson_plan.utils import (
     parse_subject_and_audience,
     validate_topics_subject_related,
     validate_topics_engaging,
@@ -63,8 +59,7 @@ from src.browsergym.knows.eval.tasks.docs_31_education_lesson_plan.utils import 
 
 # ---------------------------------------------------------------------------
 # Directory paths — derived from this file's location so the evaluator works
-# regardless of where BASE_PATH points.
-TASK_DIR = os.path.dirname(os.path.abspath(__file__))
+TASK_DIR = resolve_task_dir(__file__)
 DATA_DIR = os.path.join(TASK_DIR, "data")
 PDF_IMAGES_DIR = os.path.join(DATA_DIR, "pdf_images")
 IMAGES_DIR = os.path.join(DATA_DIR, "doc_images")

@@ -4,11 +4,11 @@ import re
 import shutil
 import time
 
-from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
-from src.browsergym.knows.eval.eval_utils.image_utils import binary_compare_images, binary_judge_image, match_image_tiered
-from src.browsergym.knows.eval.eval_utils.scoring import StepCategory
-from src.browsergym.knows.eval.eval_utils.slides_utils import download_slide_image, extract_slide_images, get_element_bbox
-from src.browsergym.knows.eval.eval_utils.web_utils import download_image_from_url, fetch_api_with_retry
+from browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
+from browsergym.knows.eval.eval_utils.image_utils import binary_compare_images, binary_judge_image, match_image_tiered
+from browsergym.knows.eval.eval_utils.scoring import StepCategory
+from browsergym.knows.eval.eval_utils.slides_utils import download_slide_image, extract_slide_images, get_element_bbox
+from browsergym.knows.eval.eval_utils.web_utils import download_image_from_url, fetch_api_with_retry
 
 _, SLIDES_SERVICE = initialize_google_services(service_type="slides")
 

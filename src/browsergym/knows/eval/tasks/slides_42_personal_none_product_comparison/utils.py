@@ -11,11 +11,11 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
-from src.browsergym.knows.eval.eval_utils.llm_utils import (
+from browsergym.knows.eval.eval_utils.llm_utils import (
     extract_json_with_llm as _extract_json_with_llm,
     evaluate_with_llm as _evaluate_with_llm,
 )
-from src.browsergym.knows.eval.eval_utils.text_utils import keyword_exact_match
+from browsergym.knows.eval.eval_utils.text_utils import keyword_exact_match
 
 BASE_DIR = os.path.dirname(__file__)
 DATA_DIR = os.path.join(BASE_DIR, "instance_1", "data")

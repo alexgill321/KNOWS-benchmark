@@ -1005,7 +1005,7 @@ def verify_past_prices_with_web_content(
     Returns:
         Dict mapping ticker -> extracted price as float, or None if not found.
     """
-    from src.browsergym.knows.eval.eval_utils.llm_utils import extract_json_with_llm
+    from browsergym.knows.eval.eval_utils.llm_utils import extract_json_with_llm
 
     if not failed_stocks:
         return {}

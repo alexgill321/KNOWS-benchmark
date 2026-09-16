@@ -11,28 +11,19 @@ from typing import List, Optional
 import pandas as pd
 
 
-# Base path setup
-def get_base_path():
-    if os.path.exists("/app/src"):
-        return "/app"
-    elif os.path.exists("/scratch"):
-        return "/scratch/general/vast/USER/Agent-Benchmark/"
-    else:
-        return os.getcwd()
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
 
-BASE_PATH = get_base_path()
-sys.path.append(BASE_PATH)
-
-# Imports from eval_utils
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory, calculate_percentage_score
-from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
-from src.browsergym.knows.eval.eval_utils.google_sheets_utils import (
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory, calculate_percentage_score
+from browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
+from browsergym.knows.eval.eval_utils.google_sheets_utils import (
     get_sheet_content,
     extract_tables_from_sheet,
     parse_sheet_to_dataframe,
     detect_header_row,
 )
-from src.browsergym.knows.eval.eval_utils.table_utils import (
+from browsergym.knows.eval.eval_utils.table_utils import (
     match_columns,
     get_cell,
     is_cell_bold,
@@ -40,11 +31,11 @@ from src.browsergym.knows.eval.eval_utils.table_utils import (
     get_background_color,
     classify_row_color,
 )
-from src.browsergym.knows.eval.eval_utils.models import load_model
-from src.browsergym.knows.eval.eval_utils.parallel_utils import parallel_execute
+from browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.parallel_utils import parallel_execute
 
 # Task-specific utilities
-from src.browsergym.knows.eval.tasks.sheets_55_Movie_Recommendation.utils import (
+from browsergym.knows.eval.tasks.sheets_55_Movie_Recommendation.utils import (
     close_browser,
     fetch_imdb_data,
     fetch_imdb_awards_text,

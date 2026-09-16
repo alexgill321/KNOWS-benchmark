@@ -4,23 +4,16 @@ import sys
 import time
 from typing import List, Dict, Any
 
-# Base path setup
-def get_base_path():
-    if os.path.exists("/app/src"):
-        return "/app"
-    elif os.path.exists("/scratch"):
-        return "/scratch/general/vast/USER/Agent-Benchmark/"
-    else:
-        return os.getcwd()
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.data_paths import resolve_task_dir
 
-BASE_PATH = get_base_path()
-sys.path.append(BASE_PATH)
-
-from src.browsergym.knows.eval.eval_utils.llm_utils import evaluate_with_llm
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
-from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services, extract_text_from_doc
-from src.browsergym.knows.eval.eval_utils.models import load_model
-from src.browsergym.knows.eval.eval_utils.slides_utils import (
+from browsergym.knows.eval.eval_utils.llm_utils import evaluate_with_llm
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
+from browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services, extract_text_from_doc
+from browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.slides_utils import (
     extract_slide_images,
     extract_slide_links,
     extract_text_boxes_from_slide,
@@ -31,12 +24,12 @@ from src.browsergym.knows.eval.eval_utils.slides_utils import (
     get_image_area_percentage_from_api,
     download_slide_image,
 )
-from src.browsergym.knows.eval.eval_utils.text_utils import keyword_exact_match
-from src.browsergym.knows.eval.eval_utils.image_utils import match_image_tiered
-from src.browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_content, fetch_api_with_retry, download_image_from_url
-from src.browsergym.knows.eval.eval_utils.parallel_utils import parallel_execute
+from browsergym.knows.eval.eval_utils.text_utils import keyword_exact_match
+from browsergym.knows.eval.eval_utils.image_utils import match_image_tiered
+from browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_content, fetch_api_with_retry, download_image_from_url
+from browsergym.knows.eval.eval_utils.parallel_utils import parallel_execute
 
-from src.browsergym.knows.eval.tasks.slides_30_Work_Wikipedia_Photos.utils import (
+from browsergym.knows.eval.tasks.slides_30_Work_Wikipedia_Photos.utils import (
     INSTANCE_CONFIG,
     download_image_with_retry,
     evaluate_single_client,
@@ -45,7 +38,7 @@ from src.browsergym.knows.eval.tasks.slides_30_Work_Wikipedia_Photos.utils impor
 
 # Constants — derived from this evaluator's own location so the same code can
 # be reused (verbatim) across instance_1..5 without hardcoding the instance.
-TASK_DIR = os.path.dirname(os.path.abspath(__file__))
+TASK_DIR = resolve_task_dir(__file__)
 DATA_DIR = os.path.join(TASK_DIR, "data")
 
 DRIVE_SERVICE, SLIDES_SERVICE = initialize_google_services(service_type="slides")

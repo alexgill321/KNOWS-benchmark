@@ -37,10 +37,7 @@ import re
 from typing import List, Dict, Optional, Any
 from datetime import datetime
 
-# Local imports first (for BASE_PATH)
 from utils import (
-    get_base_path,
-    BASE_PATH,
     get_data_dir,
     ensure_data_directories,
     save_json,
@@ -53,10 +50,12 @@ from utils import (
     match_gscholar_to_arxiv_papers
 )
 
-sys.path.append(BASE_PATH)
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")))
 
-from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
-from src.browsergym.knows.eval.eval_utils.google_services_helpers import get_sheet_content
+from browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
+from browsergym.knows.eval.eval_utils.google_services_helpers import get_sheet_content
 
 # Instance-specific config defaults (instance 1 for backward compat)
 INSTANCE_CONFIGS = {
@@ -479,7 +478,7 @@ def discover_all_new_papers(entries: List[Dict], skip_scholar: bool = False, top
 
     model = None
     try:
-        from src.browsergym.knows.eval.eval_utils.models import load_model
+        from browsergym.knows.eval.eval_utils.models import load_model
         model = load_model("gemini-2.5-flash-google-ai")
         print("LLM model loaded for fallback stages")
     except Exception as e:
@@ -568,7 +567,7 @@ def rematch_missing_papers(entries: List[Dict], instance: int, top_cited: int = 
 
     model = None
     try:
-        from src.browsergym.knows.eval.eval_utils.models import load_model
+        from browsergym.knows.eval.eval_utils.models import load_model
         model = load_model("gemini-2.5-flash-google-ai")
         print("LLM model loaded for semantic matching")
     except Exception as e:

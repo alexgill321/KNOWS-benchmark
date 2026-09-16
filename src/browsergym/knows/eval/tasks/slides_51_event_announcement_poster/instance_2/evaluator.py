@@ -9,22 +9,14 @@ import argparse
 from typing import List, Dict, Any
 
 
-# Base path setup
-def get_base_path():
-    if os.path.exists("/app/src"):
-        return "/app"
-    elif os.path.exists("/scratch"):
-        return "/scratch/general/vast/USER/Agent-Benchmark/"
-    else:
-        return os.getcwd()
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.data_paths import resolve_task_dir
 
-
-BASE_PATH = get_base_path()
-sys.path.append(BASE_PATH)
-
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory, calculate_percentage_score
-from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
-from src.browsergym.knows.eval.eval_utils.slides_utils import (
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory, calculate_percentage_score
+from browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
+from browsergym.knows.eval.eval_utils.slides_utils import (
     extract_slide_text,
     extract_text_boxes_from_slide,
     get_text_style_from_shape,
@@ -39,13 +31,13 @@ from src.browsergym.knows.eval.eval_utils.slides_utils import (
     extract_speaker_notes_text,
     get_shape_background_fill,
 )
-from src.browsergym.knows.eval.eval_utils.text_utils import keyword_exact_match, keywords_exact_match
-from src.browsergym.knows.eval.eval_utils.image_utils import binary_judge_image
-from src.browsergym.knows.eval.eval_utils.models import load_model
-from src.browsergym.knows.eval.eval_utils.parallel_utils import parallel_execute
-from src.browsergym.knows.eval.eval_utils.utils import is_bbox_mostly_inside, bbox_overlap_ratio
-from src.browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_content
-from src.browsergym.knows.eval.tasks.slides_51_event_announcement_poster.utils import (
+from browsergym.knows.eval.eval_utils.text_utils import keyword_exact_match, keywords_exact_match
+from browsergym.knows.eval.eval_utils.image_utils import binary_judge_image
+from browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.parallel_utils import parallel_execute
+from browsergym.knows.eval.eval_utils.utils import is_bbox_mostly_inside, bbox_overlap_ratio
+from browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_content
+from browsergym.knows.eval.tasks.slides_51_event_announcement_poster.utils import (
     find_header_box,
     find_subheader_box,
     find_body_box,
@@ -56,7 +48,7 @@ from src.browsergym.knows.eval.tasks.slides_51_event_announcement_poster.utils i
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/slides_51_event_announcement_poster/instance_2/")
+TASK_DIR = resolve_task_dir(__file__)
 LOGOS_DIR = os.path.join(TASK_DIR, "data/gold_images/logos/")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 

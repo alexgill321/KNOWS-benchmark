@@ -237,7 +237,7 @@ def parallel_image_match(
     Returns:
         Dict mapping task 'id' to (matched: bool, method: str) tuple
     """
-    from src.browsergym.knows.eval.eval_utils.image_utils import image_exact_match, perceptual_hash_match
+    from browsergym.knows.eval.eval_utils.image_utils import image_exact_match, perceptual_hash_match
 
     results = {}
 

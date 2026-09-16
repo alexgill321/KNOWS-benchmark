@@ -10,7 +10,7 @@ import requests
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
-from src.browsergym.knows.eval.eval_utils.llm_utils import (
+from browsergym.knows.eval.eval_utils.llm_utils import (
     strip_markdown_code_blocks,
     extract_json_from_llm_response,
 )

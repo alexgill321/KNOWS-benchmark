@@ -14,41 +14,33 @@ import argparse
 import traceback
 from typing import List
 
-# Base path setup
-def get_base_path():
-    if os.path.exists("/app/src"):
-        return "/app"
-    elif os.path.exists("/scratch"):
-        return "/scratch/general/vast/USER/Agent-Benchmark/"
-    else:
-        return os.getcwd()
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.data_paths import resolve_task_dir
 
-BASE_PATH = get_base_path()
-sys.path.append(BASE_PATH)
-
-# Imports
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
-from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
-from src.browsergym.knows.eval.eval_utils.google_sheets_utils import (
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory
+from browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
+from browsergym.knows.eval.eval_utils.google_sheets_utils import (
     extract_tables_from_sheet,
     extract_sheet_data,
     parse_sheet_to_dataframe,
     get_sheet_content,
 )
-from src.browsergym.knows.eval.eval_utils.table_utils import (
+from browsergym.knows.eval.eval_utils.table_utils import (
     get_image_url_from_raw_sheet_cell,
     get_cell_value,
     get_cell_background_color,
     check_merged_cells,
     match_columns,
 )
-from src.browsergym.knows.eval.eval_utils.models import load_model
-from src.browsergym.knows.eval.eval_utils.image_utils import match_image_tiered
+from browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.image_utils import match_image_tiered
 import tempfile
 import requests
 
 # Local imports
-from src.browsergym.knows.eval.tasks.sheets_25_skitourplan.utils import (
+from browsergym.knows.eval.tasks.sheets_25_skitourplan.utils import (
     parse_slope_angle,
     parse_gps_coordinates,
     parse_typical_vertical,
@@ -63,7 +55,7 @@ from src.browsergym.knows.eval.tasks.sheets_25_skitourplan.utils import (
 )
 
 # Constants
-TASK_DIR = os.path.dirname(os.path.abspath(__file__))
+TASK_DIR = resolve_task_dir(__file__)
 DATA_DIR = os.path.join(TASK_DIR, "data")
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
@@ -164,7 +156,7 @@ def setup(workspace_doc_id: str):
 
     if df is None and sheet_raw is not None:
         try:
-            from src.browsergym.knows.eval.eval_utils.google_sheets_utils import detect_header_row
+            from browsergym.knows.eval.eval_utils.google_sheets_utils import detect_header_row
             rows = sheet_raw.get('sheets', [{}])[0].get('data', [{}])[0].get('rowData', [])
             detected_header_row = detect_header_row(rows, required_columns=REQUIRED_COLUMNS)
             df = parse_sheet_to_dataframe(sheet_raw, header_row=detected_header_row)

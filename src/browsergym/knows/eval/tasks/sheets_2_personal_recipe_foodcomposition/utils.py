@@ -8,8 +8,8 @@ import re
 from typing import Any, Optional, List
 
 # Import general utilities from eval_utils
-from src.browsergym.knows.eval.eval_utils.web_utils import is_url_from_domain, fetch_api_with_retry
-from src.browsergym.knows.eval.eval_utils.text_utils import keywords_exact_match
+from browsergym.knows.eval.eval_utils.web_utils import is_url_from_domain, fetch_api_with_retry
+from browsergym.knows.eval.eval_utils.text_utils import keywords_exact_match
 
 __all__ = [
     # Task-specific utilities
@@ -243,7 +243,7 @@ def validate_usda_fallback(
 
     # Gold cross-validation: at least one nutrient must match gold within tolerance
     tolerance_percent = tolerance * 100
-    from src.browsergym.knows.eval.eval_utils.text_utils import numerical_match_with_error
+    from browsergym.knows.eval.eval_utils.text_utils import numerical_match_with_error
 
     has_gold_match = False
     for nutrient in sheet_values:

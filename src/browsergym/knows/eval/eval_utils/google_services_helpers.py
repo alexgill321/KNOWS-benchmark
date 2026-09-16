@@ -3,12 +3,43 @@ from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 import os
+from pathlib import Path
+
+# <checkout>/ when running from a source tree; meaningless (and simply absent)
+# when installed from a wheel, in which case the env vars or cwd are used.
+_REPO_ROOT = Path(__file__).resolve().parents[5]
+
+
+def auth_data_path(env_var: str, filename: str) -> str:
+    """Locate a credential file without depending on the working directory.
+
+    Resolution order: the *env_var* override, then ``auth-data/<filename>``
+    under the source checkout, then under the current directory. The last
+    candidate is returned even if it does not exist so callers can report a
+    sensible path in their error message.
+
+    Args:
+        env_var (str): Environment variable that overrides the location.
+        filename (str): File name inside ``auth-data/``.
+
+    Returns:
+        str: Path to use.
+    """
+    override = os.environ.get(env_var)
+    if override:
+        return override
+    for base in (_REPO_ROOT, Path.cwd()):
+        candidate = base / "auth-data" / filename
+        if candidate.is_file():
+            return str(candidate)
+    return str(Path.cwd() / "auth-data" / filename)
+
 
 def authenticate(services):
     creds = None
     scopes = get_scopes(services)
-    token_path = os.environ.get('TOKEN_PATH', os.getcwd() + '/auth-data/token.json')
-    creds_path = os.environ.get('CLIENT_SECRETS_PATH', os.getcwd() + '/auth-data/credentials.json')
+    token_path = auth_data_path('TOKEN_PATH', 'token.json')
+    creds_path = auth_data_path('CLIENT_SECRETS_PATH', 'credentials.json')
 
     if os.path.exists(token_path):
         creds = Credentials.from_authorized_user_file(token_path, scopes)

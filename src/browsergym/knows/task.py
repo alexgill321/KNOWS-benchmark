@@ -19,7 +19,6 @@ import importlib
 import importlib.util
 import sys
 import subprocess
-import types
 import re
 from abc import abstractmethod
 
@@ -49,81 +48,6 @@ _WORKSPACE_ID_RE = re.compile(
 _PACKAGE_DIR = pathlib.Path(__file__).resolve().parent
 EVAL_TASKS_DIR = _PACKAGE_DIR / "eval" / "tasks"
 
-
-def _install_eval_import_shim() -> None:
-    """Make legacy ``src.browsergym.*`` eval imports resolve locally.
-
-    Evaluator files under ``eval/tasks/.../evaluator.py`` and the
-    ``eval/eval_utils/*`` modules were authored before the eval tree was
-    moved into this Python package. They still use ``src.browsergym.eval...``
-    and ``src.browsergym.knows.eval...``
-    paths. Rather than rewrite every legacy import, we install a meta-path
-    finder that transparently redirects those namespaces to the real,
-    importable ``browsergym.knows.eval`` package.
-    """
-    if any(getattr(f, "_knows_eval_shim", False) for f in sys.meta_path):
-        return
-
-    # Ensure parent stub packages exist so attribute lookups inside the
-    # interpreter don't fail before our finder runs.
-    for stub_name in ("src", "src.browsergym"):
-        if stub_name not in sys.modules:
-            stub = types.ModuleType(stub_name)
-            stub.__path__ = []  # mark as namespace package
-            sys.modules[stub_name] = stub
-            parent_name, _, child = stub_name.rpartition(".")
-            if parent_name:
-                setattr(sys.modules[parent_name], child, stub)
-
-    _ALIASES = {
-        "src.browsergym.knows": "browsergym.knows",
-        "src.browsergym.knows.eval": "browsergym.knows.eval",
-        "src.browsergym.eval": "browsergym.knows.eval",
-    }
-
-    class _AliasLoader:
-        """Loader that returns an already-imported module instead of executing
-        new code. We use this together with the finder below to expose
-        ``browsergym.knows.*`` modules under legacy ``src.browsergym.*`` names.
-        """
-
-        def __init__(self, real_mod):
-            self._real_mod = real_mod
-
-        def create_module(self, spec):
-            return self._real_mod
-
-        def exec_module(self, module):
-            return None
-
-    class _KnowsEvalShim:
-        """Meta-path finder that redirects legacy eval namespaces."""
-
-        _knows_eval_shim = True
-
-        def find_spec(self, fullname, path=None, target=None):
-            real_name = None
-            for old, new in _ALIASES.items():
-                if fullname == old or fullname.startswith(old + "."):
-                    real_name = new + fullname[len(old):]
-                    break
-            if real_name is None:
-                return None
-            try:
-                real_mod = importlib.import_module(real_name)
-            except Exception:
-                return None
-            # Also expose the alias as an attribute of its parent so plain
-            # attribute lookups keep working (e.g. ``src.browsergym.eval``).
-            parent_name, _, child = fullname.rpartition(".")
-            if parent_name in sys.modules:
-                setattr(sys.modules[parent_name], child, real_mod)
-            return importlib.util.spec_from_loader(fullname, _AliasLoader(real_mod))
-
-    sys.meta_path.insert(0, _KnowsEvalShim())
-
-
-_install_eval_import_shim()
 class KnowsBenchTask(AbstractBrowserTask):
     """
     BrowserGym task class that inherits from AbstractBrowserTask.
@@ -899,9 +823,7 @@ class KnowsWorkspaceTask(KnowsBenchTask):
 
         Instance directories under ``eval/tasks/<family>/`` are not Python
         packages (no ``__init__.py``), so we load the evaluator module
-        directly from its file path. Two extra fix-ups happen here so the
-        legacy evaluator code keeps working after the eval tree was moved
-        inside the ``browsergym.knows`` package:
+        directly from its file path. Two extra fix-ups happen here:
 
         1. ``TOKEN_PATH`` and ``CLIENT_SECRETS_PATH`` env vars are set to the
            bundled OAuth files (``browsergym/knows/auth-data/...``) so
@@ -910,9 +832,8 @@ class KnowsWorkspaceTask(KnowsBenchTask):
         2. After the module loads, its path constants (``TASK_DIR``,
            ``DATA_DIR``, ``DOC_IMAGES_DIR``, ``GOLD_IMAGES_DIR``, …) are
            rewritten to point inside this package's
-           ``eval/tasks/<family>/instance_X/`` folder. The legacy code
-           computes them as ``<cwd>/src/browsergym/eval/...``, which no
-           longer exists in the new layout.
+           ``eval/tasks/<family>/instance_X/`` folder, or to the gold-data
+           cache when installed from a wheel (see eval_utils/data_paths.py).
         """
         evaluator_path = (
             EVAL_TASKS_DIR

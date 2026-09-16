@@ -6,27 +6,25 @@ import time
 import argparse
 from typing import List
 
-BASE_PATH = (
-    "/app" if os.path.exists("/app/src")
-    else "/scratch/general/vast/USER/Agent-Benchmark/" if os.path.exists("/scratch")
-    else os.getcwd()
-)
-sys.path.append(BASE_PATH)
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.data_paths import resolve_task_dir
 
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory, calculate_percentage_score
-from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
-from src.browsergym.knows.eval.eval_utils.google_sheets_utils import (
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, StepCategory, calculate_percentage_score
+from browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
+from browsergym.knows.eval.eval_utils.google_sheets_utils import (
     get_sheet_content,
     detect_header_row,
     parse_sheet_to_dataframe,
 )
-from src.browsergym.knows.eval.eval_utils.models import load_model
-from src.browsergym.knows.eval.eval_utils.table_utils import (
+from browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.table_utils import (
     get_cell, get_column_index_by_name, get_text_foreground_color,
 )
-from src.browsergym.knows.eval.eval_utils.web_utils import is_url_from_domain
+from browsergym.knows.eval.eval_utils.web_utils import is_url_from_domain
 
-from src.browsergym.knows.eval.tasks.sheets_28_personal_travel_planner.utils import (
+from browsergym.knows.eval.tasks.sheets_28_personal_travel_planner.utils import (
     REQUIRED_COLUMNS,
     EXPECTED_ACTIVITIES_PER_DAY,
     EXPECTED_FOOD_STOPS_PER_DAY,
@@ -45,10 +43,7 @@ from src.browsergym.knows.eval.tasks.sheets_28_personal_travel_planner.utils imp
     find_semantic_duplicates,
 )
 
-TASK_DIR = os.path.join(
-    BASE_PATH,
-    "src/browsergym/knows/eval/tasks/sheets_28_personal_travel_planner/instance_5/",
-)
+TASK_DIR = resolve_task_dir(__file__)
 model_id = "gemini-3-flash-google-ai"
 GOOGLE_MAPS_DOMAINS = ("google.com/maps", "maps.app.goo.gl", "goo.gl/maps", "maps.google.com")
 

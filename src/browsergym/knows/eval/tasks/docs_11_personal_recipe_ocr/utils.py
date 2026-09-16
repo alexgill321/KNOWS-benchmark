@@ -15,7 +15,7 @@ import glob
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple, Any
 from rapidfuzz import fuzz
-from src.browsergym.knows.eval.eval_utils.text_utils import text_fuzzy_match_contained_long
+from browsergym.knows.eval.eval_utils.text_utils import text_fuzzy_match_contained_long
 
 
 # ============================================================================
@@ -746,14 +746,14 @@ def setup_document(
     Returns:
         Dict with keys: doc_id, doc_text, doc_structure
     """
-    from src.browsergym.knows.eval.eval_utils.google_services_utils import (
+    from browsergym.knows.eval.eval_utils.google_services_utils import (
         download_doc_as_pdf,
         extract_text_from_doc,
         extract_structure_from_doc,
         extract_images_from_doc,
         extract_images_from_doc_with_cropping,
     )
-    from src.browsergym.knows.eval.eval_utils.image_utils import convert_pdf_to_pngs
+    from browsergym.knows.eval.eval_utils.image_utils import convert_pdf_to_pngs
 
     if not workspace_doc_id:
         raise ValueError("workspace_doc_id is required")
@@ -997,7 +997,7 @@ def compare_ingredient_lists(
     Returns:
         Tuple of (all_matched, details) where details is a list of match info.
     """
-    from src.browsergym.knows.eval.eval_utils.text_utils import fuzzy_match_text
+    from browsergym.knows.eval.eval_utils.text_utils import fuzzy_match_text
 
     def _normalize(text: str) -> str:
         """Normalize common variations for ingredient comparison."""

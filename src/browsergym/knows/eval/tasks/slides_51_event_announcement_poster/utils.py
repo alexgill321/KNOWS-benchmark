@@ -5,16 +5,16 @@ Task-level utilities for slides_51_event_announcement_poster.
 import os
 from typing import Dict, Any, Optional, List, Tuple
 from rapidfuzz import fuzz
-from src.browsergym.knows.eval.eval_utils.slides_utils import (
+from browsergym.knows.eval.eval_utils.slides_utils import (
     extract_text_boxes_from_slide,
     get_text_style_from_shape,
     extract_speaker_notes_text,
     get_shape_background_fill,
     is_grey_color,
 )
-from src.browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_content
-from src.browsergym.knows.eval.eval_utils.utils import is_bbox_mostly_inside, bbox_overlap_ratio
-from src.browsergym.knows.eval.eval_utils.parallel_utils import parallel_execute
+from browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_content
+from browsergym.knows.eval.eval_utils.utils import is_bbox_mostly_inside, bbox_overlap_ratio
+from browsergym.knows.eval.eval_utils.parallel_utils import parallel_execute
 
 PANCHEKHA_REFERENCE_URL = "https://browser.engineering/onepage.html"
 _REFERENCE_CACHE_PATH = os.path.join(

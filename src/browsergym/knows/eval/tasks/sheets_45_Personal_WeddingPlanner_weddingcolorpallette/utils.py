@@ -15,28 +15,27 @@ import re
 import time
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
-# Imports from eval_utils
-from src.browsergym.knows.eval.eval_utils.web_utils import (
+from browsergym.knows.eval.eval_utils.web_utils import (
     fetch_page_title,
     fetch_with_fallbacks_extended,
 )
-from src.browsergym.knows.eval.eval_utils.parallel_utils import (
+from browsergym.knows.eval.eval_utils.parallel_utils import (
     parallel_execute,
     fast_parallel_vlm_calls,
 )
-from src.browsergym.knows.eval.eval_utils.google_sheets_utils import find_urls_in_sheet
-from src.browsergym.knows.eval.eval_utils.table_utils import (
+from browsergym.knows.eval.eval_utils.google_sheets_utils import find_urls_in_sheet
+from browsergym.knows.eval.eval_utils.table_utils import (
     get_background_color,
     get_cell_value,
     get_image_url_from_raw_sheet_cell,
     read_column_values,
 )
-from src.browsergym.knows.eval.eval_utils.llm_utils import (
+from browsergym.knows.eval.eval_utils.llm_utils import (
     evaluate_with_llm,
     extract_json_with_llm,
 )
-from src.browsergym.knows.eval.eval_utils.models import load_model
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, StepCategory
+from browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, StepCategory
 
 
 # ---------------------------------------------------------------------------

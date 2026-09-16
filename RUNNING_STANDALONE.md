@@ -63,7 +63,7 @@ Evaluators consume a **flat list of raw URL strings** — no timestamps or title
 
 ## 5. Grade
 
-Run the evaluator **from the repository root** (evaluators resolve imports relative to the current working directory):
+Run the evaluator from any working directory (each evaluator puts `src/` on `sys.path` itself):
 
 ```bash
 export GOOGLE_AI_API_KEY=...   # judge model
@@ -98,7 +98,6 @@ The CLI prints the final score and the detailed report; for programmatic runs pe
 
 ## Gotchas checklist
 
-- [ ] Run evaluators from the repo root (imports depend on CWD).
 - [ ] Share every graded file with the service-account email.
 - [ ] Record full URLs, main-frame navigations only.
 - [ ] `GOOGLE_AI_API_KEY` exported (judge failures degrade to failed steps with the judge's error in `details`).

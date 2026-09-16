@@ -4,25 +4,18 @@ import shutil
 import sys
 import time
 
-# Base path setup
-def get_base_path():
-    if os.path.exists("/app/src"):
-        return "/app"
-    elif os.path.exists("/scratch"):
-        return "/scratch/general/vast/USER/Agent-Benchmark/"
-    else:
-        return os.getcwd()
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.data_paths import resolve_task_dir
 
-BASE_PATH = get_base_path()
-sys.path.append(BASE_PATH)
-
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score, StepCategory
-from src.browsergym.knows.eval.eval_utils.text_utils import keywords_exact_match
-from src.browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
-from src.browsergym.knows.eval.eval_utils.models import load_model
-from src.browsergym.knows.eval.eval_utils.parallel_utils import parallel_download, parallel_execute, parallel_image_match
-from src.browsergym.knows.eval.eval_utils.web_utils import download_image_from_url
-from src.browsergym.knows.eval.eval_utils.slides_utils import (
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, calculate_percentage_score, StepCategory
+from browsergym.knows.eval.eval_utils.text_utils import keywords_exact_match
+from browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
+from browsergym.knows.eval.eval_utils.models import load_model
+from browsergym.knows.eval.eval_utils.parallel_utils import parallel_download, parallel_execute, parallel_image_match
+from browsergym.knows.eval.eval_utils.web_utils import download_image_from_url
+from browsergym.knows.eval.eval_utils.slides_utils import (
     extract_image_source_urls,
     extract_slide_images,
     extract_text_boxes_from_slide,
@@ -31,7 +24,7 @@ from src.browsergym.knows.eval.eval_utils.slides_utils import (
     get_text_style_from_shape,
     is_text_big,
 )
-from src.browsergym.knows.eval.tasks.slides_39_Personal_Lookbook_PaintColors.utils import (
+from browsergym.knows.eval.tasks.slides_39_Personal_Lookbook_PaintColors.utils import (
     browser_headers,
     check_browsing_history,
     download_alt_image,
@@ -43,7 +36,7 @@ from src.browsergym.knows.eval.tasks.slides_39_Personal_Lookbook_PaintColors.uti
 )
 
 # Constants
-TASK_DIR = os.path.join(BASE_PATH, "src/browsergym/knows/eval/tasks/slides_39_Personal_Lookbook_PaintColors/instance_3/")
+TASK_DIR = resolve_task_dir(__file__)
 DATA_DIR = os.path.join(TASK_DIR, "data/")
 
 try:

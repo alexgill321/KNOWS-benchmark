@@ -13,14 +13,14 @@ import contextlib
 import requests
 from rapidfuzz import fuzz
 
-from src.browsergym.knows.eval.eval_utils.llm_utils import extract_json_with_llm
-from src.browsergym.knows.eval.eval_utils.table_utils import colors_are_similar
-from src.browsergym.knows.eval.eval_utils.text_utils import (
+from browsergym.knows.eval.eval_utils.llm_utils import extract_json_with_llm
+from browsergym.knows.eval.eval_utils.table_utils import colors_are_similar
+from browsergym.knows.eval.eval_utils.text_utils import (
     fuzzy_match_text,
     keywords_match_robust,
     match_text_in_list,
 )
-from src.browsergym.knows.eval.eval_utils.web_utils import fetch_page_title
+from browsergym.knows.eval.eval_utils.web_utils import fetch_page_title
 
 # Dark green 2 RGB values as seen in Google Docs API 
 DARK_GREEN_2_RGB = {"red": 0.219, "green": 0.463, "blue": 0.113}

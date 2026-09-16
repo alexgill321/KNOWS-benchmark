@@ -71,20 +71,12 @@ def _arxiv_request_with_retry(url: str, max_retries: int = 3, timeout: int = 30,
                 raise
     raise last_exception
 
-# Base path setup
-def get_base_path():
-    if os.path.exists("/app/src"):
-        return "/app"
-    elif os.path.exists("/scratch"):
-        return "/scratch/general/vast/USER/Agent-Benchmark/"
-    else:
-        return os.getcwd()
-
-BASE_PATH = get_base_path()
-sys.path.append(BASE_PATH)
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")))
 
 from rapidfuzz import fuzz
-from src.browsergym.knows.eval.eval_utils.text_utils import fuzzy_match_text
+from browsergym.knows.eval.eval_utils.text_utils import fuzzy_match_text
 
 # Task-level constants
 # Note: TASK_DIR points to the template level. Instance-specific data is in instance_X/data/
@@ -338,7 +330,7 @@ def compare_authors_list(user_authors: List[str], gold_authors: List[str],
         Tuple of (is_match, details_message).
     """
     # Import normalize_name from eval_utils
-    from src.browsergym.knows.eval.eval_utils.text_utils import normalize_name
+    from browsergym.knows.eval.eval_utils.text_utils import normalize_name
 
     if not user_authors and not gold_authors:
         return True, "Both author lists are empty"

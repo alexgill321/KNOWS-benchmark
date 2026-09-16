@@ -9,13 +9,13 @@ import tempfile
 from collections import Counter
 from typing import Callable, Dict, List, Optional, Tuple
 
-from src.browsergym.knows.eval.eval_utils.google_services_utils import extract_hyperlinks_from_doc
-from src.browsergym.knows.eval.eval_utils.image_utils import (
+from browsergym.knows.eval.eval_utils.google_services_utils import extract_hyperlinks_from_doc
+from browsergym.knows.eval.eval_utils.image_utils import (
     extract_image_location,
     extract_image_location_size_feature_based,
 )
-from src.browsergym.knows.eval.eval_utils.parallel_utils import fast_parallel_vlm_calls  # type: ignore
-from src.browsergym.knows.eval.eval_utils.utils import image_id_from_path, rgb_to_hex
+from browsergym.knows.eval.eval_utils.parallel_utils import fast_parallel_vlm_calls  # type: ignore
+from browsergym.knows.eval.eval_utils.utils import image_id_from_path, rgb_to_hex
 
 
 # Phrases that the parser anchors on. Instance task.md files MUST keep this wording:

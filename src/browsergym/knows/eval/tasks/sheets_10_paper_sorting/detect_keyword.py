@@ -30,7 +30,6 @@ from datetime import datetime
 
 # Local imports
 from utils import (
-    BASE_PATH,
     load_json,
     save_json,
     fetch_arxiv_html,
@@ -43,7 +42,9 @@ from utils import (
     find_tex_files,
 )
 
-sys.path.append(BASE_PATH)
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")))
 
 # Instance-specific keyword defaults
 INSTANCE_KEYWORDS = {
@@ -223,7 +224,7 @@ def main():
     # Load LLM model
     model = None
     try:
-        from src.browsergym.knows.eval.eval_utils.models import load_model
+        from browsergym.knows.eval.eval_utils.models import load_model
         model = load_model("gemini-2.5-flash-google-ai")
         print("LLM model loaded for detection")
     except Exception as e:

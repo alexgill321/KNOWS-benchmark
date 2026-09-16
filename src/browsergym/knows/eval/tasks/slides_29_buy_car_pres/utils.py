@@ -6,13 +6,13 @@ import time
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
-from src.browsergym.knows.eval.eval_utils.image_utils import binary_judge_image
-from src.browsergym.knows.eval.eval_utils.llm_utils import (
+from browsergym.knows.eval.eval_utils.image_utils import binary_judge_image
+from browsergym.knows.eval.eval_utils.llm_utils import (
     extract_json_with_llm as extract_info_with_llm,
     evaluate_with_llm,
 )
-from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, StepCategory
-from src.browsergym.knows.eval.eval_utils.slides_utils import (
+from browsergym.knows.eval.eval_utils.scoring import Checkpoint, StepCategory
+from browsergym.knows.eval.eval_utils.slides_utils import (
     estimate_text_render_bbox,
     extract_slide_links,
     extract_slide_text,
@@ -20,10 +20,10 @@ from src.browsergym.knows.eval.eval_utils.slides_utils import (
     extract_title_text,
     get_element_bbox,
 )
-from src.browsergym.knows.eval.eval_utils.text_utils import keywords_match_robust
-from src.browsergym.knows.eval.eval_utils.utils import bbox_overlap_ratio
-from src.browsergym.knows.eval.eval_utils.parallel_utils import parallel_download
-from src.browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_content
+from browsergym.knows.eval.eval_utils.text_utils import keywords_match_robust
+from browsergym.knows.eval.eval_utils.utils import bbox_overlap_ratio
+from browsergym.knows.eval.eval_utils.parallel_utils import parallel_download
+from browsergym.knows.eval.eval_utils.web_utils import fetch_page_text_content
 
 
 def make_failure_checkpoint(name: str, total: int, step_names: List[str], reason: str,

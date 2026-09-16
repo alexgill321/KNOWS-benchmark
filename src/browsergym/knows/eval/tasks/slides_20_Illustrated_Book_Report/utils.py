@@ -7,9 +7,9 @@ to verify that bullet point characteristics are direct quotes from sources.
 
 import re
 
-from src.browsergym.knows.eval.eval_utils.llm_utils import parse_yes_no
-from src.browsergym.knows.eval.eval_utils.text_utils import text_fuzzy_match_contained_long
-from src.browsergym.knows.eval.eval_utils.web_utils import fetch_with_fallbacks
+from browsergym.knows.eval.eval_utils.llm_utils import parse_yes_no
+from browsergym.knows.eval.eval_utils.text_utils import text_fuzzy_match_contained_long
+from browsergym.knows.eval.eval_utils.web_utils import fetch_with_fallbacks
 
 
 def is_source_link_at_bottom_of_content(slide, link):

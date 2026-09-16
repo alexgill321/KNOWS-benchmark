@@ -17,7 +17,7 @@ import html2text
 import requests
 from playwright.sync_api import sync_playwright, Browser
 
-from src.browsergym.knows.eval.eval_utils.llm_utils import parse_yes_no
+from browsergym.knows.eval.eval_utils.llm_utils import parse_yes_no
 
 # ---------------------------------------------------------------------------
 # IMDb URLs

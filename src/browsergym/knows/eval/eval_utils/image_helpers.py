@@ -2,7 +2,9 @@ import cv2
 import numpy as np
 import os
 import sys
-sys.path.append(os.getcwd())
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")))
 
 # Check if GUI functions are available (not available in headless mode)
 # Set to False by default for headless environments

@@ -7,9 +7,11 @@ from rapidfuzz import fuzz, process
 import sys
 import os
 import re
-sys.path.append(os.getcwd())
-from src.browsergym.knows.eval.eval_utils.utils import location
-from src.browsergym.knows.eval.eval_utils.text_helpers import *
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")))
+from browsergym.knows.eval.eval_utils.utils import location
+from browsergym.knows.eval.eval_utils.text_helpers import *
 
 
 # =============================================================================

@@ -35,17 +35,6 @@ from .task import (
 )
 
 if _HAS_BROWSERGYM:
-    # Backwards-compatible alias for the original single-instance task id used by
-    # the legacy ``knows_1`` benchmark (mapped to instance_1).
-    register_task(
-        "knows.docs_1_formal_letter",
-        DocsFormalLetterTask,
-        task_kwargs={
-            "instance_id": 1,
-            "task_name": "docs_1_formal_letter/instance_1",
-        },
-    )
-
     def _register_task_family(task_cls: type) -> list[str]:
         """Register one gym task per bundled instance for *task_cls*.
 

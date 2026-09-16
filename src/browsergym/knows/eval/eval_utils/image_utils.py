@@ -1,6 +1,8 @@
 import sys
 import os
-sys.path.append(os.getcwd())
+# Make the `browsergym` namespace importable from src/ in a source checkout.
+# When installed from PyPI this resolves to site-packages and is a no-op.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")))
 import fitz  # PyMuPDF
 from PIL import Image
 import cv2
@@ -10,8 +12,8 @@ import io
 # Check if GUI functions are available (not available in headless mode)
 # Set to False by default for headless environments
 GUI_AVAILABLE = False
-from src.browsergym.knows.eval.eval_utils.image_helpers import load_process_images, find_template_scale_invariant, parse_response
-from src.browsergym.knows.eval.eval_utils.utils import location, retrieve_validate_doc_path
+from browsergym.knows.eval.eval_utils.image_helpers import load_process_images, find_template_scale_invariant, parse_response
+from browsergym.knows.eval.eval_utils.utils import location, retrieve_validate_doc_path
 
 def convert_pdf_to_pngs(pdf_path, output_dir, dpi=300):
     """Converts each page of a PDF file to a PNG image.
