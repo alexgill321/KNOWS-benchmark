@@ -24,6 +24,7 @@ import re
 from abc import abstractmethod
 
 from .eval.eval_utils.run_targets import needs_provisioning, resolve_prompt
+from .eval.eval_utils.data_paths import resolve_instance_dir
 
 # Recognized workspace kinds (i.e. which Google app the task targets). Used to
 # pick the right doc-creation URL and the right id-extraction regex.
@@ -982,10 +983,14 @@ class KnowsWorkspaceTask(KnowsBenchTask):
         spec.loader.exec_module(module)
 
         # 2. Redirect every path constant to the actual on-disk location.
-        # Different task families use different subset of these constants;
-        # ``hasattr`` guards make the redirect a no-op when an attribute is
-        # absent (e.g. sheets evaluators that only use ``TASK_DIR``).
-        instance_dir = evaluator_path.parent
+        # ``resolve_instance_dir`` returns the package directory in a source
+        # checkout, or the gold-data cache directory when installed from a
+        # wheel (data/ is stripped from the wheel and downloaded on first use;
+        # see eval_utils/data_paths.py). Different task families use different
+        # subsets of these constants; ``hasattr`` guards make the redirect a
+        # no-op when an attribute is absent.
+        legacy_task_dir = getattr(module, "TASK_DIR", None)
+        instance_dir = resolve_instance_dir(evaluator_path.parent)
         path_overrides = {
             "TASK_DIR": str(instance_dir) + os.sep,
             "DATA_DIR": str(instance_dir / "data") + os.sep,
@@ -1006,6 +1011,22 @@ class KnowsWorkspaceTask(KnowsBenchTask):
         for attr, new_value in path_overrides.items():
             if hasattr(module, attr):
                 setattr(module, attr, new_value)
+
+        # Any other module-level path built from the legacy TASK_DIR (e.g.
+        # ``LOGOS_DIR``, ``GOLD_DATA_PATH``, ``TASK_MD_PATH``) is re-rooted the
+        # same way, so families with bespoke constants need no table entry.
+        if isinstance(legacy_task_dir, str) and legacy_task_dir:
+            legacy_root = os.path.normpath(legacy_task_dir)
+            for attr, value in list(vars(module).items()):
+                if attr in path_overrides or not isinstance(value, str):
+                    continue
+                norm = os.path.normpath(value)
+                if norm == legacy_root or norm.startswith(legacy_root + os.sep):
+                    rel = os.path.relpath(norm, legacy_root)
+                    rerooted = str(instance_dir) if rel == "." else os.path.join(str(instance_dir), rel)
+                    if value.endswith(os.sep) or value.endswith("/"):
+                        rerooted += os.sep
+                    setattr(module, attr, rerooted)
 
         return module
 

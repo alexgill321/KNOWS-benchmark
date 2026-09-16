@@ -1,9 +1,12 @@
+__version__ = "1.2.0"
+
 try:
     from browsergym.core.registration import register_task
     _HAS_BROWSERGYM = True
 except ImportError:
     _HAS_BROWSERGYM = False
 
+from .eval.eval_utils.data_paths import ensure_gold_data
 from .task import (
     DocsFormalLetterTask,
     DocsEducationLessonPlanTask,
@@ -95,6 +98,7 @@ if _HAS_BROWSERGYM:
 
 
 __all__ = [
+    "ensure_gold_data",
     "DocsFormalLetterTask",
     "DocsEducationLessonPlanTask",
     "DocsInfluentialPapersTask",

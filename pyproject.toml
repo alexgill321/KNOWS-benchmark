@@ -25,10 +25,25 @@ dynamic = ["dependencies", "version"]
 homepage = "https://github.com/ServiceNow/BrowserGym"
 
 [tool.hatch.version]
-path = "../core/src/browsergym/core/__init__.py"
+path = "src/browsergym/knows/__init__.py"
 
 [tool.hatch.metadata.hooks.requirements_txt]
 files = ["requirements.txt"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/browsergym"]
+# Gold data (~225 MB) exceeds PyPI's 100 MB file limit; it is published as a
+# GitHub release asset and fetched on first use (eval_utils/data_paths.py).
+exclude = [
+    "src/browsergym/knows/eval/tasks/*/instance_*/data/",
+    "**/perturbation_testing/",
+]
+
+[tool.hatch.build.targets.sdist]
+# Closed allowlist: pip builds the wheel from this when no wheel matches, so it
+# must hold exactly the package sources and nothing else from the repo root.
+only-include = ["src/browsergym", "README.md", "LICENSE", "requirements.txt"]
+exclude = [
+    "src/browsergym/knows/eval/tasks/*/instance_*/data/",
+    "**/perturbation_testing/",
+]
