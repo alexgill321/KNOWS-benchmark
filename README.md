@@ -50,7 +50,22 @@ git submodule update --init --recursive   # pulls this repo into browsergym/know
 
 Every evaluator is a standalone script: give your agent the `task.md` prompt plus a Google file it can edit, record the URLs it visits, then run the evaluator against the resulting file ID. **See [RUNNING_STANDALONE.md](RUNNING_STANDALONE.md)** for the complete protocol (provisioning, sharing, prompting, history capture, grading, and output parsing).
 
-## Setup (required for both options)
+### Option C — Install as a package
+
+```bash
+pip install browsergym-knows          # Python >= 3.10
+python -m playwright install chromium
+```
+
+This installs the evaluators and registers all 110 tasks as BrowserGym environments (`browsergym/knows.<family>.<instance>`); it is what the upstream BrowserGym `knows` backend installs. The ~210 MB of gold evaluation data is not in the wheel: it is downloaded once from this repository's GitHub release on first use into `~/.cache/browsergym-knows/` (override the location with `KNOWS_DATA_DIR`), or prefetch it explicitly:
+
+```bash
+python -c "import browsergym.knows; browsergym.knows.ensure_gold_data()"
+```
+
+Add the `[local-models]` extra to run local judge models instead of the Gemini API. The Setup section below applies to all three options.
+
+## Setup (required for all options)
 
 Evaluators read the agent's artifact through the Google Workspace APIs and use a Gemini model as the LLM/VLM judge.
 
