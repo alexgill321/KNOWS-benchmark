@@ -22,7 +22,7 @@ sys.path.append(BASE_PATH)
 
 from src.browsergym.knows.eval.eval_utils.scoring import Checkpoint, Result, EvaluationStep, StepCategory # type: ignore
 from src.browsergym.knows.eval.eval_utils.google_services_utils import *  # type: ignore
-from src.browsergym.knows.eval.eval_utils.text_utils import extract_text_from_pdf, keyword_exact_match, extract_text_location, get_smallest_x_position, find_gold_text_location, strip_label_prefix # type: ignore
+from src.browsergym.knows.eval.eval_utils.text_utils import extract_text_from_pdf_file, keyword_exact_match, extract_text_location, get_smallest_x_position, find_gold_text_location, strip_label_prefix # type: ignore
 from src.browsergym.knows.eval.eval_utils.image_utils import * # type: ignore
 from src.browsergym.knows.eval.eval_utils.utils import layout, image_id_from_path, location as Location # type: ignore
 from src.browsergym.knows.eval.eval_utils.models import load_model # type: ignore
@@ -121,13 +121,13 @@ def setup_document(workspace_doc_id):
     download_doc_as_pdf(doc_id, pdf_path, DRIVE_SERVICE)
     convert_pdf_to_pngs(pdf_path, PDF_IMAGES_DIR, dpi=PDF_DPI)   
 
-    # Phase 2: Run OCR and Google API calls in parallel
-    # OCR doesn't depend on Google APIs, so we can run them concurrently
+    # Phase 2: Run PDF text extraction and Google API calls in parallel
+    # Text extraction doesn't depend on Google APIs, so we can run them concurrently
     def run_ocr():
         try:
-            return extract_text_from_pdf(PDF_IMAGES_DIR)
+            return extract_text_from_pdf_file(pdf_path, dpi=PDF_DPI)
         except Exception as e:
-            print(f"OCR extraction failed: {e}")
+            print(f"PDF text-layer extraction failed: {e}")
             return {}
 
     def run_google_api_calls():

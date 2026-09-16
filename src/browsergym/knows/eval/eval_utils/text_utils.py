@@ -4,12 +4,11 @@ from typing import List, Optional, Union, Any
 from rapidfuzz import fuzz, process
 
 # Global cache for DocTR OCR model to avoid reloading
-_ocr_model_cache = None
 import sys
 import os
 import re
 sys.path.append(os.getcwd())
-from src.browsergym.knows.eval.eval_utils.utils import retrieve_validate_doc_path, bbox_ratio_to_location, location
+from src.browsergym.knows.eval.eval_utils.utils import location
 from src.browsergym.knows.eval.eval_utils.text_helpers import *
 
 
@@ -518,72 +517,75 @@ def match_text_in_list(text, text_list, threshold=80):
 
     return None, 0
 
-def extract_text_from_pdf(pdf_images_path):
-    """
-    Extract text from a PDF file OCR via doctr.
+def extract_text_from_pdf_file(pdf_path, dpi=300):
+    """Read the text layer of a PDF into the pages/lines/words structure the location checks use.
+
+    Reads the PDF's own text layer via PyMuPDF, so the result is exact and
+    needs no OCR model. Every PDF an evaluator inspects is its own export of a Google
+    Workspace file, which always carries a text layer.
+
+    Coordinates are scaled to the pixel frame of the page rendered at *dpi*,
+    matching ``convert_pdf_to_pngs`` (zoom = dpi / 72), so the resulting
+    ``location`` objects are directly comparable with image-derived locations
+    and with the fixed page regions in ``location.is_upper_left`` etc.
 
     Args:
-        pdf_images_path (str): Path to the PDF file images.
+        pdf_path (str): Path to the PDF file.
+        dpi (int): DPI the page images were rendered at. Default 300.
 
-    Outputs:
-        str: Extracted text from the PDF.
+    Returns:
+        dict: ``{page_idx: [{"text": str, "location": location, "words": [
+        {"value": str, "location": location}, ...]}, ...]}`` with 0-based page
+        indices. Line text is each word followed by a single space, as the OCR
+        output was. Pages with no text layer yield an empty list.
     """
-    from doctr.models import ocr_predictor
-    from doctr.io import DocumentFile
-    global _ocr_model_cache
+    import fitz  # PyMuPDF
 
-    image_paths = retrieve_validate_doc_path(pdf_images_path)
-    doc = DocumentFile.from_images(image_paths)
-
-    # Use cached OCR model or create new one
-    if _ocr_model_cache is None:
-        print("Loading DocTR OCR model for the first time...")
-        _ocr_model_cache = ocr_predictor(pretrained=True)
-        print("DocTR OCR model loaded and cached!")
-
-    result = _ocr_model_cache(doc)
-    result_json = result.export()
+    zoom = dpi / 72.0
     formatted_results = {}
-    for page in result_json["pages"]:
-        formatted_results[page["page_idx"]] = []
-        image_width = doc[page["page_idx"]].shape[1]
-        image_height = doc[page["page_idx"]].shape[0]
-        for block in page["blocks"]:
-            for line in block["lines"]:
-                words = []
-                for word in line["words"]:
-                    word = {
-                        "value": word["value"],
-                        "location": bbox_ratio_to_location(
-                            [word["geometry"][0][0], word["geometry"][0][1], word["geometry"][1][0], word["geometry"][1][1]], 
-                            page["page_idx"], 
-                            image_width, 
-                            image_height
-                        ),
-                    }
-                    words.append(word)
-                line = {
-                    "text": "".join(word["value"] + " " for word in line["words"]),
-                    "location": bbox_ratio_to_location(
-                        [line["geometry"][0][0], line["geometry"][0][1], line["geometry"][1][0], line["geometry"][1][1]], 
-                        page["page_idx"], 
-                        image_width, 
-                        image_height
-                    ),
-                    "words": words                
+    with fitz.open(pdf_path) as doc:
+        for page_idx, page in enumerate(doc):
+            lines = []
+            # (x0, y0, x1, y1, word, block_no, line_no, word_no), in reading order
+            words = page.get_text("words", sort=True)
+            current_key = None
+            current = None
+            for x0, y0, x1, y1, value, block_no, line_no, _word_no in words:
+                value = value.strip()
+                if not value:
+                    continue
+                key = (block_no, line_no)
+                if key != current_key:
+                    current = {"words": [], "bbox": [x0, y0, x1, y1]}
+                    lines.append(current)
+                    current_key = key
+                current["words"].append((value, [x0, y0, x1, y1]))
+                b = current["bbox"]
+                b[0], b[1], b[2], b[3] = min(b[0], x0), min(b[1], y0), max(b[2], x1), max(b[3], y1)
+
+            def _loc(bbox):
+                x0, y0, x1, y1 = bbox
+                return location(page_idx, x0 * zoom, y0 * zoom, (x1 - x0) * zoom, (y1 - y0) * zoom)
+
+            formatted_results[page_idx] = [
+                {
+                    "text": "".join(value + " " for value, _ in ln["words"]),
+                    "location": _loc(ln["bbox"]),
+                    "words": [{"value": value, "location": _loc(bbox)} for value, bbox in ln["words"]],
                 }
-                formatted_results[page["page_idx"]].append(line)
+                for ln in lines
+            ]
     return formatted_results
 
 
 def extract_text_location(ocr_result, text_to_find):
     """
-    Extract the location of a specific text in the OCR result from extract_text_from_pdf.
+    Extract the location of a specific text in the result of extract_text_from_pdf_file.
     Will return the bounding box coordinates around the located text, which could span
     across a single line or multiple lines.
 
     Args:
-        ocr_result (dict): The OCR result from extract_text_from_pdf.
+        ocr_result (dict): The result from extract_text_from_pdf_file.
         text_to_find (str): The text to find in the OCR results.
 
     Returns:
@@ -809,7 +811,7 @@ def find_gold_text_location(target_text, doc_structure, text_ocr, threshold=60):
     Args:
         target_text (str): The text to locate (e.g. an email address or URL).
         doc_structure (list): Document structure from extract_structure_from_doc().
-        text_ocr (dict): OCR result from extract_text_from_pdf().
+        text_ocr (dict): Result from extract_text_from_pdf_file().
         threshold (int): Minimum fuzzy match score (0-100).
 
     Returns:

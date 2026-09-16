@@ -19,7 +19,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "License :: OSI Approved :: Apache Software License",
 ]
-dynamic = ["dependencies", "version"]
+dynamic = ["dependencies", "optional-dependencies", "version"]
 
 [project.urls]
 homepage = "https://github.com/ServiceNow/BrowserGym"
@@ -29,6 +29,9 @@ path = "src/browsergym/knows/__init__.py"
 
 [tool.hatch.metadata.hooks.requirements_txt]
 files = ["requirements.txt"]
+
+[tool.hatch.metadata.hooks.requirements_txt.optional-dependencies]
+local-models = ["requirements-local-models.txt"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/browsergym"]
@@ -42,7 +45,7 @@ exclude = [
 [tool.hatch.build.targets.sdist]
 # Closed allowlist: pip builds the wheel from this when no wheel matches, so it
 # must hold exactly the package sources and nothing else from the repo root.
-only-include = ["src/browsergym", "README.md", "LICENSE", "requirements.txt"]
+only-include = ["src/browsergym", "README.md", "LICENSE", "requirements.txt", "requirements-local-models.txt"]
 exclude = [
     "src/browsergym/knows/eval/tasks/*/instance_*/data/",
     "**/perturbation_testing/",

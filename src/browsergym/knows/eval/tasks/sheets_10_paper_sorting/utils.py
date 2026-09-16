@@ -762,9 +762,7 @@ def find_png_files(source_dir: str) -> List[str]:
 
 
 def convert_pdf_to_png(pdf_path: str, output_path: Optional[str] = None, dpi: int = 150) -> Optional[str]:
-    """Convert a PDF file to PNG.
-
-    Uses pdf2image library (requires poppler).
+    """Render the first page of a PDF to PNG with PyMuPDF.
 
     Args:
         pdf_path: Path to the PDF file.
@@ -775,50 +773,19 @@ def convert_pdf_to_png(pdf_path: str, output_path: Optional[str] = None, dpi: in
         Path to the PNG file, or None if conversion failed.
     """
     try:
-        from pdf2image import convert_from_path
+        import fitz  # PyMuPDF
 
         if output_path is None:
             output_path = os.path.splitext(pdf_path)[0] + '.png'
-
-        # Convert first page only
-        images = convert_from_path(pdf_path, first_page=1, last_page=1, dpi=dpi)
-
-        if images:
-            images[0].save(output_path, 'PNG')
-            return output_path
-
+        with fitz.open(pdf_path) as doc:
+            if len(doc) == 0:
+                return None
+            zoom = dpi / 72
+            doc[0].get_pixmap(matrix=fitz.Matrix(zoom, zoom)).save(output_path)
+        return output_path
+    except Exception as e:
+        print(f"Error converting PDF to PNG: {e}")
         return None
-
-    except ImportError:
-        # Try alternative: use subprocess with pdftoppm if available
-        try:
-            import subprocess
-            if output_path is None:
-                output_path = os.path.splitext(pdf_path)[0] + '.png'
-
-            # pdftoppm outputs with a suffix, so we need to handle that
-            output_base = os.path.splitext(output_path)[0]
-            result = subprocess.run(
-                ['pdftoppm', '-png', '-f', '1', '-l', '1', '-r', str(dpi), pdf_path, output_base],
-                capture_output=True, timeout=30
-            )
-
-            # pdftoppm adds -1 suffix for single page
-            expected_output = f"{output_base}-1.png"
-            if os.path.exists(expected_output):
-                os.rename(expected_output, output_path)
-                return output_path
-
-            # Sometimes it doesn't add the suffix
-            if os.path.exists(output_path):
-                return output_path
-
-            return None
-        except Exception:
-            return None
-    except Exception:
-        return None
-
 
 def find_pdf_files(source_dir: str) -> List[str]:
     """Find all PDF image files in a source directory."""

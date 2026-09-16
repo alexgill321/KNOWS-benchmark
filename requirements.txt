@@ -23,15 +23,16 @@ tabulate  # required by pandas.DataFrame.to_markdown() used in evaluators
 # Image Processing
 Pillow
 google-auth-httplib2
-fuzzywuzzy
-python-doctr
-python-Levenshtein
-opencv-python
-PyMuPDF
+opencv-python-headless
+PyMuPDF  # PDF rendering and text-layer extraction (no OCR model needed)
 imagehash
 
 # Text Processing
 rapidfuzz
+
+# SVG figure rendering (sheets_10); pure-pip fallback chain for cairosvg
+svglib
+reportlab
 
 # Hugging Face (for API access, not local models)
 huggingface-hub
@@ -39,23 +40,8 @@ huggingface-hub
 # Academic APIs
 arxiv
 
-# Web Server
-flask
-gunicorn
-
-# Claude API (for perturbation testing with computer use)
-anthropic>=0.40.0
-
-paperscraper
-
-# Optional: Task-specific dependencies (uncomment if needed)
+# Optional: task-specific dependencies (uncomment if needed)
 # oxylabs        # sheets_38 task
-# llama-cpp-python  # Local Llama models
-# qwen-vl-utils     # Qwen VL models
 
-# Optional: local judge models (the default judge uses the Google AI API and
-# does not need these; uncomment only to run local HF models from models.py)
-# transformers
-# torch
-# torchvision
-# accelerate
+# Optional extras live in requirements-local-models.txt:
+#   pip install browsergym-knows[local-models]

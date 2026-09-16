@@ -1,0 +1,7 @@
+# Optional: run local judge models from eval_utils/models.py instead of the
+# default Google AI API judge.  pip install browsergym-knows[local-models]
+transformers
+torch
+accelerate
+llama-cpp-python
+qwen-vl-utils
