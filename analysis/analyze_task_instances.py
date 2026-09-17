@@ -15,7 +15,7 @@ import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
 
-TASKS_DIR = Path(__file__).parent / "src" / "browsergym" / "knows" / "eval" / "tasks"
+TASKS_DIR = Path(__file__).parent.parent / "src" / "browsergym" / "knows" / "eval" / "tasks"
 OUTPUT_MD = Path(__file__).parent / "analysis_results.md"
 
 # Keywords used to infer template type from step description text (for Eval Steps: format)

@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.env
+auth-data/
+.vscode/
+.claude/
+*.log
+.DS_Store
+.venv/
+dist/

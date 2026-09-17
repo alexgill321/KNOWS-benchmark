@@ -1,7 +1,7 @@
 """Playwright UI fallback for sharing a Google workspace file with the SA.
 
 The KNOWS evaluator authenticates as a service account
-(``doc-evaluator@your-gcp-project.iam.gserviceaccount.com`` by
+(``your-evaluator-sa@your-project.iam.gserviceaccount.com`` by
 default). The primary share path is the Drive API call in
 :func:`browsergym.knows.doc_setup.share_doc_with_service_account`, which is
 fast and runs server-side. When that path fails (e.g. the service account

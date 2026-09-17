@@ -4,6 +4,7 @@ This module contains utilities that are reusable across all instances of this ta
 Instance-specific constants (like ingredient lists) should be defined in each instance's evaluator.py.
 """
 
+import os
 import re
 from typing import Any, Optional, List
 
@@ -76,7 +77,7 @@ def fetch_usda_page_title(url: str, timeout: int = 10, max_retries: int = 3) -> 
     if not food_id:
         return None
 
-    api_key = '[REDACTED]'
+    api_key = os.environ.get('USDA_API_KEY', 'YOUR_USDA_API_KEY')
     api_url = f'https://api.nal.usda.gov/fdc/v1/food/{food_id}?api_key={api_key}'
 
     data = fetch_api_with_retry(api_url, timeout=timeout, max_retries=max_retries)
@@ -133,7 +134,7 @@ def fetch_usda_nutrients(url: str, timeout: int = 10, max_retries: int = 3) -> O
     if not food_id:
         return None
 
-    api_key = '[REDACTED]'
+    api_key = os.environ.get('USDA_API_KEY', 'YOUR_USDA_API_KEY')
     api_url = f'https://api.nal.usda.gov/fdc/v1/food/{food_id}?api_key={api_key}'
 
     data = fetch_api_with_retry(api_url, timeout=timeout, max_retries=max_retries)

@@ -338,7 +338,6 @@ def binary_compare_images(model, image1_path, image2_path, mode="same"):
 #         if "OmniParser" not in ' '.join(sys.path):
 #             omniparser_possible_paths = [
 #                 os.path.expanduser("~/Documents/GitHub/OmniParser"),
-#                 "C:/Users/alexg/Documents/GitHub/OmniParser"  # From process_screenshot_omniparser.py
 #             ]
             
 #             for path in omniparser_possible_paths:
@@ -363,8 +362,6 @@ def binary_compare_images(model, image1_path, image2_path, mode="same"):
 #     print(f"Using device: {device}")
     
 #     # Set model paths based on process_screenshot_omniparser.py
-#     model_path = "C:/Users/alexg/Documents/GitHub/OmniParser/weights/icon_detect/model.pt"
-#     caption_path = "C:/Users/alexg/Documents/GitHub/OmniParser/weights/icon_caption_florence"
     
 #     # Load models
 #     try:

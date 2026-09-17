@@ -221,12 +221,12 @@ _models = {
 # Cloud Run service configurations
 CLOUD_SERVICES = {
     "gemma3-12b-cloud": {
-        "url": "https://gemma-service-000000000000.us-central1.run.app",
+        "url": "https://YOUR-CLOUD-RUN-SERVICE.us-central1.run.app",
         "model": "gemma3:12b",
         "endpoint": "/api/generate"
     },
     "gemma3-27b-cloud": {
-        "url": "https://gemma3-27b-service-xxx.us-central1.run.app",
+        "url": "https://YOUR-CLOUD-RUN-27B-SERVICE.us-central1.run.app",
         "model": "gemma3:27b",
         "endpoint": "/api/generate"
     }
