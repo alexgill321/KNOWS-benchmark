@@ -170,14 +170,17 @@ If you use KNOWS, please cite:
 
 ```bibtex
 @inproceedings{gill2026knows,
-  title     = {The Hard Part Comes After Search: Benchmarking Web Agents on
-               Synthesizing, Organizing, and Displaying Knowledge},
-  author    = {Gill, Alexander and Ishmam, Md Farhan and Nguyen, Xuyen and
-               Bhat, Neha and DeYoung, Parker Henry and
-               Hashemi Chaleshtori, Fateme and Stringham, Nathan and
-               Marino, Kenneth and Marasovi\'{c}, Ana},
-  booktitle = {Findings of the Association for Computational Linguistics: EMNLP 2026},
-  year      = {2026}
+  title         = {The Hard Part Comes After Search: Benchmarking Web Agents on
+                   Synthesizing, Organizing, and Displaying Knowledge},
+  author        = {Gill, Alexander and Ishmam, Md Farhan and Nguyen, Xuyen and
+                   Bhat, Neha and DeYoung, Parker Henry and
+                   Hashemi Chaleshtori, Fateme and Stringham, Nathan and
+                   Marino, Kenneth and Marasovi\'{c}, Ana},
+  booktitle     = {Findings of the Association for Computational Linguistics: EMNLP 2026},
+  year          = {2026},
+  url           = {https://arxiv.org/abs/2609.30604},
+  eprint        = {2609.30604},
+  archivePrefix = {arXiv}
 }
 ```
 
