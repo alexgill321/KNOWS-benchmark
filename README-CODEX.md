@@ -26,8 +26,10 @@ cp benchmark.example.json benchmark.local.json
 
 Edit the local config to point to your Google browser `storage_state`, evaluator
 service account, owner OAuth token/client credentials, and judge-key `.env`.
-These files and all results are ignored by Git. Existing environment files are
-read with a restricted Google/judge key allowlist. The agent process receives
+These files and raw run outputs are ignored by Git. Curated result dictionaries
+and recorded configurations are published separately in [results/](results/).
+Existing environment files are read with a restricted Google/judge key allowlist.
+The agent process receives
 neither those secrets nor evaluator tools.
 
 The saved Google browser state must belong to a dedicated benchmark account.

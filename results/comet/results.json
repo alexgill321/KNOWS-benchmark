@@ -1,0 +1,1390 @@
+{
+  "schema_version": 1,
+  "system": "Perplexity Comet",
+  "agent_model": "Claude Opus 4.7",
+  "scope": "Published aggregate table and three detailed examples; the full 110-task Comet dictionary is not present in this repository.",
+  "configuration_file": "../CONFIGURATIONS.md#comet",
+  "summary": {
+    "unit": "percent",
+    "precision": "As published, rounded to one decimal place.",
+    "by_artifact": {
+      "Docs": {
+        "success_rate_percent": 12.0,
+        "average_checkpoint_fraction_percent": 68.7
+      },
+      "Sheets": {
+        "success_rate_percent": 0.0,
+        "average_checkpoint_fraction_percent": 73.0
+      },
+      "Slides": {
+        "success_rate_percent": 0.0,
+        "average_checkpoint_fraction_percent": 67.5
+      },
+      "Overall": {
+        "success_rate_percent": 2.7,
+        "average_checkpoint_fraction_percent": 70.0
+      }
+    }
+  },
+  "summary_source": {
+    "path": "docs/index.html",
+    "section": "results",
+    "sha256": "662d6a8e17f52ab189131d7c5c52e3e1022b9865afa4bcc115b518bb4c1b2dc8"
+  },
+  "example_count": 3,
+  "results": {
+    "knows.docs_11_personal_recipe_ocr.1": {
+      "artifact": "Docs",
+      "instance": 1,
+      "title": "Recipe OCR",
+      "result": {
+        "score": {
+          "result": 37,
+          "total": 53
+        },
+        "categories": {
+          "deterministic": {
+            "total": 12,
+            "passed": 11,
+            "failed": 1
+          },
+          "fuzzy_match": {
+            "total": 14,
+            "passed": 14,
+            "failed": 0
+          },
+          "llm_vlm_judgement": {
+            "total": 17,
+            "passed": 12,
+            "failed": 5
+          },
+          "structural": {
+            "total": 3,
+            "passed": 0,
+            "failed": 3
+          },
+          "execution_error": {
+            "total": 5,
+            "passed": 0,
+            "failed": 5
+          }
+        },
+        "checkpoints": [
+          {
+            "name": "Original Recipe Page",
+            "result": 7,
+            "total": 10,
+            "steps": [
+              {
+                "name": "Title Match",
+                "success": true,
+                "details": "Title 'Pumpkin Soup' matches 'Pumpkin Soup'",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Ingredients Match",
+                "success": true,
+                "details": "All 6 ingredients matched",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Preparation Steps Match",
+                "success": true,
+                "details": "All 4 steps matched (text, numbers, verbs)",
+                "category": "llm_vlm_judgement",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Tips Relevance",
+                "success": true,
+                "details": "All 3 tips are relevant to pumpkin soup",
+                "category": "llm_vlm_judgement",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Tips URLs Valid",
+                "success": true,
+                "details": "All 3 tip source URLs are accessible",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Tips Are Direct Quotes",
+                "success": true,
+                "details": "All tips verified as quotes from sources",
+                "category": "llm_vlm_judgement",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Image from Original",
+                "success": false,
+                "details": "First recipe image does not match original recipe image",
+                "category": "llm_vlm_judgement",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Image Properly Cropped",
+                "success": true,
+                "details": "Image dimensions (214x287 PT) fit template slot (214x287 PT)",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Image Shows Recipe Text",
+                "success": false,
+                "details": "Recipe text not clearly visible in image (VLM rejected)",
+                "category": "llm_vlm_judgement",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Info Modified from Defaults",
+                "success": false,
+                "details": "Ready In: 30 min (expected 36-50); Serves: 4 (changed from default 8); Calories: 180 (changed from default 280)",
+                "category": "deterministic",
+                "score": 0,
+                "max_score": 1
+              }
+            ]
+          },
+          {
+            "name": "Additional Recipe Pages Formatting",
+            "result": 21,
+            "total": 24,
+            "steps": [
+              {
+                "name": "Recipe 2 - Title Theme",
+                "success": true,
+                "details": "Found thematic keywords: squash, soup",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 2 - Source URL",
+                "success": true,
+                "details": "Valid source URL below title: https://www.tosimplyinspire.com/butternut-squash-s...",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 2 - Format Match",
+                "success": false,
+                "details": "Format check failed; sections=['ingredients', 'preparation', 'tips'], has_image=False",
+                "category": "structural",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 2 - Ingredients Modified",
+                "success": true,
+                "details": "Ingredients modified from default (36.065573770491795% similar to template)",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 2 - Preparation Modified",
+                "success": true,
+                "details": "Preparation modified from default (37.917485265225935% similar to template)",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 2 - Tips Modified",
+                "success": true,
+                "details": "Tips modified from default (31.805929919137466% similar to template)",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 2 - Info Modified",
+                "success": true,
+                "details": "Ready In: 45 (changed from 20); Serves: 6 (changed from 8); Calories: 220 (changed from 280)",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 2 - Visual Distinction",
+                "success": true,
+                "details": "Visually distinct from all other recipes (['R1', 'R3', 'R4'])",
+                "category": "llm_vlm_judgement",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 3 - Title Theme",
+                "success": true,
+                "details": "Found thematic keywords: pumpkin, soup",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 3 - Source URL",
+                "success": true,
+                "details": "Valid source URL below title: https://thewoksoflife.com/pumpkin-soup-recipe/...",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 3 - Format Match",
+                "success": false,
+                "details": "Format check failed; sections=['ingredients', 'preparation', 'tips'], has_image=False",
+                "category": "structural",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 3 - Ingredients Modified",
+                "success": true,
+                "details": "Ingredients modified from default (35.251798561151084% similar to template)",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 3 - Preparation Modified",
+                "success": true,
+                "details": "Preparation modified from default (40.140845070422536% similar to template)",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 3 - Tips Modified",
+                "success": true,
+                "details": "Tips modified from default (35.35911602209944% similar to template)",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 3 - Info Modified",
+                "success": true,
+                "details": "Serves: 6 (changed from 8); Calories: 260 (changed from 280)",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 3 - Visual Distinction",
+                "success": true,
+                "details": "Visually distinct from all other recipes (['R1', 'R2', 'R4'])",
+                "category": "llm_vlm_judgement",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 4 - Title Theme",
+                "success": true,
+                "details": "Found thematic keywords: pumpkin, soup",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 4 - Source URL",
+                "success": true,
+                "details": "Valid source URL below title: https://blackberrybabe.com/2022/09/06/creamy-pumpk...",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 4 - Format Match",
+                "success": false,
+                "details": "Format check failed; sections=['ingredients', 'preparation', 'tips'], has_image=False",
+                "category": "structural",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 4 - Ingredients Modified",
+                "success": true,
+                "details": "Ingredients modified from default (33.333333333333336% similar to template)",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 4 - Preparation Modified",
+                "success": true,
+                "details": "Preparation modified from default (37.631327602674304% similar to template)",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 4 - Tips Modified",
+                "success": true,
+                "details": "Tips modified from default (29.218106995884774% similar to template)",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 4 - Info Modified",
+                "success": true,
+                "details": "Ready In: 25 (changed from 20); Serves: 4 (changed from 8); Calories: 190 (changed from 280)",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 4 - Visual Distinction",
+                "success": true,
+                "details": "Visually distinct from all other recipes (['R1', 'R2', 'R3'])",
+                "category": "llm_vlm_judgement",
+                "score": 1,
+                "max_score": 1
+              }
+            ]
+          },
+          {
+            "name": "Additional Recipe Pages Content",
+            "result": 9,
+            "total": 15,
+            "steps": [
+              {
+                "name": "Recipe 2 - Photo from Source",
+                "success": false,
+                "details": "No image elements found in recipe structure",
+                "category": "execution_error",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 2 - Ingredients Match",
+                "success": true,
+                "details": "Ingredients match source (LLM verified, 11 items)",
+                "category": "llm_vlm_judgement",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 2 - Preparation Match",
+                "success": true,
+                "details": "Preparation matches source (LLM verified, 5 doc steps vs 6 source steps)",
+                "category": "llm_vlm_judgement",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 2 - Tips Direct Quotes",
+                "success": true,
+                "details": "All 2 tips verified as quotes from sources",
+                "category": "llm_vlm_judgement",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 2 - Info Relevant",
+                "success": true,
+                "details": "Metadata relevant to source: Ready In: 45; Serves: 6; Calories: 220",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 3 - Photo from Source",
+                "success": false,
+                "details": "No image elements found in recipe structure",
+                "category": "execution_error",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 3 - Ingredients Match",
+                "success": false,
+                "details": "Ingredients differ from source: 3- pound pumpkin (kabocha squash or butternut squash; around 2 pounds/900g peeled), 2 tablespoons butter, 1 leek (white part only; or medium yellow onion)...",
+                "category": "llm_vlm_judgement",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 3 - Preparation Match",
+                "success": false,
+                "details": "Preparation content differs from source (LLM judged mismatch, 6 doc steps vs 15 source steps): No: Missing key steps for preparing pumpkin (cutting, seeding, peeling) and adds garlic as an ingredient which is not in the source.",
+                "category": "llm_vlm_judgement",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 3 - Tips Direct Quotes",
+                "success": true,
+                "details": "All 2 tips verified as quotes from sources",
+                "category": "llm_vlm_judgement",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 3 - Info Relevant",
+                "success": true,
+                "details": "Metadata relevant to source: Serves: 6; Calories: 260",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 4 - Photo from Source",
+                "success": false,
+                "details": "No image elements found in recipe structure",
+                "category": "execution_error",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 4 - Ingredients Match",
+                "success": false,
+                "details": "Ingredients differ from source: 15 ounces pumpkin puree, canned, 4 cups chicken broth, low sodium, 1 teaspoon salt...",
+                "category": "llm_vlm_judgement",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 4 - Preparation Match",
+                "success": true,
+                "details": "Preparation matches source (LLM verified, 6 doc steps vs 8 source steps)",
+                "category": "llm_vlm_judgement",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 4 - Tips Direct Quotes",
+                "success": true,
+                "details": "All 2 tips verified as quotes from sources",
+                "category": "llm_vlm_judgement",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Recipe 4 - Info Relevant",
+                "success": true,
+                "details": "Metadata relevant to source: Ready In: 25; Serves: 4; Calories: 190",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              }
+            ]
+          },
+          {
+            "name": "Websites Visited Check",
+            "result": 0,
+            "total": 4,
+            "steps": [
+              {
+                "name": "Tips Source Visited",
+                "success": false,
+                "details": "No browsing history provided",
+                "category": "execution_error",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Additional Recipe Sources Visited",
+                "success": false,
+                "details": "No browsing history provided",
+                "category": "execution_error",
+                "score": 0,
+                "max_score": 1
+              }
+            ]
+          }
+        ],
+        "history_available": false
+      },
+      "artifact_pages": [
+        "docs/comparisons/docs_11/agent_p1.jpg",
+        "docs/comparisons/docs_11/agent_p2.png",
+        "docs/comparisons/docs_11/agent_p3.png",
+        "docs/comparisons/docs_11/agent_p4.png",
+        "docs/comparisons/docs_11/agent_p5.png"
+      ],
+      "source": "docs/comparisons/docs_11.json",
+      "source_sha256": "d970951701d0c85272be92bd1f3f66638c0ffeeb93c0126f0d7b4b4b5532e56a"
+    },
+    "knows.sheets_25_skitourplan.1": {
+      "artifact": "Sheets",
+      "instance": 1,
+      "title": "Ski Tour Plan",
+      "result": {
+        "score": {
+          "result": 37,
+          "total": 46
+        },
+        "categories": {
+          "deterministic": {
+            "total": 29,
+            "passed": 26,
+            "failed": 3
+          },
+          "llm_vlm_judgement": {
+            "total": 1,
+            "passed": 1,
+            "failed": 0
+          },
+          "structural": {
+            "total": 2,
+            "passed": 2,
+            "failed": 0
+          },
+          "fuzzy_match": {
+            "total": 9,
+            "passed": 8,
+            "failed": 1
+          },
+          "execution_error": {
+            "total": 4,
+            "passed": 0,
+            "failed": 4
+          },
+          "dependency_not_evaluated": {
+            "total": 1,
+            "passed": 0,
+            "failed": 1
+          }
+        },
+        "checkpoints": [
+          {
+            "name": "Spreadsheet Structure",
+            "result": 9,
+            "total": 9,
+            "steps": [
+              {
+                "name": "Run Name Column",
+                "success": true,
+                "details": "Found column: 'Run Name'",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run Link Column",
+                "success": true,
+                "details": "Found column: 'Run Link'",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Starting Location Column",
+                "success": true,
+                "details": "Found column: 'Starting Location'",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "GPS Coordinates Column",
+                "success": true,
+                "details": "Found column: 'GPS Coordinates'",
+                "category": "llm_vlm_judgement",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Typical Vertical Column",
+                "success": true,
+                "details": "Found column: 'Typical Vertical'",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Slope Aspect Column",
+                "success": true,
+                "details": "Found column: 'Slope Aspect'",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Slope Angle Column",
+                "success": true,
+                "details": "Found column: 'Slope Angle'",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Forecast Date Column",
+                "success": true,
+                "details": "Found column: 'Forecast Date'",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Forecast Link Column",
+                "success": true,
+                "details": "Found column: 'Forecast Link'",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              }
+            ]
+          },
+          {
+            "name": "Run Selection Criteria",
+            "result": 4,
+            "total": 4,
+            "steps": [
+              {
+                "name": "Run Count",
+                "success": true,
+                "details": "Found 3 runs (expected 3)",
+                "category": "structural",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Slope Angle Run 1",
+                "success": true,
+                "details": "Angle: 26° (max 26°)",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Slope Angle Run 2",
+                "success": true,
+                "details": "Angle: 24° (max 26°)",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Slope Angle Run 3",
+                "success": true,
+                "details": "Angle: 22° (max 26°)",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              }
+            ]
+          },
+          {
+            "name": "Run Data Accuracy",
+            "result": 19,
+            "total": 21,
+            "steps": [
+              {
+                "name": "Run 1 - Name Valid",
+                "success": true,
+                "details": "'Powder Park 1' found in gold data",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 1 - Link Valid",
+                "success": true,
+                "details": "Valid WBSGuide URL: https://wbsguide.com/2120.php",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 1 - Starting Location",
+                "success": true,
+                "details": "'Spruces Trailhead' matches gold 'Spruces'",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 1 - GPS Coordinates",
+                "success": true,
+                "details": "Coordinates match within tolerance",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 1 - Typical Vertical",
+                "success": true,
+                "details": "400 ft (gold: 400 ft)",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 1 - Slope Aspect",
+                "success": true,
+                "details": "Aspect: N",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 1 - Slope Angle",
+                "success": true,
+                "details": "Angle: 26° (valid <= 26°)",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 2 - Name Valid",
+                "success": true,
+                "details": "'Powder Park 3' found in gold data",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 2 - Link Valid",
+                "success": true,
+                "details": "Valid WBSGuide URL: https://wbsguide.com/2122.php",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 2 - Starting Location",
+                "success": true,
+                "details": "'Spruces Trailhead' matches gold 'Spruces'",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 2 - GPS Coordinates",
+                "success": true,
+                "details": "Coordinates match within tolerance",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 2 - Typical Vertical",
+                "success": true,
+                "details": "700 ft (gold: 700 ft)",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 2 - Slope Aspect",
+                "success": false,
+                "details": "User: N, Gold: NW",
+                "category": "deterministic",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Run 2 - Slope Angle",
+                "success": true,
+                "details": "Angle: 24° (valid <= 26°)",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 3 - Name Valid",
+                "success": true,
+                "details": "'No Water' found in gold data",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 3 - Link Valid",
+                "success": true,
+                "details": "Valid WBSGuide URL: https://wbsguide.com/1165.php",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 3 - Starting Location",
+                "success": true,
+                "details": "'Spruces Trailhead' matches gold 'Spruces'",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 3 - GPS Coordinates",
+                "success": true,
+                "details": "Coordinates match within tolerance",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 3 - Typical Vertical",
+                "success": true,
+                "details": "900 ft (gold: 900 ft)",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 3 - Slope Aspect",
+                "success": false,
+                "details": "User: S, Gold: NW",
+                "category": "deterministic",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Run 3 - Slope Angle",
+                "success": true,
+                "details": "Angle: 22° (valid <= 26°)",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              }
+            ]
+          },
+          {
+            "name": "Website Visit Validation",
+            "result": 0,
+            "total": 4,
+            "steps": [
+              {
+                "name": "Wasatch Guide Visited",
+                "success": false,
+                "details": "No browsing history provided",
+                "category": "execution_error",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Utah Avalanche Center Visited",
+                "success": false,
+                "details": "No browsing history provided",
+                "category": "execution_error",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Run Links Visited",
+                "success": false,
+                "details": "No browsing history provided",
+                "category": "execution_error",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Forecast Page Visited",
+                "success": false,
+                "details": "No browsing history provided",
+                "category": "execution_error",
+                "score": 0,
+                "max_score": 1
+              }
+            ]
+          },
+          {
+            "name": "Avalanche Forecast Data",
+            "result": 3,
+            "total": 5,
+            "steps": [
+              {
+                "name": "Forecast Date Correct",
+                "success": true,
+                "details": "Date: '02/05/2025' (expected 02/05/2025)",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Forecast Link Valid",
+                "success": true,
+                "details": "Link: 'https://utahavalanchecenter.org/forecast/salt-lake...'",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Merged Cells",
+                "success": true,
+                "details": "Columns [7, 8] are merged vertically",
+                "category": "structural",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Danger Rose Present",
+                "success": false,
+                "details": "not found",
+                "category": "deterministic",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Danger Rose Valid",
+                "success": false,
+                "details": "No image to validate or missing gold data",
+                "category": "dependency_not_evaluated",
+                "score": 0,
+                "max_score": 1
+              }
+            ]
+          },
+          {
+            "name": "Danger Rating Cell Coloring",
+            "result": 2,
+            "total": 3,
+            "steps": [
+              {
+                "name": "Run 1 - Cell Colored",
+                "success": true,
+                "details": "Cell color: orange, Expected: orange",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Run 2 - Cell Colored",
+                "success": false,
+                "details": "Cell color: orange, Expected: yellow",
+                "category": "fuzzy_match",
+                "score": 0,
+                "max_score": 1
+              },
+              {
+                "name": "Run 3 - Cell Colored",
+                "success": true,
+                "details": "Cell color: yellow, Expected: yellow",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              }
+            ]
+          }
+        ],
+        "history_available": false
+      },
+      "artifact_pages": [
+        "docs/comparisons/sheets_25/agent_p1.png"
+      ],
+      "source": "docs/comparisons/sheets_25.json",
+      "source_sha256": "7ddcac76f07fd2c48bff20c023b83dc013dc4074753ba1f87ae24f7eb690593c"
+    },
+    "knows.slides_20_Illustrated_Book_Report.1": {
+      "artifact": "Slides",
+      "instance": 1,
+      "title": "Illustrated Book Report",
+      "result": {
+        "score": {
+          "result": 70,
+          "total": 130
+        },
+        "categories": {
+          "deterministic": {
+            "total": 7,
+            "passed": 7,
+            "failed": 0
+          },
+          "fuzzy_match": {
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          },
+          "llm_vlm_judgement": {
+            "total": 12,
+            "passed": 10,
+            "failed": 2
+          },
+          "spatial": {
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          },
+          "structural": {
+            "total": 8,
+            "passed": 8,
+            "failed": 0
+          },
+          "execution_error": {
+            "total": 1,
+            "passed": 0,
+            "failed": 1
+          }
+        },
+        "checkpoints": [
+          {
+            "name": "Title Slide Validation",
+            "result": 6,
+            "total": 6,
+            "steps": [
+              {
+                "name": "Name Match",
+                "success": true,
+                "details": "Found 'Stacey Johnson' in title slide",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Book Title Match",
+                "success": true,
+                "details": "Found 'Red Rising' in title slide",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Book Cover Photo",
+                "success": true,
+                "details": "Found valid Red Rising book cover image in title slide",
+                "category": "llm_vlm_judgement",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Name at Bottom",
+                "success": true,
+                "details": "Name 'Stacey Johnson' correctly positioned in bottom 25% at y=4627950",
+                "category": "spatial",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Title Above Name",
+                "success": true,
+                "details": "Title correctly positioned above name (title_y=3366700, name_y=4627950)",
+                "category": "structural",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Photo Above Both",
+                "success": true,
+                "details": "Photo correctly positioned above title and name (photo_y=274320)",
+                "category": "structural",
+                "score": 1,
+                "max_score": 1
+              }
+            ]
+          },
+          {
+            "name": "Character Slides Validation",
+            "result": 61,
+            "total": 120,
+            "steps": [
+              {
+                "name": "Character 1 - Valid Character and Name as Title",
+                "success": true,
+                "details": "Character 'Darrow' is in gold list and slide title matches character",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 1 - Unique Background",
+                "success": true,
+                "details": "Slide has different background color from other character slides",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 1 - Bullet Point Count",
+                "success": true,
+                "details": "Found 6 bullet points (>= 3 required)",
+                "category": "structural",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 1 - Characteristics Quality",
+                "success": true,
+                "details": "3/6 text items describe characteristics (5/10 pts)",
+                "category": "llm_vlm_judgement",
+                "score": 5,
+                "max_score": 10
+              },
+              {
+                "name": "Character 1 - Source Link at Bottom",
+                "success": true,
+                "details": "All 1 source link(s) correctly positioned at bottom of slide",
+                "category": "spatial",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 1 - Characteristics from Sources",
+                "success": true,
+                "details": "4/6 characteristics supported by sources (6/10 pts). ✓ Found in https://www.supersummary.com/red-rising/character-...; ✓ Found in https://www.supersummary.com/red-rising/character-...; ✓ Found in https://www.supersummary.com/red-rising/character-...",
+                "category": "llm_vlm_judgement",
+                "score": 6,
+                "max_score": 10
+              },
+              {
+                "name": "Character 2 - Valid Character and Name as Title",
+                "success": true,
+                "details": "Character 'Eo' is in gold list and slide title matches character",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 2 - Unique Background",
+                "success": true,
+                "details": "Slide has different background color from other character slides",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 2 - Bullet Point Count",
+                "success": true,
+                "details": "Found 5 bullet points (>= 3 required)",
+                "category": "structural",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 2 - Characteristics Quality",
+                "success": true,
+                "details": "1/5 text items describe characteristics (2/10 pts)",
+                "category": "llm_vlm_judgement",
+                "score": 2,
+                "max_score": 10
+              },
+              {
+                "name": "Character 2 - Source Link at Bottom",
+                "success": true,
+                "details": "All 1 source link(s) correctly positioned at bottom of slide",
+                "category": "spatial",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 2 - Characteristics from Sources",
+                "success": true,
+                "details": "1/5 characteristics supported by sources (2/10 pts). ✗ Not found: Darrow's wife and a Red, also called Eo of Lykos...; ✗ Not found: Publicly hanged for treason after singing a forbid...; ✓ Found in https://www.gradesaver.com/red-rising/study-guide/...",
+                "category": "llm_vlm_judgement",
+                "score": 2,
+                "max_score": 10
+              },
+              {
+                "name": "Character 3 - Valid Character and Name as Title",
+                "success": true,
+                "details": "Character 'Virginia au Augustus' is in gold list and slide title matches character",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 3 - Unique Background",
+                "success": true,
+                "details": "Slide has different background color from other character slides",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 3 - Bullet Point Count",
+                "success": true,
+                "details": "Found 6 bullet points (>= 3 required)",
+                "category": "structural",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 3 - Characteristics Quality",
+                "success": true,
+                "details": "5/6 text items describe characteristics (8/10 pts)",
+                "category": "llm_vlm_judgement",
+                "score": 8,
+                "max_score": 10
+              },
+              {
+                "name": "Character 3 - Source Link at Bottom",
+                "success": true,
+                "details": "All 1 source link(s) correctly positioned at bottom of slide",
+                "category": "spatial",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 3 - Characteristics from Sources",
+                "success": true,
+                "details": "3/6 characteristics supported by sources (5/10 pts). ✓ Found in https://en.wikipedia.org/wiki/Red_Rising...; ✗ Not found: Small in stature but highly intelligent and a bril...; ✗ Not found: Holds philosophical views that differ from typical...",
+                "category": "llm_vlm_judgement",
+                "score": 5,
+                "max_score": 10
+              },
+              {
+                "name": "Character 4 - Valid Character and Name as Title",
+                "success": true,
+                "details": "Character 'Sevro au Barca' is in gold list and slide title matches character",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 4 - Unique Background",
+                "success": true,
+                "details": "Slide has different background color from other character slides",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 4 - Bullet Point Count",
+                "success": true,
+                "details": "Found 6 bullet points (>= 3 required)",
+                "category": "structural",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 4 - Characteristics Quality",
+                "success": true,
+                "details": "5/6 text items describe characteristics (8/10 pts)",
+                "category": "llm_vlm_judgement",
+                "score": 8,
+                "max_score": 10
+              },
+              {
+                "name": "Character 4 - Source Link at Bottom",
+                "success": true,
+                "details": "All 1 source link(s) correctly positioned at bottom of slide",
+                "category": "spatial",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 4 - Characteristics from Sources",
+                "success": false,
+                "details": "0/6 characteristics supported by sources (0/10 pts). ✗ Not found: A Gold and one of Darrow's most loyal friends and ...; ✗ Not found: A \"lowDraft\" with an antisocial attitude and uncon...; ✗ Not found: Fiercely loyal to Darrow and known for his ferocit...",
+                "category": "llm_vlm_judgement",
+                "score": 0,
+                "max_score": 10
+              },
+              {
+                "name": "Character 5 - Valid Character and Name as Title",
+                "success": true,
+                "details": "Character 'Cassius au Bellona' is in gold list and slide title matches character",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 5 - Unique Background",
+                "success": true,
+                "details": "Slide has different background color from other character slides",
+                "category": "fuzzy_match",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 5 - Bullet Point Count",
+                "success": true,
+                "details": "Found 6 bullet points (>= 3 required)",
+                "category": "structural",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 5 - Characteristics Quality",
+                "success": true,
+                "details": "3/6 text items describe characteristics (5/10 pts)",
+                "category": "llm_vlm_judgement",
+                "score": 5,
+                "max_score": 10
+              },
+              {
+                "name": "Character 5 - Source Link at Bottom",
+                "success": true,
+                "details": "All 1 source link(s) correctly positioned at bottom of slide",
+                "category": "spatial",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Character 5 - Characteristics from Sources",
+                "success": false,
+                "details": "0/6 characteristics supported by sources (0/10 pts). ✗ Not found: A Gold and one of Darrow's friends and allies in H...; ✗ Not found: Charming, charismatic, and a skilled warrior...; ✗ Not found: Comes from the powerful Bellona family...",
+                "category": "llm_vlm_judgement",
+                "score": 0,
+                "max_score": 10
+              }
+            ]
+          },
+          {
+            "name": "Author Slide Validation",
+            "result": 2,
+            "total": 2,
+            "steps": [
+              {
+                "name": "Author Name",
+                "success": true,
+                "details": "Found 'Pierce Brown' in author slide",
+                "category": "deterministic",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Author Photo",
+                "success": true,
+                "details": "Found valid photo of Pierce Brown in author slide",
+                "category": "llm_vlm_judgement",
+                "score": 1,
+                "max_score": 1
+              }
+            ]
+          },
+          {
+            "name": "References Slide Validation",
+            "result": 1,
+            "total": 2,
+            "steps": [
+              {
+                "name": "Reference Links Count",
+                "success": true,
+                "details": "Found 4 unique reference links (>= 3 required)",
+                "category": "structural",
+                "score": 1,
+                "max_score": 1
+              },
+              {
+                "name": "Links in Browsing History",
+                "success": false,
+                "details": "No browsing history provided to validate",
+                "category": "execution_error",
+                "score": 0,
+                "max_score": 1
+              }
+            ]
+          }
+        ],
+        "history_available": false
+      },
+      "artifact_pages": [
+        "docs/comparisons/slides_20/agent_p1.png",
+        "docs/comparisons/slides_20/agent_p2.png",
+        "docs/comparisons/slides_20/agent_p3.png",
+        "docs/comparisons/slides_20/agent_p4.png",
+        "docs/comparisons/slides_20/agent_p5.png",
+        "docs/comparisons/slides_20/agent_p6.png",
+        "docs/comparisons/slides_20/agent_p7.jpg",
+        "docs/comparisons/slides_20/agent_p8.png"
+      ],
+      "source": "docs/comparisons/slides_20.json",
+      "source_sha256": "c938d6120cfa16dbf8e9e3dce9510ea191479a26818cf3dd3beb80548758db98"
+    }
+  }
+}
