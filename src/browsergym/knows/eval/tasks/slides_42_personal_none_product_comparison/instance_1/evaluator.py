@@ -25,7 +25,6 @@ from browsergym.knows.eval.eval_utils.text_utils import (
     keyword_exact_match,
 )
 from browsergym.knows.eval.eval_utils.slides_utils import (
-    extract_slide_links,
     extract_slide_text,
     extract_text_boxes_from_slide,
     extract_title_text,
@@ -43,6 +42,7 @@ from browsergym.knows.eval.eval_utils.models import load_model
 from browsergym.knows.eval.eval_utils.web_utils import fetch_url_content
 
 from browsergym.knows.eval.tasks.slides_42_personal_none_product_comparison.utils import (
+    extract_slide_links,
     detect_color_name,
     extract_device_info_with_llm,
     evaluate_device_info_with_llm,

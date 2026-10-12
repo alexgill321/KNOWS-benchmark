@@ -5,6 +5,7 @@ import re
 import tempfile
 import time
 from typing import Dict, List, Optional, Any
+from urllib.parse import urlsplit
 
 import requests
 from bs4 import BeautifulSoup
@@ -672,6 +673,67 @@ def extract_craigslist_data_structured(html_content: str) -> Optional[Dict]:
     return data
 
 
+def _listing_cell_link_target(cell: Dict) -> str:
+    """Read an actual cell link without evaluating arbitrary spreadsheet formulas."""
+    if (cell.get('effectiveValue') or {}).get('errorValue'):
+        return ''
+    displayed = str(cell.get('formattedValue', ''))
+    targets = []
+    for target in [cell.get('hyperlink'),
+                   (cell.get('effectiveFormat') or {}).get('textFormat', {}).get('link', {}).get('uri'),
+                   (cell.get('userEnteredFormat') or {}).get('textFormat', {}).get('link', {}).get('uri')]:
+        if isinstance(target, str) and target:
+            targets.append(target)
+    for run in cell.get('textFormatRuns') or []:
+        target = (run.get('format') or {}).get('link', {}).get('uri')
+        if isinstance(target, str) and target:
+            targets.append(target)
+    if targets:
+        return targets[0] if len(set(targets)) == 1 else ''
+
+    # The same guarded literal fallback as the ski task: references, compound
+    # formulas and unresolved array spills do not establish a link target.
+    formula = (cell.get('userEnteredValue') or {}).get('formulaValue', '')
+    literal = re.fullmatch(
+        r'\s*=\s*HYPERLINK\s*\(\s*"((?:[^"]|"")*)"\s*[,;]\s*"((?:[^"]|"")*)"\s*\)\s*',
+        formula, re.IGNORECASE)
+    if literal and literal[2].replace('""', '"') == displayed:
+        return literal[1].replace('""', '"')
+    return displayed
+
+
+def resolve_listing_url(sheet_raw: Dict, row: Any, url_col: str) -> str:
+    """Resolve only the already selected URL column of one unambiguous grid row.
+
+    Formal tables may start after blank rows/columns or live on another tab.
+    Match every displayed value, not just a shared label or a positional hint,
+    so a different listing's hidden URL can never be borrowed.
+    """
+    fallback = str(row.get(url_col, '')).strip() if url_col else ''
+    columns = list(row.index)
+    if columns.count(url_col) != 1:
+        return fallback
+    col_idx = columns.index(url_col)
+    values = [str(value) for value in row]
+    if not values or not any(values):
+        return fallback
+    matches = []
+    for tab in (sheet_raw or {}).get('sheets') or []:
+        cells = {}
+        for block in tab.get('data') or []:
+            start_row, start_col = block.get('startRow', 0), block.get('startColumn', 0)
+            for r, raw_row in enumerate(block.get('rowData') or []):
+                for c, cell in enumerate(raw_row.get('values') or []):
+                    cells[start_row + r, start_col + c] = cell
+        for r, c in cells:
+            if all(str(cells.get((r, c + offset), {}).get('formattedValue', '')) == value
+                   for offset, value in enumerate(values)):
+                matches.append(cells.get((r, c + col_idx), {}))
+    if len(matches) != 1:
+        return fallback
+    return _listing_cell_link_target(matches[0]).strip()
+
+
 def is_valid_craigslist_url(url: str) -> bool:
     """
     Check if a URL is a valid Craigslist listing URL.
@@ -682,16 +744,33 @@ def is_valid_craigslist_url(url: str) -> bool:
     Returns:
         True if URL appears to be a valid Craigslist listing URL.
     """
-    if not url:
+    if not isinstance(url, str) or not url:
         return False
 
-    url_lower = url.lower().strip()
-
-    # Must be craigslist.org
-    if 'craigslist.org' not in url_lower:
+    value = url.strip()
+    if any(char.isspace() for char in value) or '\\' in value:
+        return False
+    try:
+        parsed = urlsplit(value)
+        host = parsed.hostname or ''
+        if (parsed.scheme not in ('http', 'https')
+                or parsed.username is not None or parsed.password is not None
+                or parsed.port not in (None, 80, 443)
+                or not re.fullmatch(r'(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)*craigslist\.org', host)):
+            return False
+    except ValueError:
         return False
 
-    # Should be an apartment/housing listing
+    # Current listing pages use an opaque ID instead of a housing-category
+    # path. This checks URL shape only; the evaluator still fetches the page
+    # and compares its listing data before awarding the data-accuracy points.
+    if re.fullmatch(r'/view/d/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*/[A-Za-z0-9_-]+/?', parsed.path):
+        return True
+    # The site's observed short route uses a 22-character URL-safe opaque ID.
+    if re.fullmatch(r'/view/[A-Za-z0-9_-]{22}/?', parsed.path):
+        return True
+
+    # Preserve the legacy housing-category paths on the actual site.
     valid_patterns = [
         '/apa/',      # Apartments/housing for rent
         '/sub/',      # Sublets/temporary
@@ -700,7 +779,7 @@ def is_valid_craigslist_url(url: str) -> bool:
         '/roo/',      # Rooms/shared
     ]
 
-    return any(pattern in url_lower for pattern in valid_patterns)
+    return any(pattern in parsed.path.lower() for pattern in valid_patterns)
 
 
 def extract_craigslist_data_with_llm(html_content: str, model: Any, text: str = "") -> Optional[Dict]:

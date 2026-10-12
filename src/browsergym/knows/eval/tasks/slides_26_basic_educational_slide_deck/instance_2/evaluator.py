@@ -17,8 +17,6 @@ from browsergym.knows.eval.eval_utils.slides_utils import (
     extract_slide_text,
     extract_text_boxes_from_slide,
     extract_slide_images,
-    extract_slide_links,
-    extract_slide_links_with_positions,
     extract_title_text,
     extract_bullet_point_texts,
     extract_image_source_urls,
@@ -29,12 +27,16 @@ from browsergym.knows.eval.eval_utils.slides_utils import (
     is_text_big,
     get_slide_dimensions,
     find_url_below_image,
-    _extract_links_from_text_element,
 )
 from browsergym.knows.eval.eval_utils.image_utils import binary_judge_image
 from browsergym.knows.eval.eval_utils.llm_utils import evaluate_with_llm
 from browsergym.knows.eval.eval_utils.parallel_utils import parallel_execute
 from browsergym.knows.eval.tasks.slides_26_basic_educational_slide_deck.utils import (
+    ImageSourceMatchError,
+    collect_image_source_matches,
+    extract_slide_links,
+    extract_slide_links_with_positions,
+    _extract_links_from_text_element,
     parse_task_md,
     filter_non_image_links,
     find_small_font_credit,
@@ -1753,7 +1755,7 @@ def grade_checkpoint_4():
                         'func': match_source_image,
                         'args': (candidates, sid['image']['path'], temp_dir, i, model),
                     })
-                img_match_results = parallel_execute(img_match_tasks, max_workers=5, timeout=240) if img_match_tasks else {}
+                img_match_results = collect_image_source_matches(img_match_tasks, max_workers=5, timeout=240) if img_match_tasks else {}
                 match_count = sum(1 for v in img_match_results.values() if v and v[0])
                 crashed = sum(1 for v in img_match_results.values() if v is None)
                 # Track failing slide indices for debugging (which URL is the culprit?).
@@ -1791,6 +1793,8 @@ def grade_checkpoint_4():
                     f"{crashed} match call(s) crashed" if crashed else None,
                     f"failed: slide(s) {to_deck_positions(failed_slides)}" if failed_slides else None,
                 )
+        except ImageSourceMatchError:
+            raise
         except Exception as e:
             success = False
             step_score = 0
@@ -1838,6 +1842,8 @@ def grade_checkpoint_4():
         checkpoint.add_step("Images Unique", success, 5, details, score=step_score, max_score=10,
                             execution_time=time.time() - step_start, category=step5_category)
 
+    except ImageSourceMatchError:
+        raise
     except Exception as e:
         print(f"Error in checkpoint 4: {e}")
         fill_failure_steps(checkpoint, CP4_STEPS, f"Skipped due to checkpoint error: {e}", only_missing=True)
@@ -1877,6 +1883,8 @@ def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history=Non
     for factory, cp_name, total, steps in cp_specs:
         try:
             checkpoints.append(factory())
+        except ImageSourceMatchError:
+            raise
         except Exception as e:
             print(f"Catastrophic failure in {cp_name}: {e}")
             cp = Checkpoint(total=total, result=0, name=cp_name)

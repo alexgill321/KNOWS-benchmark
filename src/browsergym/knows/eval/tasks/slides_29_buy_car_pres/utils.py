@@ -271,9 +271,16 @@ def find_kbb_url_for_car(browsing_history: List[str], make_model: str) -> Option
     best_url = None
     best_score = 0.0
     for url in browsing_history:
-        url_lower = url.lower()
-        if 'kbb.com' not in url_lower:
+        try:
+            parsed = urlparse(url)
+            host = (parsed.hostname or '').lower()
+        except ValueError:
             continue
+        if (parsed.scheme.lower() not in ('http', 'https')
+                or parsed.username is not None or parsed.password is not None
+                or not (host == 'kbb.com' or (host.endswith('.kbb.com') and host != '.kbb.com'))):
+            continue
+        url_lower = url.lower()
         matched = [t for t in tokens if t in url_lower]
         non_year_matches = [t for t in matched if not (len(t) == 4 and t.isdigit() and 1900 <= int(t) <= 2099)]
         if not non_year_matches:

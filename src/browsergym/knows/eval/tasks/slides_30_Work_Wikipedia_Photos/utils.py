@@ -3,11 +3,12 @@ import os
 import re
 import shutil
 import time
+from urllib.parse import urlsplit
 
 from browsergym.knows.eval.eval_utils.google_services_utils import initialize_google_services
 from browsergym.knows.eval.eval_utils.image_utils import binary_compare_images, binary_judge_image, match_image_tiered
 from browsergym.knows.eval.eval_utils.scoring import StepCategory
-from browsergym.knows.eval.eval_utils.slides_utils import download_slide_image, extract_slide_images, get_element_bbox
+from browsergym.knows.eval.eval_utils.slides_utils import download_slide_image, extract_slide_images, extract_slide_links, get_element_bbox
 from browsergym.knows.eval.eval_utils.web_utils import download_image_from_url, fetch_api_with_retry
 
 _, SLIDES_SERVICE = initialize_google_services(service_type="slides")
@@ -29,6 +30,66 @@ INSTANCE_CONFIG = {
 # as a fraction of slide height, for them to count as symmetric. 0.05 is ~0.28in
 # on a standard 5.63in-tall slide.
 SYMMETRY_TOLERANCE = 0.05
+
+
+def resolve_client_reference_name(client, wiki_urls):
+    """Resolve the verified music-list alias only with its exact gold identity."""
+    key = client.strip().lower()
+    musician_url = "https://en.wikipedia.org/wiki/Taj_Mahal_(musician)"
+    if (key == "musician taj mahal"
+            and wiki_urls.get("taj mahal") == musician_url
+            and wiki_urls.get(key) in (None, musician_url)):
+        return "taj mahal"
+    return client
+
+
+def client_name_matches(name, client, wiki_urls):
+    """Keep existing name matching, with the one gold-bound client-list alias."""
+    if name_exact_match(name, client):
+        return True
+    return (client.strip().lower() == "musician taj mahal"
+            and name.strip().lower() == "taj mahal"
+            and resolve_client_reference_name(client, wiki_urls) == "taj mahal")
+
+
+def extract_slide_links_with_wikipedia_parentheses(slide):
+    """Retain existing links and recover balanced Wikipedia text URL suffixes."""
+    links = extract_slide_links(slide)
+    text_elements = []
+    for element in slide.get("pageElements", []):
+        if "shape" in element and "text" in element["shape"]:
+            text_elements.append(element["shape"]["text"])
+        for row in element.get("table", {}).get("tableRows", []):
+            for cell in row.get("tableCells", []):
+                if "text" in cell:
+                    text_elements.append(cell["text"])
+    for text_element in text_elements:
+        for run in text_element.get("textElements", []):
+            content = run.get("textRun", {}).get("content", "")
+            for match in re.finditer(r'https?://[^\s<>"\']+', content, re.IGNORECASE):
+                candidate = match.group().rstrip(".,;:!?")
+                while candidate.endswith(")") and candidate.count(")") > candidate.count("("):
+                    candidate = candidate[:-1]
+                try:
+                    parsed = urlsplit(candidate)
+                except ValueError:
+                    continue
+                if (parsed.scheme.lower() not in ("http", "https")
+                        or parsed.netloc.lower() != "en.wikipedia.org"
+                        or not parsed.path.startswith("/wiki/")
+                        or "(" not in parsed.path):
+                    continue
+                depth = 0
+                for character in parsed.path:
+                    if character == "(":
+                        depth += 1
+                    elif character == ")":
+                        depth -= 1
+                        if depth < 0:
+                            break
+                if depth == 0:
+                    links.append(candidate)
+    return list(dict.fromkeys(links))
 
 
 def download_image_with_retry(url, temp_dir, timeout=15, max_retries=3, delay=2):
@@ -126,6 +187,29 @@ def get_wiki_title(client):
         wiki_title = client.replace(' ', '_')
     return wiki_title
 
+def _save_client_image(image, directory, stem):
+    """Save slide images in a format accepted by the image-folder judge.
+
+    GIF and WebP are valid slide images but the shared judge does not enumerate
+    those extensions. Use the first rendered frame as a static PNG, preserving
+    transparency and the caller's frame position. Other formats are unchanged.
+    """
+    image_format = (image.format or "png").lower()
+    if image_format in {"gif", "webp"}:
+        path = os.path.join(directory, f"{stem}.png")
+        original_frame = image.tell()
+        try:
+            image.seek(0)
+            with image.convert("RGBA") as frame:
+                frame.save(path, format="PNG")
+        finally:
+            image.seek(original_frame)
+    else:
+        path = os.path.join(directory, f"{stem}.{image_format}")
+        image.save(path)
+    return path
+
+
 def evaluate_single_client(client, wiki_url, client_slide_map, step_names, slides, slide_height_emu, model, presentation_id, data_dir):
     """Evaluate all 4 steps for a single client. Returns list of step result dicts."""
     steps = []
@@ -185,9 +269,7 @@ def evaluate_single_client(client, wiki_url, client_slide_map, step_names, slide
             slide_img = download_slide_image(left_image.get('contentUrl', '')) if left_image.get('contentUrl') else None
             slide_img_path = None
             if slide_img:
-                ext = (slide_img.format or "png").lower()
-                slide_img_path = os.path.join(temp_wiki_dir, f"slide_img.{ext}")
-                slide_img.save(slide_img_path)
+                slide_img_path = _save_client_image(slide_img, temp_wiki_dir, "slide_img")
 
             # Fetch Wikipedia main image via search API then summary API
             wiki_title = wiki_url.rstrip("/").rsplit("/", 1)[-1]
@@ -249,9 +331,7 @@ def evaluate_single_client(client, wiki_url, client_slide_map, step_names, slide
                 right_step_category = StepCategory.EXECUTION_ERROR
             elif other_img:
                 right_step_category = StepCategory.LLM_VLM_JUDGEMENT
-                ext = (other_img.format or "png").lower()
-                other_img_path = os.path.join(temp_other_dir, f"right_img.{ext}")
-                other_img.save(other_img_path)
+                other_img_path = _save_client_image(other_img, temp_other_dir, "right_img")
                 same_person = binary_judge_image(
                     model, temp_other_dir,
                     f"Is this a photo of {client}?", temp_wiki_dir

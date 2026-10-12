@@ -33,7 +33,9 @@ from browsergym.knows.eval.tasks.slides_30_Work_Wikipedia_Photos.utils import (
     INSTANCE_CONFIG,
     download_image_with_retry,
     evaluate_single_client,
-    name_exact_match,
+    client_name_matches,
+    resolve_client_reference_name,
+    extract_slide_links_with_wikipedia_parentheses,
 )
 
 # Constants — derived from this evaluator's own location so the same code can
@@ -355,7 +357,7 @@ def grade_checkpoint_2():
         for tb in text_boxes:
             tb_text = tb['text'].strip().lower()
             for client in list(unmatched_clients):
-                client_match = name_exact_match(tb_text, client)
+                client_match = client_name_matches(tb_text, client, wiki_urls_cache)
                 if client_match:
                     name_on_top = is_text_in_title_position(slide, tb['text'])
                     client_slide_map[client] = {'slide_idx': idx, 'name_on_top': name_on_top}
@@ -368,7 +370,7 @@ def grade_checkpoint_2():
     # Run all client evaluations in parallel
     eval_tasks = []
     for client in gold_clients:
-        client_url = wiki_urls_cache.get(client)
+        client_url = wiki_urls_cache.get(resolve_client_reference_name(client, wiki_urls_cache))
         if not client_url:
             print(f"Warning: no Wikipedia URL found in gold_wikis.csv for client '{client}'")
             continue
@@ -451,7 +453,7 @@ def grade_checkpoint_3():
         return checkpoint
 
     last_slide = slides[-1]
-    all_urls = extract_slide_links(last_slide)
+    all_urls = extract_slide_links_with_wikipedia_parentheses(last_slide)
 
     # Step 1: Wikipedia URL for each client (1pt each, 9 pts total)
     step_start = time.time()
@@ -459,7 +461,7 @@ def grade_checkpoint_3():
     wiki_url_misses = []
     all_urls_lower = [url.lower().rstrip('/') for url in all_urls]
     for client in gold_clients:
-        client_url = wiki_urls_cache.get(client)
+        client_url = wiki_urls_cache.get(resolve_client_reference_name(client, wiki_urls_cache))
         if not client_url:
             wiki_url_misses.append(client)
             continue
@@ -583,7 +585,7 @@ def grade_checkpoint_4(browsing_history=None):
     visited_matches = []
     visited_misses = []
     for client in gold_clients:
-        client_url = wiki_urls_cache.get(client)
+        client_url = wiki_urls_cache.get(resolve_client_reference_name(client, wiki_urls_cache))
         if not client_url:
             visited_misses.append(client)
             continue

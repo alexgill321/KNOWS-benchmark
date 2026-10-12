@@ -53,6 +53,12 @@ from browsergym.knows.eval.tasks.sheets_7_running_analysis.utils import (
     judge_url_pace_match,
 )
 
+from browsergym.knows.eval.tasks.sheets_7_running_analysis.chart_context import (
+    ChartContextError, bind_chart_context, chart_host_rows, series_source_is_table,
+    get_series_header_label, get_series_column_values, identify_series_by_content,
+    check_chart_overlap,
+)
+
 # Constants
 TASK_DIR = resolve_task_dir(__file__)
 DATA_DIR = os.path.join(TASK_DIR, "data/")
@@ -119,6 +125,7 @@ def setup(workspace_doc_id):
             rows = None
 
     chart_data = extract_charts_from_sheet(sheet_id, SHEETS_SERVICE)
+    chart_data = bind_chart_context(chart_data, sheet_raw, table_sheet_id)
     print(f"Extracted {len(chart_data) if chart_data else 0} charts from spreadsheet")
 
 
@@ -338,7 +345,7 @@ def grade_checkpoint_2():
     per_step_time = validation_time / 3
 
     if date_col:
-        date_score = math.floor(date_matches / EXPECTED_STRENGTH * 10)
+        date_score = min(10, math.floor(date_matches / EXPECTED_STRENGTH * 10))
         checkpoint.add_step(
             "Date Match",
             date_matches == EXPECTED_STRENGTH,
@@ -354,7 +361,7 @@ def grade_checkpoint_2():
                             category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     if sets_col:
-        sets_score = math.floor(sets_matches / EXPECTED_STRENGTH * 10)
+        sets_score = min(10, math.floor(sets_matches / EXPECTED_STRENGTH * 10))
         checkpoint.add_step(
             "Total Sets Match",
             sets_matches == EXPECTED_STRENGTH,
@@ -370,7 +377,7 @@ def grade_checkpoint_2():
                             category=StepCategory.DEPENDENCY_NOT_EVALUATED)
 
     if reps_col:
-        reps_score = math.floor(reps_matches / EXPECTED_STRENGTH * 10)
+        reps_score = min(10, math.floor(reps_matches / EXPECTED_STRENGTH * 10))
         checkpoint.add_step(
             "Total Reps Match",
             reps_matches == EXPECTED_STRENGTH,
@@ -432,6 +439,7 @@ def grade_checkpoint_3():
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
+    rows = chart_host_rows(sets_chart)
     chart_type = sets_chart.get('chart_type', 'UNKNOWN')
     df = table_data.df if table_data else None
 
@@ -610,7 +618,7 @@ def grade_checkpoint_3():
             if main_idx < len(series_list):
                 src_range = series_list[main_idx].get('source_range', {})
                 actual_col = src_range.get('start_col')
-                if actual_col == expected_col_idx:
+                if series_source_is_table(sets_chart, main_idx) and actual_col == expected_col_idx:
                     main_valid = True
                     series_details = f"Main series (index {main_idx}) uses '{sets_col_name}' (column {expected_col_idx})"
                 else:
@@ -828,6 +836,7 @@ def grade_checkpoint_4():
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
+    rows = chart_host_rows(cumulative_chart)
     chart_type = get_chart_type(cumulative_chart)
     axis_labels = get_chart_axis_labels(cumulative_chart)
     x_label = axis_labels.get('x_axis', '')
@@ -1200,6 +1209,8 @@ def grade_checkpoints(workspace_doc_id=None, browsing_history=None):
 
         return result
 
+    except ChartContextError:
+        raise
     except Exception as e:
         print(f"Error during evaluation: {str(e)}")
         import traceback

@@ -26,6 +26,9 @@ from browsergym.knows.eval.eval_utils.slides_utils import (
 )
 from browsergym.knows.eval.tasks.slides_39_Personal_Lookbook_PaintColors.utils import (
     browser_headers,
+    ImageUniquenessError,
+    require_unique_image_pair,
+    require_unique_match_result,
     check_browsing_history,
     download_alt_image,
     identify_image_subject_vlm,
@@ -651,6 +654,12 @@ def grade_checkpoint_3(ctx, browsing_history=None):
             for img_info in images:
                 if img_info.get('objectId') and img_info.get('contentUrl'):
                     obj_to_content[img_info['objectId']] = img_info['contentUrl']
+                    # Uniqueness depends on content, not on an ALT source URL.
+                    download_tasks.append({
+                        'id': f"{img_info['objectId']}_content",
+                        'func': download_image_from_url,
+                        'args': (img_info['contentUrl'], temp_dir),
+                    })
 
             for img_source in image_sources:
                 alt_urls = img_source['source_urls']
@@ -661,11 +670,6 @@ def grade_checkpoint_3(ctx, browsing_history=None):
 
                 image_pair_map[object_id] = cs['color']
                 alt_count_per_obj[object_id] = len(alt_urls)
-                download_tasks.append({
-                    'id': f"{object_id}_content",
-                    'func': download_image_from_url,
-                    'args': (obj_to_content[object_id], temp_dir),
-                })
                 for alt_idx, alt_url in enumerate(alt_urls):
                     # Dedup: the same ALT URL across slides gets one download.
                     # Multiple parallel requests to the same Wikimedia URL
@@ -782,19 +786,13 @@ def grade_checkpoint_3(ctx, browsing_history=None):
         # deletes temp_dir.
         step7_start = time.time()
         unique_match_tasks = []
-        slide_pair_status = {}  # cs['index'] -> 'pending' | 'too_few' | 'no_paths'
+        slide_pair_status = {}  # cs['index'] -> 'pending' | 'too_few'
         for cs in color_slides:
             images = slide_images[cs['index']]
             if len(images) != 2:
                 slide_pair_status[cs['index']] = 'too_few'
                 continue
-            obj_a = images[0].get('objectId')
-            obj_b = images[1].get('objectId')
-            path_a = downloaded.get(f"{obj_a}_content") if obj_a else None
-            path_b = downloaded.get(f"{obj_b}_content") if obj_b else None
-            if not path_a or not path_b:
-                slide_pair_status[cs['index']] = 'no_paths'
-                continue
+            path_a, path_b = require_unique_image_pair(images, downloaded)
             slide_pair_status[cs['index']] = 'pending'
             unique_match_tasks.append({
                 'id': cs['index'],
@@ -814,10 +812,7 @@ def grade_checkpoint_3(ctx, browsing_history=None):
             if status == 'too_few':
                 unique_details.append(f"{cs['color']}: only {len(slide_images[cs['index']])} image(s)")
                 continue
-            if status == 'no_paths':
-                unique_details.append(f"{cs['color']}: download failed")
-                continue
-            matched, _ = unique_match_results.get(cs['index'], (False, None))
+            matched, _ = require_unique_match_result(unique_match_results, cs['index'])
             if matched:
                 unique_details.append(f"{cs['color']}: duplicate")
             else:
@@ -957,7 +952,7 @@ def grade_checkpoint_4(ctx):
     step_start = time.time()
     text_style = get_text_style_from_shape(matching_element['shape']) if matching_element else {}
     is_large = is_text_big(text_style, min_pt=18, element=matching_element)
-    font_size = text_style.get('fontSize', {}).get('magnitude', 0) if text_style else 0
+    font_size = (text_style.get('fontSize') or {}).get('magnitude', 0) if text_style else 0
     checkpoint.add_step(
         "Large Font", is_large, 4,
         details=f"Font size: {font_size}pt" if font_size > 0 else "Could not determine font size",
@@ -1059,6 +1054,8 @@ def grade_checkpoints(workspace_doc_id, cached_models=None, browsing_history=Non
     for name, total, steps, fn in cp_specs:
         try:
             checkpoints.append(fn())
+        except ImageUniquenessError:
+            raise
         except Exception as e:
             print(f"Checkpoint '{name}' crashed: {e}")
             cp = Checkpoint(total=total, result=0, name=name)

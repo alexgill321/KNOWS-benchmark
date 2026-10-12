@@ -4,6 +4,7 @@ Shared utilities for slides_26_basic_educational_slide_deck evaluator.
 
 import colorsys
 import concurrent.futures
+from copy import deepcopy
 import os
 import re
 import time
@@ -12,6 +13,9 @@ from urllib.parse import urlparse
 
 from browsergym.knows.eval.eval_utils.scoring import StepCategory
 from browsergym.knows.eval.eval_utils.slides_utils import (
+    extract_slide_links as _shared_extract_slide_links,
+    extract_slide_links_with_positions as _shared_extract_slide_links_with_positions,
+    _extract_links_from_text_element as _shared_extract_links_from_text_element,
     get_element_bbox,
     get_text_style_from_shape,
     is_text_big,
@@ -25,6 +29,119 @@ from browsergym.knows.eval.eval_utils.image_utils import (
 )
 from browsergym.knows.eval.eval_utils.web_utils import download_image_from_url, download_page_images
 from browsergym.knows.eval.eval_utils.models import load_model
+
+
+# The shared plain-text regex recognizes only one bare label before the TLD.
+# Normalize non-www bare subdomains first so it cannot turn science.nasa.gov
+# into nasa.gov. Ordinary two-label and www addresses retain their old behavior.
+# Keep the existing extractor's traversal, native links and geometry.
+_BARE_URL_LABEL = r"[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?"
+_BARE_URL_TLDS = (
+    "com|org|net|edu|gov|io|co|me|info|biz|tech|app|dev|ai|tv|store|shop|blog|news|"
+    "us|uk|de|fr|jp|cn|au|ca|nz|in|br|mx|ru|kr|za|sg|hk|tw|nl|se|no|dk|fi|es|it|"
+    "pl|tr|ie|pt|be|at|ch|cz|hu|ro|bg|ua"
+)
+_BARE_URL = re.compile(
+    r"[a-z][a-z0-9+.\-]*://[^\s<>\"'\)]+|(?P<bare>"
+    r"(?<![\w.@/+:\-])(?!www\.)(?:" + _BARE_URL_LABEL + r"\.){2,}(?:" + _BARE_URL_TLDS + r")"
+    r"(?![\w@:\-]|\.[\w.\-])(?:/[^\s<>\"'\)]+)?)",
+    re.IGNORECASE,
+)
+
+
+def _normalize_bare_source_urls(text: str) -> str:
+    """Repair bare non-www subdomains that the shared extractor truncates.
+
+    HTTPS follows the family's existing LLM fallback convention. Explicit URLs,
+    ordinary two-label hosts, www hosts, email addresses, malformed host labels
+    and unsupported bare ports are not rewritten by this scoped repair.
+    """
+    return _BARE_URL.sub(lambda match: "https://" + match.group() if match.group("bare") else match.group(), text)
+
+
+def _normalize_text_source_urls(text_element: Dict[str, Any]) -> Dict[str, Any]:
+    normalized = deepcopy(text_element)
+    for element in normalized.get("textElements", []):
+        run = element.get("textRun", {})
+        if isinstance(run.get("content"), str):
+            run["content"] = _normalize_bare_source_urls(run["content"])
+    return normalized
+
+
+def _normalize_slide_source_urls(slide: Dict[str, Any]) -> Dict[str, Any]:
+    normalized = deepcopy(slide)
+    for element in normalized.get("pageElements", []):
+        shape = element.get("shape", {})
+        if "text" in shape:
+            shape["text"] = _normalize_text_source_urls(shape["text"])
+        for row in element.get("table", {}).get("tableRows", []):
+            for cell in row.get("tableCells", []):
+                if "text" in cell:
+                    cell["text"] = _normalize_text_source_urls(cell["text"])
+    return normalized
+
+
+def _extract_links_from_text_element(text_element: Dict[str, Any]) -> List[str]:
+    return _shared_extract_links_from_text_element(_normalize_text_source_urls(text_element))
+
+
+def extract_slide_links(slide: Dict[str, Any]) -> List[str]:
+    return _shared_extract_slide_links(_normalize_slide_source_urls(slide))
+
+
+def extract_slide_links_with_positions(slide: Dict[str, Any]) -> List[Dict[str, Any]]:
+    return _shared_extract_slide_links_with_positions(_normalize_slide_source_urls(slide))
+
+
+class ImageSourceMatchError(RuntimeError):
+    """A submitted image-source comparison is unresolved, so grading must stop."""
+
+
+def collect_image_source_matches(tasks: List[Dict[str, Any]], max_workers: int = 5,
+                                 timeout: float = 240) -> Dict[str, Tuple[bool, str]]:
+    """Retain results completed during the existing executor cleanup wait.
+
+    The collection window and concurrency are unchanged. At its end queued
+    tasks are cancelled, while already-running calls finish during executor
+    cleanup. The harness's unchanged 900-second subprocess deadline bounds
+    that wait. Never turn an unresolved comparison into a model failure.
+    """
+    ids = [task.get("id") for task in tasks]
+    if (any(not isinstance(task_id, str) or not task_id for task_id in ids)
+            or len(set(ids)) != len(ids)):
+        raise ImageSourceMatchError("Image-source comparison IDs are missing or duplicated")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(task["func"], *task.get("args", ()), **task.get("kwargs", {})): task["id"]
+                   for task in tasks}
+        try:
+            for _ in concurrent.futures.as_completed(futures, timeout=timeout):
+                pass  # Harvest after cleanup, including calls still running at the cutoff.
+        except concurrent.futures.TimeoutError:
+            for future, task_id in futures.items():
+                if not future.done():
+                    cancelled = future.cancel()
+                    print(f"Image-source collection window reached for {task_id}; "
+                          + ("queued call cancelled" if cancelled else "awaiting in-flight result"))
+
+    results = {}
+    failures = []
+    for future, task_id in futures.items():
+        if future.cancelled():
+            failures.append(f"{task_id}: cancelled")
+            continue
+        try:
+            value = future.result()
+        except Exception as error:
+            failures.append(f"{task_id}: {type(error).__name__}")
+            continue
+        if (not isinstance(value, tuple) or len(value) != 2
+                or type(value[0]) is not bool or not isinstance(value[1], str)):
+            failures.append(f"{task_id}: malformed result")
+            continue
+        results[task_id] = value
+    if failures or set(results) != set(ids):
+        raise ImageSourceMatchError("Unresolved image-source comparisons: " + "; ".join(failures))
+    return results
 
 
 def _browser_headers(url: str) -> Dict[str, str]:

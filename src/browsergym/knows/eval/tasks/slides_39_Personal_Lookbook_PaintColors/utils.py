@@ -43,6 +43,52 @@ _KNOWN_ROOM_WORDS = {
 }
 
 
+class ImageUniquenessError(RuntimeError):
+    """A required content-image comparison could not be evaluated."""
+
+
+def require_unique_image_pair(images, downloaded):
+    """Return two readable saved content images, independent of their ALT text."""
+    from PIL import Image
+
+    if not isinstance(downloaded, dict):
+        raise ImageUniquenessError("Content image download results unavailable")
+    if len(images) != 2:
+        raise ImageUniquenessError("Uniqueness requires exactly two content images")
+    paths = []
+    seen = set()
+    for image in images:
+        object_id = image.get('objectId')
+        if not isinstance(object_id, str) or not object_id or object_id in seen:
+            raise ImageUniquenessError("Content image identity is missing or duplicated")
+        seen.add(object_id)
+        path = downloaded.get(f"{object_id}_content")
+        if not isinstance(path, (str, os.PathLike)) or not path:
+            raise ImageUniquenessError(f"Content image download unavailable: {object_id}")
+        try:
+            # Decode without modifying the downloaded bytes. The shared matcher
+            # otherwise converts image-loading exceptions into nonmatches.
+            with Image.open(path) as content:
+                content.load()
+        except Exception as exc:
+            raise ImageUniquenessError(f"Content image unreadable: {object_id}") from exc
+        paths.append(path)
+    return tuple(paths)
+
+
+def require_unique_match_result(results, slide_index):
+    """Keep a completed False comparison; reject a missing/malformed result."""
+    if not isinstance(results, dict):
+        raise ImageUniquenessError("Content image comparison results unavailable")
+    result = results.get(slide_index)
+    if (not isinstance(result, tuple) or len(result) != 2
+            or not isinstance(result[0], bool)
+            or result[1] not in (None, 'exact', 'perceptual_hash')
+            or (result[0] and result[1] is None)):
+        raise ImageUniquenessError(f"Content image comparison unavailable: slide {slide_index}")
+    return result
+
+
 def download_alt_image(url, temp_dir, **kwargs):
     """download_image_from_url with backoff retry; recovers transient 429s."""
     for attempt in range(3):
