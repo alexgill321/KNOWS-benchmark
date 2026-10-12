@@ -6,7 +6,7 @@
 <title>KNOWS Benchmark</title>
 <meta name="description" content="KNOWS: benchmarking web agents on synthesizing, organizing, and displaying knowledge. 110 live-web Google Workspace tasks with hybrid white-box evaluators.">
 <meta property="og:title" content="KNOWS Benchmark">
-<meta property="og:description" content="Benchmarking web agents on synthesizing, organizing, and displaying knowledge. 110 live-web tasks; the best system fully completes 2.7%.">
+<meta property="og:description" content="Benchmarking web agents on synthesizing, organizing, and displaying knowledge. 110 live-web tasks; the best systems fully complete 3.6%.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -524,13 +524,25 @@ details.pair[open] .pair-caret{transform:rotate(90deg)}
 
 /* ---------- results table ---------- */
 .reqs.metrics li::before{background:var(--muted)}
-.results-scroll{margin-top:26px}
+.table-scroll.results-scroll{margin-top:26px}
+#leaderboard{scroll-margin-top:24px}
+.leaderboard-note{margin:14px auto 0;text-align:center;font-size:15px;color:var(--muted)}
+.metric-sort{
+  display:inline-flex;align-items:center;gap:3px;padding:4px 0;
+  border:0;background:transparent;color:inherit;cursor:pointer;
+  font:inherit;letter-spacing:inherit;white-space:nowrap;
+}
+.metric-sort:hover{color:var(--ink)}
+.sort-arrow{font-family:var(--f-body);font-size:12px;width:9px;text-align:center}
+table.results th[aria-sort] .metric-sort{color:var(--ink);font-weight:600}
 table.results{
-  min-width:640px;font-size:14.5px;border-collapse:collapse;width:100%;
+  --rank-width:64px;
+  min-width:1310px;font-size:14.5px;border-collapse:collapse;width:100%;
   font-variant-numeric:tabular-nums;
 }
 table.results caption{
-  text-align:left;font-size:14.5px;color:var(--muted);padding-bottom:12px;
+  text-align:center;font-size:15px;color:var(--muted);padding-bottom:12px;
+  position:sticky;left:0;width:min(100%,calc(100vw - 48px));
 }
 table.results th, table.results td{
   padding:8px 10px;border-bottom:1px solid var(--rule);text-align:right;
@@ -544,21 +556,34 @@ table.results tr.grp th{
   text-align:center;border-bottom:1px solid var(--rule);
   font-size:11.5px;color:var(--ink);font-weight:600;
 }
-table.results tr.sub th{border-bottom:1px solid var(--ink)}
-table.results .method{
+table.results tr.sub th{padding-inline:6px;border-bottom:1px solid var(--ink)}
+table.results .rank{
+  width:var(--rank-width);min-width:var(--rank-width);text-align:center;
+  position:sticky;left:0;background:var(--paper);z-index:1;
+  font-family:var(--f-mono);font-size:12px;
+}
+table.results .model{
   text-align:left;font-weight:600;white-space:nowrap;
-  position:sticky;left:0;background:var(--paper);
+  position:sticky;left:var(--model-offset,var(--rank-width));background:var(--paper);z-index:1;
 }
-table.results thead .method{background:var(--paper);z-index:1}
+table.results tr.grp .model,
+table.results tr.grp .harness,
+table.results tr.grp .modality{text-align:left}
+table.results tbody .model{
+  font-family:var(--f-body);font-size:inherit;letter-spacing:normal;
+  text-transform:none;color:var(--ink);
+}
+table.results thead .model, table.results thead .rank{background:var(--paper);z-index:2}
+table.results .harness, table.results .modality{text-align:left;white-space:nowrap}
+table.results tbody .modality{font-size:13px;color:var(--muted)}
+.model-name{display:inline-flex;align-items:center;gap:7px}
+.model-name img{display:block;width:18px;height:18px;flex:none}
 table.results .ov{background:rgba(21,23,27,.035)}
-table.results tr.band-row td{
-  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.09em;
-  text-transform:uppercase;color:var(--muted);
-  text-align:left;padding-top:16px;border-bottom:1px solid var(--rule);
-}
-table.results tr.best td{font-weight:700;background:rgba(228,241,63,.24)}
-table.results tr.best td.method{background:rgba(228,241,63,.24)}
-table.results tr.best td.ov{background:rgba(228,241,63,.38)}
+table.results tbody td:nth-child(4n+5),
+table.results tr.sub th:nth-child(4n+1),
+table.results tr.grp th[scope="colgroup"]{border-left:1px solid var(--rule)}
+table.results td.best{font-weight:700;background:rgba(228,241,63,.24)}
+table.results td.best.ov{background:rgba(228,241,63,.38)}
 
 /* ---------- table ---------- */
 .table-scroll{overflow-x:auto;margin-top:38px}
@@ -659,6 +684,10 @@ td.families{color:var(--muted);font-size:15px;padding-right:0}
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
         Code
       </a>
+      <a class="btn" href="#leaderboard">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 1h4v14H6V1ZM1 6h4v9H1V6Zm10 3h4v6h-4V9Z"/></svg>
+        Leaderboard
+      </a>
       <a class="btn" href="https://huggingface.co/datasets/utahnlp/knows-benchmark" aria-label="Dataset on Hugging Face">
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c3.31 0 6 1.12 6 2.5v11C14 14.88 11.31 16 8 16s-6-1.12-6-2.5v-11C2 1.12 4.69 0 8 0Zm4.5 6.28C11.4 6.94 9.8 7.33 8 7.33s-3.4-.39-4.5-1.05v3.1C3.5 10.06 5.4 10.83 8 10.83s4.5-.77 4.5-1.45v-3.1Zm0 5.2c-1.1.66-2.7 1.05-4.5 1.05s-3.4-.39-4.5-1.05v1.95c0 .68 1.9 1.45 4.5 1.45s4.5-.77 4.5-1.45v-1.95ZM8 1.5C5.4 1.5 3.5 2.27 3.5 2.95S5.4 4.4 8 4.4s4.5-.77 4.5-1.45S10.6 1.5 8 1.5Z"/></svg>
         Dataset
@@ -676,6 +705,8 @@ td.families{color:var(--muted);font-size:15px;padding-right:0}
 <section id="overview" class="first">
   <div class="wrap">
     <h2>Overview</h2>
+    <p class="sub-note cite-note">Explore the code, tasks, and evaluators in the
+      <a href="https://github.com/alexgill321/KNOWS-benchmark">KNOWS GitHub repository</a>.</p>
   </div>
 
 
@@ -694,7 +725,7 @@ td.families{color:var(--muted);font-size:15px;padding-right:0}
         9–18 hours of expert work.</p>
 
       <p>We evaluate and analyze frontier computer-use agents and browser-based harnesses
-        on KNOWS, and find that the best performer fully succeeds in fewer than 3% of our
+        on KNOWS, and find that the best performers fully succeed in 3.6% of our
         complex, long-horizon tasks. Failures on visual steps render the resulting artifacts
         unusable, even when agents complete more than 50% of other evaluation steps. Our
         results expose limitations of current agents acting as end-to-end assistants, and
@@ -713,6 +744,135 @@ td.families{color:var(--muted);font-size:15px;padding-right:0}
       <figcaption>An overview of the KNOWS benchmark.</figcaption>
       <span class="zoom-hint">↗ Click to enlarge</span>
     </figure>
+  </div>
+</section>
+
+<section id="leaderboard" aria-labelledby="leaderboard-title">
+  <div class="wrap-wide">
+    <h2 id="leaderboard-title">Leaderboard</h2>
+
+    <div class="table-scroll results-scroll" role="region" aria-label="Benchmark leaderboard results" tabindex="0">
+      <table class="results" aria-describedby="leaderboard-metrics">
+        <caption><b>SR</b>: full task success. <b>ASC, ACF, SF</b>: partial task success.
+          <a href="#results">Metric definitions and results analysis</a>.</caption>
+        <colgroup span="1"></colgroup>
+        <colgroup span="1"></colgroup>
+        <colgroup span="1"></colgroup>
+        <colgroup span="1"></colgroup>
+        <colgroup span="4"></colgroup>
+        <colgroup span="4"></colgroup>
+        <colgroup span="4"></colgroup>
+        <colgroup span="4"></colgroup>
+        <thead>
+          <tr class="grp">
+            <th rowspan="2" scope="col" class="rank">Rank</th>
+            <th rowspan="2" scope="col" class="model">Model</th>
+            <th rowspan="2" scope="col" class="harness">Harness</th>
+            <th rowspan="2" scope="col" class="modality">Modality</th>
+            <th colspan="4" scope="colgroup">Docs</th>
+            <th colspan="4" scope="colgroup">Sheets</th>
+            <th colspan="4" scope="colgroup">Slides</th>
+            <th colspan="4" scope="colgroup" class="ov">Overall</th>
+          </tr>
+          <tr class="sub">
+            <th scope="col">SR</th><th scope="col">ASC</th><th scope="col">ACF</th><th scope="col">SF</th>
+            <th scope="col">SR</th><th scope="col">ASC</th><th scope="col">ACF</th><th scope="col">SF</th>
+            <th scope="col">SR</th><th scope="col">ASC</th><th scope="col">ACF</th><th scope="col">SF</th>
+            <th scope="col" class="ov">SR</th><th scope="col" class="ov">ASC</th><th scope="col" class="ov">ACF</th><th scope="col" class="ov">SF</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="rank">1</td>
+            <th scope="row" class="model"><span class="model-name"><img src="assets/openai.svg" alt="" width="18" height="18">GPT-6 Astra</span></th>
+            <td class="harness">AgentLab</td><td class="modality">AXT + SS</td>
+            <td class="best" data-score="16.00">16.0</td><td data-score="38.00">38.0</td><td data-score="62.42">62.4</td><td data-score="55.21">55.2</td>
+            <td data-score="0.00">0</td><td class="best" data-score="46.47">46.5</td><td class="best" data-score="77.25">77.3</td><td class="best" data-score="75.28">75.3</td>
+            <td data-score="0.00">0</td><td class="best" data-score="40.54">40.5</td><td class="best" data-score="73.40">73.4</td><td class="best" data-score="66.03">66.0</td>
+            <td class="ov best" data-score="3.64">3.6</td><td class="ov best" data-score="42.39">42.4</td><td class="ov best" data-score="72.48">72.5</td><td class="ov best" data-score="67.36">67.4</td>
+          </tr>
+          <tr>
+            <td class="rank">2</td>
+            <th scope="row" class="model"><span class="model-name"><img src="assets/openai.svg" alt="" width="18" height="18">GPT-6 Luna</span></th>
+            <td class="harness">AgentLab</td><td class="modality">AXT + SS</td>
+            <td class="best" data-score="16.00">16.0</td><td data-score="26.33">26.3</td><td data-score="46.95">47.0</td><td data-score="42.71">42.7</td>
+            <td data-score="0.00">0</td><td data-score="25.17">25.2</td><td data-score="51.33">51.3</td><td data-score="48.00">48.0</td>
+            <td data-score="0.00">0</td><td data-score="16.96">17.0</td><td data-score="44.94">44.9</td><td data-score="39.30">39.3</td>
+            <td class="ov best" data-score="3.64">3.6</td><td class="ov" data-score="22.45">22.5</td><td class="ov" data-score="48.01">48.0</td><td class="ov" data-score="43.63">43.6</td>
+          </tr>
+          <tr>
+            <td class="rank">3</td>
+            <th scope="row" class="model"><span class="model-name"><img src="assets/claude.svg" alt="" width="18" height="18">Opus 4.7</span></th>
+            <td class="harness">Comet</td>
+            <td class="modality">Not specified</td>
+            <td>12.0</td><td class="best">41.0</td><td class="best">68.7</td><td class="best">66.3</td>
+            <td>0</td><td>35.8</td><td>73.0</td><td>68.3</td>
+            <td>0</td><td>31.3</td><td>67.5</td><td>59.7</td>
+            <td class="ov">2.7</td><td class="ov">35.4</td><td class="ov">70.0</td><td class="ov">64.7</td>
+          </tr>
+          <tr>
+            <td class="rank">4</td>
+            <th scope="row" class="model"><span class="model-name"><img src="assets/openai.svg" alt="" width="18" height="18">GPT-5.5</span></th>
+            <td class="harness">AgentLab</td><td class="modality">AXT + SS</td>
+            <td>0</td><td>21.7</td><td>44.9</td><td>46.2</td>
+            <td>0</td><td>25.0</td><td>50.1</td><td>48.2</td>
+            <td>0</td><td>18.1</td><td>51.7</td><td>45.3</td>
+            <td class="ov">0</td><td class="ov">21.8</td><td class="ov">49.5</td><td class="ov">46.7</td>
+          </tr>
+          <tr>
+            <td class="rank">5</td>
+            <th scope="row" class="model"><span class="model-name"><img src="assets/openai.svg" alt="" width="18" height="18">GPT-5.5</span></th>
+            <td class="harness">Atlas</td>
+            <td class="modality">Not specified</td>
+            <td>0</td><td>22.3</td><td>43.6</td><td>40.6</td>
+            <td>0</td><td>25.9</td><td>51.5</td><td>48.6</td>
+            <td>0</td><td>16.3</td><td>39.7</td><td>31.6</td>
+            <td class="ov">0</td><td class="ov">21.6</td><td class="ov">45.4</td><td class="ov">40.6</td>
+          </tr>
+          <tr>
+            <td class="rank">6</td>
+            <th scope="row" class="model"><span class="model-name"><img src="assets/openai.svg" alt="" width="18" height="18">GPT-5.5</span></th>
+            <td class="harness">AgentLab</td><td class="modality">AXT</td>
+            <td>0</td><td>18.0</td><td>38.5</td><td>36.6</td>
+            <td>0</td><td>26.8</td><td>46.8</td><td>44.4</td>
+            <td>0</td><td>15.1</td><td>38.6</td><td>31.7</td>
+            <td class="ov">0</td><td class="ov">20.6</td><td class="ov">41.9</td><td class="ov">38.0</td>
+          </tr>
+          <tr>
+            <td class="rank">7</td>
+            <th scope="row" class="model"><span class="model-name"><img src="assets/claude.svg" alt="" width="18" height="18">Opus 4.7</span></th>
+            <td class="harness">AgentLab</td><td class="modality">AXT + SS</td>
+            <td>0</td><td>21.3</td><td>47.3</td><td>49.0</td>
+            <td>0</td><td>11.4</td><td>28.8</td><td>24.8</td>
+            <td>0</td><td>19.7</td><td>54.8</td><td>48.9</td>
+            <td class="ov">0</td><td class="ov">16.7</td><td class="ov">42.5</td><td class="ov">39.1</td>
+          </tr>
+          <tr>
+            <td class="rank">8</td>
+            <th scope="row" class="model"><span class="model-name"><img src="assets/deepseek.svg" alt="" width="18" height="18">DeepSeek V4 Pro</span></th>
+            <td class="harness">AgentLab</td><td class="modality">AXT</td>
+            <td>0</td><td>17.0</td><td>39.3</td><td>41.1</td>
+            <td>0</td><td>8.7</td><td>23.7</td><td>18.6</td>
+            <td>0</td><td>14.2</td><td>34.3</td><td>26.1</td>
+            <td class="ov">0</td><td class="ov">12.6</td><td class="ov">31.1</td><td class="ov">26.4</td>
+          </tr>
+          <tr>
+            <td class="rank">9</td>
+            <th scope="row" class="model"><span class="model-name"><img src="assets/claude.svg" alt="" width="18" height="18">Opus 4.7</span></th>
+            <td class="harness">AgentLab</td><td class="modality">AXT</td>
+            <td>0</td><td>7.7</td><td>19.9</td><td>21.9</td>
+            <td>0</td><td>3.0</td><td>12.3</td><td>10.0</td>
+            <td>0</td><td>9.3</td><td>20.3</td><td>12.5</td>
+            <td class="ov">0</td><td class="ov">6.4</td><td class="ov">17.0</td><td class="ov">13.6</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="leaderboard-note"><b>AXT</b>: Accessibility tree (textual) ·
+      <b>AXT + SS</b>: Accessibility tree + screenshot (multimodal).</p>
+    <p class="leaderboard-note" id="leaderboard-metrics"><b>SR</b>: Success Rate ·
+      <b>ASC</b>: Average Successful Checkpoints · <b>ACF</b>: Average Checkpoint Fraction ·
+      <b>SF</b>: Step Fraction.</p>
   </div>
 </section>
 
@@ -866,7 +1026,7 @@ td.families{color:var(--muted);font-size:15px;padding-right:0}
         <h3 class="tool-title">Inspect the evaluators yourself</h3>
         <p class="tool-sub">Below you can see how our evaluators grade expert-created
           &ldquo;gold standard&rdquo; artifacts, compared to how artifacts created for the
-          same task by the top-performing computer-use agent, Comet<a class="fnref"
+          same task by the browser agent Comet<a class="fnref"
           href="#fn-comet" id="fnref-comet">1</a>, are graded.</p>
       </div>
 
@@ -941,8 +1101,8 @@ td.families{color:var(--muted);font-size:15px;padding-right:0}
         strictness to ACF, but weights complex checkpoints more heavily by pooling steps
         rather than averaging over checkpoints.</li>
     </ul>
-    <p class="sub-note">The table below reports the two ends of that range, SR and ACF. ASC
-      and SF appear in the paper and in the analysis beneath the table.</p>
+    <p class="sub-note">The <a href="#leaderboard">leaderboard above</a> reports all four
+      metrics for Docs, Sheets, Slides, and overall.</p>
 
     <h3 class="sub-head">Systems</h3>
     <ul class="reqs metrics">
@@ -954,68 +1114,21 @@ td.families{color:var(--muted);font-size:15px;padding-right:0}
         the DeepSeek V4 Pro API at the time of writing, so it appears in the text-only block
         only.</li>
       <li><b>AI browsers.</b> Closed-source harnesses that browse on their own: ChatGPT Atlas
-        (GPT agent, selected automatically by the harness) and Perplexity Comet (Claude Opus
+        (GPT-5.5 agent) and Perplexity Comet (Claude Opus
         4.7 agent).</li>
+      <li><b>Additional AgentLab runs.</b> GPT-6 Luna and GPT-6 Astra both use the
+        accessibility tree and screenshots (AXT + SS). Each was scored on all 110 tasks:
+        25 Docs, 45 Sheets, and 40 Slides.</li>
     </ul>
-
-    <div class="table-scroll results-scroll">
-      <table class="results">
-        <caption><b>SR</b> is complete success: a task counts only if every evaluation
-          step across all checkpoints passes. <b>ACF</b> is partial credit: the fraction
-          of steps passed within each checkpoint, averaged over a task’s checkpoints.
-          Values are percentages. Baselines that are not AI browsers use the
-          BrowserGym–AgentLab harness; the full four-metric table is in the paper.</caption>
-        <thead>
-          <tr class="grp">
-            <th rowspan="2" class="method">Method</th>
-            <th colspan="2">Docs</th><th colspan="2">Sheets</th>
-            <th colspan="2">Slides</th><th colspan="2" class="ov">Overall</th>
-          </tr>
-          <tr class="sub">
-            <th>SR</th><th>ACF</th><th>SR</th><th>ACF</th>
-            <th>SR</th><th>ACF</th><th class="ov">SR</th><th class="ov">ACF</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="band-row"><td colspan="9">Textual — accessibility tree (AXT)</td></tr>
-          <tr>
-            <td class="method">GPT 5.5</td><td>0</td><td>38.5</td><td>0</td><td>46.8</td><td>0</td><td>38.6</td><td class="ov">0</td><td class="ov">41.9</td>
-          </tr>
-          <tr>
-            <td class="method">Claude Opus 4.7</td><td>0</td><td>19.9</td><td>0</td><td>12.3</td><td>0</td><td>20.3</td><td class="ov">0</td><td class="ov">17.0</td>
-          </tr>
-          <tr>
-            <td class="method">DeepSeek V4 Pro</td><td>0</td><td>39.3</td><td>0</td><td>23.7</td><td>0</td><td>34.3</td><td class="ov">0</td><td class="ov">31.1</td>
-          </tr>
-          <tr class="band-row"><td colspan="9">Multimodal — accessibility tree + screenshot (AXT + SS)</td></tr>
-          <tr>
-            <td class="method">GPT 5.5</td><td>0</td><td>44.9</td><td>0</td><td>50.1</td><td>0</td><td>51.7</td><td class="ov">0</td><td class="ov">49.5</td>
-          </tr>
-          <tr>
-            <td class="method">Claude Opus 4.7</td><td>0</td><td>47.3</td><td>0</td><td>28.8</td><td>0</td><td>54.8</td><td class="ov">0</td><td class="ov">42.5</td>
-          </tr>
-          <tr class="band-row"><td colspan="9">AI browsers</td></tr>
-          <tr>
-            <td class="method">ChatGPT Atlas</td><td>0</td><td>43.6</td><td>0</td><td>51.5</td><td>0</td><td>39.7</td><td class="ov">0</td><td class="ov">45.4</td>
-          </tr>
-          <tr class="best">
-            <td class="method">Perplexity Comet</td><td>12.0</td><td>68.7</td><td>0</td><td>73.0</td><td>0</td><td>67.5</td><td class="ov">2.7</td><td class="ov">70.0</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
 
     <h3 class="sub-head">Results and analysis</h3>
     <ul class="reqs metrics">
-      <li><b>Long-horizon tasks remain challenging.</b> SR is near zero across most methods
-        and splits, showing both the difficulty of our benchmark and the inability of SOTA
-        agents on challenging, long-horizon tasks. The exception is Docs, where the best
-        baseline, Comet, achieves a non-zero, albeit low, SR (12.0%). This result is
-        unsurprising, as doc tasks resemble the conversational, text-only outputs best suited
-        for the underlying LLMs. Partial success is also similarly low across most methods.
-        Among the general agents, GPT-5.5 performs relatively well compared to other models.
-        While Comet achieves the best performance, qualitative results show many of these
-        outputs are often unusable.</li>
+      <li><b>Long-horizon tasks remain challenging.</b> GPT-6 Luna and GPT-6 Astra tie for
+        the highest overall SR at 3.6%, with 16.0% SR on Docs. No reported system fully
+        completes a Sheets or Slides task. GPT-6 Astra leads the overall partial-credit
+        metrics with 42.4% ASC, 72.5% ACF, and 67.4% SF, while Comet retains the highest
+        Docs partial-credit scores. Qualitative examples show that partially completed
+        artifacts can still be unusable.</li>
       <li><b>Visual modality is important.</b> KNOWS contains a large fraction of tasks that
         require visual and spatial reasoning, which are often unsolvable from the AXT alone.
         Adding visual inputs as screenshots (SS) with the AXT can significantly improve
@@ -1076,6 +1189,87 @@ td.families{color:var(--muted);font-size:15px;padding-right:0}
 </div>
 
 <script>
+/* ---- leaderboard sorting ---- */
+(function(){
+  var table = document.querySelector('#leaderboard table.results');
+  if (!table) return;
+  var body = table.tBodies[0];
+  var headers = [table.querySelector('thead .rank')].concat(Array.from(table.querySelectorAll('thead .sub th')));
+  var metrics = ['SR', 'ASC', 'ACF', 'SF'];
+  var groups = ['Docs', 'Sheets', 'Slides', 'Overall'];
+  var activeColumn = 12;
+  var direction = 'desc';
+  var entries = Array.from(body.rows).map(function(row, index){
+    return {
+      row: row,
+      rank: Number(row.querySelector('.rank').textContent),
+      originalIndex: index,
+      scores: Array.from(row.querySelectorAll('td:not(.rank):not(.harness):not(.modality)'))
+        .map(function(cell){ return Number(cell.dataset.score || cell.textContent); })
+    };
+  });
+
+  function alignStickyColumns(){
+    table.style.setProperty('--model-offset', table.querySelector('thead .rank').getBoundingClientRect().width + 'px');
+  }
+  alignStickyColumns();
+  if (window.ResizeObserver){
+    new ResizeObserver(alignStickyColumns).observe(table.querySelector('thead .rank'));
+  } else {
+    window.addEventListener('resize', alignStickyColumns);
+  }
+
+  function sort(){
+    var offset = Math.floor(activeColumn / 4) * 4;
+    var primary = activeColumn % 4;
+    var order = [primary].concat([0, 1, 2, 3].filter(function(index){ return index !== primary; }));
+    var multiplier = direction === 'desc' ? -1 : 1;
+    entries.slice().sort(function(a, b){
+      if (activeColumn === -1) return (a.rank - b.rank) * multiplier;
+      for (var i = 0; i < order.length; i++){
+        var column = offset + order[i];
+        var difference = a.scores[column] - b.scores[column];
+        if (difference) return difference * multiplier;
+      }
+      return a.originalIndex - b.originalIndex;
+    }).forEach(function(entry){
+      body.appendChild(entry.row);
+    });
+    headers.forEach(function(header, position){
+      var index = position - 1;
+      var active = index === activeColumn;
+      var nextDirection = active ? (direction === 'desc' ? 'ascending' : 'descending')
+        : (index === -1 ? 'ascending' : 'descending');
+      header.removeAttribute('aria-sort');
+      if (active) header.setAttribute('aria-sort', direction === 'desc' ? 'descending' : 'ascending');
+      header.querySelector('.sort-arrow').textContent = active ? (direction === 'desc' ? '↓' : '↑') : '↕';
+      header.querySelector('button').setAttribute('aria-label',
+        'Sort ' + (index === -1 ? 'rank' : groups[Math.floor(index / 4)] + ' ' + metrics[index % 4]) + ' ' + nextDirection);
+    });
+  }
+
+  headers.forEach(function(header, position){
+    var index = position - 1;
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'metric-sort';
+    button.textContent = index === -1 ? 'Rank' : metrics[index % 4];
+    var arrow = document.createElement('span');
+    arrow.className = 'sort-arrow';
+    arrow.setAttribute('aria-hidden', 'true');
+    button.appendChild(arrow);
+    button.addEventListener('click', function(){
+      direction = index === activeColumn ? (direction === 'desc' ? 'asc' : 'desc')
+        : (index === -1 ? 'asc' : 'desc');
+      activeColumn = index;
+      sort();
+    });
+    header.textContent = '';
+    header.appendChild(button);
+  });
+  sort();
+})();
+
 /* ---- task explorer ---- */
 (function(){
   var CAT_COLOR = {
