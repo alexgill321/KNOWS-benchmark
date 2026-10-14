@@ -40,7 +40,7 @@ Six families additionally reference source documents/folders on Drive inside `ta
 
 ## 3. Record browsing history
 
-Evaluators consume a **flat list of raw URL strings** — no timestamps or titles needed. Record every top-level (main-frame) navigation, in order, with the **full URL including query string** (checks use bidirectional substring matching against links cited in the artifact). An empty or missing history is scored as failure on the affected steps — roughly 19 of 22 families check it.
+Evaluators consume a **flat list of raw URL strings** — no timestamps or titles needed. Record every top-level (main-frame) navigation, in order, with the **full URL including query string** (checks use bidirectional substring matching against links cited in the artifact). An empty or missing history is scored as failure on the affected steps — 15 of 22 families check it; see [leaderboard/history_requirements.md](leaderboard/history_requirements.md) for which.
 
 ## 4. Per-family setup hooks
 

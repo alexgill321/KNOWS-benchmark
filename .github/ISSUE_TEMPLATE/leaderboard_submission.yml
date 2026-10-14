@@ -1,0 +1,174 @@
+name: Leaderboard submission
+description: Submit a run of all 110 KNOWS tasks for the public leaderboard, either as artifacts for us to grade (Option A) or as evaluator score dicts you produced yourself (Option B).
+title: "[Leaderboard] <system name> · <backbone model> · <harness>"
+labels: ["leaderboard", "needs-review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for submitting to KNOWS. Read [Submitting to the leaderboard](https://github.com/alexgill321/KNOWS-benchmark#submitting-to-the-leaderboard) first. There are two ways in:
+
+        **Option A — we grade your artifacts.** You share the 110 Google files your agent produced plus its browsing histories; we run the official evaluators with our judge and post the scores we obtain. Rows get the **verified** badge.
+
+        **Option B — you grade, we post.** You run the evaluators yourself and submit the per-task `result.to_dict()` score dicts. Rows are posted with the **self-reported** badge.
+
+        Either way: **15 of the 22 task families score the agent's browsing history** (see [`history_requirements.md`](https://github.com/alexgill321/KNOWS-benchmark/blob/main/leaderboard/history_requirements.md)). For Option A you must supply histories for those families or the affected steps are failures. For Option B your score dicts must have been produced with histories for those families.
+
+  - type: dropdown
+    id: option
+    attributes:
+      label: Submission type
+      options:
+        - "Option A — artifacts + browsing histories (we grade)"
+        - "Option B — evaluator score dicts (self-graded)"
+    validations:
+      required: true
+
+  - type: input
+    id: agent-name
+    attributes:
+      label: System name
+      description: How the row should read on the leaderboard.
+      placeholder: MyAgent v2
+    validations:
+      required: true
+
+  - type: input
+    id: backbone
+    attributes:
+      label: Backbone model(s)
+      description: Exact model identifier(s) with version/date; list every model if the harness uses more than one.
+      placeholder: claude-opus-4-7-20260301
+    validations:
+      required: true
+
+  - type: input
+    id: harness
+    attributes:
+      label: Harness
+      description: The framework that drove the browser (BrowserGym-Knows/AgentLab-Knows at a commit, Comet, Atlas, your own).
+      placeholder: BrowserGym-Knows + AgentLab-Knows @ abc1234
+    validations:
+      required: true
+
+  - type: dropdown
+    id: modality
+    attributes:
+      label: Observation modality
+      description: Pick "Not specified" only for closed harnesses whose inputs are undocumented.
+      options:
+        - AXT (accessibility tree only)
+        - AXT + SS (accessibility tree + screenshots)
+        - SS (screenshots only)
+        - Not specified / closed harness
+    validations:
+      required: true
+
+  - type: input
+    id: benchmark-version
+    attributes:
+      label: KNOWS release tag
+      description: The tagged release the tasks and evaluators came from (a git tag, not a commit on main). Results are only comparable within a tag.
+      placeholder: v1.0.0
+    validations:
+      required: true
+
+  - type: input
+    id: runs
+    attributes:
+      label: Runs per task and aggregation
+      description: e.g. "1 run", "3 runs, mean", "3 runs, best-of". Only the aggregation stated here is posted.
+      placeholder: 1 run
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "### Option A fields (artifacts + histories)"
+
+  - type: input
+    id: artifacts
+    attributes:
+      label: Artifacts folder (Google Drive) — Option A
+      description: One Drive folder with every produced Doc/Sheet/Slides file, one per task instance, named `<family>__instance_<N>` (e.g. `docs_1_formal_letter__instance_1`). Share the folder and all files (viewer) with the grading service account in the README. We copy them into our Drive at grading time so the graded artifacts are frozen.
+      placeholder: https://drive.google.com/drive/folders/...
+
+  - type: input
+    id: histories
+    attributes:
+      label: Browsing histories — Option A (required for the 15 history-scored families)
+      description: Public link (repo, release asset, or Drive) to `histories/<family>/instance_<N>.json` — one JSON list of raw URL strings per task, main-frame navigations in order, full URLs with query strings (RUNNING_STANDALONE.md §3). Families listed in `history_requirements.md` as "Scores it = yes" are scored as failures on those steps without a history.
+      placeholder: https://github.com/you/myagent-knows-run/tree/main/histories
+
+  - type: markdown
+    attributes:
+      value: "### Option B fields (self-graded score dicts)"
+
+  - type: input
+    id: results
+    attributes:
+      label: Score dicts — Option B
+      description: Public link to `results/<family>/instance_<N>.json`, each the unmodified `result.to_dict()` output of that task's evaluator (includes per-step success, details and category). All 110 files must be present; we compute SR / ASC / ACF / SF from them.
+      placeholder: https://github.com/you/myagent-knows-run/tree/main/results
+
+  - type: input
+    id: judge
+    attributes:
+      label: Judge model — Option B
+      description: The LLM/VLM judge the evaluators used (the Gemini model behind `GOOGLE_AI_API_KEY`, or a `[local-models]` judge), and the evaluator package version if installed via pip.
+      placeholder: gemini-2.5-pro · browsergym-knows 1.0.0
+
+  - type: checkboxes
+    id: history-confirmation
+    attributes:
+      label: Browsing-history confirmation — Option B
+      options:
+        - label: The score dicts for all 15 history-scored families were produced with the agent's real browsing history passed to the evaluator (not an empty list).
+
+  - type: markdown
+    attributes:
+      value: "### About the system"
+
+  - type: textarea
+    id: description
+    attributes:
+      label: System description
+      description: A short paragraph on the agent — prompting, tools, planning, anything not obvious from the harness name. Link a paper or report if there is one.
+    validations:
+      required: true
+
+  - type: textarea
+    id: cost
+    attributes:
+      label: Cost and wall-clock (optional, encouraged)
+      description: Mean API cost per task (USD), mean wall-clock minutes per task, and the step budget. These become leaderboard columns once enough rows report them.
+      placeholder: "$1.80 / task · 14 min / task · 60-step cap"
+
+  - type: input
+    id: links
+    attributes:
+      label: Paper / code
+      placeholder: https://arxiv.org/abs/... · https://github.com/...
+
+  - type: input
+    id: contact
+    attributes:
+      label: Contact
+      description: Email for questions during review, or a GitHub handle if you prefer to keep it on the issue.
+      placeholder: you@university.edu
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: agreements
+    attributes:
+      label: Checklist
+      options:
+        - label: The run covers all 110 task instances (25 Docs, 45 Sheets, 40 Slides) on the stated release tag.
+          required: true
+        - label: The agent did not have access to the evaluators, `checkpoints.md`, or `data/` for any task.
+          required: true
+        - label: Artifacts are unedited agent output; score dicts are unedited evaluator output.
+          required: true
+        - label: I agree to the row being posted with its badge (verified or self-reported) and this issue linked from the leaderboard.
+          required: true
