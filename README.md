@@ -164,6 +164,21 @@ Found a task whose referenced website changed, a dead link, or an evaluator that
 
 We triage reports against the policy above; fixes ship as new tagged releases.
 
+## Submitting to the leaderboard
+
+The [leaderboard](https://alexgill321.github.io/KNOWS-benchmark/#leaderboard) accepts submissions from any harness, through a [Leaderboard submission issue](../../issues/new?template=leaderboard_submission.yml). Every submission is a complete run — all 110 task instances (25 Docs, 45 Sheets, 40 Slides) — on one tagged release of this repository; results are only comparable within a tag. There are two ways to submit.
+
+**Option A — we grade your artifacts (verified).** Share the Google files your agent produced and its browsing histories; we run the official evaluators with our own judge model and post the scores we obtain. You need:
+
+1. *Artifacts.* One Doc/Sheet/Slides file per task instance in a single Drive folder, named `<family>__instance_<N>` (e.g. `docs_1_formal_letter__instance_1`), with the folder and every file shared (viewer) with the grading service account `knows-eval@agent-benchmark.iam.gserviceaccount.com`. At grading time we copy each file into a KNOWS-owned Drive so the graded artifact is frozen; you may remove sharing afterwards.
+2. *Browsing histories.* For each task, a JSON list of raw URL strings — main-frame navigations in order, full URLs including query strings, exactly as [RUNNING_STANDALONE.md §3](RUNNING_STANDALONE.md#3-record-browsing-history) describes — at `histories/<family>/instance_<N>.json` in a public repo or Drive folder. **15 of the 22 families score the history** (75 instances, ~180 evaluation steps); which ones, and what each checks, is listed in [`leaderboard/history_requirements.md`](leaderboard/history_requirements.md). Without a history those steps are failures, so a run that did not log navigations can only be submitted under Option B with that caveat stated.
+
+**Option B — you grade, we post (self-reported).** Run the evaluators yourself and submit the per-task score dicts: `results/<family>/instance_<N>.json`, each the unmodified `result.to_dict()` output, and the judge model you used. We check that all 110 dicts are present and that the history-scored families were graded with a real history, then compute SR / ASC / ACF / SF from the dicts. The row is posted with a *self-reported* badge.
+
+What happens next: we confirm coverage and sharing, grade or check (typically within two weeks), and post the row with its badge, a link to the issue, and the release tag. Harness, backbone model and modality appear exactly as you give them. Rows are not rescored on later tags; if the families changed, the row keeps the tag it was scored on.
+
+Rules: the agent must not see the evaluators, `checkpoints.md`, or `data/` for any task; artifacts and score dicts must be unedited; one row per system configuration. Partial runs and ablations are welcome as issues but are not ranked. Please report mean API cost and wall-clock per task — those will become leaderboard columns once enough rows report them.
+
 ## Citation
 
 If you use KNOWS, please cite:
