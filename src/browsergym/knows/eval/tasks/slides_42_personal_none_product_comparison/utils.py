@@ -6,6 +6,8 @@ small, task-specific utilities (loading gold devices, checking title bold,
 parsing simple slide tables and colors, etc.).
 """
 import os
+import re
+from copy import deepcopy
 from typing import List, Literal, Optional, Tuple, Dict, Any, Union
 import requests
 from bs4 import BeautifulSoup
@@ -16,11 +18,63 @@ from browsergym.knows.eval.eval_utils.llm_utils import (
     evaluate_with_llm as _evaluate_with_llm,
 )
 from browsergym.knows.eval.eval_utils.text_utils import keyword_exact_match
+from browsergym.knows.eval.eval_utils.slides_utils import (
+    extract_slide_links as _shared_extract_slide_links,
+)
 
 BASE_DIR = os.path.dirname(__file__)
 DATA_DIR = os.path.join(BASE_DIR, "instance_1", "data")
 GOLD_DEVICES_PATH = os.path.join(DATA_DIR, "gold_devices.txt")
 
+
+# Repair only bare non-www subdomains before the unchanged shared extractor.
+# Native hyperlinks, all existing grading and source-fetch policy are retained.
+_BARE_URL_LABEL = r"[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?"
+
+_BARE_URL_TLDS = (
+    "com|org|net|edu|gov|io|co|me|info|biz|tech|app|dev|ai|tv|store|shop|blog|news|"
+    "us|uk|de|fr|jp|cn|au|ca|nz|in|br|mx|ru|kr|za|sg|hk|tw|nl|se|no|dk|fi|es|it|"
+    "pl|tr|ie|pt|be|at|ch|cz|hu|ro|bg|ua"
+)
+
+_BARE_URL = re.compile(
+    r"[a-z][a-z0-9+.\-]*://[^\s<>\"'\)]+|(?P<bare>"
+    r"(?<![\w.@/+:\-])(?!www\.)(?:" + _BARE_URL_LABEL + r"\.){2,}(?:" + _BARE_URL_TLDS + r")"
+    r"(?![\w@:\-]|\.[\w.\-])(?:/[^\s<>\"'\)]+)?)",
+    re.IGNORECASE,
+)
+
+def _normalize_bare_source_urls(text: str) -> str:
+    """Repair bare non-www subdomains that the shared extractor truncates.
+
+    HTTPS follows the family's existing ensure_scheme default. Explicit URLs,
+    ordinary two-label hosts, www hosts, email addresses, malformed host labels
+    and unsupported bare ports are not rewritten by this scoped repair.
+    """
+    return _BARE_URL.sub(lambda match: "https://" + match.group() if match.group("bare") else match.group(), text)
+
+def _normalize_text_source_urls(text_element: Dict[str, Any]) -> Dict[str, Any]:
+    normalized = deepcopy(text_element)
+    for element in normalized.get("textElements", []):
+        run = element.get("textRun", {})
+        if isinstance(run.get("content"), str):
+            run["content"] = _normalize_bare_source_urls(run["content"])
+    return normalized
+
+def _normalize_slide_source_urls(slide: Dict[str, Any]) -> Dict[str, Any]:
+    normalized = deepcopy(slide)
+    for element in normalized.get("pageElements", []):
+        shape = element.get("shape", {})
+        if "text" in shape:
+            shape["text"] = _normalize_text_source_urls(shape["text"])
+        for row in element.get("table", {}).get("tableRows", []):
+            for cell in row.get("tableCells", []):
+                if "text" in cell:
+                    cell["text"] = _normalize_text_source_urls(cell["text"])
+    return normalized
+
+def extract_slide_links(slide: Dict[str, Any]) -> List[str]:
+    return _shared_extract_slide_links(_normalize_slide_source_urls(slide))
 
 def extract_device_info_with_llm(task_text: str, model: Any) -> Optional[Dict[str, Any]]:
     """

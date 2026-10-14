@@ -28,6 +28,9 @@ src/browsergym/knows/
 analysis/                # Scripts + data to reproduce the paper's dataset statistics
 RUNNING_STANDALONE.md    # Run tasks on ANY agent harness (Comet, proprietary, ...)
 ASSETS.md                # External Drive assets some tasks depend on, and how to host your own copies
+codex_benchmark/         # Subscription-authenticated Codex runner and recovery tools
+README-CODEX.md          # Codex configuration, execution contract, and regression tests
+results/                # Astra/Luna result dictionaries, published Comet data, and configurations
 ```
 
 ## Quickstart
@@ -63,7 +66,16 @@ This installs the evaluators and registers all 110 tasks as BrowserGym environme
 python -c "import browsergym.knows; browsergym.knows.ensure_gold_data()"
 ```
 
-Add the `[local-models]` extra to run local judge models instead of the Gemini API. The Setup section below applies to all three options.
+Add the `[local-models]` extra to run local judge models instead of the Gemini API.
+
+### Option D — Run through a Codex subscription
+
+The checkout includes a browser-only Codex harness with serial and parallel runners, resumable episodes, and step-level evaluation records. See [README-CODEX.md](README-CODEX.md) for installation, Google account setup, model configuration, and the experimental contract. The harness runs from this checkout; it is not included in the PyPI package.
+
+The Setup section below applies to all four options.
+
+Published Astra/Luna result dictionaries, the existing Comet scores and examples,
+and their recorded configurations are indexed in [results/README.md](results/README.md).
 
 ## Setup (required for all options)
 

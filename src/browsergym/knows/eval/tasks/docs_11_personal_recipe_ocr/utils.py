@@ -278,16 +278,27 @@ def discover_recipes(doc_text: str, doc_structure: List[Dict]) -> List[Recipe]:
     # Step 1b: For each cluster, find its header element.
     # Look for an explicit RECIPE header first, then fall back to the
     # nearest title-like text element before "Ingredients".
+    boundary_records = [
+        {'text': item.get('content', '') if item.get('type') == 'text' else '',
+         'style': item.get('metadata', {}).get('recipe_named_style_type'),
+         'paragraph_index': item.get('metadata', {}).get('recipe_paragraph_index', index),
+         'barrier': (item.get('type') != 'text'
+                     or item.get('metadata', {}).get('recipe_boundary_barrier', False))}
+        for index, item in enumerate(doc_structure)
+    ]
+    styled_starts = _styled_recipe_header_starts(boundary_records)
     recipe_headers = []  # (structure_index, content) for RECIPE headers
     for idx, item in enumerate(doc_structure):
         if item.get('type') != 'text':
             continue
         content = item.get('content', '').strip()
         if re.match(r'^RECIPE\b', content):
-            recipe_headers.append((idx, content))
+            start_idx = styled_starts.get(idx, idx)
+            recipe_headers.append((start_idx, doc_structure[start_idx].get('content', '').strip()))
 
     candidates = []  # Final list of (header_idx, content) tuples
     used_recipe_headers = set()
+    styled_titles = {}
 
     for cluster in clusters:
         first_sec_idx = cluster['first_section_idx']
@@ -324,8 +335,11 @@ def discover_recipes(doc_text: str, doc_structure: List[Dict]) -> List[Recipe]:
             # For primary clusters (have ingredients), walk backwards a few
             # elements. For secondary clusters (no ingredients, e.g. missing
             # header), walk forward from prev_end to find the title.
-            title_idx = None
-            if 'ingredients' in cluster.get('sections_found', []):
+            heading_block = _preceding_recipe_heading_block(boundary_records, first_sec_idx, prev_end)
+            title_idx = heading_block['start'] if heading_block else None
+            if heading_block:
+                styled_titles[title_idx] = heading_block['title']
+            if title_idx is None and 'ingredients' in cluster.get('sections_found', []):
                 # Backward walk (short range) — title is right before ingredients
                 for back_idx in range(first_sec_idx - 1, max(first_sec_idx - 5, prev_end - 1, -1), -1):
                     back_item = doc_structure[back_idx]
@@ -344,7 +358,7 @@ def discover_recipes(doc_text: str, doc_structure: List[Dict]) -> List[Recipe]:
                         continue
                     title_idx = back_idx
                     break
-            else:
+            elif title_idx is None:
                 # Forward walk — title is the first text after previous recipe.
                 # Skip quoted text (tip content from previous recipe) and
                 # zero-width-space items (unlabeled ingredient lists).
@@ -481,7 +495,9 @@ def discover_recipes(doc_text: str, doc_structure: List[Dict]) -> List[Recipe]:
 
         # Extract title: for RECIPE-header recipes use existing parser,
         # for section-pattern recipes the header element IS the title
-        if re.match(r'^RECIPE\b', header_content):
+        if structure_start in styled_titles:
+            title = styled_titles[structure_start]
+        elif re.match(r'^RECIPE\b', header_content):
             title = extract_recipe_title(recipe_text)
         else:
             title = header_content
@@ -504,6 +520,139 @@ def discover_recipes(doc_text: str, doc_structure: List[Dict]) -> List[Recipe]:
               f"structure_indices={r.structure_indices}")
 
     return recipes
+
+
+def _iter_recipe_paragraphs(content):
+    """Yield paragraphs in document order, including nested table cells."""
+    for element in content:
+        if 'paragraph' in element:
+            yield element['paragraph']
+        elif 'table' in element:
+            for row in element['table'].get('tableRows', []):
+                for cell in row.get('tableCells', []):
+                    yield from _iter_recipe_paragraphs(cell.get('content', []))
+
+
+def _recipe_paragraph_record(paragraph, index):
+    elements = paragraph.get('elements', [])
+    return {
+        'text': ''.join(element['textRun'].get('content', '')
+                        for element in elements if 'textRun' in element),
+        'style': paragraph.get('paragraphStyle', {}).get('namedStyleType'),
+        'paragraph_index': index,
+        'barrier': any('textRun' not in element for element in elements),
+    }
+
+
+def _annotate_recipe_paragraph_styles(structure, document):
+    """Add task-local paragraph styles without changing extracted structure."""
+    if structure is None:
+        return structure
+    segments = []
+    for index, paragraph in enumerate(_iter_recipe_paragraphs(
+            document.get('body', {}).get('content', []))):
+        record = _recipe_paragraph_record(paragraph, index)
+        text = ''
+        for element in paragraph.get('elements', []):
+            if 'textRun' in element:
+                text += element['textRun'].get('content', '')
+            elif 'inlineObjectElement' in element and text.strip():
+                segments.append((text, record))
+                text = ''
+        if text.strip():
+            segments.append((text, record))
+    text_items = [item for item in structure if item.get('type') == 'text']
+    # Align positionally, including duplicates. Do not guess styles when a
+    # different extractor layout prevents an exact match.
+    if (len(text_items) != len(segments)
+            or any(item.get('content') != text for item, (text, _) in zip(text_items, segments))):
+        print("Warning: Recipe paragraph styles could not be aligned with structure")
+        return structure
+    for item, (_, record) in zip(text_items, segments):
+        item.setdefault('metadata', {}).update({
+            'recipe_named_style_type': record['style'],
+            'recipe_paragraph_index': record['paragraph_index'],
+            'recipe_boundary_barrier': record['barrier'],
+        })
+    return structure
+
+
+def _styled_recipe_header_starts(records):
+    """Map plain or decorative template labels to a preceding styled title."""
+    starts = {}
+    for index, record in enumerate(records):
+        text = record['text'].strip()
+        template_label = re.fullmatch(r'RECIPE[ \t]+([A-Z][A-Z \t]*)[ \t]+[•·][ \t]+(.+)', text)
+        is_template_label = bool(template_label and template_label[2].isupper())
+        if (record.get('barrier') or record.get('style') != 'NORMAL_TEXT'
+                or not (text == 'RECIPE' or is_template_label
+                        or re.fullmatch(r'RECIPE[ \t]+[•·][ \t]*(?!\d)\S.*', text))):
+            continue
+        source_seen = False
+        # Permit only a short title/source/blank run, never cross other content.
+        for previous in range(index - 1, max(-1, index - 7), -1):
+            candidate = records[previous]
+            if (candidate.get('barrier')
+                    or record['paragraph_index'] - candidate['paragraph_index'] > 6):
+                break
+            title = candidate['text'].strip()
+            if not title:
+                continue
+            is_url = re.fullmatch(r'https?://[^\s<>]+', title, re.IGNORECASE) is not None
+            if (candidate.get('style') in {'HEADING_1', 'TITLE'}
+                    and not re.match(r'^RECIPE\b', title)
+                    and title.lower() not in SECTION_HEADERS and not is_url):
+                starts[index] = previous
+                break
+            if is_url and not source_seen:
+                source_seen = True
+                continue
+            break
+    return starts
+
+
+def _recipe_heading_blocks(records, start=0, stop=None):
+    """Return explicit, consecutive title/heading paragraph blocks."""
+    blocks = []
+    for index in range(start, len(records) if stop is None else stop):
+        item = records[index]
+        text = ' '.join(item['text'].split())
+        if (item.get('barrier') or item.get('style') not in {'HEADING_1', 'TITLE'}
+                or not text or text.lower() in SECTION_HEADERS
+                or re.match(r'^RECIPE\b', text)
+                or re.match(r'^https?://', text, re.IGNORECASE)):
+            continue
+        if (blocks and blocks[-1]['end'] == index
+                and item['paragraph_index'] - records[index - 1]['paragraph_index'] == 1):
+            blocks[-1]['end'] = index + 1
+            blocks[-1]['title'] += ' ' + text
+        else:
+            blocks.append({'start': index, 'end': index + 1, 'title': text})
+    return blocks
+
+
+def _preceding_recipe_heading_block(records, first_section, span_start):
+    """Use one unambiguous styled block in this cluster's bounded prefix."""
+    while (span_start < first_section
+           and records[first_section]['paragraph_index'] - records[span_start]['paragraph_index'] > 32):
+        span_start += 1
+    blocks = _recipe_heading_blocks(records, span_start, first_section)
+    return blocks[0] if len(blocks) == 1 else None
+
+
+def extract_recipe_text_from_doc(doc_id: str, service, document: Optional[Dict] = None) -> str:
+    """Extract recipe text in the same row/cell order as document structure."""
+    if document is None:
+        document = service.documents().get(documentId=doc_id).execute()
+    paragraphs = _iter_recipe_paragraphs(document.get('body', {}).get('content', []))
+    full_text = ''.join(
+        element['textRun'].get('content', '')
+        for paragraph in paragraphs
+        for element in paragraph.get('elements', [])
+        if 'textRun' in element
+    )
+    print(f"Extraction complete. Total characters extracted: {len(full_text)}")
+    return full_text
 
 
 def extract_hyperlinks(
@@ -532,7 +681,10 @@ def extract_hyperlinks(
     """
     document = service.documents().get(documentId=doc_id).execute()
     body = document.get('body', {})
-    content = body.get('content', [])
+    # Use one ordered paragraph stream for validation and collection. Table
+    # paragraphs must share the same boundary indices as top-level paragraphs.
+    content = [{'paragraph': paragraph}
+               for paragraph in _iter_recipe_paragraphs(body.get('content', []))]
 
     links = []
     url_pattern = re.compile(
@@ -612,12 +764,31 @@ def extract_hyperlinks(
         if has_section:
             valid_recipe_headers.add(i)
 
+    boundary_records = [_recipe_paragraph_record(element['paragraph'], index)
+                        for index, element in enumerate(content)]
+    styled_starts = {marker: title for marker, title in
+                     _styled_recipe_header_starts(boundary_records).items()
+                     if marker in valid_recipe_headers}
+    styled_title_indices = set(styled_starts.values())
+    title_blocks = [block for block in _recipe_heading_blocks(boundary_records)
+                    if block['title'] in boundary_titles]
+    joined_title_starts = {block['start']: block['title'] for block in title_blocks}
+    joined_title_continuations = {index for block in title_blocks
+                                  for index in range(block['start'] + 1, block['end'])}
     last_was_recipe_header = False
 
     def is_recipe_boundary(paragraph, element_index: int) -> bool:
         """Check if a paragraph is a recipe boundary."""
         nonlocal last_was_recipe_header
-        text = get_paragraph_text(paragraph)
+        if element_index in styled_title_indices:
+            last_was_recipe_header = False
+            return True
+        if element_index in styled_starts:
+            last_was_recipe_header = False
+            return False  # This credit label's title already opened the recipe.
+        if element_index in joined_title_continuations:
+            return False
+        text = joined_title_starts.get(element_index, get_paragraph_text(paragraph))
         if re.match(r'^RECIPE\b', text):
             if element_index not in valid_recipe_headers:
                 return False  # Empty RECIPE header, skip
@@ -631,20 +802,6 @@ def extract_hyperlinks(
         if text:
             last_was_recipe_header = False
         return False
-
-    def process_table(table) -> Tuple[List[Dict[str, str]], bool]:
-        """Process a table element for hyperlinks. Returns (links, boundary_found)."""
-        table_links = []
-        for row in table.get('tableRows', []):
-            for cell in row.get('tableCells', []):
-                cell_content = cell.get('content', [])
-                for elem in cell_content:
-                    if 'paragraph' in elem:
-                        if is_recipe_boundary(elem['paragraph']):
-                            return table_links, True
-                        if collecting:
-                            table_links.extend(process_paragraph(elem['paragraph']))
-        return table_links, False
 
     def handle_recipe_boundary() -> bool:
         """Handle encountering a recipe boundary. Returns True if we should stop."""
@@ -672,13 +829,6 @@ def extract_hyperlinks(
                 continue
             if collecting:
                 links.extend(process_paragraph(element['paragraph']))
-        elif 'table' in element:
-            table_links, found_boundary = process_table(element['table'])
-            if collecting:
-                links.extend(table_links)
-            if found_boundary:
-                if handle_recipe_boundary():
-                    break
 
     return links
 
@@ -748,7 +898,6 @@ def setup_document(
     """
     from browsergym.knows.eval.eval_utils.google_services_utils import (
         download_doc_as_pdf,
-        extract_text_from_doc,
         extract_structure_from_doc,
         extract_images_from_doc,
         extract_images_from_doc_with_cropping,
@@ -776,8 +925,10 @@ def setup_document(
     convert_pdf_to_pngs(pdf_path, pdf_images_dir, dpi=pdf_dpi)
 
     # Extract text and structure
-    doc_text = extract_text_from_doc(workspace_doc_id, docs_service)
+    document = docs_service.documents().get(documentId=workspace_doc_id).execute()
+    doc_text = extract_recipe_text_from_doc(workspace_doc_id, docs_service, document=document)
     doc_structure = extract_structure_from_doc(workspace_doc_id, docs_service)
+    doc_structure = _annotate_recipe_paragraph_styles(doc_structure, document)
 
     # Extract images
     extract_images_from_doc(workspace_doc_id, docs_service, doc_images_dir)
@@ -1387,6 +1538,13 @@ def extract_recipe_title(recipe_text: str) -> str:
     if not recipe_text:
         return ""
 
+    # Numbered template labels identify the recipe, not its title. Do not
+    # generalize this to author labels or actual titles on the RECIPE line.
+    numbered_header = re.compile(
+        r'^RECIPE[ \t]+(?:[•·][ \t]*)?\d+(?:[ \t]*[•·][ \t]*.+)?$',
+        re.IGNORECASE,
+    )
+
     # BUG-009 fix: Check if recipe_text starts with "RECIPE" followed by title
     # The title may be separated by vertical tab (\x0b), space, or directly concatenated
     if recipe_text.upper().startswith('RECIPE'):
@@ -1397,7 +1555,8 @@ def extract_recipe_title(recipe_text: str) -> str:
         # Get the first line after RECIPE
         first_line = after_recipe.split('\n')[0].strip()
         # Check if this looks like a title (not a URL or section header)
-        if first_line and not first_line.startswith('http'):
+        header_is_numbered = numbered_header.fullmatch(recipe_text.split('\n', 1)[0].strip()) is not None
+        if first_line and not first_line.startswith('http') and not header_is_numbered:
             first_line_lower = first_line.lower()
             if first_line_lower not in ['ingredients', 'preparation', 'tips', 'ready in', 'serves', 'calories']:
                 if not re.match(r'^\d+\s*(min|cal|servings?)', first_line, re.IGNORECASE):
@@ -1412,7 +1571,7 @@ def extract_recipe_title(recipe_text: str) -> str:
         if not line:
             continue
         # Skip the RECIPE header itself
-        if re.match(r'^RECIPE\s*$', line, re.IGNORECASE):
+        if re.match(r'^RECIPE\s*$', line, re.IGNORECASE) or numbered_header.fullmatch(line):
             continue
         # Skip common section headers
         if line.lower() in ['ingredients', 'preparation', 'tips', 'ready in', 'serves', 'calories']:

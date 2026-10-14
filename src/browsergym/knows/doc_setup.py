@@ -426,6 +426,41 @@ def share_doc_with_service_account(
         return False
 
 
+def _dismiss_slides_welcome(
+    page: playwright.sync_api.Page, *, kind: str, expected_id: str
+) -> bool:
+    """Close the known Slides welcome dialog without adding presentation content."""
+    if kind != "slides":
+        return False
+    if _extract_doc_id(page.url, kind=kind) != expected_id:
+        raise RuntimeError("Slides workspace identity changed before welcome dismissal")
+
+    welcome = page.get_by_role("dialog").filter(has_text="Let’s start creating.").first
+    title = page.locator(
+        'input[aria-label="Rename"]:visible, '
+        'input[aria-label="Document title"]:visible, input.docs-title-input:visible'
+    ).first
+    # Either UI can appear after domcontentloaded. An already ready editor
+    # takes the normal path immediately instead of waiting for an absent modal.
+    if not welcome.is_visible() and not title.is_visible():
+        try:
+            welcome.or_(title).first.wait_for(state="visible", timeout=5000)
+        except playwright.sync_api.TimeoutError:
+            # No recognized onboarding yet; leave ordinary editor readiness
+            # to the existing rename logic. A detected dialog is never ignored.
+            if not welcome.is_visible():
+                return False
+    if not welcome.is_visible():
+        return False
+
+    welcome.get_by_role("button", name="Close", exact=True).click(timeout=5000)
+    welcome.wait_for(state="hidden", timeout=10000)
+    if _extract_doc_id(page.url, kind=kind) != expected_id:
+        raise RuntimeError("Slides workspace identity changed during welcome dismissal")
+    title.wait_for(state="visible", timeout=5000)
+    return True
+
+
 def _rename_via_ui(page: playwright.sync_api.Page, new_name: str) -> bool:
     """Best-effort rename of the currently open Google Doc.
 
@@ -587,6 +622,8 @@ def create_task_workspace(
         page.wait_for_load_state("domcontentloaded", timeout=timeout_ms)
     except Exception:  # noqa: BLE001
         pass
+
+    _dismiss_slides_welcome(page, kind=kind, expected_id=doc_id)
 
     _debug_progress(f"renaming {kind} id={doc_id}")
     if not _rename_via_ui(page, doc_name):

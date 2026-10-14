@@ -30,7 +30,8 @@ from browsergym.knows.eval.tasks.sheets_38_apartment_finder.utils import (
     extract_craigslist_data_with_fallback,
     normalize_boolean_value,
     compare_addresses,
-    is_valid_craigslist_url
+    is_valid_craigslist_url,
+    resolve_listing_url
 )
 
 # Constants
@@ -300,8 +301,7 @@ def grade_checkpoint_2():
 
     for listing_idx in range(listings_to_check):
         row = df.iloc[listing_idx]
-        url = str(row.get(url_col, "")) if url_col else ""
-        url = url.strip()
+        url = resolve_listing_url(sheet_raw, row, url_col)
 
         if not url or not is_valid_craigslist_url(url):
             invalid_urls[listing_idx] = f"Invalid or missing URL: {url[:50]}..."
@@ -654,7 +654,8 @@ def grade_checkpoint_3(browsing_history: Optional[List[str]] = None):
         return checkpoint
 
     # Get listing URLs from spreadsheet
-    listing_urls = [str(row.get(url_col, "")).strip() for _, row in df.iterrows() if row.get(url_col)]
+    listing_urls = [resolve_listing_url(sheet_raw, row, url_col)
+                    for _, row in df.iterrows() if row.get(url_col)]
     listing_urls = [url for url in listing_urls if url and 'craigslist.org' in url.lower()]
 
     if not listing_urls:

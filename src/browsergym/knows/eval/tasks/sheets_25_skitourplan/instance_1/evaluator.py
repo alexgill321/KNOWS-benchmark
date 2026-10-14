@@ -47,6 +47,8 @@ from browsergym.knows.eval.tasks.sheets_25_skitourplan.utils import (
     normalize_aspect,
     is_valid_wbsguide_url,
     is_valid_uac_forecast_url,
+    get_sheet_link_url,
+    get_row_link_url,
     classify_danger_color,
     load_gold_runs,
     find_run_by_name_or_url,
@@ -382,7 +384,9 @@ def grade_checkpoint_3():
 
             # Get user values
             user_name = str(row.iloc[name_col]) if name_col is not None else ""
-            user_link = str(row.iloc[link_col]) if link_col is not None else ""
+            user_link = (get_row_link_url(sheet_raw, list(row), link_col,
+                                          detected_header_row + 1 + run_idx)
+                         if link_col is not None else "")
 
             # Find matching gold run
             gold_run = find_run_by_name_or_url(user_name, user_link, gold_data)
@@ -626,7 +630,8 @@ def grade_checkpoint_4():
         # substring overlap, so visiting wbsguide.com homepage doesn't credit this.
         if link_col is not None and df is not None:
             for i in range(min(3, len(df))):
-                user_link = str(df.iloc[i].iloc[link_col]).lower()
+                user_link = get_row_link_url(
+                    sheet_raw, list(df.iloc[i]), link_col, detected_header_row + 1 + i).lower()
                 m = re.search(r'/(\d+\.php)', user_link)
                 if not m:
                     continue
@@ -704,7 +709,7 @@ def grade_checkpoint_5():
         # Step 2: Forecast Link Valid
         step_start = time.time()
         if forecast_link_col is not None:
-            forecast_link = get_cell_value(sheet_raw, FIRST_DATA_ROW, forecast_link_col) or ""
+            forecast_link = get_sheet_link_url(sheet_raw, FIRST_DATA_ROW, forecast_link_col)
             link_valid = is_valid_uac_forecast_url(forecast_link)
             checkpoint.add_step("Forecast Link Valid", link_valid, 2,
                               f"Link: '{forecast_link[:50]}...'",
@@ -877,7 +882,9 @@ def grade_checkpoint_6():
             sheet_row_idx = FIRST_DATA_ROW + run_idx
 
             user_name = str(row.iloc[name_col]) if name_col is not None else ""
-            user_link = str(row.iloc[link_col]) if link_col is not None else ""
+            user_link = (get_row_link_url(sheet_raw, list(row), link_col,
+                                          detected_header_row + 1 + run_idx)
+                         if link_col is not None else "")
 
             gold_run = find_run_by_name_or_url(user_name, user_link, gold_data)
             expected_rating = gold_run.get('expected_danger_rating', 'unknown') if gold_run else 'unknown'

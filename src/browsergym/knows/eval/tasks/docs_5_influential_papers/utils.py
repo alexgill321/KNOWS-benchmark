@@ -134,6 +134,19 @@ def extract_paper_id(url: str) -> Optional[Tuple[str, str]]:
     if doi_match:
         return ("DOI", doi_match.group(1))
 
+    # ChemRxiv's direct DOI links identify the same DOI as doi.org links.
+    # URL extraction already accepts this form; without this branch prefetch
+    # silently discards every such paper before requesting its metadata.
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        parsed = None
+    if (parsed is not None and parsed.scheme.lower() in ("http", "https")
+            and (parsed.hostname or "").lower() in ("chemrxiv.org", "www.chemrxiv.org")):
+        chemrxiv_doi = re.fullmatch(r'/doi/(10\.\d{4,}/[\w\.\-]+)', parsed.path)
+        if chemrxiv_doi:
+            return ("DOI", chemrxiv_doi.group(1))
+
     # chemrxiv article-details link (no DOI available)
     chemrxiv_match = re.search(r'chemrxiv\.org/engage/chemrxiv/article-details/([\w\-]+)', url)
     if chemrxiv_match:

@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "snapshot_date": "2026-10-08",
+  "models": [
+    "gpt-6-luna",
+    "gpt-6-astra"
+  ],
+  "efforts": {
+    "gpt-6-luna": "max",
+    "gpt-6-astra": "max"
+  },
+  "authentication": "ChatGPT subscription through codex app-server",
+  "codex_cli_version": "0.159.0",
+  "python_version": "3.12.13",
+  "judge_model": "gemini-3.8-flash",
+  "max_actions": 150,
+  "episode_timeout_seconds": 1800,
+  "evaluation_timeout_seconds": 900,
+  "seed": 0,
+  "seed_scope": "Run label only; no model sampling seed is exposed by app-server.",
+  "browser": {
+    "channel": "chrome",
+    "headless": true,
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "tools": "UI interactions, screenshots, and available accessibility observations"
+  },
+  "execution": {
+    "main_campaign_worker_counts": [
+      1,
+      4,
+      2
+    ],
+    "final_main_worker_limit": 2,
+    "late_wedding_completion": "serial",
+    "requested_models": [
+      "gpt-6-luna",
+      "gpt-6-astra"
+    ],
+    "cancelled_model": "gpt-6.1-sol"
+  },
+  "task_count_per_model": 110,
+  "task_counts_by_artifact": {
+    "Docs": 25,
+    "Sheets": 45,
+    "Slides": 40
+  },
+  "repetitions_per_task": 1,
+  "selection_policy": "One selected result per task from the final saved reporting snapshot; includes reviewed retries and saved-output regrades, not an average or best-of-attempts search.",
+  "base_benchmark_commit": "4faa99d735355bbf08c7a7a56c732ab3acc3c1d1",
+  "published_harness_commit": "e3f7171f50fcccf15f0a08e4b5f715894081c5e1",
+  "evaluator_version_note": "Evaluators were repaired during the campaign. The base commit alone does not identify all effective evaluator sources; per-task evaluator source hashes are retained when available.",
+  "source_manifest_sha256": "7a9eefe489c5a6a2295fde0690819ad2f50297dbd6236bf4e993f6ec3b2e1571",
+  "snapshot_sha256": "a9b27663abb096596eaa130c1447f56e58674ccb6fa6b77543c6ce92c00f20e8",
+  "selected_summary_sha256": "5fe2ece0d90b744852d89e42d224019a5c451ebc3abd0e509be523c006b68dd2"
+}
