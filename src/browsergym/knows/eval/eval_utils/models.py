@@ -178,10 +178,19 @@ def gemma_google_ai(model_id="gemma-3-27b-it"):
                                     mimetype = "image/jpeg"
                                 elif str(image_path).endswith('.jpg'):
                                     mimetype = "image/jpg"
+                                elif str(image_path).endswith('.webp'):
+                                    mimetype = "image/webp"
                                 else:
                                     raise ValueError(f"Unsupported image format: {image_path}")
                                 with open(image_path, "rb") as img_file:
                                     image_bytes = img_file.read()
+                                if mimetype == "image/webp":
+                                    # Downloader suffixes come from HTTP headers;
+                                    # verify the payload without re-encoding it.
+                                    with Image.open(io.BytesIO(image_bytes)) as webp_image:
+                                        if webp_image.format != "WEBP":
+                                            raise ValueError("Image payload is not WebP")
+                                        webp_image.load()
                                 contents.append(
                                     types.Part.from_bytes(
                                         data=image_bytes,

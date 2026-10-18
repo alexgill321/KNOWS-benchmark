@@ -57,6 +57,9 @@ import requests
 
 # Local imports - only task-specific utilities
 from browsergym.knows.eval.tasks.sheets_10_paper_sorting.utils import compare_authors_list
+from browsergym.knows.eval.tasks.sheets_10_paper_sorting.figure_images import (
+    FigureImageError, download_figure_image, validate_figure_image,
+)
 
 # arXiv-specific constants (task-specific, defined inline)
 ARXIV_HEADERS = {
@@ -167,34 +170,12 @@ def load_gold_data():
         AUTHOR_LOOKUP = {"first_authors": [], "count": 0}
 
 
-def download_image_from_url(url: str) -> Optional[str]:
-    """Download an image from URL and return the temp file path.
-
-    Args:
-        url: URL to download from
-
-    Returns:
-        Path to downloaded temp file, or None if failed
-    """
+def download_image_from_url(url: str) -> str:
+    """Retrieve a verified figure using the evaluator's existing Drive access."""
     from browsergym.knows.eval.tasks.sheets_10_paper_sorting.utils import _arxiv_request_with_retry
-
-    try:
-        # Convert arxiv.org URLs to export.arxiv.org to avoid rate limiting
-        if 'arxiv.org' in url and 'export.arxiv.org' not in url:
-            url = url.replace('://arxiv.org/', '://export.arxiv.org/')
-
-        if 'arxiv.org' in url:
-            response = _arxiv_request_with_retry(url, headers=ARXIV_HEADERS, timeout=30)
-        else:
-            response = requests.get(url, headers=ARXIV_HEADERS, timeout=30)
-        response.raise_for_status()
-        temp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
-        temp_file.write(response.content)
-        temp_file.close()
-        return temp_file.name
-    except Exception as e:
-        print(f"  Failed to download image from {url[:60]}...: {e}")
-        return None
+    return download_figure_image(
+        url, drive_service=DRIVE_SERVICE, http_get=requests.get,
+        arxiv_get=_arxiv_request_with_retry, headers=ARXIV_HEADERS)
 
 
 def parallel_validate_figures(
@@ -220,33 +201,18 @@ def parallel_validate_figures(
     temp_files = []  # Track temp files for cleanup
 
     try:
-        # Step 1: Download user images sequentially with early abort on 429
+        # A retrieval failure is an evaluator error, not a failed comparison.
         print(f"  Downloading {len(figure_tasks)} figure images...")
         downloaded = {}
-        rate_limited = False
         for task in figure_tasks:
-            if rate_limited:
-                break
             user_url = task.get('user_url', '')
             if user_url and user_url.startswith('http'):
                 image_url = extract_image_url_from_cell(user_url)
                 if image_url:
                     path = download_image_from_url(image_url)
-                    if path:
-                        downloaded[task['id']] = path
-                    elif 'arxiv.org' in image_url:
-                        # Check if we're being rate limited — skip remaining arXiv downloads
-                        rate_limited = True
-                        print(f"  Skipping remaining figure downloads (rate limited)")
-        if rate_limited:
-            print(f"  Downloaded {len(downloaded)}/{len(figure_tasks)} figures before rate limit")
+                    downloaded[task['id']] = path
+                    temp_files.append(path)
 
-        # Track downloaded temp files for cleanup
-        for path in downloaded.values():
-            if path:
-                temp_files.append(path)
-
-        # Step 2: Build VLM tasks for figure comparison
         vlm_tasks = []
         for task in figure_tasks:
             paper_id = task['id']
@@ -261,15 +227,12 @@ def parallel_validate_figures(
                     user_path = user_url
 
             if not user_path or not os.path.exists(user_path):
-                results[paper_id] = False
-                continue
+                raise FigureImageError("Submitted figure could not be retrieved")
 
             # Full path to gold figure
             gold_full_path = os.path.join(TASK_DIR, gold_path)
-            if not os.path.exists(gold_full_path):
-                print(f"  Gold figure not found: {gold_full_path}")
-                results[paper_id] = False
-                continue
+            validate_figure_image(gold_full_path, source="Reference figure")
+            validate_figure_image(user_path, source="Submitted figure")
 
             # Build VLM message for this comparison
             messages = [

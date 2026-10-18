@@ -40,6 +40,7 @@ from browsergym.knows.eval.tasks.sheets_28_personal_travel_planner.utils import 
     seed_cp6_route_and_daytype,
     build_cp3_cp4_vlm_results,
     build_task_context,
+    StructuredRowExtractionError,
     find_semantic_duplicates,
 )
 
@@ -656,6 +657,9 @@ def grade_checkpoints(
 
     try:
         setup(workspace_doc_id)
+    except StructuredRowExtractionError:
+        # Missing evaluator parsing must remain unscored, not become a model zero.
+        raise
     except Exception as e:
         print(f"Setup failed: {e}")
         cp = Checkpoint(total=40, result=0, name="Table Structure and Layout")

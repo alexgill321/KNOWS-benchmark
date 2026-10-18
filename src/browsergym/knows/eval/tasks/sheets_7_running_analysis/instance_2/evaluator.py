@@ -52,6 +52,12 @@ from browsergym.knows.eval.tasks.sheets_7_running_analysis.utils import (
     judge_url_pace_match,
 )
 
+from browsergym.knows.eval.tasks.sheets_7_running_analysis.chart_context import (
+    ChartContextError, bind_chart_context, chart_host_rows, series_source_is_table,
+    get_series_header_label, get_series_column_values, identify_series_by_content,
+    check_chart_overlap,
+)
+
 # Constants
 TASK_DIR = resolve_task_dir(__file__)
 DATA_DIR = os.path.join(TASK_DIR, "data/")
@@ -119,6 +125,7 @@ def setup(workspace_doc_id):
 
     # Extract charts from the sheet
     chart_data = extract_charts_from_sheet(sheet_id, SHEETS_SERVICE)
+    chart_data = bind_chart_context(chart_data, sheet_raw, table_sheet_id)
     print(f"Extracted {len(chart_data) if chart_data else 0} charts from spreadsheet")
 
 
@@ -394,7 +401,7 @@ def grade_checkpoint_2():
 
     # Step 1: Date matching (proportional, out of 10)
     if date_col:
-        date_score = math.floor(date_matches / 169 * 10)
+        date_score = min(10, math.floor(date_matches / 169 * 10))
         all_dates_match = date_matches == 169
         checkpoint.add_step(
             "Date Match",
@@ -412,7 +419,7 @@ def grade_checkpoint_2():
 
     # Step 2: Distance matching (row-level, proportional, out of 10)
     if dist_col:
-        dist_score = math.floor(distance_matches / 169 * 10)
+        dist_score = min(10, math.floor(distance_matches / 169 * 10))
         all_dist_match = distance_matches == 169
         unit_str = f" ({detected_dist_unit})" if detected_dist_unit else ""
         # Debug: Print failed distance rows
@@ -438,7 +445,7 @@ def grade_checkpoint_2():
 
     # Step 3: Speed matching (row-level, proportional, out of 10)
     if speed_col:
-        speed_score = math.floor(speed_matches / 169 * 10)
+        speed_score = min(10, math.floor(speed_matches / 169 * 10))
         all_speed_match = speed_matches == 169
         unit_str = f" ({detected_speed_unit})" if detected_speed_unit else ""
         checkpoint.add_step(
@@ -503,6 +510,7 @@ def grade_checkpoint_3():
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
+    rows = chart_host_rows(speed_chart)
     chart_type = speed_chart.get('chart_type', 'UNKNOWN')
 
     # Identify series by content using parallel calls for baseline series
@@ -725,7 +733,7 @@ def grade_checkpoint_3():
                     src_range = main_series.get('source_range', {})
                     actual_start_col = src_range.get('start_col')
 
-                    if actual_start_col == expected_col_idx:
+                    if series_source_is_table(speed_chart, main_idx) and actual_start_col == expected_col_idx:
                         main_series_valid = True
                         series_details = f"Main series (index {main_idx}) uses '{speed_col_name}' (column {expected_col_idx})"
                     else:
@@ -1095,6 +1103,7 @@ def grade_checkpoint_4():
         checkpoint.execution_time = time.time() - checkpoint_start
         return checkpoint
 
+    rows = chart_host_rows(cumulative_chart)
     chart_type = get_chart_type(cumulative_chart)
 
     # Get axis labels
@@ -1602,6 +1611,8 @@ def grade_checkpoints(workspace_doc_id=None, browsing_history=None):
 
         return result
 
+    except ChartContextError:
+        raise
     except Exception as e:
         print(f"Error during evaluation: {str(e)}")
         import traceback

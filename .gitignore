@@ -7,4 +7,10 @@ auth-data/
 *.log
 .DS_Store
 .venv/
+.venv-codex-chrome/
 dist/
+benchmark.local.json
+codex-results/
+/outputs/
+run_targets.json
+.codex-benchmark.lock

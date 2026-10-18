@@ -217,6 +217,89 @@ def extract_run_id_from_url(url: str) -> Optional[int]:
     return int(match.group(1)) if match else None
 
 
+def _sheet_cells(sheet_raw: Dict) -> Dict[Tuple[int, int], Dict]:
+    """Index the first tab's supplied grid cells, respecting range offsets."""
+    sheets = (sheet_raw or {}).get('sheets') or []
+    cells = {}
+    for block in (sheets[0].get('data') or []) if sheets else []:
+        start_row, start_col = block.get('startRow', 0), block.get('startColumn', 0)
+        for row_idx, row in enumerate(block.get('rowData') or []):
+            for col_idx, cell in enumerate(row.get('values') or []):
+                cells[start_row + row_idx, start_col + col_idx] = cell
+    return cells
+
+
+_LINK_LITERAL = r'HYPERLINK\s*\(\s*"((?:[^"]|"")*)"\s*[,;]\s*"((?:[^"]|"")*)"\s*\)'
+
+
+def get_sheet_link_url(sheet_raw: Dict, row_idx: int, col_idx: int) -> str:
+    """Read a link's target rather than its rendered label, without evaluation.
+
+    Sheets exposes hyperlink metadata on formula spill cells. A narrow literal
+    HYPERLINK/formula-array fallback supports saved grids lacking that metadata;
+    formulas containing references or expressions are never interpreted.
+    """
+    cells = _sheet_cells(sheet_raw)
+    cell = cells.get((row_idx, col_idx), {})
+    displayed = str(cell.get('formattedValue', ''))
+    targets = []
+    for target in [cell.get('hyperlink'),
+                   (cell.get('effectiveFormat') or {}).get('textFormat', {}).get('link', {}).get('uri'),
+                   (cell.get('userEnteredFormat') or {}).get('textFormat', {}).get('link', {}).get('uri')]:
+        if isinstance(target, str) and target:
+            targets.append(target)
+    for run in cell.get('textFormatRuns') or []:
+        target = (run.get('format') or {}).get('link', {}).get('uri')
+        if isinstance(target, str) and target:
+            targets.append(target)
+    if targets:
+        # Multiple distinct links in one cell have no unambiguous target.
+        return targets[0] if len(set(targets)) == 1 else ''
+    if (cell.get('effectiveValue') or {}).get('errorValue'):
+        return ''
+    formula = (cell.get('userEnteredValue') or {}).get('formulaValue', '')
+    literal = re.fullmatch(r'\s*=\s*' + _LINK_LITERAL + r'\s*', formula, re.IGNORECASE)
+    if literal and literal[2].replace('""', '"') == displayed:
+        return literal[1].replace('""', '"')
+    # Only a single-column array of literal HYPERLINK calls has a proven
+    # positional mapping. Do not guess targets from arbitrary formulas.
+    for (anchor_row, anchor_col), anchor in cells.items():
+        if anchor_col != col_idx or anchor_row > row_idx:
+            continue
+        if (anchor.get('effectiveValue') or {}).get('errorValue'):
+            continue
+        array = (anchor.get('userEnteredValue') or {}).get('formulaValue', '')
+        match = re.fullmatch(r'\s*=\s*\{\s*(' + _LINK_LITERAL
+                             + r'(?:\s*;\s*' + _LINK_LITERAL + r')*)\s*\}\s*', array, re.IGNORECASE)
+        if not match:
+            continue
+        links = list(re.finditer(_LINK_LITERAL, match[1], re.IGNORECASE))
+        offset = row_idx - anchor_row
+        if offset < len(links) and links[offset][2].replace('""', '"') == displayed:
+            return links[offset][1].replace('""', '"')
+    entered = (cell.get('userEnteredValue') or {}).get('stringValue')
+    return entered if isinstance(entered, str) and entered else displayed
+
+
+def get_row_link_url(sheet_raw: Dict, row_values: List, col_idx: int, row_hint: int) -> str:
+    """Resolve a DataFrame row without confusing skipped blanks or duplicate labels."""
+    values = [str(value) for value in row_values]
+    fallback = values[col_idx] if 0 <= col_idx < len(values) else ''
+    cells = _sheet_cells(sheet_raw)
+
+    def matches(index):
+        return all(str(cells.get((index, col), {}).get('formattedValue', '')) == value
+                   for col, value in enumerate(values))
+
+    # A positional hint cannot disambiguate identical displayed rows after a
+    # parser has removed blanks. Never borrow another duplicate's hidden URL.
+    candidates = sorted({row for row, _ in cells}, key=lambda row: (row != row_hint, row))
+    matches_at = [row for row in candidates if matches(row)]
+    if len(matches_at) == 1:
+        return get_sheet_link_url(sheet_raw, matches_at[0], col_idx)
+    return fallback
+
+
 def is_valid_uac_forecast_url(url: str) -> bool:
     """Check if URL is a valid Utah Avalanche Center forecast page.
 

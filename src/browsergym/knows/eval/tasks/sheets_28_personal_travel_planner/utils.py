@@ -181,6 +181,15 @@ _WEEKDAY_PREFIX_RE = re.compile(
 _DAY_TYPE_SUFFIX_RE = re.compile(
     r"\s*\((Weekday|Weekend|Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*\.?\)\s*$", re.IGNORECASE
 )
+_ANNOTATION_WEEKDAY = (
+    r"(?:Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|"
+    r"Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)\.?"
+)
+_ANNOTATED_DAY_TYPE_SUFFIX_RE = re.compile(
+    r"(?:\s*[·•|—]\s*(?:" + _ANNOTATION_WEEKDAY + r"\s*[·•|—]\s*)?"
+    r"|\s+" + _ANNOTATION_WEEKDAY + r"\s*[·•|—]\s*)"
+    r"(?:Weekday|Weekend)\s*$", re.IGNORECASE
+)
 _YEARLESS_FORMATS = ("%B %d", "%b %d", "%m/%d", "%d %B", "%d %b")
 
 
@@ -206,6 +215,19 @@ def parse_trip_date(date_str) -> Optional[_date]:
         return None
     # If a Timestamp got stringified earlier, drop the trailing time component.
     s = s.split(" 00:00:00")[0]
+    # Date cells may include the required day-type label using a separator,
+    # e.g. "Mon 07 Dec 2026 · Weekday", "19 Mar 2027 • Fri • Weekday",
+    # "02 Aug 2027 | Mon • Weekday", or "2027-07-08 Thu • Weekday".
+    # Strip only this terminal grammar; keep free text, extra dates, and stacked
+    # parenthetical annotations out of the exact date parser.
+    if any(separator in s for separator in ('·', '•', '|', '—')):
+        annotation = _ANNOTATED_DAY_TYPE_SUFFIX_RE.search(s)
+        if annotation is None:
+            return None
+        base_date = s[:annotation.start()].strip()
+        if _DAY_TYPE_SUFFIX_RE.search(base_date):
+            return None
+        s = base_date
     # Strip a leading weekday + separator, e.g. "Mon, May 20, 2026" → "May 20, 2026".
     s = _WEEKDAY_PREFIX_RE.sub("", s).strip()
     # Strip trailing day-type suffix, e.g. "May 5, 2026 (Weekday)" → "May 5, 2026".
@@ -975,6 +997,10 @@ def any_period_contains(opening_periods: List[Dict], minute: int) -> bool:
 
 # --- Top-level orchestrators (called from evaluator.py) ---------------------
 
+class StructuredRowExtractionError(RuntimeError):
+    """Required evaluator structured extraction failed; this is not a model score."""
+
+
 def build_task_context(
     df: pd.DataFrame,
     sheet_raw: Dict,
@@ -996,9 +1022,15 @@ def build_task_context(
              "args": (resolved_gold_path, model)},
         ],
         max_workers=2,
-        timeout=60,
+        timeout=120,
     )
-    matched_columns, dest_names, matched_column_methods = phase1.get("match") or ({}, {}, {})
+    matched = phase1.get("match")
+    if (not isinstance(matched, (tuple, list)) or len(matched) != 3
+            or any(not isinstance(part, dict) for part in matched)):
+        raise StructuredRowExtractionError(
+            "Column and destination matching is unavailable or incomplete after phase 1 "
+            "(task failure or timeout); evaluation cannot be scored.")
+    matched_columns, dest_names, matched_column_methods = matched
     trip_details = phase1.get("gold") or {}
 
     all_review_urls = extract_review_urls(df, matched_columns, raw_rows, header_row_idx)
@@ -1019,9 +1051,15 @@ def build_task_context(
             {"id": "urls", "func": fetch_review_url_contents, "args": (all_review_urls,)},
         ],
         max_workers=4,
-        timeout=90,
+        timeout=180,
     )
-    parsed_rows = phase2.get("rows") or []
+    parsed_rows = phase2.get("rows")
+    if (not isinstance(parsed_rows, list) or len(parsed_rows) != total_rows
+            or any(not isinstance(row, dict) or not set(_PARSED_ROW_KEYS).issubset(row)
+                   for row in parsed_rows)):
+        raise StructuredRowExtractionError(
+            "Structured row extraction is unavailable or incomplete after phase 2 "
+            "(task failure or timeout); evaluation cannot be scored.")
     row_types = phase2.get("types") or []
     all_alt_types = phase2.get("alt_types") or []
     url_content = phase2.get("urls") or {}

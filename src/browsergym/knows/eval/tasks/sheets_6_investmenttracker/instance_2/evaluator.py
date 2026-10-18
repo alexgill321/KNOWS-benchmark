@@ -24,10 +24,13 @@ from browsergym.knows.eval.tasks.sheets_6_investmenttracker.utils import calcula
 from browsergym.knows.eval.eval_utils.parallel_utils import parallel_download, parallel_execute
 from browsergym.knows.eval.eval_utils.chart_utils import (
     debug_chart_structure,
-    extract_chart_domain_data,
-    extract_chart_series_data,
     validate_chart_categories_match,
     validate_chart_values_match
+)
+
+from browsergym.knows.eval.tasks.sheets_6_investmenttracker.chart_sources import (
+    ChartSourceDataError, fetch_chart_source_data,
+    extract_chart_domain_data, extract_chart_series_data,
 )
 
 # Constants
@@ -79,15 +82,8 @@ def setup(workspace_doc_id):
     chart_data = extract_charts_from_sheet(sheet_id, SHEETS_SERVICE)
     gold_data = extract_tables_from_sheet(GOLD_LABELS_SHEET_ID, SHEETS_SERVICE)
 
-    # Fetch full sheet data (all columns) for chart validation fallback
-    try:
-        result = SHEETS_SERVICE.spreadsheets().values().get(
-            spreadsheetId=sheet_id, range='Sheet1'
-        ).execute()
-        full_sheet_data = result.get('values', [])
-    except Exception as e:
-        print(f"Warning: Could not fetch full sheet data: {e}")
-        full_sheet_data = []
+    # Read the tabs identified by each chart source range.
+    full_sheet_data = fetch_chart_source_data(sheet_id, SHEETS_SERVICE, chart_data, chart_type=CHART_TYPE)
 
     # Initialize df for use across checkpoints (first table's DataFrame)
     if table_data:
@@ -950,6 +946,8 @@ def grade_checkpoint_4():
                               execution_time=step_time,
                               category=StepCategory.FUZZY_MATCH)
 
+    except ChartSourceDataError:
+        raise
     except Exception as e:
         step_time = time.time() - step_start
         checkpoint.add_step("Chart Contains Stocks", False, 2,
@@ -1027,6 +1025,8 @@ def grade_checkpoint_4():
                               execution_time=step_time,
                               category=StepCategory.FUZZY_MATCH)
 
+    except ChartSourceDataError:
+        raise
     except Exception as e:
         step_time = time.time() - step_start
         checkpoint.add_step("Chart Shows Percentages", False, 3,
@@ -1074,6 +1074,8 @@ def grade_checkpoints(workspace_doc_id=None, browsing_history=None):
 
         return result
 
+    except ChartSourceDataError:
+        raise
     except Exception as e:
         print(f"Error during evaluation: {str(e)}")
         import traceback
